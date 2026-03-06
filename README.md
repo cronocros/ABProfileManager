@@ -6,9 +6,17 @@
 
 현재 상태:
 - `v1.0.0`
-- 구현 완료
+- 1차 출시 완료
 - 인게임 기준 핵심 기능 동작 확인 완료
+- GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
+
+## 배포 정보
+
+- 저장소: `https://github.com/cronocros/ABProfileManager`
+- 릴리스 버전: `v1.0.0`
+- 배포 패키지: [ABProfileManager-v1.0.0.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.0.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.0.md)
 
 ## 설치
 
@@ -134,6 +142,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.0.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)
