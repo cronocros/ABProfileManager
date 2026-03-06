@@ -8,6 +8,7 @@ Events.frame = frame
 
 local function refreshGhostsAndRetries()
     ns.Utils.Debug("Refreshing ghost overlays and retry queue")
+    ns:SafeCall(ns.Modules.ActionBarApplier, "ReconcilePendingGhosts")
     ns:SafeCall(ns.Modules.ActionBarApplier, "RetryPendingGhosts")
     ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
 end

@@ -16,7 +16,7 @@
 ```powershell
 git remote add origin <REPO_URL>
 git add .
-git commit -m "Release v1.0.0"
+git commit -m "Release v1.0.1"
 git push -u origin main
 ```
 
@@ -29,5 +29,5 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package_release.ps1
 생성 결과:
 
 ```text
-dist\ABProfileManager-v1.0.0.zip
+dist\ABProfileManager-v1.0.1.zip
 ```

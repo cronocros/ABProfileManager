@@ -5,7 +5,7 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.0.0`
+- `v1.0.1`
 - 1차 출시 완료
 - 인게임 기준 핵심 기능 동작 확인 완료
 - GitHub 원격 업로드 완료
@@ -14,9 +14,9 @@
 ## 배포 정보
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 릴리스 버전: `v1.0.0`
-- 배포 패키지: [ABProfileManager-v1.0.0.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.0.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.0.md)
+- 릴리스 버전: `v1.0.1`
+- 배포 패키지: [ABProfileManager-v1.0.1.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.1.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.1.md)
 
 ## 설치
 
@@ -53,6 +53,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 비어 있는 칸만 채우기
   - 템플릿에 없는 칸 비우기
   - 다른 칸만 바꾸기
+  - 현재 적용 가능한 칸만 맞추기
   - 선택 범위를 템플릿 그대로 맞추기
   - 버튼 hover 설명과 클릭 시 요약 설명 제공
 - 비행 중 페이지 전환 바를 `9번 바`로 함께 저장/비교/적용
@@ -62,6 +63,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 전체 퀘스트 포기
 - 전투 중 작업 대기열 처리
 - 없는 주문/아이템/매크로는 고스트 오버레이 표시
+- 고스트 오버레이는 드래그로 해제하거나 다른 액션을 올려 덮어쓸 수 있음
+- 미니맵 버튼은 축소된 둥근 아이콘형으로 표시
 - 한국어 기본 UI, 영어 옵션 제공
 - 미니맵 버튼 제공
 - 미니맵 버튼은 단순 버튼형 UI 사용
@@ -142,7 +145,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.0.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.1.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

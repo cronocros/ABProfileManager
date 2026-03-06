@@ -3,6 +3,47 @@ local _, ns = ...
 local GhostManager = {}
 ns.Modules.GhostManager = GhostManager
 
+local function reportStatus(message)
+    ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
+    ns.Utils.Print(message)
+end
+
+local function getSlotLabel(logicalSlot)
+    if ns.Modules.SlotMapper then
+        return ns.Modules.SlotMapper:DescribeLogicalSlot(logicalSlot)
+    end
+
+    return ns.L("ghost_fallback_slot", logicalSlot or 0)
+end
+
+local function handleGhostDrop(currentOverlay)
+    if not currentOverlay or not currentOverlay.logicalSlot or not GetCursorInfo() then
+        return
+    end
+
+    local placed, err = ns.Modules.ActionBarApplier:PlaceCursorIntoLogicalSlot(currentOverlay.logicalSlot)
+    if not placed then
+        reportStatus(err or ns.L("error_action_place_failed"))
+        return
+    end
+
+    GameTooltip_Hide()
+    reportStatus(ns.L("ghost_replaced", getSlotLabel(currentOverlay.logicalSlot)))
+end
+
+local function handleGhostDismiss(currentOverlay)
+    if not currentOverlay or not currentOverlay.logicalSlot then
+        return
+    end
+
+    if not ns.Modules.ActionBarApplier:DismissPendingGhost(currentOverlay.logicalSlot) then
+        return
+    end
+
+    GameTooltip_Hide()
+    reportStatus(ns.L("ghost_removed", getSlotLabel(currentOverlay.logicalSlot)))
+end
+
 local function resolveButtonAction(button, fallbackSlot)
     if not button then
         return fallbackSlot
@@ -28,6 +69,8 @@ local function createOverlay(button)
     overlay:SetAllPoints(button)
     overlay:SetFrameLevel(button:GetFrameLevel() + 15)
     overlay:EnableMouse(true)
+    overlay:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    overlay:RegisterForDrag("LeftButton")
 
     overlay.icon = overlay:CreateTexture(nil, "OVERLAY")
     overlay.icon:SetAllPoints()
@@ -49,12 +92,15 @@ local function createOverlay(button)
         GameTooltip:SetOwner(currentOverlay, "ANCHOR_RIGHT")
         GameTooltip:SetText(currentOverlay.title or ns.L("ghost_unavailable_action"))
         GameTooltip:AddLine(currentOverlay.message or ns.L("ghost_reason_default"), 1, 0.82, 0, true)
+        GameTooltip:AddLine(currentOverlay.controlsHint or ns.L("ghost_controls_hint"), 0.84, 0.9, 1, true)
         GameTooltip:Show()
     end)
     overlay:SetScript("OnLeave", GameTooltip_Hide)
-    overlay:SetScript("OnMouseUp", function(currentOverlay)
+    overlay:SetScript("OnClick", function(currentOverlay)
         ns.Utils.Print(currentOverlay.message or ns.L("ghost_reason_default"))
     end)
+    overlay:SetScript("OnReceiveDrag", handleGhostDrop)
+    overlay:SetScript("OnDragStart", handleGhostDismiss)
 
     return overlay
 end
@@ -112,6 +158,8 @@ function GhostManager:RefreshGhosts()
             overlay.icon:SetTexture(slotRecord.icon or ns.Constants.DEFAULT_ICON)
             overlay.title = slotRecord.name or ns.L("ghost_fallback_slot", logicalSlot)
             overlay.message = ghostEntry.reason or ns.L("ghost_reason_default")
+            overlay.controlsHint = ns.L("ghost_controls_hint")
+            overlay.logicalSlot = logicalSlot
             overlay:Show()
             self.ghostsBySlot[logicalSlot] = overlay
         elseif self.ghostsBySlot[logicalSlot] then

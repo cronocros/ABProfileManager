@@ -8,6 +8,7 @@ local ACTION = {
     CLEAR_EXTRAS = "clear_extras",
     SYNC_DIFF = "sync_diff",
     EXACT = "exact_sync",
+    AVAILABLE_ONLY = "available_only_sync",
 }
 
 local function buildEmptyRecord(logicalSlot)
@@ -74,8 +75,8 @@ local function describeRecord(record)
     return tostring(record.kind or ns.L("compare_action_unknown"))
 end
 
-local function buildSubsetPlan(planType, comparison, logicalSlots, entries, clearBeforeApply, actionKey)
-    return {
+local function buildSubsetPlan(planType, comparison, logicalSlots, entries, clearBeforeApply, actionKey, meta)
+    local plan = {
         type = planType,
         selection = {
             mode = comparison.selection.mode,
@@ -90,8 +91,17 @@ local function buildSubsetPlan(planType, comparison, logicalSlots, entries, clea
             key = comparison.key,
             label = ns.Utils.FormatSourceLabel(comparison.kind, comparison.key),
         },
+        actionKey = actionKey,
         key = string.format("sync:%s:%s:%s:%d", actionKey, comparison.kind, comparison.key, #logicalSlots),
     }
+
+    if type(meta) == "table" then
+        for key, value in pairs(meta) do
+            plan[key] = value
+        end
+    end
+
+    return plan
 end
 
 function TemplateSyncManager:Initialize()
@@ -248,6 +258,7 @@ function TemplateSyncManager:BuildPlanForAction(comparison, actionKey)
     local entries = {}
     local planType = "apply"
     local clearBeforeApply = false
+    local skippedUnavailable = 0
 
     for _, diff in ipairs(comparison.diffs) do
         if actionKey == ACTION.FILL_EMPTY and diff.category == "missing_on_current" then
@@ -259,10 +270,28 @@ function TemplateSyncManager:BuildPlanForAction(comparison, actionKey)
             targetSlots[#targetSlots + 1] = diff.logicalSlot
             entries[diff.logicalSlot] = cloneRecord(diff.template, diff.logicalSlot)
             clearBeforeApply = true
+        elseif actionKey == ACTION.AVAILABLE_ONLY then
+            if diff.category == "extra_on_current" then
+                targetSlots[#targetSlots + 1] = diff.logicalSlot
+                clearBeforeApply = true
+            elseif not isEmptyRecord(diff.template) then
+                local canApply = ns.Modules.ActionBarApplier and ns.Modules.ActionBarApplier:CanResolveRecord(diff.template)
+                if canApply then
+                    targetSlots[#targetSlots + 1] = diff.logicalSlot
+                    entries[diff.logicalSlot] = cloneRecord(diff.template, diff.logicalSlot)
+                    clearBeforeApply = true
+                else
+                    skippedUnavailable = skippedUnavailable + 1
+                end
+            end
         end
     end
 
     if #targetSlots == 0 then
+        if actionKey == ACTION.AVAILABLE_ONLY and skippedUnavailable > 0 then
+            return nil, ns.L("sync_available_only_no_applicable", skippedUnavailable)
+        end
+
         return nil, ns.L("sync_nothing_to_do")
     end
 
@@ -271,7 +300,9 @@ function TemplateSyncManager:BuildPlanForAction(comparison, actionKey)
         return buildSubsetPlan(planType, comparison, targetSlots, {}, true, actionKey)
     end
 
-    return buildSubsetPlan(planType, comparison, targetSlots, entries, clearBeforeApply, actionKey)
+    return buildSubsetPlan(planType, comparison, targetSlots, entries, clearBeforeApply, actionKey, {
+        skippedUnavailable = skippedUnavailable,
+    })
 end
 
 function TemplateSyncManager:GetConfirmText(actionKey, comparison, plan)
@@ -285,6 +316,16 @@ function TemplateSyncManager:GetConfirmText(actionKey, comparison, plan)
 
     if actionKey == ACTION.SYNC_DIFF then
         return ns.L("sync_confirm_sync_diff", comparison.key, #plan.logicalSlots, comparison.selection.summary)
+    end
+
+    if actionKey == ACTION.AVAILABLE_ONLY then
+        return ns.L(
+            "sync_confirm_available_only",
+            comparison.key,
+            #plan.logicalSlots,
+            comparison.selection.summary,
+            plan.skippedUnavailable or 0
+        )
     end
 
     return ns.L("sync_confirm_exact", comparison.key, comparison.selection.summary)

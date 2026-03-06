@@ -52,6 +52,49 @@ local function safeIsSpellKnown(spellID)
     return false
 end
 
+local function isEmptyRecord(record)
+    return not record or not record.kind or record.kind == "empty"
+end
+
+local function buildRecordSignature(record)
+    if isEmptyRecord(record) then
+        return "empty"
+    end
+
+    if record.kind == "spell" or record.kind == "item" or record.kind == "equipmentset" then
+        return string.format("%s:%s", tostring(record.kind), tostring(record.id))
+    end
+
+    if record.kind == "macro" then
+        return string.format(
+            "macro:%s:%s",
+            tostring(record.name or ""),
+            tostring(record.macroBody or "")
+        )
+    end
+
+    return string.format("%s:%s:%s", tostring(record.kind), tostring(record.id), tostring(record.name))
+end
+
+local function itemIsAvailable(itemID)
+    if not itemID then
+        return false
+    end
+
+    if PlayerHasToy and PlayerHasToy(itemID) then
+        return true
+    end
+
+    if GetItemCount then
+        local itemCount = GetItemCount(itemID, false, false)
+        if itemCount and itemCount > 0 then
+            return true
+        end
+    end
+
+    return false
+end
+
 local function getSelectionSlotCount(plan)
     return plan.logicalSlots and #plan.logicalSlots or 0
 end
@@ -121,6 +164,60 @@ function ActionBarApplier:ClearPendingGhost(logicalSlot)
     self.pendingGhosts[logicalSlot] = nil
 end
 
+function ActionBarApplier:DismissPendingGhost(logicalSlot)
+    if not self.pendingGhosts[logicalSlot] then
+        return false
+    end
+
+    self:ClearPendingGhost(logicalSlot)
+    ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
+    return true
+end
+
+function ActionBarApplier:CanResolveRecord(slotRecord)
+    if isEmptyRecord(slotRecord) then
+        return true
+    end
+
+    local kind = slotRecord.kind
+    local actionID = slotRecord.id
+
+    if kind == "spell" then
+        if not actionID or not safeIsSpellKnown(actionID) then
+            return false, ns.L("error_spell_missing"), "missing"
+        end
+
+        return true
+    end
+
+    if kind == "macro" then
+        if not actionID and not slotRecord.name then
+            return false, ns.L("error_macro_incomplete"), "missing"
+        end
+
+        local macroIndex, macroErr = findMacroIndex(slotRecord)
+        if not macroIndex then
+            return false, macroErr or ns.L("error_macro_missing"), "missing"
+        end
+
+        return true
+    end
+
+    if kind == "item" then
+        if not actionID then
+            return false, ns.L("error_item_incomplete"), "missing"
+        end
+
+        if itemIsAvailable(actionID) then
+            return true
+        end
+
+        return false, ns.L("error_action_pickup_failed"), "missing"
+    end
+
+    return false, string.format("%s: %s", ns.L("error_unsupported_action_type"), tostring(kind)), "unsupported"
+end
+
 function ActionBarApplier:ClearLogicalSlot(logicalSlot)
     local actualSlot, err = ns.Modules.SlotMapper:ResolveActualSlot(logicalSlot, "mutate")
     if not actualSlot then
@@ -134,15 +231,41 @@ function ActionBarApplier:ClearLogicalSlot(logicalSlot)
     return true, hadAction and "cleared" or "empty", "ok"
 end
 
+function ActionBarApplier:PlaceCursorIntoLogicalSlot(logicalSlot)
+    if InCombatLockdown and InCombatLockdown() then
+        return false, ns.L("combat_lockdown_active"), "blocked"
+    end
+
+    local actualSlot, err = ns.Modules.SlotMapper:ResolveActualSlot(logicalSlot, "mutate")
+    if not actualSlot then
+        return false, err, "invalid"
+    end
+
+    if not GetCursorInfo() then
+        return false, ns.L("error_action_pickup_failed"), "missing"
+    end
+
+    PlaceAction(actualSlot)
+
+    if not GetActionInfo(actualSlot) then
+        return false, ns.L("error_action_place_failed"), "missing"
+    end
+
+    self:ClearPendingGhost(logicalSlot)
+    ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
+    return true, "applied", "ok"
+end
+
 function ActionBarApplier:PickupFromRecord(slotRecord)
+    local resolvable, resolveErr, resolveCategory = self:CanResolveRecord(slotRecord)
+    if not resolvable then
+        return false, resolveErr, resolveCategory
+    end
+
     local kind = slotRecord.kind
     local actionID = slotRecord.id
 
     if kind == "spell" then
-        if not actionID or not safeIsSpellKnown(actionID) then
-            return false, ns.L("error_spell_missing"), "missing"
-        end
-
         ClearCursor()
         if C_Spell and C_Spell.PickupSpell then
             C_Spell.PickupSpell(actionID)
@@ -213,28 +336,34 @@ function ActionBarApplier:PlaceRecord(logicalSlot, slotRecord)
 end
 
 function ActionBarApplier:BuildResultMessage(result)
-    if result.queued then
-        return ns.L("operation_queued")
-    end
+    local message
 
-    if result.type == "clear" then
-        return ns.L(
+    if result.queued then
+        message = ns.L("operation_queued")
+    elseif result.type == "clear" then
+        message = ns.L(
             "result_clear",
             result.cleared,
             result.invalid,
             result.selected
         )
+    else
+        message = ns.L(
+            "result_apply",
+            result.applied,
+            result.cleared,
+            result.missing,
+            result.unsupported,
+            result.invalid,
+            result.selected
+        )
     end
 
-    return ns.L(
-        "result_apply",
-        result.applied,
-        result.cleared,
-        result.missing,
-        result.unsupported,
-        result.invalid,
-        result.selected
-    )
+    if result.skippedUnavailable and result.skippedUnavailable > 0 then
+        message = string.format("%s\n%s", message, ns.L("sync_result_skipped_unavailable", result.skippedUnavailable))
+    end
+
+    return message
 end
 
 function ActionBarApplier:ApplyPlan(plan, options)
@@ -272,6 +401,7 @@ function ActionBarApplier:ApplyPlan(plan, options)
         missing = 0,
         unsupported = 0,
         invalid = 0,
+        skippedUnavailable = plan.skippedUnavailable or 0,
     }
 
     if plan.type == "clear" or plan.clearBeforeApply then
@@ -337,6 +467,28 @@ function ActionBarApplier:FlushQueue()
     end
 end
 
+function ActionBarApplier:ReconcilePendingGhosts()
+    if not self.pendingGhosts then
+        return 0
+    end
+
+    local removed = 0
+    for logicalSlot, ghostEntry in pairs(self.pendingGhosts) do
+        local currentRecord = ns.Modules.ActionBarScanner and ns.Modules.ActionBarScanner:ScanLogicalSlot(logicalSlot)
+        if currentRecord and not isEmptyRecord(currentRecord) then
+            ns.Utils.Debug(string.format(
+                "Clearing pending ghost for slot %d after slot changed (%s)",
+                logicalSlot,
+                buildRecordSignature(ghostEntry and ghostEntry.slotRecord)
+            ))
+            self:ClearPendingGhost(logicalSlot)
+            removed = removed + 1
+        end
+    end
+
+    return removed
+end
+
 function ActionBarApplier:RetryPendingGhosts()
     if InCombatLockdown and InCombatLockdown() then
         return
@@ -344,7 +496,10 @@ function ActionBarApplier:RetryPendingGhosts()
 
     ns.Utils.Debug(string.format("Retrying %d ghost slots", ns.Utils.TableCount(self.pendingGhosts)))
     for logicalSlot, ghostEntry in pairs(self.pendingGhosts) do
-        if ghostEntry.retryable then
+        local currentRecord = ns.Modules.ActionBarScanner and ns.Modules.ActionBarScanner:ScanLogicalSlot(logicalSlot)
+        if currentRecord and not isEmptyRecord(currentRecord) then
+            self:ClearPendingGhost(logicalSlot)
+        elseif ghostEntry.retryable then
             self:PlaceRecord(logicalSlot, ghostEntry.slotRecord)
         end
     end

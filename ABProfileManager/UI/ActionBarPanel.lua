@@ -16,6 +16,7 @@ local SYNC_ACTION = ns.Modules.TemplateSyncManager and ns.Modules.TemplateSyncMa
     CLEAR_EXTRAS = "clear_extras",
     SYNC_DIFF = "sync_diff",
     EXACT = "exact_sync",
+    AVAILABLE_ONLY = "available_only_sync",
 }
 
 local function setStatus(panel, message)
@@ -171,6 +172,7 @@ function ActionBarPanel:RefreshLocale()
     self.clearExtraButton:SetText(ns.L("sync_clear_extras"))
     self.syncDiffButton:SetText(ns.L("sync_sync_diff"))
     self.exactSyncButton:SetText(ns.L("sync_exact"))
+    self.availableOnlyButton:SetText(ns.L("sync_available_only"))
     self.applyButton:SetText(ns.L("apply_selected_source"))
     self.clearButton:SetText(ns.L("clear_selected_range"))
     self.undoButton:SetText(ns.L("undo_button"))
@@ -272,6 +274,10 @@ function ActionBarPanel:BuildSyncHelpText(actionKey, selection, detailed)
 
     if actionKey == SYNC_ACTION.EXACT then
         return ns.L(detailed and "sync_help_exact_long" or "sync_help_exact_tip", summary, summary)
+    end
+
+    if actionKey == SYNC_ACTION.AVAILABLE_ONLY then
+        return ns.L(detailed and "sync_help_available_only_long" or "sync_help_available_only_tip", summary, summary)
     end
 
     return summary
@@ -448,8 +454,11 @@ function ActionBarPanel:Create(parent)
     local exactSyncButton = widgets.CreateButton(syncBox, "", 185, 60)
     exactSyncButton:SetPoint("LEFT", syncDiffButton, "RIGHT", 12, 0)
 
+    local availableOnlyButton = widgets.CreateButton(syncBox, "", 382, 60)
+    availableOnlyButton:SetPoint("TOPLEFT", syncDiffButton, "BOTTOMLEFT", 0, -8)
+
     local applyButton = widgets.CreateButton(syncBox, "", 185, 60)
-    applyButton:SetPoint("TOPLEFT", syncDiffButton, "BOTTOMLEFT", 0, -10)
+    applyButton:SetPoint("TOPLEFT", availableOnlyButton, "BOTTOMLEFT", 0, -10)
 
     local clearButton = widgets.CreateButton(syncBox, "", 185, 60)
     clearButton:SetPoint("LEFT", applyButton, "RIGHT", 12, 0)
@@ -463,6 +472,7 @@ function ActionBarPanel:Create(parent)
         clearExtraButton,
         syncDiffButton,
         exactSyncButton,
+        availableOnlyButton,
         applyButton,
         clearButton,
         undoButton,
@@ -511,6 +521,7 @@ function ActionBarPanel:Create(parent)
     self.clearExtraButton = clearExtraButton
     self.syncDiffButton = syncDiffButton
     self.exactSyncButton = exactSyncButton
+    self.availableOnlyButton = availableOnlyButton
     self.applyButton = applyButton
     self.clearButton = clearButton
     self.undoButton = undoButton
@@ -597,6 +608,10 @@ function ActionBarPanel:Create(parent)
         self:RunSyncAction(SYNC_ACTION.EXACT)
     end)
 
+    availableOnlyButton:SetScript("OnClick", function()
+        self:RunSyncAction(SYNC_ACTION.AVAILABLE_ONLY)
+    end)
+
     applyButton:SetScript("OnClick", function()
         local selectedSource = getValidTemplateSelection()
         if not selectedSource then
@@ -666,6 +681,7 @@ function ActionBarPanel:Create(parent)
     self:BindSyncHelp(clearExtraButton, SYNC_ACTION.CLEAR_EXTRAS, true)
     self:BindSyncHelp(syncDiffButton, SYNC_ACTION.SYNC_DIFF, true)
     self:BindSyncHelp(exactSyncButton, SYNC_ACTION.EXACT, true)
+    self:BindSyncHelp(availableOnlyButton, SYNC_ACTION.AVAILABLE_ONLY, true)
 
     return frame
 end
