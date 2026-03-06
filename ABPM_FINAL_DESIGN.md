@@ -1,7 +1,7 @@
 # ABPM Final Design
 
 현재 제품 상태:
-- `v1.0.1`
+- `v1.0.2`
 - 구현 완료
 - 1차 출시 완료
 - 출시 기준 문서
@@ -14,6 +14,7 @@
 ## 제품 범위
 
 - 템플릿 저장 / 복제 / 적용 / 삭제
+- 같은 이름 저장 시 덮어쓰기 확인
 - 세션 기준 최근 1회 되돌리기
 - 전체 액션바 또는 부분 범위 적용
 - 현재 액션바와 템플릿 비교
@@ -221,9 +222,9 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 기본 브랜치: `main`
-- 현재 배포 버전: `v1.0.1`
-- 현재 배포 산출물: `dist/ABProfileManager-v1.0.1.zip`
-- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.0.1.md`
+- 현재 배포 버전: `v1.0.2`
+- 현재 배포 산출물: `dist/ABProfileManager-v1.0.2.zip`
+- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.0.2.md`
 - 버전 기록 기준 문서: `CHANGELOG.md`
 
 ## 확인이 필요한 항목

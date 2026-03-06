@@ -2,7 +2,7 @@
 ## Title: ABProfileManager
 ## Notes: Action-bar template manager with compare, undo, import/export, and quest cleanup for Retail.
 ## Author: 밍밍이와코코
-## Version: 1.0.1
+## Version: 1.0.2
 ## IconTexture: Interface\Icons\INV_Inscription_ScrollOfWisdom_01
 ## SavedVariables: ABPM_DB
 

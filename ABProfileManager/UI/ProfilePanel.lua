@@ -433,20 +433,25 @@ function ProfilePanel:Create(parent)
     self.templateRows = self:CreateRows(templatesBox)
 
     saveTemplateButton:SetScript("OnClick", function()
-        local snapshot, err = ns.Modules.ProfileManager:SaveTemplate(templateInput:GetText())
-        if not snapshot then
-            setStatus(self, err)
-            ns.Utils.Print(err)
-            return
-        end
+        ns.Modules.ProfileManager:RequestSaveTemplate(templateInput:GetText(), {
+            onComplete = function(snapshot, err)
+                if not snapshot then
+                    setStatus(self, err)
+                    if err then
+                        ns.Utils.Print(err)
+                    end
+                    return
+                end
 
-        ns:SetSelectedSource(ns.Constants.SOURCE_KIND.TEMPLATE, snapshot.sourceKey)
-        templateInput:SetText(snapshot.sourceKey or "")
-        local statusMessage = ns.L("saved_template", snapshot.sourceKey)
-        setStatus(self, statusMessage)
-        ns.Utils.Print(statusMessage)
-        self:Refresh()
-        refreshOtherPanel()
+                ns:SetSelectedSource(ns.Constants.SOURCE_KIND.TEMPLATE, snapshot.sourceKey)
+                templateInput:SetText(snapshot.sourceKey or "")
+                local statusMessage = ns.L("saved_template", snapshot.sourceKey)
+                setStatus(self, statusMessage)
+                ns.Utils.Print(statusMessage)
+                self:Refresh()
+                refreshOtherPanel()
+            end,
+        })
     end)
 
     duplicateButton:SetScript("OnClick", function()

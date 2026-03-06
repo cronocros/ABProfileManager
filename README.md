@@ -5,7 +5,7 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.0.1`
+- `v1.0.2`
 - 1차 출시 완료
 - 인게임 기준 핵심 기능 동작 확인 완료
 - GitHub 원격 업로드 완료
@@ -14,9 +14,9 @@
 ## 배포 정보
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 릴리스 버전: `v1.0.1`
-- 배포 패키지: [ABProfileManager-v1.0.1.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.1.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.1.md)
+- 릴리스 버전: `v1.0.2`
+- 배포 패키지: [ABProfileManager-v1.0.2.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.2.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.2.md)
 
 ## 설치
 
@@ -35,6 +35,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 주요 기능
 
 - 현재 액션바 배치를 템플릿으로 저장
+- 같은 이름으로 저장 시 덮어쓰기 확인
 - 선택한 템플릿 복제
 - 저장한 템플릿 선택, 적용, 삭제
 - 템플릿 문자열 내보내기 / 가져오기
@@ -145,7 +146,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.1.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.2.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

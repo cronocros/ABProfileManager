@@ -46,6 +46,43 @@ function ProfileManager:SaveTemplate(templateName)
     return snapshot
 end
 
+function ProfileManager:RequestSaveTemplate(templateName, callbacks)
+    callbacks = callbacks or {}
+    templateName = ns.Utils.SanitizeSingleLine(templateName or "")
+
+    if templateName == "" then
+        if callbacks.onComplete then
+            callbacks.onComplete(nil, ns.L("error_template_name_required"))
+        end
+        return nil, ns.L("error_template_name_required")
+    end
+
+    local function complete(result, err)
+        if callbacks.onComplete then
+            callbacks.onComplete(result, err)
+        end
+
+        ns:RefreshUI()
+    end
+
+    local function execute()
+        local snapshot, err = self:SaveTemplate(templateName)
+        if not snapshot and err then
+            ns.Utils.Print(err)
+            ns:SafeCall(ns.UI.MainWindow, "SetStatus", err)
+        end
+        complete(snapshot, err)
+    end
+
+    if ns.DB and ns.DB:HasTemplate(templateName) then
+        ns.UI.ConfirmDialogs:ShowConfirm(ns.L("confirm_overwrite_template_text", templateName), execute)
+        return true
+    end
+
+    execute()
+    return true
+end
+
 function ProfileManager:GetUniqueTemplateName(baseName)
     local trimmed = ns.Utils.SanitizeSingleLine(baseName or "")
     if trimmed == "" then

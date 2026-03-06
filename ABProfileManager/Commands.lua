@@ -170,18 +170,21 @@ function Commands:HandleSlash(message)
 
     if command == "savetemplate" or command == "save" then
         local templateName = ns.Utils.Trim(ns.Utils.JoinArgs(args, 2))
-        local snapshot, err = ns.Modules.ProfileManager:SaveTemplate(templateName)
-        if not snapshot then
-            ns.Utils.Print(err)
-            setStatus(err)
-            return
-        end
+        ns.Modules.ProfileManager:RequestSaveTemplate(templateName, {
+            onComplete = function(snapshot, err)
+                if not snapshot then
+                    ns.Utils.Print(err)
+                    setStatus(err)
+                    return
+                end
 
-        ns:SetSelectedSource(ns.Constants.SOURCE_KIND.TEMPLATE, snapshot.sourceKey)
-        local statusMessage = ns.L("saved_template", snapshot.sourceKey)
-        ns.Utils.Print(statusMessage)
-        setStatus(statusMessage)
-        ns:RefreshUI()
+                ns:SetSelectedSource(ns.Constants.SOURCE_KIND.TEMPLATE, snapshot.sourceKey)
+                local statusMessage = ns.L("saved_template", snapshot.sourceKey)
+                ns.Utils.Print(statusMessage)
+                setStatus(statusMessage)
+                ns:RefreshUI()
+            end,
+        })
         return
     end
 
