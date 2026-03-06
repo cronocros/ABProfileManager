@@ -3,6 +3,10 @@ local _, ns = ...
 local MainWindow = {}
 ns.UI.MainWindow = MainWindow
 
+local function buildWindowTitle()
+    return string.format("%s  v%s", ns.L("window_title"), ns.Constants.VERSION or "?")
+end
+
 local function applyTabSelectionStyles(window)
     ns.UI.Widgets.SetButtonSelected(window.profilesTab, window.currentTab == "profiles")
     ns.UI.Widgets.SetButtonSelected(window.actionBarsTab, window.currentTab == "action_bars")
@@ -28,7 +32,7 @@ function MainWindow:RefreshLocale()
         return
     end
 
-    self.frame.title:SetText(ns.L("window_title"))
+    self.frame.title:SetText(buildWindowTitle())
     self.frame.title:SetTextColor(1, 0.86, 0.42, 1)
     self.frame.profilesTab:SetText(ns.L("tab_profiles"))
     self.frame.actionBarsTab:SetText(ns.L("tab_action_bars"))
@@ -74,7 +78,7 @@ function MainWindow:Initialize()
     title:SetWidth(windowWidth - 120)
     title:SetJustifyH("LEFT")
     title:SetTextColor(1, 0.86, 0.42, 1)
-    title:SetText(ns.Constants.TITLE)
+    title:SetText(buildWindowTitle())
 
     local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", -6, -6)

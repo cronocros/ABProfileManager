@@ -200,6 +200,17 @@ function ActionBarPanel:BuildTemplateInfo(selectedSource, selection)
         ns.L("source_details_character_bullet", details.characterKey or "-"),
         ns.L("source_details_class_bullet", ns.ClassL(details.class or "UNKNOWN")),
         ns.L("source_details_spec_bullet", details.specID or 0),
+        ns.L("source_details_spec_name_bullet", details.specName or "-"),
+        ns.L(
+            "source_details_recorded_actions_bullet",
+            details.stats and details.stats.recordedActions or 0,
+            details.stats and details.stats.trackedSlots or 0
+        ),
+        ns.L("source_details_empty_slots_bullet", details.stats and details.stats.emptySlots or 0),
+        ns.L("source_details_spells_bullet", details.stats and details.stats.spells or 0),
+        ns.L("source_details_macros_bullet", details.stats and details.stats.macros or 0),
+        ns.L("source_details_items_bullet", details.stats and details.stats.items or 0),
+        ns.L("source_details_other_actions_bullet", details.stats and details.stats.other or 0),
         "",
         ns.L("section_apply_info"),
         ns.L("source_details_scope_bullet", selection.summary),

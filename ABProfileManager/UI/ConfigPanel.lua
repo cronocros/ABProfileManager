@@ -97,7 +97,11 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.debugLabel:SetText(ns.L("config_debug"))
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
     refs.helpText:SetText(ns.L("config_help"))
-    refs.infoText:SetText(ns.L("config_settings_info"))
+    refs.infoText:SetText(string.format(
+        "%s\n%s",
+        ns.L("config_settings_info"),
+        ns.L("config_version_info", ns.Constants.VERSION or "?")
+    ))
 
     if refs.openWindowButton then
         refs.openWindowButton:SetText(ns.L("config_open_window"))

@@ -5,7 +5,7 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.0.2`
+- `v1.0.3`
 - 1차 출시 완료
 - 인게임 기준 핵심 기능 동작 확인 완료
 - GitHub 원격 업로드 완료
@@ -14,9 +14,9 @@
 ## 배포 정보
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 릴리스 버전: `v1.0.2`
-- 배포 패키지: [ABProfileManager-v1.0.2.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.2.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.2.md)
+- 릴리스 버전: `v1.0.3`
+- 배포 패키지: [ABProfileManager-v1.0.3.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.3.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.3.md)
 
 ## 설치
 
@@ -38,9 +38,11 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 같은 이름으로 저장 시 덮어쓰기 확인
 - 선택한 템플릿 복제
 - 저장한 템플릿 선택, 적용, 삭제
+- 템플릿 저장/복제/목록 새로고침 옆 상단 행에 `템플릿 삭제` 배치
 - 템플릿 문자열 내보내기 / 가져오기
 - 템플릿 탭에서 현재 특성 바로 전환
 - 템플릿 탭에서 전체 액션바 비우기
+  - 1차 비우기 후 남은 칸을 한 번 더 점검해서 재비우기
 - 최근 1회 작업 되돌리기
 - 적용 범위 선택
   - 전체 액션바
@@ -58,6 +60,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 선택 범위를 템플릿 그대로 맞추기
   - 버튼 hover 설명과 클릭 시 요약 설명 제공
 - 비행 중 페이지 전환 바를 `9번 바`로 함께 저장/비교/적용
+- 메인 타이틀과 설정 탭에 현재 버전 표시
+- 템플릿 정보에 특성명, 기록된 액션 수, 주문/매크로/아이템 수 표시
 - 퀘스트 정리 탭
   - 퀘스트 후보 새로고침
   - 안전 정리 실행
@@ -65,7 +69,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 전투 중 작업 대기열 처리
 - 없는 주문/아이템/매크로는 고스트 오버레이 표시
 - 고스트 오버레이는 드래그로 해제하거나 다른 액션을 올려 덮어쓸 수 있음
-- 미니맵 버튼은 축소된 둥근 아이콘형으로 표시
+- 미니맵 버튼은 축소된 사각 `AB` 버튼형으로 표시
 - 한국어 기본 UI, 영어 옵션 제공
 - 미니맵 버튼 제공
 - 미니맵 버튼은 단순 버튼형 UI 사용
@@ -81,13 +85,15 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.3`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
   - 특성 전환 버튼
+  - 템플릿 저장 / 복제 / 목록 새로고침 / 삭제 상단 행
   - 템플릿 목록
   - 이전 / 다음 템플릿 이동 버튼
+  - 템플릿 정보에 특성명과 기록 통계 포함
   - 템플릿 작업 버튼 세로 배치
 - `액션바` 탭:
   - 템플릿 정보
@@ -129,6 +135,9 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 
 - 실제 변경 허용 범위는 현재 `1-132`, `145-180`을 사용합니다.
 - 전체 저장/선택 모델은 `1-196` 기준으로 동작합니다.
+- 현재 바 모델은 `1~9번 바`까지만 지원합니다.
+- `9번 바`는 비행 중 페이지 전환 바입니다.
+- `10~12번` 특수 바는 현재 별도 매핑하지 않습니다.
 - 되돌리기는 현재 세션 기준 최근 1회만 지원합니다.
 - 퀘스트 안전 정리는 포기 가능 + 완료 아님 + 보고 가능 아님 + 진행도 없음 기준만 정리합니다.
 - 전체 퀘스트 포기는 현재 목록에서 포기 가능한 퀘스트만 대상으로 합니다.
@@ -146,7 +155,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.2.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.3.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

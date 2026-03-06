@@ -3,8 +3,6 @@ local _, ns = ...
 local MinimapButton = {}
 ns.UI.MinimapButton = MinimapButton
 
-local ICON_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
-
 local function updatePosition(button)
     if not button or not Minimap then
         return
@@ -40,40 +38,30 @@ function MinimapButton:Initialize()
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:RegisterForDrag("RightButton")
 
-    button.shadow = button:CreateTexture(nil, "BACKGROUND")
-    button.shadow:SetPoint("TOPLEFT", 1, -1)
-    button.shadow:SetPoint("BOTTOMRIGHT", -1, 1)
-    button.shadow:SetTexture("Interface\\Buttons\\WHITE8X8")
-    button.shadow:SetVertexColor(0.01, 0.02, 0.04, 0.94)
-    button.shadow:SetMask(ICON_MASK)
+    button.fill = button:CreateTexture(nil, "BACKGROUND")
+    button.fill:SetAllPoints()
+    button.fill:SetTexture("Interface\\Buttons\\WHITE8X8")
+    button.fill:SetVertexColor(0.09, 0.13, 0.18, 0.96)
 
-    button.ring = button:CreateTexture(nil, "BORDER")
-    button.ring:SetAllPoints()
+    button.ring = button:CreateTexture(nil, "ARTWORK")
+    button.ring:SetPoint("TOPLEFT", 2, -2)
+    button.ring:SetPoint("BOTTOMRIGHT", -2, 2)
     button.ring:SetTexture("Interface\\Buttons\\WHITE8X8")
-    button.ring:SetVertexColor(0.76, 0.62, 0.24, 0.98)
-    button.ring:SetMask(ICON_MASK)
+    button.ring:SetVertexColor(0.72, 0.58, 0.24, 0.95)
 
-    button.icon = button:CreateTexture(nil, "ARTWORK")
-    button.icon:SetPoint("TOPLEFT", 3, -3)
-    button.icon:SetPoint("BOTTOMRIGHT", -3, 3)
-    button.icon:SetTexture(ns.Constants.DEFAULT_ICON)
-    button.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    button.icon:SetMask(ICON_MASK)
+    button.inner = button:CreateTexture(nil, "ARTWORK")
+    button.inner:SetPoint("TOPLEFT", 4, -4)
+    button.inner:SetPoint("BOTTOMRIGHT", -4, 4)
+    button.inner:SetTexture("Interface\\Buttons\\WHITE8X8")
+    button.inner:SetVertexColor(0.10, 0.16, 0.22, 0.98)
 
-    button.gloss = button:CreateTexture(nil, "OVERLAY")
-    button.gloss:SetPoint("TOPLEFT", 5, -5)
-    button.gloss:SetPoint("BOTTOMRIGHT", -5, 5)
-    button.gloss:SetTexture("Interface\\Buttons\\WHITE8X8")
-    button.gloss:SetVertexColor(1, 1, 1, 0.08)
-    button.gloss:SetMask(ICON_MASK)
+    button.label = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    button.label:SetPoint("CENTER", 0, -1)
+    button.label:SetText("AB")
+    button.label:SetTextColor(1, 0.84, 0.32, 1)
+    button.label:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 9, "")
 
-    button.highlight = button:CreateTexture(nil, "HIGHLIGHT")
-    button.highlight:SetPoint("TOPLEFT", 1, -1)
-    button.highlight:SetPoint("BOTTOMRIGHT", -1, 1)
-    button.highlight:SetTexture("Interface\\Buttons\\WHITE8X8")
-    button.highlight:SetVertexColor(1, 0.92, 0.55, 0.14)
-    button.highlight:SetMask(ICON_MASK)
-
+    button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
     button:SetHitRectInsets(-8, -8, -8, -8)
 
     button:SetScript("OnClick", function(_, mouseButton)

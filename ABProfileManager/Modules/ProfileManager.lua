@@ -3,6 +3,64 @@ local _, ns = ...
 local ProfileManager = {}
 ns.Modules.ProfileManager = ProfileManager
 
+local function getSpecializationName(specID)
+    specID = tonumber(specID) or 0
+    if specID <= 0 or type(GetSpecializationInfoByID) ~= "function" then
+        return nil
+    end
+
+    local value1, value2 = GetSpecializationInfoByID(specID)
+    if type(value1) == "string" then
+        return value1
+    end
+
+    if type(value2) == "string" then
+        return value2
+    end
+
+    return nil
+end
+
+local function buildTemplateStats(source)
+    local stats = {
+        trackedSlots = 0,
+        recordedActions = 0,
+        emptySlots = 0,
+        spells = 0,
+        macros = 0,
+        items = 0,
+        other = 0,
+    }
+
+    if not source or type(source.slots) ~= "table" then
+        return stats
+    end
+
+    for _, slotRecord in pairs(source.slots) do
+        if type(slotRecord) == "table" and slotRecord.status ~= "unsupported" then
+            stats.trackedSlots = stats.trackedSlots + 1
+
+            if slotRecord.kind and slotRecord.kind ~= "empty" then
+                stats.recordedActions = stats.recordedActions + 1
+
+                if slotRecord.kind == "spell" then
+                    stats.spells = stats.spells + 1
+                elseif slotRecord.kind == "macro" then
+                    stats.macros = stats.macros + 1
+                elseif slotRecord.kind == "item" then
+                    stats.items = stats.items + 1
+                else
+                    stats.other = stats.other + 1
+                end
+            else
+                stats.emptySlots = stats.emptySlots + 1
+            end
+        end
+    end
+
+    return stats
+end
+
 local function enrichSnapshot(snapshot, templateName)
     local currentCharacter = ns.DB:GetCharacterKey()
     local currentRecord = ns.DB:RefreshCharacterRecord()
@@ -169,6 +227,8 @@ function ProfileManager:GetSourceDetails(kind, key)
         characterKey = source.characterKey,
         class = source.class,
         specID = source.specID,
+        specName = getSpecializationName(source.specID),
+        stats = buildTemplateStats(source),
         source = source,
     }
 end

@@ -231,6 +231,19 @@ function ActionBarApplier:ClearLogicalSlot(logicalSlot)
     return true, hadAction and "cleared" or "empty", "ok"
 end
 
+function ActionBarApplier:VerifyClearedSlot(logicalSlot)
+    local actualSlot, err = ns.Modules.SlotMapper:ResolveActualSlot(logicalSlot, "mutate")
+    if not actualSlot then
+        return false, err, "invalid"
+    end
+
+    if not HasAction(actualSlot) then
+        return true, "empty", "ok"
+    end
+
+    return self:ClearLogicalSlot(logicalSlot)
+end
+
 function ActionBarApplier:PlaceCursorIntoLogicalSlot(logicalSlot)
     if InCombatLockdown and InCombatLockdown() then
         return false, ns.L("combat_lockdown_active"), "blocked"
@@ -405,12 +418,32 @@ function ActionBarApplier:ApplyPlan(plan, options)
     }
 
     if plan.type == "clear" or plan.clearBeforeApply then
+        local clearedSlots = {}
+        local invalidSlots = {}
+
         for _, logicalSlot in ipairs(plan.logicalSlots) do
             local cleared, state, category = self:ClearLogicalSlot(logicalSlot)
-            if cleared and state == "cleared" then
+            if cleared and state == "cleared" and not clearedSlots[logicalSlot] then
                 result.cleared = result.cleared + 1
-            elseif not cleared and category == "invalid" then
+                clearedSlots[logicalSlot] = true
+            elseif not cleared and category == "invalid" and not invalidSlots[logicalSlot] then
                 result.invalid = result.invalid + 1
+                invalidSlots[logicalSlot] = true
+            end
+
+            if plan.type == "clear" then
+                self:ClearPendingGhost(logicalSlot)
+            end
+        end
+
+        for _, logicalSlot in ipairs(plan.logicalSlots) do
+            local cleared, state, category = self:VerifyClearedSlot(logicalSlot)
+            if cleared and state == "cleared" and not clearedSlots[logicalSlot] then
+                result.cleared = result.cleared + 1
+                clearedSlots[logicalSlot] = true
+            elseif not cleared and category == "invalid" and not invalidSlots[logicalSlot] then
+                result.invalid = result.invalid + 1
+                invalidSlots[logicalSlot] = true
             end
 
             if plan.type == "clear" then

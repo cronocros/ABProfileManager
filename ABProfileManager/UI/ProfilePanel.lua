@@ -343,6 +343,9 @@ function ProfilePanel:Create(parent)
     local refreshButton = widgets.CreateButton(frame, "", 104, 24)
     refreshButton:SetPoint("LEFT", duplicateButton, "RIGHT", 8, 0)
 
+    local deleteButton = widgets.CreateButton(frame, "", 104, 24)
+    deleteButton:SetPoint("LEFT", refreshButton, "RIGHT", 8, 0)
+
     local selectedTemplateText = widgets.CreateLabel(frame, "", templateInput, 0, -24)
     selectedTemplateText:SetWidth(804)
     selectedTemplateText:SetJustifyH("LEFT")
@@ -370,9 +373,6 @@ function ProfilePanel:Create(parent)
 
     local importButton = widgets.CreateButton(actionsBox, "", 174, 30)
     importButton:SetPoint("TOPLEFT", exportButton, "BOTTOMLEFT", 0, -10)
-
-    local deleteButton = widgets.CreateButton(actionsBox, "", 174, 30)
-    deleteButton:SetPoint("TOPLEFT", importButton, "BOTTOMLEFT", 0, -10)
 
     local hintText = widgets.CreateLabel(actionsBox, "", sourceDetailsText, 0, -14)
     hintText:SetWidth(300)
@@ -646,6 +646,17 @@ function ProfilePanel:Refresh()
                 ns.L("source_details_character_bullet", details.characterKey or "-"),
                 ns.L("source_details_class_bullet", ns.ClassL(details.class or "UNKNOWN")),
                 ns.L("source_details_spec_bullet", details.specID or 0),
+                ns.L("source_details_spec_name_bullet", details.specName or "-"),
+                ns.L(
+                    "source_details_recorded_actions_bullet",
+                    details.stats and details.stats.recordedActions or 0,
+                    details.stats and details.stats.trackedSlots or 0
+                ),
+                ns.L("source_details_empty_slots_bullet", details.stats and details.stats.emptySlots or 0),
+                ns.L("source_details_spells_bullet", details.stats and details.stats.spells or 0),
+                ns.L("source_details_macros_bullet", details.stats and details.stats.macros or 0),
+                ns.L("source_details_items_bullet", details.stats and details.stats.items or 0),
+                ns.L("source_details_other_actions_bullet", details.stats and details.stats.other or 0),
                 "",
                 ns.L("section_apply_info"),
                 ns.L("source_details_scope_bullet", ns.Modules.SlotMapper:DescribeSelection(selection.mode, selection)),
@@ -663,5 +674,14 @@ function ProfilePanel:Refresh()
     if self.undoButton then
         self.undoButton:SetEnabled(canUndo and true or false)
         self.undoButton:SetAlpha(canUndo and 1 or 0.45)
+    end
+
+    local hasTemplateSelection =
+        selectedSource
+        and selectedSource.kind == ns.Constants.SOURCE_KIND.TEMPLATE
+        and ns.DB:GetTemplate(selectedSource.key)
+    if self.deleteButton then
+        self.deleteButton:SetEnabled(hasTemplateSelection and true or false)
+        self.deleteButton:SetAlpha(hasTemplateSelection and 1 or 0.45)
     end
 end
