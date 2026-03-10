@@ -5,7 +5,7 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.0.3`
+- `v1.0.4`
 - 1차 출시 완료
 - 인게임 기준 핵심 기능 동작 확인 완료
 - GitHub 원격 업로드 완료
@@ -14,9 +14,9 @@
 ## 배포 정보
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 릴리스 버전: `v1.0.3`
-- 배포 패키지: [ABProfileManager-v1.0.3.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.3.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.3.md)
+- 릴리스 버전: `v1.0.4`
+- 배포 패키지: [ABProfileManager-v1.0.4.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.4.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.4.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.4.md)
 
 ## 설치
 
@@ -91,7 +91,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.3`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.4`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -154,6 +154,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 하단 요약창의 오른쪽 끝 정렬은 사용자 요청으로 후순위 보류 상태입니다.
 - 이 작업 환경에는 `lua`/`luac`가 없어 정적 문법 검사는 아직 실행하지 못했습니다.
 - 메인 타이틀과 설정의 버전 표시는 `.toc` 메타데이터를 기준으로 동적으로 읽습니다.
+- 배포 스크립트는 `dist/`에 릴리스 ZIP을 만들고, `backups/source/`에 소스 백업 ZIP도 함께 만듭니다.
 
 ## 보안 메모
 
@@ -165,7 +166,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.3.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.4.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.4.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

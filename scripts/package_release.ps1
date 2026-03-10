@@ -7,6 +7,8 @@ $ErrorActionPreference = "Stop"
 $addonDir = Join-Path $ProjectRoot "ABProfileManager"
 $tocPath = Join-Path $addonDir "ABProfileManager.toc"
 $distDir = Join-Path $ProjectRoot "dist"
+$backupRoot = Join-Path $ProjectRoot "backups"
+$sourceBackupDir = Join-Path $backupRoot "source"
 
 if (-not (Test-Path $addonDir)) {
     throw "Addon folder not found: $addonDir"
@@ -28,6 +30,7 @@ if ([string]::IsNullOrWhiteSpace($version)) {
 }
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
+New-Item -ItemType Directory -Force -Path $sourceBackupDir | Out-Null
 
 $zipPath = Join-Path $distDir ("ABProfileManager-v{0}.zip" -f $version)
 if (Test-Path $zipPath) {
@@ -35,5 +38,18 @@ if (Test-Path $zipPath) {
 }
 
 Compress-Archive -Path $addonDir -DestinationPath $zipPath -Force
-Write-Output $zipPath
 
+$backupTimestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$backupZipPath = Join-Path $sourceBackupDir ("ABProfileManager-source-v{0}-{1}.zip" -f $version, $backupTimestamp)
+$backupItems = Get-ChildItem -Path $ProjectRoot -Force | Where-Object {
+    $_.Name -notin @(".git", "dist", "backups")
+}
+
+if (-not $backupItems) {
+    throw "No backup source items found in project root."
+}
+
+Compress-Archive -Path $backupItems.FullName -DestinationPath $backupZipPath -Force
+
+Write-Output ("Release package: {0}" -f $zipPath)
+Write-Output ("Source backup: {0}" -f $backupZipPath)
