@@ -23,6 +23,7 @@ local PRIORITY_LABEL_SIZE = 15
 local PRIORITY_VALUE_SIZE = 15
 local FONT_FLAGS = "OUTLINE"
 local SECONDARY_DR_THRESHOLDS = { 30, 39, 47, 54, 66 }
+local VALUE_PART_GAP = 4
 
 local function safeNumber(value)
     local numeric = tonumber(value) or 0
@@ -50,8 +51,8 @@ local function formatPercent(value)
     return string.format("%.2f%%", safeNumber(value))
 end
 
-local function formatStatValue(rating, percent)
-    return string.format("%s (%s)", formatRating(rating), formatPercent(percent))
+local function formatStatValueParts(rating, percent)
+    return formatRating(rating), string.format("(%s)", formatPercent(percent))
 end
 
 local function getCurrentSpecIndex()
@@ -198,10 +199,12 @@ local function getSecondaryStatDRTier(percentFromRating)
 end
 
 local function addRatedStat(snapshot, key, label, rating, percent, ratingPercent)
+    local ratingText, percentText = formatStatValueParts(rating, percent)
     snapshot[#snapshot + 1] = {
         key = key,
         label = label,
-        value = formatStatValue(rating, percent),
+        primaryText = ratingText,
+        secondaryText = percentText,
         style = "stat",
         ratingPercent = safeNumber(ratingPercent),
         drTier = getSecondaryStatDRTier(ratingPercent),
@@ -216,7 +219,7 @@ local function addPercentStat(snapshot, key, label, percent)
     snapshot[#snapshot + 1] = {
         key = key,
         label = label,
-        value = formatPercent(percent),
+        secondaryText = formatPercent(percent),
         style = "defense",
     }
 end
@@ -238,19 +241,41 @@ end
 function StatsOverlay:CreateRow()
     local row = CreateFrame("Frame", nil, self.frame)
     row:SetSize(MIN_FRAME_WIDTH, 20)
-    row:EnableMouse(true)
 
     row.label = row:CreateFontString(nil, "OVERLAY")
     row.label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
 
-    row.value = row:CreateFontString(nil, "OVERLAY")
-    row.value:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
+    row.primaryValue = row:CreateFontString(nil, "OVERLAY")
+    row.primaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
 
-    row:SetScript("OnEnter", function(currentRow)
-        self:ShowRowTooltip(currentRow)
+    row.secondaryValue = row:CreateFontString(nil, "OVERLAY")
+    row.secondaryValue:SetPoint("TOPLEFT", row.primaryValue, "TOPRIGHT", VALUE_PART_GAP, 0)
+
+    row.tooltipRegion = CreateFrame("Frame", nil, row)
+    row.tooltipRegion.ownerRow = row
+    row.tooltipRegion:EnableMouse(true)
+    row.tooltipRegion:RegisterForDrag("LeftButton")
+    row.tooltipRegion:SetScript("OnDragStart", function()
+        if self.frame then
+            self.frame:StartMoving()
+        end
     end)
-    row:SetScript("OnLeave", function()
-        if GameTooltip and GameTooltip:IsOwned(row) then
+    row.tooltipRegion:SetScript("OnDragStop", function()
+        if not self.frame then
+            return
+        end
+
+        self.frame:StopMovingOrSizing()
+        if ns.DB then
+            ns.DB:SaveStatsOverlayPosition(self.frame)
+        end
+    end)
+
+    row.tooltipRegion:SetScript("OnEnter", function(currentRegion)
+        self:ShowRowTooltip(currentRegion.ownerRow or currentRegion)
+    end)
+    row.tooltipRegion:SetScript("OnLeave", function(currentRow)
+        if GameTooltip and GameTooltip:IsOwned(currentRow) then
             GameTooltip:Hide()
         end
     end)
@@ -268,44 +293,46 @@ end
 
 function StatsOverlay:ApplyRowStyle(row, style, drTier)
     applyTextStyle(row.label, NORMAL_LABEL_SIZE, 0.92, 0.93, 0.95)
+    applyTextStyle(row.primaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
+    applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
 
     if style == "priority" then
         applyTextStyle(row.label, PRIORITY_LABEL_SIZE, 0.78, 0.96, 0.92)
-        applyTextStyle(row.value, PRIORITY_VALUE_SIZE, 0.62, 0.94, 0.78)
+        applyTextStyle(row.secondaryValue, PRIORITY_VALUE_SIZE, 0.62, 0.94, 0.78)
         return
     end
 
     if style == "defense" then
-        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 0.95, 0.98, 1.00)
+        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.95, 0.98, 1.00)
         return
     end
 
     if drTier == 1 then
-        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.84, 0.30)
+        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.68, 0.20)
         return
     end
 
     if drTier == 2 then
-        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.70, 0.22)
+        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.56, 0.16)
         return
     end
 
     if drTier == 3 then
-        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.55, 0.22)
+        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.44, 0.14)
         return
     end
 
     if drTier == 4 then
-        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.40, 0.24)
+        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.32, 0.16)
         return
     end
 
     if (drTier or 0) >= 5 then
-        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.24, 0.24)
+        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.20, 0.20)
         return
     end
 
-    applyTextStyle(row.value, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
+    applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.96, 0.76, 0.14)
 end
 
 function StatsOverlay:GetTooltipBody(entry)
@@ -341,7 +368,7 @@ function StatsOverlay:ShowRowTooltip(row)
         return
     end
 
-    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(row.tooltipRegion or row, "ANCHOR_RIGHT")
     GameTooltip:SetText(self:GetTooltipTitle(row.entry) or row.entry.label or "", 0.96, 0.82, 0.30)
 
     local body = self:GetTooltipBody(row.entry)
@@ -476,15 +503,46 @@ function StatsOverlay:UpdateFrameSize(snapshot)
     for index, entry in ipairs(snapshot) do
         local row = self.rows[index]
         row.label:SetWidth(labelWidth)
-        row.value:ClearAllPoints()
-        row.value:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
+        row.primaryValue:ClearAllPoints()
+        row.secondaryValue:ClearAllPoints()
 
-        local rowWidth = labelWidth + VALUE_GAP + math.ceil(row.value:GetStringWidth() or 0)
+        local primaryWidth = 0
+        local secondaryWidth = 0
+
+        if entry.style == "stat" then
+            row.primaryValue:Show()
+            row.secondaryValue:Show()
+            row.primaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
+            row.secondaryValue:SetPoint("TOPLEFT", row.primaryValue, "TOPRIGHT", VALUE_PART_GAP, 0)
+            primaryWidth = math.ceil(row.primaryValue:GetStringWidth() or 0)
+            secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
+        else
+            row.primaryValue:Hide()
+            row.secondaryValue:Show()
+            row.secondaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
+            secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
+        end
+
+        local valueWidth = secondaryWidth
+        if entry.style == "stat" then
+            valueWidth = primaryWidth + VALUE_PART_GAP + secondaryWidth
+        end
+
+        local rowWidth = labelWidth + VALUE_GAP + valueWidth
         local rowHeight = math.max(
             math.ceil(row.label:GetStringHeight() or 0),
-            math.ceil(row.value:GetStringHeight() or 0),
+            math.ceil(row.primaryValue:GetStringHeight() or 0),
+            math.ceil(row.secondaryValue:GetStringHeight() or 0),
             18
         )
+
+        row.tooltipRegion:ClearAllPoints()
+        if entry.style == "stat" then
+            row.tooltipRegion:SetPoint("TOPLEFT", row.primaryValue, "TOPLEFT", -2, 1)
+        else
+            row.tooltipRegion:SetPoint("TOPLEFT", row.secondaryValue, "TOPLEFT", -2, 1)
+        end
+        row.tooltipRegion:SetSize(math.max(secondaryWidth, valueWidth) + 4, rowHeight)
 
         row:SetSize(rowWidth, rowHeight)
         maxWidth = math.max(maxWidth, rowWidth)
@@ -531,7 +589,8 @@ function StatsOverlay:RefreshStats()
         self:ApplyRowStyle(row, entry.style, entry.drTier)
         row.entry = entry
         row.label:SetText(entry.label or "")
-        row.value:SetText(entry.value or "")
+        row.primaryValue:SetText(entry.primaryText or "")
+        row.secondaryValue:SetText(entry.secondaryText or entry.value or "")
     end
 
     self:UpdateFrameSize(snapshot)
