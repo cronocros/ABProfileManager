@@ -295,15 +295,19 @@ function StatsOverlay:ApplyRowStyle(row, style, drTier)
     applyTextStyle(row.label, NORMAL_LABEL_SIZE, 0.92, 0.93, 0.95)
     applyTextStyle(row.primaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
     applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
+    row.primaryValue:SetJustifyH("RIGHT")
+    row.secondaryValue:SetJustifyH("LEFT")
 
     if style == "priority" then
         applyTextStyle(row.label, PRIORITY_LABEL_SIZE, 0.78, 0.96, 0.92)
         applyTextStyle(row.secondaryValue, PRIORITY_VALUE_SIZE, 0.62, 0.94, 0.78)
+        row.secondaryValue:SetJustifyH("LEFT")
         return
     end
 
     if style == "defense" then
         applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.95, 0.98, 1.00)
+        row.secondaryValue:SetJustifyH("LEFT")
         return
     end
 
@@ -490,9 +494,13 @@ function StatsOverlay:UpdateFrameSize(snapshot)
     end
 
     local labelWidth = MIN_LABEL_WIDTH
+    local primaryColumnWidth = 0
     for index, entry in ipairs(snapshot) do
         local row = self.rows[index]
         labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
+        if entry and entry.style == "stat" then
+            primaryColumnWidth = math.max(primaryColumnWidth, math.ceil(row.primaryValue:GetStringWidth() or 0))
+        end
         if entry and entry.style == "priority" then
             labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
         end
@@ -514,10 +522,13 @@ function StatsOverlay:UpdateFrameSize(snapshot)
             row.secondaryValue:Show()
             row.primaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
             row.secondaryValue:SetPoint("TOPLEFT", row.primaryValue, "TOPRIGHT", VALUE_PART_GAP, 0)
-            primaryWidth = math.ceil(row.primaryValue:GetStringWidth() or 0)
+            row.primaryValue:SetWidth(primaryColumnWidth)
+            row.primaryValue:SetJustifyH("RIGHT")
+            primaryWidth = primaryColumnWidth
             secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
         else
             row.primaryValue:Hide()
+            row.primaryValue:SetWidth(0)
             row.secondaryValue:Show()
             row.secondaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
             secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
