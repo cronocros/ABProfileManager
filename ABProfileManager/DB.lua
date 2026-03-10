@@ -86,6 +86,9 @@ function DB:GetGlobalSettings()
             hide = false,
             angle = 220,
         },
+        statsOverlay = {
+            enabled = false,
+        },
     }
     return ns.db.global.settings
 end
@@ -141,6 +144,24 @@ function DB:SetMinimapAngle(angle)
     return angle
 end
 
+function DB:GetStatsOverlaySettings()
+    local settings = self:GetGlobalSettings()
+    settings.statsOverlay = settings.statsOverlay or {
+        enabled = false,
+    }
+
+    return settings.statsOverlay
+end
+
+function DB:IsStatsOverlayEnabled()
+    return self:GetStatsOverlaySettings().enabled and true or false
+end
+
+function DB:SetStatsOverlayEnabled(enabled)
+    self:GetStatsOverlaySettings().enabled = enabled and true or false
+    return self:IsStatsOverlayEnabled()
+end
+
 function DB:GetTemplate(templateName)
     templateName = ns.Utils.SanitizeSingleLine(templateName or "")
     if not templateName or templateName == "" then
@@ -178,6 +199,16 @@ function DB:GetMainWindowConfig()
     return ns.db and ns.db.ui and ns.db.ui.mainWindow or ns.Data.Defaults.ui.mainWindow
 end
 
+function DB:GetStatsOverlayConfig()
+    if not ns.db then
+        return ns.Data.Defaults.ui.statsOverlay
+    end
+
+    ns.db.ui = ns.db.ui or {}
+    ns.db.ui.statsOverlay = ns.db.ui.statsOverlay or ns.Utils.DeepCopy(ns.Data.Defaults.ui.statsOverlay)
+    return ns.db.ui.statsOverlay
+end
+
 function DB:SaveMainWindowPosition(frame)
     if not frame or not frame.GetPoint then
         return
@@ -191,4 +222,17 @@ function DB:SaveMainWindowPosition(frame)
     config.y = y or 0
     config.width = frame:GetWidth() or config.width
     config.height = frame:GetHeight() or config.height
+end
+
+function DB:SaveStatsOverlayPosition(frame)
+    if not frame or not frame.GetPoint then
+        return
+    end
+
+    local point, _, relativePoint, x, y = frame:GetPoint(1)
+    local config = self:GetStatsOverlayConfig()
+    config.point = point or config.point
+    config.relativePoint = relativePoint or config.relativePoint
+    config.x = x or 0
+    config.y = y or 0
 end

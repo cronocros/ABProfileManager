@@ -13,6 +13,10 @@ local function refreshGhostsAndRetries()
     ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
 end
 
+local function refreshStatsOverlay()
+    ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+end
+
 function Events:Initialize()
     frame:SetScript("OnEvent", function(_, event, ...)
         if type(self[event]) == "function" then
@@ -44,6 +48,11 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("PLAYER_REGEN_DISABLED")
     frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+    frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    frame:RegisterEvent("COMBAT_RATING_UPDATE")
+    frame:RegisterEvent("MASTERY_UPDATE")
+    frame:RegisterEvent("UNIT_STATS")
+    frame:RegisterEvent("UNIT_AURA")
     frame:RegisterEvent("QUEST_LOG_UPDATE")
 end
 
@@ -52,6 +61,7 @@ function Events:PLAYER_LOGIN()
     ns:SafeCall(ns.DB, "SetDebugEnabled", false)
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
+    refreshStatsOverlay()
     ns.Utils.Print(ns.L("loaded_window_hint"))
 end
 
@@ -67,6 +77,7 @@ end
 
 function Events:SPELLS_CHANGED()
     refreshGhostsAndRetries()
+    refreshStatsOverlay()
 end
 
 function Events:ACTIONBAR_SLOT_CHANGED()
@@ -93,6 +104,34 @@ end
 function Events:PLAYER_SPECIALIZATION_CHANGED()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ns:RefreshUI()
+end
+
+function Events:PLAYER_EQUIPMENT_CHANGED()
+    refreshStatsOverlay()
+end
+
+function Events:COMBAT_RATING_UPDATE()
+    refreshStatsOverlay()
+end
+
+function Events:MASTERY_UPDATE()
+    refreshStatsOverlay()
+end
+
+function Events:UNIT_AURA(unitToken)
+    if unitToken ~= "player" then
+        return
+    end
+
+    refreshStatsOverlay()
+end
+
+function Events:UNIT_STATS(unitToken)
+    if unitToken ~= "player" then
+        return
+    end
+
+    refreshStatsOverlay()
 end
 
 function Events:QUEST_LOG_UPDATE()

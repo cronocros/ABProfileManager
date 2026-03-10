@@ -19,6 +19,7 @@
 - 현재 특성 전환
 - 퀘스트 정리 / 전체 퀘스트 포기
 - 미니맵 버튼
+- 캐릭터 스탯 오버레이
 - 설정 탭
 - 와우 `설정 > AddOns` 연동 시도
 
@@ -55,6 +56,17 @@
 - 문자열 import 길이/줄 수/중복 슬롯/액션 종류 검증 추가
 - 템플릿 이름 단일행 정화 추가
 - 전체 퀘스트 포기는 항상 확인 모달을 거치도록 보강
+- 치명 / 가속 / 특화 / 유연 텍스트 오버레이 추가
+- 스탯 오버레이는 투명 배경 + 드래그 이동 + 위치 저장을 지원
+- 스탯 오버레이 마지막 줄에 현재 특성의 PvE 일반 스탯 우선순위 표시 추가
+- 우선순위 표는 `Midnight 12.0.1` 기준 일반 PvE 가이드 기준으로 단순화해 내장
+- 유연 퍼센트는 총 유연 보너스 기준으로 계산하도록 보정
+- 오버레이는 라벨/값 2열 구조로 리팩토링해 가독성 개선
+- 탱커 특성은 회피 / 무막 / 막기 방어 확률을 추가 표시
+- 스탯 표기는 `평점(퍼센트)` 형식으로 압축하고 줄/열 간격을 더 좁게 조정
+- 2차 스탯은 rating 기준 `30%` DR 1차 구간부터 빨간색으로 표시
+- 특성 우선순위 줄은 민트 계열 색상으로 표시
+- 설정 탭에 스탯 오버레이 표시 체크박스 추가
 
 ## 현재 잔여 메모
 
@@ -95,6 +107,8 @@
 - `ABProfileManager/UI/QuestPanel.lua`
 - `ABProfileManager/UI/TransferDialog.lua`
   - `ABProfileManager/UI/MinimapButton.lua`
+- `ABProfileManager/UI/StatsOverlay.lua`
+- `ABProfileManager/Data/StatPriorities.lua`
 - `ABProfileManager/UI/Widgets.lua`
 - `ABProfileManager/README_USER.md`
 - `ABProfileManager/ADDON_INTRO.txt`
@@ -119,6 +133,9 @@
 4. 템플릿 관련 수정은 `ProfilePanel`과 `ProfileManager`를 같이 본다.
 5. 상태 메시지 포맷은 `Utils.FormatStatusMessage()`를 기준으로 유지한다.
 6. import 관련 작업은 `Modules/TemplateTransfer.lua`의 입력 제한을 먼저 확인한다.
+7. 스탯 오버레이 관련 수정은 `UI/StatsOverlay.lua`, `UI/ConfigPanel.lua`, `DB.lua`, `Events.lua`를 같이 본다.
+8. 유연 수치 문제를 볼 때는 `GetCombatRatingBonus + GetVersatilityBonus` 합산 경로를 먼저 확인한다.
+9. DR 색상 문제를 볼 때는 표시 퍼센트가 아니라 `GetCombatRatingBonus()` 기준값으로 판단한다.
 
 ## 다음 LLM에게 바로 줄 수 있는 요약 프롬프트
 

@@ -10,6 +10,9 @@ ns.Data.Defaults = {
                 hide = false,
                 angle = 220,
             },
+            statsOverlay = {
+                enabled = false,
+            },
         },
     },
     characters = {},
@@ -21,6 +24,12 @@ ns.Data.Defaults = {
             y = 0,
             width = ns.Constants.WINDOW_WIDTH,
             height = ns.Constants.WINDOW_HEIGHT,
+        },
+        statsOverlay = {
+            point = "CENTER",
+            relativePoint = "CENTER",
+            x = 420,
+            y = 140,
         },
     },
 }

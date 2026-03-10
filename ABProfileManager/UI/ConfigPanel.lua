@@ -54,6 +54,12 @@ function ConfigPanel:ApplyDebugEnabled(enabled, refs)
     setStatus(refs, ns.L("config_saved_debug", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplyStatsOverlayEnabled(enabled, refs)
+    ns.DB:SetStatsOverlayEnabled(enabled)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_stats_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
 function ConfigPanel:BindControlSet(refs)
     refs.koreanButton:SetScript("OnClick", function()
         self:ApplyLanguage(ns.Constants.LANGUAGE.KOREAN, refs)
@@ -73,6 +79,10 @@ function ConfigPanel:BindControlSet(refs)
 
     refs.debugCheck:SetScript("OnClick", function(currentCheck)
         self:ApplyDebugEnabled(currentCheck:GetChecked(), refs)
+    end)
+
+    refs.statsOverlayCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyStatsOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
 
     if refs.openWindowButton then
@@ -96,6 +106,8 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.confirmCheck.Text:SetText(ns.L("config_confirm_show"))
     refs.debugLabel:SetText(ns.L("config_debug"))
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
+    refs.statsOverlayLabel:SetText(ns.L("config_stats_overlay"))
+    refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.helpText:SetText(ns.L("config_help"))
     refs.infoText:SetText(string.format(
         "%s\n%s",
@@ -110,6 +122,7 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.minimapCheck:SetChecked(not ns.DB:GetMinimapConfig().hide)
     refs.confirmCheck:SetChecked(ns.DB:ShouldConfirmActions())
     refs.debugCheck:SetChecked(ns.DB:IsDebugEnabled())
+    refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     ns.UI.Widgets.SetButtonSelected(refs.koreanButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN)
     ns.UI.Widgets.SetButtonSelected(refs.englishButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.ENGLISH)
 end
@@ -122,7 +135,9 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local languageBox = widgets.CreatePanelBox(parent, 420, 214, nil)
+    local settingsBoxHeight = 274
+
+    local languageBox = widgets.CreatePanelBox(parent, 420, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
     refs.languageLabel = widgets.CreateLabel(languageBox, "", nil, 12, -14, "GameFontHighlight")
     refs.languageHint = widgets.CreateLabel(languageBox, "", refs.languageLabel, 0, -12)
@@ -133,7 +148,7 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.englishButton = widgets.CreateButton(languageBox, "", 110, 26)
     refs.englishButton:SetPoint("LEFT", refs.koreanButton, "RIGHT", 10, 0)
 
-    local optionsBox = widgets.CreatePanelBox(parent, 420, 214, nil)
+    local optionsBox = widgets.CreatePanelBox(parent, 420, settingsBoxHeight, nil)
     optionsBox:SetPoint("LEFT", languageBox, "RIGHT", 12, 0)
     refs.minimapLabel = widgets.CreateLabel(optionsBox, "", nil, 12, -14, "GameFontHighlight")
     refs.minimapCheck = widgets.CreateCheckButton(optionsBox, "")
@@ -144,6 +159,9 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.debugLabel = widgets.CreateLabel(optionsBox, "", refs.confirmCheck, 4, -16, "GameFontHighlight")
     refs.debugCheck = widgets.CreateCheckButton(optionsBox, "")
     refs.debugCheck:SetPoint("TOPLEFT", refs.debugLabel, "BOTTOMLEFT", -4, -10)
+    refs.statsOverlayLabel = widgets.CreateLabel(optionsBox, "", refs.debugCheck, 4, -16, "GameFontHighlight")
+    refs.statsOverlayCheck = widgets.CreateCheckButton(optionsBox, "")
+    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayLabel, "BOTTOMLEFT", -4, -10)
 
     refs.minimapCheck.Text:SetWidth(384)
     refs.minimapCheck.Text:SetJustifyH("LEFT")
@@ -151,6 +169,8 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.confirmCheck.Text:SetJustifyH("LEFT")
     refs.debugCheck.Text:SetWidth(384)
     refs.debugCheck.Text:SetJustifyH("LEFT")
+    refs.statsOverlayCheck.Text:SetWidth(384)
+    refs.statsOverlayCheck.Text:SetJustifyH("LEFT")
 
     local helpBox = widgets.CreatePanelBox(parent, 852, options.showOpenButton and 148 or 124, nil)
     helpBox:SetPoint("TOPLEFT", languageBox, "BOTTOMLEFT", 0, -20)

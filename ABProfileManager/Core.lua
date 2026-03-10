@@ -52,6 +52,7 @@ function ns:InitializeStartupModules()
         self.Commands,
         self.UI.ConfirmDialogs,
         self.UI.MinimapButton,
+        self.UI.StatsOverlay,
         self.UI.TransferDialog,
         self.UI.ConfigPanel,
         self.UI.MainWindow,
@@ -113,5 +114,6 @@ function ns:RefreshUI()
     self:SafeCall(self.UI.QuestPanel, "Refresh")
     self:SafeCall(self.UI.ConfigPanel, "Refresh")
     self:SafeCall(self.UI.MinimapButton, "Refresh")
+    self:SafeCall(self.UI.StatsOverlay, "Refresh")
     self:SafeCall(self.UI.MainWindow, "RefreshStatus")
 end
