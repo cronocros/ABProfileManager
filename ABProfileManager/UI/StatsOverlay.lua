@@ -24,6 +24,15 @@ local PRIORITY_VALUE_SIZE = 15
 local FONT_FLAGS = "OUTLINE"
 local SECONDARY_DR_THRESHOLDS = { 30, 39, 47, 54, 66 }
 local VALUE_PART_GAP = 4
+local PAPERDOLL_TOOLTIP_SETTERS = {
+    crit = "PaperDollFrame_SetCritChance",
+    haste = "PaperDollFrame_SetHaste",
+    mastery = "PaperDollFrame_SetMastery",
+    versatility = "PaperDollFrame_SetVersatility",
+    dodge = "PaperDollFrame_SetDodge",
+    parry = "PaperDollFrame_SetParry",
+    block = "PaperDollFrame_SetBlock",
+}
 
 local function safeNumber(value)
     local numeric = tonumber(value) or 0
@@ -51,8 +60,23 @@ local function formatPercent(value)
     return string.format("%.2f%%", safeNumber(value))
 end
 
-local function formatStatValueParts(rating, percent)
-    return formatRating(rating), string.format("(%s)", formatPercent(percent))
+local function getIntegerDigitCount(value)
+    local normalized = math.abs(safeNumber(value))
+    local wholeNumber = math.floor(normalized)
+    if wholeNumber == 0 then
+        return 1
+    end
+
+    return string.len(tostring(wholeNumber))
+end
+
+local function formatAlignedStatPercent(value, integerDigits)
+    local width = math.max(1, tonumber(integerDigits) or 1) + 3
+    return string.format("(%" .. width .. ".2f%%)", safeNumber(value))
+end
+
+local function formatStatValueParts(rating)
+    return formatRating(rating)
 end
 
 local function getCurrentSpecIndex()
@@ -199,13 +223,12 @@ local function getSecondaryStatDRTier(percentFromRating)
 end
 
 local function addRatedStat(snapshot, key, label, rating, percent, ratingPercent)
-    local ratingText, percentText = formatStatValueParts(rating, percent)
     snapshot[#snapshot + 1] = {
         key = key,
         label = label,
-        primaryText = ratingText,
-        secondaryText = percentText,
+        primaryText = formatStatValueParts(rating),
         style = "stat",
+        percentValue = safeNumber(percent),
         ratingPercent = safeNumber(ratingPercent),
         drTier = getSecondaryStatDRTier(ratingPercent),
     }
@@ -296,7 +319,7 @@ function StatsOverlay:ApplyRowStyle(row, style, drTier)
     applyTextStyle(row.primaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
     applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
     row.primaryValue:SetJustifyH("RIGHT")
-    row.secondaryValue:SetJustifyH("LEFT")
+    row.secondaryValue:SetJustifyH("RIGHT")
 
     if style == "priority" then
         applyTextStyle(row.label, PRIORITY_LABEL_SIZE, 0.78, 0.96, 0.92)
@@ -353,6 +376,49 @@ function StatsOverlay:GetTooltipBody(entry)
     return text
 end
 
+function StatsOverlay:GetTooltipProxyFrame()
+    if self.tooltipProxyFrame then
+        return self.tooltipProxyFrame
+    end
+
+    local frame = CreateFrame("Frame", nil, self.frame or UIParent)
+    frame:SetSize(1, 1)
+    frame:Hide()
+
+    frame.Label = frame:CreateFontString(nil, "OVERLAY")
+    frame.Value = frame:CreateFontString(nil, "OVERLAY")
+
+    self.tooltipProxyFrame = frame
+    return frame
+end
+
+function StatsOverlay:PreparePaperDollTooltip(entry, owner)
+    local setterName = entry and entry.key and PAPERDOLL_TOOLTIP_SETTERS[entry.key]
+    local setter = setterName and _G[setterName]
+    if type(setter) ~= "function" then
+        return nil
+    end
+
+    local proxy = self:GetTooltipProxyFrame()
+    proxy:ClearAllPoints()
+    if owner then
+        proxy:SetParent(owner)
+        proxy:SetAllPoints(owner)
+    else
+        proxy:SetParent(self.frame or UIParent)
+    end
+
+    proxy.tooltip = nil
+    proxy.tooltip2 = nil
+    proxy.tooltip3 = nil
+    proxy.onEnterFunc = nil
+    proxy.UpdateTooltip = nil
+    proxy.numericValue = nil
+
+    setter(proxy, "player")
+    return proxy
+end
+
 function StatsOverlay:GetTooltipTitle(entry)
     if not entry or not entry.key then
         return entry and entry.label or nil
@@ -370,6 +436,19 @@ end
 function StatsOverlay:ShowRowTooltip(row)
     if not row or not row.entry or not row.entry.key or not GameTooltip then
         return
+    end
+
+    local proxy = self:PreparePaperDollTooltip(row.entry, row.tooltipRegion)
+    if proxy then
+        if type(PaperDollStatTooltip) == "function" and proxy.tooltip then
+            PaperDollStatTooltip(proxy)
+            return
+        end
+
+        if type(proxy.onEnterFunc) == "function" then
+            proxy.onEnterFunc(proxy)
+            return
+        end
     end
 
     GameTooltip:SetOwner(row.tooltipRegion or row, "ANCHOR_RIGHT")
@@ -463,6 +542,19 @@ function StatsOverlay:BuildSnapshot()
         getCombatRatingBonus(VERSATILITY_RATING_INDEX)
     )
 
+    local maxPercentDigits = 1
+    for _, entry in ipairs(snapshot) do
+        if entry.style == "stat" then
+            maxPercentDigits = math.max(maxPercentDigits, getIntegerDigitCount(entry.percentValue))
+        end
+    end
+
+    for _, entry in ipairs(snapshot) do
+        if entry.style == "stat" then
+            entry.secondaryText = formatAlignedStatPercent(entry.percentValue, maxPercentDigits)
+        end
+    end
+
     local classTag = getCurrentClassTag()
     local specIndex = getCurrentSpecIndex()
     local specName = getCurrentSpecName(specIndex)
@@ -495,11 +587,13 @@ function StatsOverlay:UpdateFrameSize(snapshot)
 
     local labelWidth = MIN_LABEL_WIDTH
     local primaryColumnWidth = 0
+    local secondaryColumnWidth = 0
     for index, entry in ipairs(snapshot) do
         local row = self.rows[index]
         labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
         if entry and entry.style == "stat" then
             primaryColumnWidth = math.max(primaryColumnWidth, math.ceil(row.primaryValue:GetStringWidth() or 0))
+            secondaryColumnWidth = math.max(secondaryColumnWidth, math.ceil(row.secondaryValue:GetStringWidth() or 0))
         end
         if entry and entry.style == "priority" then
             labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
@@ -523,15 +617,19 @@ function StatsOverlay:UpdateFrameSize(snapshot)
             row.primaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
             row.secondaryValue:SetPoint("TOPLEFT", row.primaryValue, "TOPRIGHT", VALUE_PART_GAP, 0)
             row.primaryValue:SetWidth(primaryColumnWidth)
+            row.secondaryValue:SetWidth(secondaryColumnWidth)
             row.primaryValue:SetJustifyH("RIGHT")
+            row.secondaryValue:SetJustifyH("RIGHT")
             primaryWidth = primaryColumnWidth
-            secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
+            secondaryWidth = secondaryColumnWidth
         else
             row.primaryValue:Hide()
             row.primaryValue:SetWidth(0)
             row.secondaryValue:Show()
             row.secondaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
+            row.secondaryValue:SetJustifyH("LEFT")
             secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
+            row.secondaryValue:SetWidth(math.max(secondaryWidth, 1))
         end
 
         local valueWidth = secondaryWidth

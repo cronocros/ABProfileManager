@@ -5,7 +5,7 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.0.5`
+- `v1.0.6`
 - 1차 출시 완료
 - 인게임 기준 핵심 기능 동작 확인 완료
 - GitHub 원격 업로드 완료
@@ -14,9 +14,9 @@
 ## 배포 정보
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 릴리스 버전: `v1.0.5`
-- 배포 패키지: [ABProfileManager-v1.0.5.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.5.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.5.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.5.md)
+- 릴리스 버전: `v1.0.6`
+- 배포 패키지: [ABProfileManager-v1.0.6.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.6.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.6.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.6.md)
 
 ## 설치
 
@@ -71,11 +71,11 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 고스트 오버레이는 드래그로 해제하거나 다른 액션을 올려 덮어쓸 수 있음
 - 미니맵 버튼은 축소된 사각 `AB` 버튼형으로 표시
 - 캐릭터 스탯 오버레이 표시
-  - 치명 / 가속 / 특화 / 유연을 `평점(퍼센트)` 형식으로 표시
+  - 치명 / 가속 / 특화 / 유연을 `평점 (퍼센트)` 형식으로 표시
   - 현재 특성의 PvE 일반 스탯 우선순위 표시
   - 탱커 특성은 회피 / 무막 / 막기 같은 방어 스탯을 추가 표시
   - 배경 없는 글자형 레이아웃, 드래그 이동, 위치 저장 지원
-  - 값 영역 마우스 오버 시 스탯 설명과 DR 구간 안내 툴팁 표시
+  - 값 영역 마우스 오버 시 캐릭터창에 가까운 스탯 설명과 DR 구간 안내 툴팁 표시
 - 한국어 기본 UI, 영어 옵션 제공
 - 미니맵 버튼 제공
 - 미니맵 버튼은 단순 버튼형 UI 사용
@@ -91,7 +91,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.5`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.6`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -147,6 +147,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `10~12번` 특수 바는 현재 별도 매핑하지 않습니다.
 - 되돌리기는 현재 세션 기준 최근 1회만 지원합니다.
 - 스탯 오버레이의 유연 표시는 현재 캐릭터 총 유연 보너스 기준으로 보여줍니다.
+- 스탯 오버레이의 퍼센트는 항상 소수 둘째 자리까지 표시됩니다.
 - 2차 스탯은 rating으로 얻는 수치가 `30 / 39 / 47 / 54 / 66%` 구간에 들어가면 퍼센트 숫자만 단계적으로 색이 변합니다.
 - 퀘스트 안전 정리는 포기 가능 + 완료 아님 + 보고 가능 아님 + 진행도 없음 기준만 정리합니다.
 - 전체 퀘스트 포기는 현재 목록에서 포기 가능한 퀘스트만 대상으로 합니다.
@@ -166,7 +167,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.5.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.5.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.6.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.6.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

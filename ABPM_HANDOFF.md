@@ -3,7 +3,7 @@
 ## 현재 상태
 
 프로젝트는 직접 적용 가능한 WoW Retail 애드온 구조를 갖추고 있다.  
-현재 기준 버전은 `v1.0.5`이며, 핵심 기능 구현과 인게임 동작 확인이 끝난 상태다.
+현재 기준 버전은 `v1.0.6`이며, 핵심 기능 구현과 인게임 동작 확인이 끝난 상태다.
 1차 출시와 GitHub 업로드까지 완료된 상태다.
 
 ## 이미 구현된 핵심 기능
@@ -25,7 +25,9 @@
 
 ## 최근 반영 사항
 
-- 스탯 오버레이는 평점 컬럼 폭을 고정해 퍼센트 시작 위치가 줄마다 어긋나지 않도록 보정
+- 스탯 오버레이는 평점 컬럼과 퍼센트 괄호 열을 고정 폭으로 잡아 한 자리수/두 자리수 퍼센트도 소수점 위치가 어긋나지 않도록 보정
+- 스탯 퍼센트는 항상 소수 둘째 자리까지 표시
+- 스탯 값 영역 툴팁은 Blizzard 캐릭터 스탯 setter를 우선 재사용해 특화 등 스펙별 설명을 최대한 원문에 가깝게 표시
 - 템플릿 작업 영역을 `왼쪽 정보 / 오른쪽 버튼 세로 배치`로 변경
 - `전체 액션바 비우기` 버튼 추가
 - 템플릿 목록 이동 버튼은 현재 선택 기준으로 이전 / 다음 템플릿을 고른다.
@@ -89,9 +91,9 @@
 ## 릴리스 자산
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 배포 ZIP: `dist/ABProfileManager-v1.0.5.zip`
-- 릴리스 노트: `RELEASE_NOTES_v1.0.5.md`
-- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.0.5-<timestamp>.zip`
+- 배포 ZIP: `dist/ABProfileManager-v1.0.6.zip`
+- 릴리스 노트: `RELEASE_NOTES_v1.0.6.md`
+- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.0.6-<timestamp>.zip`
 - 변경 이력: `CHANGELOG.md`
 
 ## 중요한 파일
@@ -140,6 +142,7 @@
 8. 유연 수치 문제를 볼 때는 `GetCombatRatingBonus + GetVersatilityBonus` 합산 경로를 먼저 확인한다.
 9. DR 색상 문제를 볼 때는 표시 퍼센트가 아니라 `GetCombatRatingBonus()` 기준값으로 판단한다.
 10. 버전 표시는 `GetAddOnMetadata(..., "Version")` 경로를 기준으로 유지한다.
+11. 스탯 툴팁 문제를 볼 때는 `UI/StatsOverlay.lua`의 `PaperDollFrame_Set*` 재사용 경로를 먼저 확인한다.
 
 ## 다음 LLM에게 바로 줄 수 있는 요약 프롬프트
 
