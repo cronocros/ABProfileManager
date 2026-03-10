@@ -22,6 +22,7 @@ ABProfileManager는 월드 오브 워크래프트 Retail용 액션바 템플릿 
   - 치명 / 가속 / 특화 / 유연 `평점(퍼센트)` 표시
   - 현재 특성의 PvE 일반 스탯 우선순위 표시
   - 탱커 특성 방어 스탯 추가 표시
+  - 마우스 오버 툴팁과 DR 단계별 숫자 색상 표시
 
 기본 UI는 한국어이며, 제작자는 밍밍이와코코입니다.
 저장소: https://github.com/cronocros/ABProfileManager

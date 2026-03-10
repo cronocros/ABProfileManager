@@ -8,12 +8,12 @@ local HASTE_RATING_INDEX = CR_HASTE_MELEE or CR_HASTE_SPELL or 18
 local MASTERY_RATING_INDEX = CR_MASTERY or 26
 local VERSATILITY_RATING_INDEX = CR_VERSATILITY_DAMAGE_DONE or 29
 
-local BASE_ROW_GAP = 3
-local PRIORITY_ROW_GAP = 5
+local BASE_ROW_GAP = 4
+local PRIORITY_ROW_GAP = 6
 local FRAME_PADDING_X = 2
 local FRAME_PADDING_Y = 2
-local VALUE_GAP = 6
-local MIN_LABEL_WIDTH = 40
+local VALUE_GAP = 4
+local MIN_LABEL_WIDTH = 38
 local MIN_FRAME_WIDTH = 220
 local MIN_FRAME_HEIGHT = 82
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
@@ -22,7 +22,7 @@ local NORMAL_VALUE_SIZE = 16
 local PRIORITY_LABEL_SIZE = 15
 local PRIORITY_VALUE_SIZE = 15
 local FONT_FLAGS = "OUTLINE"
-local SECONDARY_DR_FIRST_THRESHOLD = 30
+local SECONDARY_DR_THRESHOLDS = { 30, 39, 47, 54, 66 }
 
 local function safeNumber(value)
     local numeric = tonumber(value) or 0
@@ -51,7 +51,7 @@ local function formatPercent(value)
 end
 
 local function formatStatValue(rating, percent)
-    return string.format("%s(%s)", formatRating(rating), formatPercent(percent))
+    return string.format("%s (%s)", formatRating(rating), formatPercent(percent))
 end
 
 local function getCurrentSpecIndex()
@@ -186,28 +186,35 @@ local function shouldShowTankDefensiveStats(specIndex)
 end
 
 local function getSecondaryStatDRTier(percentFromRating)
-    if safeNumber(percentFromRating) >= SECONDARY_DR_FIRST_THRESHOLD then
-        return 1
+    local normalized = safeNumber(percentFromRating)
+
+    for index = #SECONDARY_DR_THRESHOLDS, 1, -1 do
+        if normalized >= SECONDARY_DR_THRESHOLDS[index] then
+            return index
+        end
     end
 
     return 0
 end
 
-local function addRatedStat(snapshot, label, rating, percent, ratingPercent)
+local function addRatedStat(snapshot, key, label, rating, percent, ratingPercent)
     snapshot[#snapshot + 1] = {
+        key = key,
         label = label,
         value = formatStatValue(rating, percent),
         style = "stat",
+        ratingPercent = safeNumber(ratingPercent),
         drTier = getSecondaryStatDRTier(ratingPercent),
     }
 end
 
-local function addPercentStat(snapshot, label, percent)
+local function addPercentStat(snapshot, key, label, percent)
     if safeNumber(percent) <= 0 then
         return
     end
 
     snapshot[#snapshot + 1] = {
+        key = key,
         label = label,
         value = formatPercent(percent),
         style = "defense",
@@ -231,12 +238,22 @@ end
 function StatsOverlay:CreateRow()
     local row = CreateFrame("Frame", nil, self.frame)
     row:SetSize(MIN_FRAME_WIDTH, 20)
+    row:EnableMouse(true)
 
     row.label = row:CreateFontString(nil, "OVERLAY")
     row.label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
 
     row.value = row:CreateFontString(nil, "OVERLAY")
     row.value:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
+
+    row:SetScript("OnEnter", function(currentRow)
+        self:ShowRowTooltip(currentRow)
+    end)
+    row:SetScript("OnLeave", function()
+        if GameTooltip and GameTooltip:IsOwned(row) then
+            GameTooltip:Hide()
+        end
+    end)
 
     return row
 end
@@ -250,26 +267,98 @@ function StatsOverlay:EnsureRowCount(count)
 end
 
 function StatsOverlay:ApplyRowStyle(row, style, drTier)
+    applyTextStyle(row.label, NORMAL_LABEL_SIZE, 0.92, 0.93, 0.95)
+
     if style == "priority" then
-        applyTextStyle(row.label, PRIORITY_LABEL_SIZE, 0.76, 0.94, 0.90)
-        applyTextStyle(row.value, PRIORITY_VALUE_SIZE, 0.64, 0.96, 0.76)
+        applyTextStyle(row.label, PRIORITY_LABEL_SIZE, 0.78, 0.96, 0.92)
+        applyTextStyle(row.value, PRIORITY_VALUE_SIZE, 0.62, 0.94, 0.78)
         return
     end
 
     if style == "defense" then
-        applyTextStyle(row.label, NORMAL_LABEL_SIZE, 0.78, 0.89, 1.00)
         applyTextStyle(row.value, NORMAL_VALUE_SIZE, 0.95, 0.98, 1.00)
         return
     end
 
-    if (drTier or 0) > 0 then
-        applyTextStyle(row.label, NORMAL_LABEL_SIZE, 1.00, 0.70, 0.70)
-        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.38, 0.38)
+    if drTier == 1 then
+        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.84, 0.30)
         return
     end
 
-    applyTextStyle(row.label, NORMAL_LABEL_SIZE, 0.92, 0.93, 0.95)
+    if drTier == 2 then
+        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.70, 0.22)
+        return
+    end
+
+    if drTier == 3 then
+        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.55, 0.22)
+        return
+    end
+
+    if drTier == 4 then
+        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.40, 0.24)
+        return
+    end
+
+    if (drTier or 0) >= 5 then
+        applyTextStyle(row.value, NORMAL_VALUE_SIZE, 1.00, 0.24, 0.24)
+        return
+    end
+
     applyTextStyle(row.value, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
+end
+
+function StatsOverlay:GetTooltipBody(entry)
+    if not entry or not entry.key then
+        return nil
+    end
+
+    local key = "stats_overlay_tooltip_" .. entry.key .. "_body"
+    local text = ns.Locale:GetString(key)
+    if text == key then
+        return nil
+    end
+
+    return text
+end
+
+function StatsOverlay:GetTooltipTitle(entry)
+    if not entry or not entry.key then
+        return entry and entry.label or nil
+    end
+
+    local key = "stats_overlay_tooltip_" .. entry.key .. "_title"
+    local text = ns.Locale:GetString(key)
+    if text == key then
+        return entry.label
+    end
+
+    return text
+end
+
+function StatsOverlay:ShowRowTooltip(row)
+    if not row or not row.entry or not row.entry.key or not GameTooltip then
+        return
+    end
+
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:SetText(self:GetTooltipTitle(row.entry) or row.entry.label or "", 0.96, 0.82, 0.30)
+
+    local body = self:GetTooltipBody(row.entry)
+    if body then
+        GameTooltip:AddLine(body, 1, 1, 1, true)
+    end
+
+    if row.entry.style == "stat" then
+        local drKey = "stats_overlay_dr_tier_" .. tostring(row.entry.drTier or 0)
+        local drText = ns.Locale:GetString(drKey)
+        if drText ~= drKey then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(ns.L("stats_overlay_tooltip_dr_line", drText, formatPercent(row.entry.ratingPercent or 0)), 0.84, 0.92, 1, true)
+        end
+    end
+
+    GameTooltip:Show()
 end
 
 function StatsOverlay:Initialize()
@@ -312,6 +401,7 @@ function StatsOverlay:BuildSnapshot()
 
     addRatedStat(
         snapshot,
+        "crit",
         ns.L("stats_overlay_crit"),
         getCombatRating(CRIT_RATING_INDEX),
         type(GetCritChance) == "function" and safeNumber(GetCritChance()) or 0,
@@ -319,6 +409,7 @@ function StatsOverlay:BuildSnapshot()
     )
     addRatedStat(
         snapshot,
+        "haste",
         ns.L("stats_overlay_haste"),
         getCombatRating(HASTE_RATING_INDEX),
         getHastePercent(),
@@ -326,6 +417,7 @@ function StatsOverlay:BuildSnapshot()
     )
     addRatedStat(
         snapshot,
+        "mastery",
         ns.L("stats_overlay_mastery"),
         getCombatRating(MASTERY_RATING_INDEX),
         getMasteryPercent(),
@@ -333,6 +425,7 @@ function StatsOverlay:BuildSnapshot()
     )
     addRatedStat(
         snapshot,
+        "versatility",
         ns.L("stats_overlay_versatility"),
         getCombatRating(VERSATILITY_RATING_INDEX),
         getVersatilityPercent(),
@@ -344,9 +437,9 @@ function StatsOverlay:BuildSnapshot()
     local specName = getCurrentSpecName(specIndex)
 
     if shouldShowTankDefensiveStats(specIndex) then
-        addPercentStat(snapshot, ns.L("stats_overlay_dodge"), getDodgePercent())
-        addPercentStat(snapshot, ns.L("stats_overlay_parry"), getParryPercent())
-        addPercentStat(snapshot, ns.L("stats_overlay_block"), getBlockPercent())
+        addPercentStat(snapshot, "dodge", ns.L("stats_overlay_dodge"), getDodgePercent())
+        addPercentStat(snapshot, "parry", ns.L("stats_overlay_parry"), getParryPercent())
+        addPercentStat(snapshot, "block", ns.L("stats_overlay_block"), getBlockPercent())
     end
 
     local classBucket = classTag and ns.Data and ns.Data.StatPriorities and ns.Data.StatPriorities[classTag]
@@ -355,6 +448,7 @@ function StatsOverlay:BuildSnapshot()
 
     snapshot[#snapshot + 1] = {
         label = priorityLabel,
+        key = "priority",
         value = priorityText,
         style = "priority",
         spacingBefore = PRIORITY_ROW_GAP,
@@ -435,12 +529,17 @@ function StatsOverlay:RefreshStats()
     for index, entry in ipairs(snapshot) do
         local row = self.rows[index]
         self:ApplyRowStyle(row, entry.style, entry.drTier)
+        row.entry = entry
         row.label:SetText(entry.label or "")
         row.value:SetText(entry.value or "")
     end
 
     self:UpdateFrameSize(snapshot)
     self:LayoutRows(snapshot)
+
+    for index = #snapshot + 1, #self.rows do
+        self.rows[index].entry = nil
+    end
 end
 
 function StatsOverlay:Refresh()
