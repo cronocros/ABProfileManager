@@ -3,7 +3,7 @@
 ## 현재 상태
 
 프로젝트는 직접 적용 가능한 WoW Retail 애드온 구조를 갖추고 있다.  
-현재 기준 버전은 `v1.0.4`이며, 핵심 기능 구현과 인게임 동작 확인이 끝난 상태다.
+현재 기준 버전은 `v1.0.5`이며, 핵심 기능 구현과 인게임 동작 확인이 끝난 상태다.
 1차 출시와 GitHub 업로드까지 완료된 상태다.
 
 ## 이미 구현된 핵심 기능
@@ -89,9 +89,9 @@
 ## 릴리스 자산
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 배포 ZIP: `dist/ABProfileManager-v1.0.4.zip`
-- 릴리스 노트: `RELEASE_NOTES_v1.0.4.md`
-- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.0.4-<timestamp>.zip`
+- 배포 ZIP: `dist/ABProfileManager-v1.0.5.zip`
+- 릴리스 노트: `RELEASE_NOTES_v1.0.5.md`
+- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.0.5-<timestamp>.zip`
 - 변경 이력: `CHANGELOG.md`
 
 ## 중요한 파일

@@ -5,7 +5,7 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.0.4`
+- `v1.0.5`
 - 1차 출시 완료
 - 인게임 기준 핵심 기능 동작 확인 완료
 - GitHub 원격 업로드 완료
@@ -14,9 +14,9 @@
 ## 배포 정보
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 릴리스 버전: `v1.0.4`
-- 배포 패키지: [ABProfileManager-v1.0.4.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.4.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.4.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.4.md)
+- 릴리스 버전: `v1.0.5`
+- 배포 패키지: [ABProfileManager-v1.0.5.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.5.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.5.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.5.md)
 
 ## 설치
 
@@ -91,7 +91,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.4`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.5`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -166,7 +166,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.4.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.4.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.0.5.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.5.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)
