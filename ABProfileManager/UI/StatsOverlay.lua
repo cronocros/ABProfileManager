@@ -60,19 +60,10 @@ local function formatPercent(value)
     return string.format("%.2f%%", safeNumber(value))
 end
 
-local function getIntegerDigitCount(value)
-    local normalized = math.abs(safeNumber(value))
-    local wholeNumber = math.floor(normalized)
-    if wholeNumber == 0 then
-        return 1
-    end
-
-    return string.len(tostring(wholeNumber))
-end
-
-local function formatAlignedStatPercent(value, integerDigits)
-    local width = math.max(1, tonumber(integerDigits) or 1) + 3
-    return string.format("(%" .. width .. ".2f%%)", safeNumber(value))
+local function formatSplitStatPercent(value)
+    local formatted = string.format("%.2f", safeNumber(value))
+    local wholePart, decimalPart = formatted:match("^(%d+)%.(%d%d)$")
+    return "(" .. (wholePart or "0"), "." .. (decimalPart or "00") .. "%)"
 end
 
 local function formatStatValueParts(rating)
@@ -261,6 +252,28 @@ local function applyTextStyle(fontString, size, r, g, b)
     end
 end
 
+local function applyPercentTextStyle(row, size, r, g, b)
+    applyTextStyle(row.secondaryValue, size, r, g, b)
+    applyTextStyle(row.percentTailValue, size, r, g, b)
+    row.secondaryValue:SetJustifyH("RIGHT")
+    row.percentTailValue:SetJustifyH("LEFT")
+end
+
+local function applyTooltipProxyFont(fontString, fontObject)
+    if not fontString then
+        return
+    end
+
+    if fontString.SetFontObject and fontObject then
+        fontString:SetFontObject(fontObject)
+    else
+        fontString:SetFont(FONT_PATH, 12, "")
+    end
+
+    fontString:SetJustifyH("LEFT")
+    fontString:SetJustifyV("TOP")
+end
+
 function StatsOverlay:CreateRow()
     local row = CreateFrame("Frame", nil, self.frame)
     row:SetSize(MIN_FRAME_WIDTH, 20)
@@ -273,6 +286,9 @@ function StatsOverlay:CreateRow()
 
     row.secondaryValue = row:CreateFontString(nil, "OVERLAY")
     row.secondaryValue:SetPoint("TOPLEFT", row.primaryValue, "TOPRIGHT", VALUE_PART_GAP, 0)
+
+    row.percentTailValue = row:CreateFontString(nil, "OVERLAY")
+    row.percentTailValue:SetPoint("TOPLEFT", row.secondaryValue, "TOPRIGHT", 0, 0)
 
     row.tooltipRegion = CreateFrame("Frame", nil, row)
     row.tooltipRegion.ownerRow = row
@@ -317,9 +333,8 @@ end
 function StatsOverlay:ApplyRowStyle(row, style, drTier)
     applyTextStyle(row.label, NORMAL_LABEL_SIZE, 0.92, 0.93, 0.95)
     applyTextStyle(row.primaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
-    applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
+    applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
     row.primaryValue:SetJustifyH("RIGHT")
-    row.secondaryValue:SetJustifyH("RIGHT")
 
     if style == "priority" then
         applyTextStyle(row.label, PRIORITY_LABEL_SIZE, 0.78, 0.96, 0.92)
@@ -335,31 +350,31 @@ function StatsOverlay:ApplyRowStyle(row, style, drTier)
     end
 
     if drTier == 1 then
-        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.68, 0.20)
+        applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 1.00, 0.68, 0.20)
         return
     end
 
     if drTier == 2 then
-        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.56, 0.16)
+        applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 1.00, 0.56, 0.16)
         return
     end
 
     if drTier == 3 then
-        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.44, 0.14)
+        applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 1.00, 0.44, 0.14)
         return
     end
 
     if drTier == 4 then
-        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.32, 0.16)
+        applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 1.00, 0.32, 0.16)
         return
     end
 
     if (drTier or 0) >= 5 then
-        applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 1.00, 0.20, 0.20)
+        applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 1.00, 0.20, 0.20)
         return
     end
 
-    applyTextStyle(row.secondaryValue, NORMAL_VALUE_SIZE, 0.96, 0.76, 0.14)
+    applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 0.96, 0.76, 0.14)
 end
 
 function StatsOverlay:GetTooltipBody(entry)
@@ -387,6 +402,8 @@ function StatsOverlay:GetTooltipProxyFrame()
 
     frame.Label = frame:CreateFontString(nil, "OVERLAY")
     frame.Value = frame:CreateFontString(nil, "OVERLAY")
+    applyTooltipProxyFont(frame.Label, GameFontNormal)
+    applyTooltipProxyFont(frame.Value, GameFontHighlight)
 
     self.tooltipProxyFrame = frame
     return frame
@@ -414,6 +431,8 @@ function StatsOverlay:PreparePaperDollTooltip(entry, owner)
     proxy.onEnterFunc = nil
     proxy.UpdateTooltip = nil
     proxy.numericValue = nil
+    applyTooltipProxyFont(proxy.Label, GameFontNormal)
+    applyTooltipProxyFont(proxy.Value, GameFontHighlight)
 
     setter(proxy, "player")
     return proxy
@@ -542,16 +561,9 @@ function StatsOverlay:BuildSnapshot()
         getCombatRatingBonus(VERSATILITY_RATING_INDEX)
     )
 
-    local maxPercentDigits = 1
     for _, entry in ipairs(snapshot) do
         if entry.style == "stat" then
-            maxPercentDigits = math.max(maxPercentDigits, getIntegerDigitCount(entry.percentValue))
-        end
-    end
-
-    for _, entry in ipairs(snapshot) do
-        if entry.style == "stat" then
-            entry.secondaryText = formatAlignedStatPercent(entry.percentValue, maxPercentDigits)
+            entry.secondaryText, entry.percentTailText = formatSplitStatPercent(entry.percentValue)
         end
     end
 
@@ -588,12 +600,14 @@ function StatsOverlay:UpdateFrameSize(snapshot)
     local labelWidth = MIN_LABEL_WIDTH
     local primaryColumnWidth = 0
     local secondaryColumnWidth = 0
+    local percentTailColumnWidth = 0
     for index, entry in ipairs(snapshot) do
         local row = self.rows[index]
         labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
         if entry and entry.style == "stat" then
             primaryColumnWidth = math.max(primaryColumnWidth, math.ceil(row.primaryValue:GetStringWidth() or 0))
             secondaryColumnWidth = math.max(secondaryColumnWidth, math.ceil(row.secondaryValue:GetStringWidth() or 0))
+            percentTailColumnWidth = math.max(percentTailColumnWidth, math.ceil(row.percentTailValue:GetStringWidth() or 0))
         end
         if entry and entry.style == "priority" then
             labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
@@ -607,6 +621,7 @@ function StatsOverlay:UpdateFrameSize(snapshot)
         row.label:SetWidth(labelWidth)
         row.primaryValue:ClearAllPoints()
         row.secondaryValue:ClearAllPoints()
+        row.percentTailValue:ClearAllPoints()
 
         local primaryWidth = 0
         local secondaryWidth = 0
@@ -614,18 +629,24 @@ function StatsOverlay:UpdateFrameSize(snapshot)
         if entry.style == "stat" then
             row.primaryValue:Show()
             row.secondaryValue:Show()
+            row.percentTailValue:Show()
             row.primaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
             row.secondaryValue:SetPoint("TOPLEFT", row.primaryValue, "TOPRIGHT", VALUE_PART_GAP, 0)
+            row.percentTailValue:SetPoint("TOPLEFT", row.secondaryValue, "TOPRIGHT", 0, 0)
             row.primaryValue:SetWidth(primaryColumnWidth)
             row.secondaryValue:SetWidth(secondaryColumnWidth)
+            row.percentTailValue:SetWidth(percentTailColumnWidth)
             row.primaryValue:SetJustifyH("RIGHT")
             row.secondaryValue:SetJustifyH("RIGHT")
+            row.percentTailValue:SetJustifyH("LEFT")
             primaryWidth = primaryColumnWidth
-            secondaryWidth = secondaryColumnWidth
+            secondaryWidth = secondaryColumnWidth + percentTailColumnWidth
         else
             row.primaryValue:Hide()
             row.primaryValue:SetWidth(0)
             row.secondaryValue:Show()
+            row.percentTailValue:Hide()
+            row.percentTailValue:SetWidth(0)
             row.secondaryValue:SetPoint("TOPLEFT", row.label, "TOPRIGHT", VALUE_GAP, 0)
             row.secondaryValue:SetJustifyH("LEFT")
             secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
@@ -642,6 +663,7 @@ function StatsOverlay:UpdateFrameSize(snapshot)
             math.ceil(row.label:GetStringHeight() or 0),
             math.ceil(row.primaryValue:GetStringHeight() or 0),
             math.ceil(row.secondaryValue:GetStringHeight() or 0),
+            math.ceil(row.percentTailValue:GetStringHeight() or 0),
             18
         )
 
@@ -700,6 +722,7 @@ function StatsOverlay:RefreshStats()
         row.label:SetText(entry.label or "")
         row.primaryValue:SetText(entry.primaryText or "")
         row.secondaryValue:SetText(entry.secondaryText or entry.value or "")
+        row.percentTailValue:SetText(entry.percentTailText or "")
     end
 
     self:UpdateFrameSize(snapshot)
@@ -707,6 +730,7 @@ function StatsOverlay:RefreshStats()
 
     for index = #snapshot + 1, #self.rows do
         self.rows[index].entry = nil
+        self.rows[index].percentTailValue:SetText("")
     end
 end
 

@@ -1,7 +1,7 @@
 # ABPM Final Design
 
 현재 제품 상태:
-- `v1.0.6`
+- `v1.0.7`
 - 구현 완료
 - 1차 출시 완료
 - 출시 기준 문서
@@ -243,10 +243,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 기본 브랜치: `main`
-- 현재 배포 버전: `v1.0.6`
-- 현재 배포 산출물: `dist/ABProfileManager-v1.0.6.zip`
-- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.0.6.md`
-- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.0.6-<timestamp>.zip`
+- 현재 배포 버전: `v1.0.7`
+- 현재 배포 산출물: `dist/ABProfileManager-v1.0.7.zip`
+- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.0.7.md`
+- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.0.7-<timestamp>.zip`
 - 버전 기록 기준 문서: `CHANGELOG.md`
 
 ## 확인이 필요한 항목
