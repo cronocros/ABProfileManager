@@ -28,6 +28,12 @@ local function safeDate()
     return ""
 end
 
+local function resetEvaluationCaches(self)
+    self.evaluationCache = {}
+    self.sectionSummaryCache = {}
+    self.professionSummaryCache = {}
+end
+
 function Tracker:Initialize()
     wipe(KNOWN_SKILL_LINES)
     wipe(ORDER_INDEX)
@@ -44,10 +50,13 @@ function Tracker:Initialize()
     self.completedQuestLookup = {}
     self.questStatusLookup = {}
     self.questCacheDirty = true
+    self.questCacheGeneration = 0
+    resetEvaluationCaches(self)
 end
 
 function Tracker:MarkDirty()
     self.questCacheDirty = true
+    resetEvaluationCaches(self)
 end
 
 function Tracker:RefreshQuestCache(force)
@@ -71,6 +80,8 @@ function Tracker:RefreshQuestCache(force)
     self.completedQuestLookup = lookup
     self.questStatusLookup = {}
     self.questCacheDirty = false
+    self.questCacheGeneration = (self.questCacheGeneration or 0) + 1
+    resetEvaluationCaches(self)
 
     local store = getProfessionStore()
     if store then
@@ -80,6 +91,8 @@ function Tracker:RefreshQuestCache(force)
             store.lastCompletedQuestCount = (store.lastCompletedQuestCount or 0) + 1
         end
     end
+
+    ns.Utils.Debug(string.format("Profession knowledge scan refreshed: %d completed quests", ns.Utils.TableCount(lookup)))
 
     return lookup
 end
@@ -185,6 +198,12 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
         return nil
     end
 
+    local cacheKey = string.format("%s:%s", tostring(professionKey), tostring(sourceKey))
+    local cached = self.evaluationCache and self.evaluationCache[cacheKey]
+    if cached and cached.generation == (self.questCacheGeneration or 0) then
+        return cached.value
+    end
+
     local earnedPoints = 0
     local maxPoints = 0
     local completedObjectives = 0
@@ -207,7 +226,7 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
         }
     end
 
-    return {
+    local result = {
         sectionKey = sectionKey,
         key = sourceDefinition.key,
         labelKey = sourceDefinition.labelKey,
@@ -219,6 +238,13 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
         complete = completedObjectives == #(sourceDefinition.objectives or {}),
         objectiveRows = objectiveRows,
     }
+
+    self.evaluationCache[cacheKey] = {
+        generation = self.questCacheGeneration or 0,
+        value = result,
+    }
+
+    return result
 end
 
 function Tracker:GetKnownProfessions()
@@ -267,6 +293,12 @@ function Tracker:GetSectionSummary(professionKey, sectionName)
         return 0, 0
     end
 
+    local cacheKey = string.format("%s:%s", tostring(professionKey), tostring(sectionName))
+    local cached = self.sectionSummaryCache and self.sectionSummaryCache[cacheKey]
+    if cached and cached.generation == (self.questCacheGeneration or 0) then
+        return cached.earned, cached.maximum
+    end
+
     local earned = 0
     local maximum = 0
     for _, source in ipairs(definition[sectionName]) do
@@ -274,6 +306,12 @@ function Tracker:GetSectionSummary(professionKey, sectionName)
         earned = earned + (row and row.earned or 0)
         maximum = maximum + (row and row.maxPoints or 0)
     end
+
+    self.sectionSummaryCache[cacheKey] = {
+        generation = self.questCacheGeneration or 0,
+        earned = earned,
+        maximum = maximum,
+    }
 
     return earned, maximum
 end
@@ -284,10 +322,15 @@ function Tracker:GetProfessionSummary(professionKey)
         return nil
     end
 
+    local cached = self.professionSummaryCache and self.professionSummaryCache[professionKey]
+    if cached and cached.generation == (self.questCacheGeneration or 0) then
+        return cached.value
+    end
+
     local weeklyEarned, weeklyMax = self:GetSectionSummary(professionKey, "weekly")
     local oneTimeEarned, oneTimeMax = self:GetSectionSummary(professionKey, "oneTime")
 
-    return {
+    local result = {
         professionKey = professionKey,
         definition = definition,
         weeklyEarned = weeklyEarned,
@@ -295,6 +338,13 @@ function Tracker:GetProfessionSummary(professionKey)
         oneTimeEarned = oneTimeEarned,
         oneTimeMax = oneTimeMax,
     }
+
+    self.professionSummaryCache[professionKey] = {
+        generation = self.questCacheGeneration or 0,
+        value = result,
+    }
+
+    return result
 end
 
 function Tracker:GetProfessionSections(professionKey)

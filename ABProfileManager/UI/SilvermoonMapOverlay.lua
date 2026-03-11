@@ -36,17 +36,69 @@ function SilvermoonMapOverlay:Initialize()
     end
 
     local driver = CreateFrame("Frame")
-    driver:SetScript("OnUpdate", function(_, elapsed)
-        self.elapsed = (self.elapsed or 0) + elapsed
-        if self.elapsed < REFRESH_INTERVAL then
-            return
-        end
+    self.driver = driver
+    self:EnsureHooks()
+end
 
-        self.elapsed = 0
+function SilvermoonMapOverlay:HandleDriverUpdate(elapsed)
+    self.elapsed = (self.elapsed or 0) + elapsed
+    if self.elapsed < REFRESH_INTERVAL then
+        return
+    end
+
+    self.elapsed = 0
+    self:Refresh()
+end
+
+function SilvermoonMapOverlay:SetDriverActive(active)
+    if not self.driver then
+        return
+    end
+
+    active = active and true or false
+    if self.driverActive == active then
+        return
+    end
+
+    self.driverActive = active
+    self.elapsed = 0
+
+    if active then
+        self.driver:SetScript("OnUpdate", function(_, elapsed)
+            self:HandleDriverUpdate(elapsed)
+        end)
+    else
+        self.driver:SetScript("OnUpdate", nil)
+    end
+end
+
+function SilvermoonMapOverlay:EnsureHooks()
+    if self.hooksReady or not WorldMapFrame then
+        return
+    end
+
+    WorldMapFrame:HookScript("OnShow", function()
+        self.currentMapID = nil
+        self.lastWidth = nil
+        self.lastHeight = nil
         self:Refresh()
     end)
 
-    self.driver = driver
+    WorldMapFrame:HookScript("OnHide", function()
+        self:SetDriverActive(false)
+        self:HideAll()
+    end)
+
+    if type(WorldMapFrame.SetMapID) == "function" then
+        hooksecurefunc(WorldMapFrame, "SetMapID", function()
+            self.currentMapID = nil
+            self.lastWidth = nil
+            self.lastHeight = nil
+            self:Refresh()
+        end)
+    end
+
+    self.hooksReady = true
 end
 
 function SilvermoonMapOverlay:EnsureOverlayFrame()
@@ -97,6 +149,8 @@ function SilvermoonMapOverlay:EnsureLabel(index)
 end
 
 function SilvermoonMapOverlay:HideAll()
+    self:SetDriverActive(false)
+
     if not self.overlayFrame then
         return
     end
@@ -150,6 +204,8 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
 end
 
 function SilvermoonMapOverlay:Refresh()
+    self:EnsureHooks()
+
     if not ns.DB or not ns.DB:IsSilvermoonMapOverlayEnabled() then
         self:HideAll()
         return
@@ -174,6 +230,8 @@ function SilvermoonMapOverlay:Refresh()
         self:HideAll()
         return
     end
+
+    self:SetDriverActive(true)
 
     local width = parent:GetWidth() or 0
     local height = parent:GetHeight() or 0

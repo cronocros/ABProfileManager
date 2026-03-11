@@ -99,6 +99,15 @@ local function getSelectionSlotCount(plan)
     return plan.logicalSlots and #plan.logicalSlots or 0
 end
 
+local function getCursorSummary()
+    if type(GetCursorInfo) ~= "function" then
+        return nil, nil
+    end
+
+    local cursorKind, cursorID = GetCursorInfo()
+    return cursorKind, cursorID
+end
+
 local function verifyPlacement(actualSlot, slotRecord)
     local placedKind, placedID = GetActionInfo(actualSlot)
     if not placedKind then
@@ -254,13 +263,16 @@ function ActionBarApplier:PlaceCursorIntoLogicalSlot(logicalSlot)
         return false, err, "invalid"
     end
 
-    if not GetCursorInfo() then
+    local cursorKind, cursorID = getCursorSummary()
+    if not cursorKind then
         return false, ns.L("error_action_pickup_failed"), "missing"
     end
 
+    ns.Utils.Debug(string.format("Placing cursor action into slot %d (%s:%s)", actualSlot, tostring(cursorKind), tostring(cursorID)))
     PlaceAction(actualSlot)
 
     if not GetActionInfo(actualSlot) then
+        ns.Utils.Debug(string.format("PlaceAction failed for slot %d while cursor held %s:%s", actualSlot, tostring(cursorKind), tostring(cursorID)))
         return false, ns.L("error_action_place_failed"), "missing"
     end
 
@@ -524,6 +536,13 @@ end
 
 function ActionBarApplier:RetryPendingGhosts()
     if InCombatLockdown and InCombatLockdown() then
+        ns.Utils.Debug("Skipping ghost retry while in combat")
+        return
+    end
+
+    local cursorKind, cursorID = getCursorSummary()
+    if cursorKind then
+        ns.Utils.Debug(string.format("Skipping ghost retry because cursor is busy (%s:%s)", tostring(cursorKind), tostring(cursorID)))
         return
     end
 

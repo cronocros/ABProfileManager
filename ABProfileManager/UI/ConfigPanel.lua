@@ -27,6 +27,72 @@ local function showMainWindow()
     end
 end
 
+local function getCharacterName()
+    if type(UnitName) ~= "function" then
+        return "?"
+    end
+
+    return UnitName("player") or "?"
+end
+
+local function getClassName()
+    if type(UnitClass) ~= "function" then
+        return "?"
+    end
+
+    local className = UnitClass("player")
+    return className or "?"
+end
+
+local function getSpecName()
+    if type(GetSpecialization) ~= "function" or type(GetSpecializationInfo) ~= "function" then
+        return ns.L("stats_overlay_unknown_spec")
+    end
+
+    local specIndex = GetSpecialization()
+    if not specIndex then
+        return ns.L("stats_overlay_unknown_spec")
+    end
+
+    local _, specName = GetSpecializationInfo(specIndex)
+    return specName or ns.L("stats_overlay_unknown_spec")
+end
+
+local function getStateLabel(enabled)
+    return enabled and ns.L("state_enabled") or ns.L("state_disabled")
+end
+
+local function buildOverviewSummary()
+    local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
+    local lastScan = tracker and tracker.GetLastScanLabel and tracker:GetLastScanLabel() or ""
+    if lastScan == "" then
+        lastScan = ns.L("config_overview_not_scanned")
+    end
+
+    return table.concat({
+        ns.L("config_overview_header"),
+        ns.L("config_overview_character", getCharacterName(), getClassName(), getSpecName()),
+        ns.L(
+            "config_overview_overlays",
+            getStateLabel(ns.DB:IsStatsOverlayEnabled()),
+            getStateLabel(ns.DB:IsProfessionKnowledgeOverlayEnabled()),
+            getStateLabel(ns.DB:IsSilvermoonMapOverlayEnabled())
+        ),
+        ns.L("config_overview_profession_scan", lastScan),
+        ns.L("config_overview_debug", getStateLabel(ns.DB:IsDebugEnabled())),
+    }, "\n")
+end
+
+local function buildOverviewDetails()
+    return table.concat({
+        ns.L("config_overview_hint_window"),
+        ns.L("config_overview_hint_drag"),
+        ns.L("config_overview_hint_map"),
+        ns.L("config_overview_hint_debug"),
+        ns.L("config_version_info", ns.Constants.VERSION or "?"),
+    }, "\n")
+end
+
 function ConfigPanel:ApplyLanguage(language, refs)
     ns.DB:SetLanguage(language)
     ns:RefreshUI()
@@ -132,12 +198,8 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.silvermoonMapLabel:SetText(ns.L("config_silvermoon_map"))
     refs.silvermoonMapCheck.Text:SetText(ns.L("config_silvermoon_map_show"))
-    refs.helpText:SetText(ns.L("config_help"))
-    refs.infoText:SetText(string.format(
-        "%s\n%s",
-        ns.L("config_settings_info"),
-        ns.L("config_version_info", ns.Constants.VERSION or "?")
-    ))
+    refs.helpText:SetText(buildOverviewSummary())
+    refs.infoText:SetText(buildOverviewDetails())
 
     if refs.openWindowButton then
         refs.openWindowButton:SetText(ns.L("config_open_window"))
@@ -208,7 +270,7 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.silvermoonMapCheck.Text:SetWidth(384)
     refs.silvermoonMapCheck.Text:SetJustifyH("LEFT")
 
-    local helpBox = widgets.CreatePanelBox(parent, 852, options.showOpenButton and 148 or 124, nil)
+    local helpBox = widgets.CreatePanelBox(parent, 852, options.showOpenButton and 184 or 160, nil)
     helpBox:SetPoint("TOPLEFT", languageBox, "BOTTOMLEFT", 0, -20)
     refs.helpText = widgets.CreateLabel(helpBox, "", nil, 12, -14)
     refs.helpText:SetWidth(820)
@@ -219,7 +281,7 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     if options.showOpenButton then
         refs.openWindowButton = widgets.CreateButton(helpBox, "", 150, 28)
-        refs.openWindowButton:SetPoint("TOPLEFT", refs.infoText, "BOTTOMLEFT", 0, -16)
+        refs.openWindowButton:SetPoint("BOTTOMLEFT", helpBox, "BOTTOMLEFT", 14, 14)
     end
 
     refs.statusText = widgets.CreateLabel(parent, "", helpBox, 0, -18)

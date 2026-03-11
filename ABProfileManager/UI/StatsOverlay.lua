@@ -9,14 +9,16 @@ local MASTERY_RATING_INDEX = CR_MASTERY or 26
 local VERSATILITY_RATING_INDEX = CR_VERSATILITY_DAMAGE_DONE or 29
 
 local BASE_ROW_GAP = 4
+local HEADER_ROW_GAP = 8
 local PRIORITY_ROW_GAP = 6
 local FRAME_PADDING_X = 2
 local FRAME_PADDING_Y = 2
 local VALUE_GAP = 4
 local MIN_LABEL_WIDTH = 38
-local MIN_FRAME_WIDTH = 220
-local MIN_FRAME_HEIGHT = 82
+local MIN_FRAME_WIDTH = 96
+local MIN_FRAME_HEIGHT = 28
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+local HEADER_VALUE_SIZE = 15
 local NORMAL_LABEL_SIZE = 16
 local NORMAL_VALUE_SIZE = 16
 local PRIORITY_LABEL_SIZE = 15
@@ -24,6 +26,9 @@ local PRIORITY_VALUE_SIZE = 15
 local FONT_FLAGS = "OUTLINE"
 local SECONDARY_DR_THRESHOLDS = { 30, 39, 47, 54, 66 }
 local VALUE_PART_GAP = 4
+local PERCENT_WHOLE_DIGITS = 3
+local INVISIBLE_PAD_PREFIX = "|c00000000"
+local INVISIBLE_PAD_SUFFIX = "|r"
 local PAPERDOLL_TOOLTIP_SETTERS = {
     crit = "PaperDollFrame_SetCritChance",
     haste = "PaperDollFrame_SetHaste",
@@ -60,10 +65,20 @@ local function formatPercent(value)
     return string.format("%.2f%%", safeNumber(value))
 end
 
+local function buildInvisiblePad(characterCount)
+    if characterCount <= 0 then
+        return ""
+    end
+
+    return INVISIBLE_PAD_PREFIX .. string.rep("0", characterCount) .. INVISIBLE_PAD_SUFFIX
+end
+
 local function formatSplitStatPercent(value)
     local formatted = string.format("%.2f", safeNumber(value))
     local wholePart, decimalPart = formatted:match("^(%d+)%.(%d%d)$")
-    return "(" .. (wholePart or "0"), "." .. (decimalPart or "00") .. "%)"
+    wholePart = wholePart or "0"
+    return "(" .. buildInvisiblePad(math.max(PERCENT_WHOLE_DIGITS - #wholePart, 0)) .. wholePart,
+        "." .. (decimalPart or "00") .. "%)"
 end
 
 local function formatStatValueParts(rating)
@@ -95,6 +110,23 @@ local function getCurrentSpecRole(specIndex)
     return GetSpecializationRole(specIndex)
 end
 
+local function getCurrentCharacterName()
+    if type(UnitName) ~= "function" then
+        return nil
+    end
+
+    return UnitName("player")
+end
+
+local function getCurrentClassName()
+    if type(UnitClass) ~= "function" then
+        return nil
+    end
+
+    local className = UnitClass("player")
+    return className
+end
+
 local function getCurrentClassTag()
     if type(UnitClass) ~= "function" then
         return nil
@@ -102,6 +134,13 @@ local function getCurrentClassTag()
 
     local _, classTag = UnitClass("player")
     return classTag
+end
+
+local function buildIdentityText()
+    local characterName = getCurrentCharacterName() or "?"
+    local className = getCurrentClassName() or "?"
+    local specName = getCurrentSpecName(getCurrentSpecIndex()) or ns.L("stats_overlay_unknown_spec")
+    return ns.L("stats_overlay_identity_line", characterName, className, specName)
 end
 
 local function buildPriorityText(orderGroups)
@@ -331,10 +370,18 @@ function StatsOverlay:EnsureRowCount(count)
 end
 
 function StatsOverlay:ApplyRowStyle(row, style, drTier)
+    row.label:Show()
     applyTextStyle(row.label, NORMAL_LABEL_SIZE, 0.92, 0.93, 0.95)
     applyTextStyle(row.primaryValue, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
     applyPercentTextStyle(row, NORMAL_VALUE_SIZE, 0.98, 0.97, 0.92)
     row.primaryValue:SetJustifyH("RIGHT")
+
+    if style == "header" then
+        row.label:Hide()
+        applyTextStyle(row.secondaryValue, HEADER_VALUE_SIZE, 0.80, 0.97, 1.00)
+        row.secondaryValue:SetJustifyH("LEFT")
+        return
+    end
 
     if style == "priority" then
         applyTextStyle(row.label, PRIORITY_LABEL_SIZE, 0.78, 0.96, 0.92)
@@ -505,7 +552,7 @@ function StatsOverlay:Initialize()
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
     if frame.SetHitRectInsets then
-        frame:SetHitRectInsets(-8, -8, -6, -6)
+        frame:SetHitRectInsets(0, 0, 0, 0)
     end
     frame:SetScript("OnDragStart", function(currentFrame)
         currentFrame:StartMoving()
@@ -527,6 +574,12 @@ end
 
 function StatsOverlay:BuildSnapshot()
     local snapshot = {}
+
+    snapshot[#snapshot + 1] = {
+        label = "",
+        secondaryText = buildIdentityText(),
+        style = "header",
+    }
 
     addRatedStat(
         snapshot,
@@ -589,7 +642,32 @@ function StatsOverlay:BuildSnapshot()
         spacingBefore = PRIORITY_ROW_GAP,
     }
 
+    for index = 2, #snapshot do
+        if snapshot[index].style == "stat" then
+            snapshot[index].spacingBefore = snapshot[index].spacingBefore or HEADER_ROW_GAP
+            break
+        end
+    end
+
     return snapshot
+end
+
+function StatsOverlay:BuildSnapshotSignature(snapshot)
+    local parts = {}
+
+    for _, entry in ipairs(snapshot or {}) do
+        parts[#parts + 1] = table.concat({
+            tostring(entry.style or ""),
+            tostring(entry.key or ""),
+            tostring(entry.label or ""),
+            tostring(entry.primaryText or ""),
+            tostring(entry.secondaryText or entry.value or ""),
+            tostring(entry.percentTailText or ""),
+            tostring(entry.drTier or ""),
+        }, "\030")
+    end
+
+    return table.concat(parts, "\031")
 end
 
 function StatsOverlay:UpdateFrameSize(snapshot)
@@ -603,7 +681,9 @@ function StatsOverlay:UpdateFrameSize(snapshot)
     local percentTailColumnWidth = 0
     for index, entry in ipairs(snapshot) do
         local row = self.rows[index]
-        labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
+        if entry and entry.style ~= "header" then
+            labelWidth = math.max(labelWidth, math.ceil(row.label:GetStringWidth() or 0))
+        end
         if entry and entry.style == "stat" then
             primaryColumnWidth = math.max(primaryColumnWidth, math.ceil(row.primaryValue:GetStringWidth() or 0))
             secondaryColumnWidth = math.max(secondaryColumnWidth, math.ceil(row.secondaryValue:GetStringWidth() or 0))
@@ -625,8 +705,22 @@ function StatsOverlay:UpdateFrameSize(snapshot)
 
         local primaryWidth = 0
         local secondaryWidth = 0
+        local rowWidth = 0
 
-        if entry.style == "stat" then
+        if entry.style == "header" then
+            row.label:SetWidth(0)
+            row.primaryValue:Hide()
+            row.primaryValue:SetWidth(0)
+            row.percentTailValue:Hide()
+            row.percentTailValue:SetWidth(0)
+            row.secondaryValue:Show()
+            row.secondaryValue:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+            row.secondaryValue:SetJustifyH("LEFT")
+            secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
+            row.secondaryValue:SetWidth(math.max(secondaryWidth, 1))
+            rowWidth = secondaryWidth
+        elseif entry.style == "stat" then
+            row.label:SetWidth(labelWidth)
             row.primaryValue:Show()
             row.secondaryValue:Show()
             row.percentTailValue:Show()
@@ -641,7 +735,9 @@ function StatsOverlay:UpdateFrameSize(snapshot)
             row.percentTailValue:SetJustifyH("LEFT")
             primaryWidth = primaryColumnWidth
             secondaryWidth = secondaryColumnWidth + percentTailColumnWidth
+            rowWidth = labelWidth + VALUE_GAP + primaryWidth + VALUE_PART_GAP + secondaryWidth
         else
+            row.label:SetWidth(labelWidth)
             row.primaryValue:Hide()
             row.primaryValue:SetWidth(0)
             row.secondaryValue:Show()
@@ -651,14 +747,9 @@ function StatsOverlay:UpdateFrameSize(snapshot)
             row.secondaryValue:SetJustifyH("LEFT")
             secondaryWidth = math.ceil(row.secondaryValue:GetStringWidth() or 0)
             row.secondaryValue:SetWidth(math.max(secondaryWidth, 1))
+            rowWidth = labelWidth + VALUE_GAP + secondaryWidth
         end
 
-        local valueWidth = secondaryWidth
-        if entry.style == "stat" then
-            valueWidth = primaryWidth + VALUE_PART_GAP + secondaryWidth
-        end
-
-        local rowWidth = labelWidth + VALUE_GAP + valueWidth
         local rowHeight = math.max(
             math.ceil(row.label:GetStringHeight() or 0),
             math.ceil(row.primaryValue:GetStringHeight() or 0),
@@ -668,12 +759,14 @@ function StatsOverlay:UpdateFrameSize(snapshot)
         )
 
         row.tooltipRegion:ClearAllPoints()
-        if entry.style == "stat" then
-            row.tooltipRegion:SetPoint("TOPLEFT", row.primaryValue, "TOPLEFT", -2, 1)
+        if entry.style == "header" or not entry.key then
+            row.tooltipRegion:SetSize(0, 0)
+            row.tooltipRegion:Hide()
         else
-            row.tooltipRegion:SetPoint("TOPLEFT", row.secondaryValue, "TOPLEFT", -2, 1)
+            row.tooltipRegion:SetPoint("TOPLEFT", row, "TOPLEFT", -1, 1)
+            row.tooltipRegion:SetSize(math.max(rowWidth + 2, 1), rowHeight)
+            row.tooltipRegion:Show()
         end
-        row.tooltipRegion:SetSize(math.max(secondaryWidth, valueWidth) + 4, rowHeight)
 
         row:SetSize(rowWidth, rowHeight)
         maxWidth = math.max(maxWidth, rowWidth)
@@ -713,6 +806,11 @@ function StatsOverlay:RefreshStats()
     end
 
     local snapshot = self:BuildSnapshot()
+    local snapshotSignature = self:BuildSnapshotSignature(snapshot)
+    if snapshotSignature == self.lastSnapshotSignature then
+        return
+    end
+
     self:EnsureRowCount(#snapshot)
 
     for index, entry in ipairs(snapshot) do
@@ -732,6 +830,8 @@ function StatsOverlay:RefreshStats()
         self.rows[index].entry = nil
         self.rows[index].percentTailValue:SetText("")
     end
+
+    self.lastSnapshotSignature = snapshotSignature
 end
 
 function StatsOverlay:Refresh()

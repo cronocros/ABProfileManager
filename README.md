@@ -5,10 +5,11 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.2.0`
+- `v1.2.1`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
 - `전문기술 자동 추적` / `Midnight 지도 오버레이` 개선 반영 완료
+- `고스트 덮어쓰기 안정화` / `스탯 오버레이 정리` 반영 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
@@ -16,10 +17,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.2.0`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.2.0/ABProfileManager-v1.2.0.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.2.0.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.2.0.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.2.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.2.0.md)
+- 릴리스 버전: `v1.2.1`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.2.1/ABProfileManager-v1.2.1.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.2.1.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.2.1.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.2.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.2.1.md)
 
 ## 설치
 
@@ -84,12 +85,14 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 전투 중 작업 대기열 처리
 - 없는 주문/아이템/매크로는 고스트 오버레이 표시
 - 고스트 오버레이는 드래그로 해제하거나 다른 액션을 올려 덮어쓸 수 있음
+- 고스트 자동 재시도는 플레이어가 커서에 다른 액션을 들고 있을 때는 멈춰 수동 드래그를 방해하지 않음
 - 미니맵 버튼은 축소된 사각 `AB` 버튼형으로 표시
 - 캐릭터 스탯 오버레이 표시
+  - 상단에 `캐릭터 - 직업 - 특성` 헤더 표시
   - 치명 / 가속 / 특화 / 유연을 `평점 (퍼센트)` 형식으로 표시
   - 현재 특성의 PvE 일반 스탯 우선순위 표시
   - 탱커 특성은 회피 / 무막 / 막기 같은 방어 스탯을 추가 표시
-  - 배경 없는 글자형 레이아웃, 드래그 이동, 위치 저장 지원
+  - 배경 없는 글자형 레이아웃, 좁은 힛트박스, 드래그 이동, 위치 저장 지원
   - 값 영역 마우스 오버 시 캐릭터창에 가까운 스탯 설명과 DR 구간 안내 툴팁 표시
 - 한국어 기본 UI, 영어 옵션 제공
 - 미니맵 버튼 제공
@@ -106,7 +109,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.2.0`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.2.1`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -135,6 +138,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 스탯 오버레이 표시 여부
   - 전문기술 체크 오버레이 표시 여부
   - Midnight 지도 오버레이 표시 여부
+  - 현재 세션 요약 / 오버레이 상태 / 전문기술 마지막 스캔 표시
 - `퀘스트` 탭:
   - 정리 기준 요약
   - 안전 정리 대상 / 전체 포기 대상 / 유지 대상 목록
@@ -193,7 +197,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.2.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.2.0.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.2.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.2.1.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

@@ -4,6 +4,17 @@ local enUS = ns.Locale and ns.Locale.strings and ns.Locale.strings.enUS
 local koKR = ns.Locale and ns.Locale.strings and ns.Locale.strings.koKR
 
 if enUS then
+    enUS.stats_overlay_identity_line = "%s - %s - %s"
+    enUS.config_overview_header = "● Session Overview"
+    enUS.config_overview_character = "Character: %s | Class: %s | Spec: %s"
+    enUS.config_overview_overlays = "Overlays: Stats %s | Profession %s | Midnight Map %s"
+    enUS.config_overview_profession_scan = "Profession scan: %s"
+    enUS.config_overview_debug = "Debug log: %s (session only)"
+    enUS.config_overview_not_scanned = "Not scanned yet"
+    enUS.config_overview_hint_window = "Open the main window with the minimap button or /abpm."
+    enUS.config_overview_hint_drag = "Stats and profession overlays can be dragged directly on screen."
+    enUS.config_overview_hint_map = "Midnight map labels appear only on supported Midnight maps while the world map is open."
+    enUS.config_overview_hint_debug = "Debug logging resets on logout or reload."
     enUS.tab_professions = "Professions"
     enUS.professions_title = "● Profession Weekly Check"
     enUS.professions_hint = "Track Midnight profession knowledge with hidden-quest auto detection. Weekly quests, treatises, weekly drops, renown books, and one-time treasures are scanned automatically."
@@ -108,6 +119,17 @@ if enUS then
 end
 
 if koKR then
+    koKR.stats_overlay_identity_line = "%s - %s - %s"
+    koKR.config_overview_header = "● 현재 세션 요약"
+    koKR.config_overview_character = "캐릭터: %s | 직업: %s | 특성: %s"
+    koKR.config_overview_overlays = "오버레이: 스탯 %s | 전문기술 %s | Midnight 지도 %s"
+    koKR.config_overview_profession_scan = "전문기술 스캔: %s"
+    koKR.config_overview_debug = "디버그 로그: %s (이번 접속만 유지)"
+    koKR.config_overview_not_scanned = "아직 스캔 기록 없음"
+    koKR.config_overview_hint_window = "미니맵 버튼이나 /abpm 으로 메인 창을 열 수 있습니다."
+    koKR.config_overview_hint_drag = "스탯 오버레이와 전문기술 오버레이는 화면에서 바로 드래그 이동할 수 있습니다."
+    koKR.config_overview_hint_map = "Midnight 지도 라벨은 월드맵이 열린 상태에서 지원하는 Midnight 지도에서만 표시됩니다."
+    koKR.config_overview_hint_debug = "디버그 로그는 로그아웃이나 리로드 후 자동으로 꺼집니다."
     koKR.tab_professions = "전문기술"
     koKR.professions_title = "● 전문기술 주간 체크"
     koKR.professions_hint = "Midnight 전문기술 지식 획득원을 숨은 퀘스트 기반으로 자동 추적합니다. 주간 퀘스트, Treatise, 주간 드랍, 평판 보상, 1회성 보물을 자동 스캔합니다."
