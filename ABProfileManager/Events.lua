@@ -17,6 +17,17 @@ local function refreshStatsOverlay()
     ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
 end
 
+local function refreshProfessionKnowledgeViews(forceScan)
+    if forceScan then
+        ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "RefreshQuestCache", true)
+    else
+        ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "MarkDirty")
+    end
+
+    ns:SafeCall(ns.UI.ProfessionPanel, "Refresh")
+    ns:SafeCall(ns.UI.ProfessionKnowledgeOverlay, "Refresh")
+end
+
 function Events:Initialize()
     frame:SetScript("OnEvent", function(_, event, ...)
         if type(self[event]) == "function" then
@@ -55,6 +66,9 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("UNIT_STATS")
     frame:RegisterEvent("UNIT_AURA")
     frame:RegisterEvent("QUEST_LOG_UPDATE")
+    frame:RegisterEvent("QUEST_TURNED_IN")
+    frame:RegisterEvent("BAG_UPDATE_DELAYED")
+    frame:RegisterEvent("BAG_NEW_ITEMS_UPDATED")
 end
 
 function Events:PLAYER_LOGIN()
@@ -63,6 +77,7 @@ function Events:PLAYER_LOGIN()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
     refreshStatsOverlay()
+    refreshProfessionKnowledgeViews(true)
     ns.Utils.Print(ns.L("loaded_window_hint"))
 end
 
@@ -73,6 +88,7 @@ end
 function Events:PLAYER_ENTERING_WORLD()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     refreshGhostsAndRetries()
+    refreshProfessionKnowledgeViews(true)
     ns:RefreshUI()
 end
 
@@ -104,10 +120,12 @@ end
 
 function Events:PLAYER_SPECIALIZATION_CHANGED()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
+    refreshProfessionKnowledgeViews(true)
     ns:RefreshUI()
 end
 
 function Events:SKILL_LINES_CHANGED()
+    refreshProfessionKnowledgeViews(true)
     ns:RefreshUI()
 end
 
@@ -142,6 +160,19 @@ end
 function Events:QUEST_LOG_UPDATE()
     ns:SafeCall(ns.Modules.QuestManager, "Invalidate")
     ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
+    refreshProfessionKnowledgeViews(false)
+end
+
+function Events:QUEST_TURNED_IN()
+    refreshProfessionKnowledgeViews(true)
+end
+
+function Events:BAG_UPDATE_DELAYED()
+    refreshProfessionKnowledgeViews(false)
+end
+
+function Events:BAG_NEW_ITEMS_UPDATED()
+    refreshProfessionKnowledgeViews(false)
 end
 
 Events:Initialize()

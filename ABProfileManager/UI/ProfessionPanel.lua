@@ -22,6 +22,46 @@ local function applyText(fontString, size, r, g, b)
     end
 end
 
+local function setTooltip(owner, text)
+    if not GameTooltip then
+        return
+    end
+
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    local lines = {}
+    for line in string.gmatch(tostring(text or ""), "([^\n]+)") do
+        lines[#lines + 1] = line
+    end
+
+    if #lines == 0 then
+        GameTooltip:SetText("")
+        GameTooltip:Show()
+        return
+    end
+
+    GameTooltip:SetText(lines[1], 1, 0.86, 0.40)
+    for index = 2, #lines do
+        GameTooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
+    end
+    GameTooltip:Show()
+end
+
+local function buildRowTooltip(rowData)
+    local lines = {
+        ns.L("pk_tooltip_header", rowData.title, rowData.current, rowData.max, rowData.earned, rowData.maxPoints),
+    }
+
+    for _, objective in ipairs(rowData.objectiveRows or {}) do
+        lines[#lines + 1] = ns.L(
+            objective.complete and "pk_tooltip_complete_row" or "pk_tooltip_pending_row",
+            objective.name or ("Objective " .. (objective.index or 0)),
+            objective.points or 0
+        )
+    end
+
+    return table.concat(lines, "\n")
+end
+
 function ProfessionPanel:CreateRow(parent, offsetY)
     local row = CreateFrame("Frame", nil, parent)
     row:SetPoint("TOPLEFT", 14, offsetY)
@@ -38,16 +78,17 @@ function ProfessionPanel:CreateRow(parent, offsetY)
     applyText(row.note, 11, 0.68, 0.80, 0.92)
 
     row.value = row:CreateFontString(nil, "OVERLAY")
-    row.value:SetPoint("RIGHT", row, "RIGHT", -58, 0)
-    row.value:SetWidth(96)
+    row.value:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    row.value:SetWidth(152)
     row.value:SetJustifyH("RIGHT")
     applyText(row.value, 12, 1.00, 0.86, 0.42)
 
-    row.minusButton = ns.UI.Widgets.CreateButton(row, "-", 22, 20)
-    row.minusButton:SetPoint("RIGHT", row.value, "LEFT", -4, 0)
-
-    row.plusButton = ns.UI.Widgets.CreateButton(row, "+", 22, 20)
-    row.plusButton:SetPoint("LEFT", row.value, "RIGHT", 4, 0)
+    row:SetScript("OnEnter", function(currentRow)
+        if currentRow.rowData then
+            setTooltip(currentRow, buildRowTooltip(currentRow.rowData))
+        end
+    end)
+    row:SetScript("OnLeave", GameTooltip_Hide)
 
     return row
 end
@@ -93,8 +134,8 @@ function ProfessionPanel:CreateCard(parent, point, relativeTo)
         card.rows[index] = row
     end
 
-    card.resetButton = ns.UI.Widgets.CreateButton(card, "", 108, 22)
-    card.resetButton:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -14, 14)
+    card.rescanButton = ns.UI.Widgets.CreateButton(card, "", 108, 22)
+    card.rescanButton:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -14, 14)
 
     return card
 end
@@ -151,52 +192,25 @@ function ProfessionPanel:RefreshLocale()
     for _, card in ipairs(self.cards or {}) do
         card.weeklyTitle:SetText(ns.L("professions_weekly"))
         card.oneTimeTitle:SetText(ns.L("professions_one_time"))
-        card.resetButton:SetText(ns.L("professions_reset_weekly"))
+        card.rescanButton:SetText(ns.L("professions_rescan"))
     end
 end
 
-function ProfessionPanel:BindCardRow(card, row, professionEntry, rowData)
+function ProfessionPanel:BindCardRow(row, rowData)
     row.rowData = rowData
-    row.professionEntry = professionEntry
     row.title:SetText(rowData.title or "")
-    row.note:SetText(rowData.note or "")
+    row.note:SetText(ns.L("pk_note_auto_progress", rowData.current, rowData.max, rowData.maxPoints))
     row.value:SetText(ns.L("pk_value_format", rowData.current, rowData.max, rowData.earned, rowData.maxPoints))
+
+    if rowData.complete then
+        row.value:SetTextColor(0.55, 1.00, 0.70, 1)
+        row.note:SetTextColor(0.62, 0.95, 0.74, 1)
+    else
+        row.value:SetTextColor(1.00, 0.86, 0.42, 1)
+        row.note:SetTextColor(0.68, 0.80, 0.92, 1)
+    end
+
     row:Show()
-
-    row.minusButton:SetEnabled((rowData.current or 0) > 0)
-    row.minusButton:SetAlpha((rowData.current or 0) > 0 and 1 or 0.45)
-    row.plusButton:SetEnabled((rowData.current or 0) < (rowData.max or 0))
-    row.plusButton:SetAlpha((rowData.current or 0) < (rowData.max or 0) and 1 or 0.45)
-
-    row.minusButton:SetScript("OnClick", function()
-        local newValue = ns.Modules.ProfessionKnowledgeTracker:AdjustSourceValue(professionEntry.key, rowData.key, -1)
-        if newValue == nil then
-            return
-        end
-        setStatus(ns.L(
-            "professions_status_adjusted",
-            ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry),
-            rowData.title,
-            newValue,
-            rowData.max or 0
-        ))
-        ns:RefreshUI()
-    end)
-
-    row.plusButton:SetScript("OnClick", function()
-        local newValue = ns.Modules.ProfessionKnowledgeTracker:AdjustSourceValue(professionEntry.key, rowData.key, 1)
-        if newValue == nil then
-            return
-        end
-        setStatus(ns.L(
-            "professions_status_adjusted",
-            ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry),
-            rowData.title,
-            newValue,
-            rowData.max or 0
-        ))
-        ns:RefreshUI()
-    end)
 end
 
 function ProfessionPanel:RefreshCard(card, professionEntry)
@@ -221,7 +235,11 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
         summary and summary.oneTimeEarned or 0,
         summary and summary.oneTimeMax or 0
     ))
-    card.note:SetText(definition and ns.L(definition.noteKey) or "")
+    card.note:SetText(string.format(
+        "%s\n%s",
+        definition and ns.L(definition.noteKey) or "",
+        ns.L("professions_last_scan", ns.Modules.ProfessionKnowledgeTracker:GetLastScanLabel())
+    ))
 
     card.weeklyTitle:ClearAllPoints()
     card.weeklyTitle:SetPoint("TOPLEFT", card.note, "BOTTOMLEFT", 0, -14)
@@ -235,7 +253,7 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
         if row then
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", currentAnchor, "BOTTOMLEFT", 0, -8)
-            self:BindCardRow(card, row, professionEntry, rowData)
+            self:BindCardRow(row, rowData)
             currentAnchor = row
             rowIndex = rowIndex + 1
         end
@@ -251,7 +269,7 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
         if row then
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", currentAnchor, "BOTTOMLEFT", 0, -8)
-            self:BindCardRow(card, row, professionEntry, rowData)
+            self:BindCardRow(row, rowData)
             currentAnchor = row
             rowIndex = rowIndex + 1
         end
@@ -261,22 +279,13 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
         card.rows[index]:Hide()
     end
 
-    card.resetButton:SetScript("OnClick", function()
-        local currentSummary = ns.Modules.ProfessionKnowledgeTracker:GetProfessionSummary(professionEntry.key)
-        ns.UI.ConfirmDialogs:ShowConfirm(
-            ns.L("professions_reset_weekly_confirm", ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry)),
-            function()
-                ns.Modules.ProfessionKnowledgeTracker:ResetWeeklyForProfession(professionEntry.key)
-                setStatus(ns.L(
-                    "professions_status_adjusted",
-                    ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry),
-                    ns.L("professions_weekly"),
-                    0,
-                    currentSummary and currentSummary.weeklyMax or 0
-                ))
-                ns:RefreshUI()
-            end
-        )
+    card.rescanButton:SetScript("OnClick", function()
+        ns.Modules.ProfessionKnowledgeTracker:RefreshQuestCache(true)
+        setStatus(ns.L(
+            "professions_status_rescanned",
+            ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry)
+        ))
+        ns:RefreshUI()
     end)
 end
 

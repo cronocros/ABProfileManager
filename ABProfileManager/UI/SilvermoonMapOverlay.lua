@@ -7,9 +7,12 @@ local FONT_PATH = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local REFRESH_INTERVAL = 0.25
 local CATEGORY_COLORS = {
     service = { 1.00, 0.87, 0.42 },
-    travel = { 0.50, 0.92, 1.00 },
+    travel = { 0.48, 0.92, 1.00 },
     profession = { 0.55, 1.00, 0.78 },
     pvp = { 1.00, 0.44, 0.44 },
+    dungeon = { 1.00, 0.64, 0.34 },
+    delve = { 0.82, 0.74, 1.00 },
+    renown = { 1.00, 0.78, 0.54 },
 }
 
 local function getMapCanvasParent()
@@ -86,8 +89,8 @@ function SilvermoonMapOverlay:EnsureLabel(index)
     label:SetJustifyH("CENTER")
     label:SetJustifyV("MIDDLE")
     if label.SetShadowOffset then
-        label:SetShadowOffset(1, -1)
-        label:SetShadowColor(0, 0, 0, 0.9)
+        label:SetShadowOffset(2, -2)
+        label:SetShadowColor(0, 0, 0, 0.95)
     end
     self.labels[index] = label
     return label
@@ -104,38 +107,44 @@ function SilvermoonMapOverlay:HideAll()
     end
 end
 
-function SilvermoonMapOverlay:LayoutPoints(parent)
-    local data = ns.Data and ns.Data.SilvermoonMapData
-    if not data then
-        self:HideAll()
-        return
-    end
-
+function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
     local width = parent:GetWidth() or 0
     local height = parent:GetHeight() or 0
-    if width <= 0 or height <= 0 then
+    if width <= 0 or height <= 0 or not mapData then
         self:HideAll()
         return
     end
 
-    for index, point in ipairs(data.points or {}) do
+    local points = mapData.points or {}
+    for index, point in ipairs(points) do
         local label = self:EnsureLabel(index)
         local red, green, blue = getPointColor(point.category)
         label:ClearAllPoints()
         label:SetPoint(
-            "TOPLEFT",
+            "CENTER",
             parent,
             "TOPLEFT",
             ((point.x or 0) / 100) * width + (point.offsetX or 0),
             -(((point.y or 0) / 100) * height) + (point.offsetY or 0)
         )
-        label:SetFont(FONT_PATH, point.size or 12, "OUTLINE")
-        label:SetTextColor(red, green, blue, 1)
+        label:SetFont(FONT_PATH, point.size or 16, point.outline or "THICKOUTLINE")
+        label:SetTextColor(red, green, blue, point.alpha or 1)
         label:SetText(ns.L(point.labelKey))
+        if point.width then
+            label:SetWidth(point.width)
+            if label.SetWordWrap then
+                label:SetWordWrap(true)
+            end
+        else
+            label:SetWidth(math.max(40, math.ceil(label:GetStringWidth() or 0) + 8))
+            if label.SetWordWrap then
+                label:SetWordWrap(false)
+            end
+        end
         label:Show()
     end
 
-    for index = #(data.points or {}) + 1, #(self.labels or {}) do
+    for index = #points + 1, #(self.labels or {}) do
         self.labels[index]:Hide()
     end
 end
@@ -153,7 +162,8 @@ function SilvermoonMapOverlay:Refresh()
 
     local data = ns.Data and ns.Data.SilvermoonMapData
     local mapID = WorldMapFrame:GetMapID()
-    if not data or not data.mapIDs or not data.mapIDs[mapID] then
+    local mapData = data and data.maps and data.maps[mapID]
+    if not mapData then
         self:HideAll()
         return
     end
@@ -173,7 +183,7 @@ function SilvermoonMapOverlay:Refresh()
         self.lastWidth = width
         self.lastHeight = height
         self.lastLanguage = language
-        self:LayoutPoints(parent)
+        self:LayoutPoints(parent, mapData)
     end
 
     frame:Show()
