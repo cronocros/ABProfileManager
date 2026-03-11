@@ -3,7 +3,7 @@
 ## 현재 상태
 
 프로젝트는 직접 적용 가능한 WoW Retail 애드온 구조를 갖추고 있다.  
-현재 기준 버전은 `v1.0.7`이며, 핵심 기능 구현과 인게임 동작 확인이 끝난 상태다.
+현재 기준 버전은 `v1.1.0`이며, 핵심 기능 구현과 인게임 동작 확인이 끝난 상태다.
 1차 출시와 GitHub 업로드까지 완료된 상태다.
 
 ## 이미 구현된 핵심 기능
@@ -20,6 +20,9 @@
 - 퀘스트 정리 / 전체 퀘스트 포기
 - 미니맵 버튼
 - 캐릭터 스탯 오버레이
+- 전문기술 주간 체크 탭
+- 전문기술 체크 오버레이
+- 실버문 지도 오버레이
 - 설정 탭
 - 와우 `설정 > AddOns` 연동 시도
 
@@ -73,6 +76,15 @@
 - 특성 우선순위 줄은 민트 계열 색상으로 표시
 - 스탯 값 영역에 마우스 오버 툴팁과 DR 구간 안내 추가
 - 설정 탭에 스탯 오버레이 표시 체크박스 추가
+- `전문기술` 탭 추가
+- profession별 `주간 획득원 / 1회성 획득원` 체크리스트와 KP 합계 표시 추가
+- 주간 profession 체크는 캐릭터별로 저장되고 주간 리셋 키 변경 시 자동 초기화되도록 보강
+- 소형 `전문기술 체크` 오버레이 추가
+- 설정 탭에 전문기술 오버레이 표시 체크박스 추가
+- 설정 탭에 `실버문 지도 오버레이` 체크박스 추가
+- Midnight 실버문 월드맵에 은행 / 여관 / 경매장 / 포탈 / PvP 허브 / 전문기술 허브 / 주요 profession 상인 위치를 글자 오버레이로 표시하는 기능 추가
+- GitHub 릴리스 직접 다운로드 주소를 문서에 추가
+- `luaparser` 기반 정적 문법 파싱을 실행
 
 ## 현재 잔여 메모
 
@@ -93,9 +105,9 @@
 ## 릴리스 자산
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 배포 ZIP: `dist/ABProfileManager-v1.0.7.zip`
-- 릴리스 노트: `RELEASE_NOTES_v1.0.7.md`
-- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.0.7-<timestamp>.zip`
+- 배포 ZIP: `dist/ABProfileManager-v1.1.0.zip`
+- 릴리스 노트: `RELEASE_NOTES_v1.1.0.md`
+- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.1.0-<timestamp>.zip`
 - 변경 이력: `CHANGELOG.md`
 
 ## 중요한 파일
@@ -115,6 +127,11 @@
 - `ABProfileManager/UI/TransferDialog.lua`
   - `ABProfileManager/UI/MinimapButton.lua`
 - `ABProfileManager/UI/StatsOverlay.lua`
+- `ABProfileManager/UI/ProfessionPanel.lua`
+- `ABProfileManager/UI/ProfessionKnowledgeOverlay.lua`
+- `ABProfileManager/UI/SilvermoonMapOverlay.lua`
+- `ABProfileManager/Data/ProfessionKnowledge.lua`
+- `ABProfileManager/Data/SilvermoonMapData.lua`
 - `ABProfileManager/Data/StatPriorities.lua`
 - `ABProfileManager/UI/Widgets.lua`
 - `ABProfileManager/README_USER.md`
@@ -130,7 +147,8 @@
   - `ABProfileManager/Modules/TemplateSyncManager.lua`
   - `ABProfileManager/Modules/TemplateTransfer.lua`
   - `ABProfileManager/Modules/GhostManager.lua`
-  - `ABProfileManager/Modules/QuestManager.lua`
+- `ABProfileManager/Modules/QuestManager.lua`
+- `ABProfileManager/Modules/ProfessionKnowledgeTracker.lua`
 
 ## 다음 LLM용 작업 방식
 

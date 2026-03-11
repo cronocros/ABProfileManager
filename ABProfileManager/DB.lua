@@ -89,6 +89,12 @@ function DB:GetGlobalSettings()
         statsOverlay = {
             enabled = false,
         },
+        professionKnowledgeOverlay = {
+            enabled = false,
+        },
+        silvermoonMapOverlay = {
+            enabled = false,
+        },
     }
     return ns.db.global.settings
 end
@@ -162,6 +168,42 @@ function DB:SetStatsOverlayEnabled(enabled)
     return self:IsStatsOverlayEnabled()
 end
 
+function DB:GetProfessionKnowledgeOverlaySettings()
+    local settings = self:GetGlobalSettings()
+    settings.professionKnowledgeOverlay = settings.professionKnowledgeOverlay or {
+        enabled = false,
+    }
+
+    return settings.professionKnowledgeOverlay
+end
+
+function DB:IsProfessionKnowledgeOverlayEnabled()
+    return self:GetProfessionKnowledgeOverlaySettings().enabled and true or false
+end
+
+function DB:SetProfessionKnowledgeOverlayEnabled(enabled)
+    self:GetProfessionKnowledgeOverlaySettings().enabled = enabled and true or false
+    return self:IsProfessionKnowledgeOverlayEnabled()
+end
+
+function DB:GetSilvermoonMapOverlaySettings()
+    local settings = self:GetGlobalSettings()
+    settings.silvermoonMapOverlay = settings.silvermoonMapOverlay or {
+        enabled = false,
+    }
+
+    return settings.silvermoonMapOverlay
+end
+
+function DB:IsSilvermoonMapOverlayEnabled()
+    return self:GetSilvermoonMapOverlaySettings().enabled and true or false
+end
+
+function DB:SetSilvermoonMapOverlayEnabled(enabled)
+    self:GetSilvermoonMapOverlaySettings().enabled = enabled and true or false
+    return self:IsSilvermoonMapOverlayEnabled()
+end
+
 function DB:GetTemplate(templateName)
     templateName = ns.Utils.SanitizeSingleLine(templateName or "")
     if not templateName or templateName == "" then
@@ -209,6 +251,17 @@ function DB:GetStatsOverlayConfig()
     return ns.db.ui.statsOverlay
 end
 
+function DB:GetProfessionKnowledgeOverlayConfig()
+    if not ns.db then
+        return ns.Data.Defaults.ui.professionKnowledgeOverlay
+    end
+
+    ns.db.ui = ns.db.ui or {}
+    ns.db.ui.professionKnowledgeOverlay =
+        ns.db.ui.professionKnowledgeOverlay or ns.Utils.DeepCopy(ns.Data.Defaults.ui.professionKnowledgeOverlay)
+    return ns.db.ui.professionKnowledgeOverlay
+end
+
 function DB:SaveMainWindowPosition(frame)
     if not frame or not frame.GetPoint then
         return
@@ -231,6 +284,19 @@ function DB:SaveStatsOverlayPosition(frame)
 
     local point, _, relativePoint, x, y = frame:GetPoint(1)
     local config = self:GetStatsOverlayConfig()
+    config.point = point or config.point
+    config.relativePoint = relativePoint or config.relativePoint
+    config.x = x or 0
+    config.y = y or 0
+end
+
+function DB:SaveProfessionKnowledgeOverlayPosition(frame)
+    if not frame or not frame.GetPoint then
+        return
+    end
+
+    local point, _, relativePoint, x, y = frame:GetPoint(1)
+    local config = self:GetProfessionKnowledgeOverlayConfig()
     config.point = point or config.point
     config.relativePoint = relativePoint or config.relativePoint
     config.x = x or 0

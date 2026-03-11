@@ -48,6 +48,7 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("PLAYER_REGEN_DISABLED")
     frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+    frame:RegisterEvent("SKILL_LINES_CHANGED")
     frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
     frame:RegisterEvent("COMBAT_RATING_UPDATE")
     frame:RegisterEvent("MASTERY_UPDATE")
@@ -103,6 +104,10 @@ end
 
 function Events:PLAYER_SPECIALIZATION_CHANGED()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
+    ns:RefreshUI()
+end
+
+function Events:SKILL_LINES_CHANGED()
     ns:RefreshUI()
 end
 

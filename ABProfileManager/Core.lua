@@ -49,12 +49,15 @@ function ns:InitializeStartupModules()
         self.Modules.GhostManager,
         self.Modules.ProfileManager,
         self.Modules.QuestManager,
+        self.Modules.ProfessionKnowledgeTracker,
         self.Commands,
         self.UI.ConfirmDialogs,
         self.UI.MinimapButton,
         self.UI.StatsOverlay,
+        self.UI.ProfessionKnowledgeOverlay,
         self.UI.TransferDialog,
         self.UI.ConfigPanel,
+        self.UI.SilvermoonMapOverlay,
         self.UI.MainWindow,
     }
 
@@ -111,9 +114,12 @@ end
 function ns:RefreshUI()
     self:SafeCall(self.UI.ProfilePanel, "Refresh")
     self:SafeCall(self.UI.ActionBarPanel, "Refresh")
+    self:SafeCall(self.UI.ProfessionPanel, "Refresh")
     self:SafeCall(self.UI.QuestPanel, "Refresh")
     self:SafeCall(self.UI.ConfigPanel, "Refresh")
     self:SafeCall(self.UI.MinimapButton, "Refresh")
     self:SafeCall(self.UI.StatsOverlay, "Refresh")
+    self:SafeCall(self.UI.ProfessionKnowledgeOverlay, "Refresh")
+    self:SafeCall(self.UI.SilvermoonMapOverlay, "Refresh")
     self:SafeCall(self.UI.MainWindow, "RefreshStatus")
 end

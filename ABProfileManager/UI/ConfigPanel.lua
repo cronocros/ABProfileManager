@@ -60,6 +60,18 @@ function ConfigPanel:ApplyStatsOverlayEnabled(enabled, refs)
     setStatus(refs, ns.L("config_saved_stats_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplyProfessionOverlayEnabled(enabled, refs)
+    ns.DB:SetProfessionKnowledgeOverlayEnabled(enabled)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_profession_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplySilvermoonMapEnabled(enabled, refs)
+    ns.DB:SetSilvermoonMapOverlayEnabled(enabled)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_silvermoon_map", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
 function ConfigPanel:BindControlSet(refs)
     refs.koreanButton:SetScript("OnClick", function()
         self:ApplyLanguage(ns.Constants.LANGUAGE.KOREAN, refs)
@@ -85,6 +97,14 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyStatsOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
 
+    refs.professionOverlayCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyProfessionOverlayEnabled(currentCheck:GetChecked(), refs)
+    end)
+
+    refs.silvermoonMapCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplySilvermoonMapEnabled(currentCheck:GetChecked(), refs)
+    end)
+
     if refs.openWindowButton then
         refs.openWindowButton:SetScript("OnClick", showMainWindow)
     end
@@ -108,6 +128,10 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
     refs.statsOverlayLabel:SetText(ns.L("config_stats_overlay"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
+    refs.professionOverlayLabel:SetText(ns.L("config_profession_overlay"))
+    refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
+    refs.silvermoonMapLabel:SetText(ns.L("config_silvermoon_map"))
+    refs.silvermoonMapCheck.Text:SetText(ns.L("config_silvermoon_map_show"))
     refs.helpText:SetText(ns.L("config_help"))
     refs.infoText:SetText(string.format(
         "%s\n%s",
@@ -123,6 +147,8 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.confirmCheck:SetChecked(ns.DB:ShouldConfirmActions())
     refs.debugCheck:SetChecked(ns.DB:IsDebugEnabled())
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
+    refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
+    refs.silvermoonMapCheck:SetChecked(ns.DB:IsSilvermoonMapOverlayEnabled())
     ns.UI.Widgets.SetButtonSelected(refs.koreanButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN)
     ns.UI.Widgets.SetButtonSelected(refs.englishButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.ENGLISH)
 end
@@ -135,7 +161,7 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local settingsBoxHeight = 274
+    local settingsBoxHeight = 382
 
     local languageBox = widgets.CreatePanelBox(parent, 420, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
@@ -162,6 +188,12 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.statsOverlayLabel = widgets.CreateLabel(optionsBox, "", refs.debugCheck, 4, -16, "GameFontHighlight")
     refs.statsOverlayCheck = widgets.CreateCheckButton(optionsBox, "")
     refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayLabel, "BOTTOMLEFT", -4, -10)
+    refs.professionOverlayLabel = widgets.CreateLabel(optionsBox, "", refs.statsOverlayCheck, 4, -16, "GameFontHighlight")
+    refs.professionOverlayCheck = widgets.CreateCheckButton(optionsBox, "")
+    refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.professionOverlayLabel, "BOTTOMLEFT", -4, -10)
+    refs.silvermoonMapLabel = widgets.CreateLabel(optionsBox, "", refs.professionOverlayCheck, 4, -16, "GameFontHighlight")
+    refs.silvermoonMapCheck = widgets.CreateCheckButton(optionsBox, "")
+    refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -10)
 
     refs.minimapCheck.Text:SetWidth(384)
     refs.minimapCheck.Text:SetJustifyH("LEFT")
@@ -171,6 +203,10 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.debugCheck.Text:SetJustifyH("LEFT")
     refs.statsOverlayCheck.Text:SetWidth(384)
     refs.statsOverlayCheck.Text:SetJustifyH("LEFT")
+    refs.professionOverlayCheck.Text:SetWidth(384)
+    refs.professionOverlayCheck.Text:SetJustifyH("LEFT")
+    refs.silvermoonMapCheck.Text:SetWidth(384)
+    refs.silvermoonMapCheck.Text:SetJustifyH("LEFT")
 
     local helpBox = widgets.CreatePanelBox(parent, 852, options.showOpenButton and 148 or 124, nil)
     helpBox:SetPoint("TOPLEFT", languageBox, "BOTTOMLEFT", 0, -20)

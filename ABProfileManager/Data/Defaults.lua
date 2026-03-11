@@ -13,6 +13,12 @@ ns.Data.Defaults = {
             statsOverlay = {
                 enabled = false,
             },
+            professionKnowledgeOverlay = {
+                enabled = false,
+            },
+            silvermoonMapOverlay = {
+                enabled = false,
+            },
         },
     },
     characters = {},
@@ -30,6 +36,12 @@ ns.Data.Defaults = {
             relativePoint = "CENTER",
             x = 420,
             y = 140,
+        },
+        professionKnowledgeOverlay = {
+            point = "CENTER",
+            relativePoint = "CENTER",
+            x = 420,
+            y = 70,
         },
     },
 }

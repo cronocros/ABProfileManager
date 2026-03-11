@@ -5,18 +5,21 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.0.7`
+- `v1.1.0`
 - 1차 출시 완료
-- 인게임 기준 핵심 기능 동작 확인 완료
+- 기존 핵심 기능 인게임 동작 확인 완료
+- `전문기술` / `실버문 지도 오버레이` 신규 기능은 코드 반영 및 정적 문법 점검 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
 ## 배포 정보
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 릴리스 버전: `v1.0.7`
-- 배포 패키지: [ABProfileManager-v1.0.7.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.0.7.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.7.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.7.md)
+- 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
+- 릴리스 버전: `v1.1.0`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.1.0/ABProfileManager-v1.1.0.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.1.0.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.1.0.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.1.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.1.0.md)
 
 ## 설치
 
@@ -66,6 +69,16 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 퀘스트 후보 새로고침
   - 안전 정리 실행
   - 전체 퀘스트 포기
+- 전문기술 주간 체크 탭
+  - profession별 주간 획득원 / 1회성 획득원 체크
+  - profession별 KP 합계 표시
+  - 캐릭터별 저장
+  - 주간 리셋 키 변경 시 주간 항목 자동 초기화
+- 전문기술 체크 오버레이
+  - 작은 요약형 레이아웃
+  - 드래그 이동 / 위치 저장
+- 실버문 지도 오버레이
+  - 은행 / 여관 / 경매장 / 포탈 / PvP 허브 / 전문기술 허브 / 주요 상인 위치 표시
 - 전투 중 작업 대기열 처리
 - 없는 주문/아이템/매크로는 고스트 오버레이 표시
 - 고스트 오버레이는 드래그로 해제하거나 다른 액션을 올려 덮어쓸 수 있음
@@ -91,7 +104,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.0.7`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.1.0`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -107,12 +120,19 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 적용 범위 선택
   - 동기화 작업
   - 직전 작업 되돌리기
+- `전문기술` 탭:
+  - 현재 캐릭터 profession별 주간 체크 카드
+  - 주간 / 1회성 소스별 체크
+  - KP 합계 표시
+  - 주간 체크 초기화
 - `설정` 탭:
   - 언어
   - 미니맵 버튼 표시
   - 확인창 사용 여부
   - 디버그 로그
   - 스탯 오버레이 표시 여부
+  - 전문기술 체크 오버레이 표시 여부
+  - 실버문 지도 오버레이 표시 여부
 - `퀘스트` 탭:
   - 정리 기준 요약
   - 안전 정리 대상 / 전체 포기 대상 / 유지 대상 목록
@@ -152,8 +172,11 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 퀘스트 안전 정리는 포기 가능 + 완료 아님 + 보고 가능 아님 + 진행도 없음 기준만 정리합니다.
 - 전체 퀘스트 포기는 현재 목록에서 포기 가능한 퀘스트만 대상으로 합니다.
 - 퀘스트 탭은 일반 퀘스트 기준으로 동작하며, 숨김/작업/현상금 계열 항목은 후보에서 제외합니다.
+- 전문기술 체크 탭은 현재 `Midnight 12.0.1` 기준 기본 profession 획득원을 수동 체크하는 방식입니다.
+- profession별 수치는 최신 가이드 기준으로 내장했지만, 향후 핫픽스로 달라질 수 있습니다.
+- 실버문 지도 오버레이는 `Midnight` 실버문 월드맵 기준의 정적 좌표를 사용합니다.
 - 하단 요약창의 오른쪽 끝 정렬은 사용자 요청으로 후순위 보류 상태입니다.
-- 이 작업 환경에는 `lua`/`luac`가 없어 정적 문법 검사는 아직 실행하지 못했습니다.
+- 이 작업 환경에는 `lua`/`luac`가 없지만, 이번 버전은 `luaparser` 기반 정적 문법 파싱을 실행했습니다.
 - 메인 타이틀과 설정의 버전 표시는 `.toc` 메타데이터를 기준으로 동적으로 읽습니다.
 - 배포 스크립트는 `dist/`에 릴리스 ZIP을 만들고, `backups/source/`에 소스 백업 ZIP도 함께 만듭니다.
 
@@ -167,7 +190,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.0.7.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.0.7.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.1.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.1.0.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)
