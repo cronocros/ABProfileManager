@@ -216,6 +216,29 @@ function MainWindow:Toggle()
     ns:RefreshUI()
 end
 
+function MainWindow:OpenToTab(tabName)
+    if not self.frame then
+        self:Initialize()
+    end
+
+    if not self.frame then
+        return
+    end
+
+    self.frame:Show()
+
+    local validTabs = {
+        profiles = true,
+        action_bars = true,
+        professions = true,
+        quests = true,
+        config = true,
+    }
+
+    showTab(self.frame, validTabs[tabName] and tabName or "profiles")
+    ns:RefreshUI()
+end
+
 function MainWindow:OnPlayerLogin()
     ns:RefreshUI()
 end

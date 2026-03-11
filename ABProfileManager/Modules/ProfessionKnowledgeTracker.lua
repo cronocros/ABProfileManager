@@ -5,6 +5,36 @@ ns.Modules.ProfessionKnowledgeTracker = Tracker
 
 local KNOWN_SKILL_LINES = {}
 local ORDER_INDEX = {}
+local OBJECTIVE_BASE_TRANSLATIONS = {
+    ["Tranquility Bloom"] = "평온꽃",
+    ["Sanguithorn"] = "붉은가시",
+    ["Azeroot"] = "아제로뿌리",
+    ["Argentleaf"] = "은빛잎새",
+    ["Mana Lily"] = "마나 백합",
+    ["Refulgent Copper"] = "찬란한 구리",
+    ["Umbral Tin"] = "암영 주석",
+    ["Brilliant Silver"] = "찬란한 은",
+    ["Alchemy"] = "연금술",
+    ["Blacksmithing"] = "대장기술",
+    ["Engineering"] = "기계공학",
+    ["Enchanting"] = "마법부여",
+    ["Herbalism"] = "약초채집",
+    ["Inscription"] = "주문각인",
+    ["Jewelcrafting"] = "보석세공",
+    ["Leatherworking"] = "가죽세공",
+    ["Mining"] = "채광",
+    ["Skinning"] = "무두질",
+    ["Tailoring"] = "재봉술",
+}
+local OBJECTIVE_DIRECT_TRANSLATIONS = {
+    ["Weekly Quest"] = "주간 퀘스트",
+    ["Trainer Weekly Quest"] = "전문기술 주간 퀘스트",
+    ["Treatise"] = "전문기술 논문",
+    ["Greater Herb Sample"] = "고급 약초 견본",
+    ["Greater Ore Sample"] = "고급 광석 견본",
+    ["Greater Skinning Trophy"] = "고급 무두질 전리품",
+    ["Greater Disenchant Drop"] = "고급 마력추출 전리품",
+}
 
 local function getDefinitions()
     return ns.Data and ns.Data.ProfessionKnowledge and ns.Data.ProfessionKnowledge.professions or {}
@@ -32,6 +62,99 @@ local function resetEvaluationCaches(self)
     self.evaluationCache = {}
     self.sectionSummaryCache = {}
     self.professionSummaryCache = {}
+end
+
+local function getQuestTitle(questID)
+    questID = tonumber(questID)
+    if not questID or questID <= 0 then
+        return nil
+    end
+
+    if C_QuestLog and type(C_QuestLog.GetTitleForQuestID) == "function" then
+        local ok, title = pcall(C_QuestLog.GetTitleForQuestID, questID)
+        if ok and type(title) == "string" and title ~= "" then
+            return title
+        end
+    end
+
+    if type(QuestUtils_GetQuestName) == "function" then
+        local ok, title = pcall(QuestUtils_GetQuestName, questID)
+        if ok and type(title) == "string" and title ~= "" then
+            return title
+        end
+    end
+
+    return nil
+end
+
+local function translateObjectiveName(name)
+    if type(name) ~= "string" or name == "" then
+        return name or ""
+    end
+
+    local direct = OBJECTIVE_DIRECT_TRANSLATIONS[name]
+    if direct then
+        return direct
+    end
+
+    local sampleKind, sampleIndex = name:match("^(Gathered Herb Sample) (%d+)$")
+    if sampleKind then
+        return string.format("약초 견본 %s", sampleIndex)
+    end
+
+    sampleKind, sampleIndex = name:match("^(Mined Ore Sample) (%d+)$")
+    if sampleKind then
+        return string.format("광석 견본 %s", sampleIndex)
+    end
+
+    sampleKind, sampleIndex = name:match("^(Skinned Trophy) (%d+)$")
+    if sampleKind then
+        return string.format("무두질 전리품 %s", sampleIndex)
+    end
+
+    sampleKind, sampleIndex = name:match("^(Disenchant Drop) (%d+)$")
+    if sampleKind then
+        return string.format("마력추출 전리품 %s", sampleIndex)
+    end
+
+    local prefixTransforms = {
+        { pattern = "^Lush (.+)$", label = "풍성한 %s" },
+        { pattern = "^Lightfused (.+)$", label = "빛벼림 %s" },
+        { pattern = "^Voidbound (.+)$", label = "공허벼림 %s" },
+        { pattern = "^Primal (.+)$", label = "원초의 %s" },
+        { pattern = "^Wild (.+)$", label = "야생의 %s" },
+        { pattern = "^Rich (.+)$", label = "풍부한 %s" },
+        { pattern = "^Beyond the Event Horizon: (.+)$", label = "사건의 지평선 너머: %s" },
+        { pattern = "^Skill Issue: (.+)$", label = "기술의 벽: %s" },
+        { pattern = "^Whisper of the Loa: (.+)$", label = "로아의 속삭임: %s" },
+        { pattern = "^Echo of Abundance: (.+)$", label = "풍요의 메아리: %s" },
+        { pattern = "^Traditions of the Haranir: (.+)$", label = "하라니르의 전통: %s" },
+    }
+
+    for _, entry in ipairs(prefixTransforms) do
+        local baseName = name:match(entry.pattern)
+        if baseName then
+            local translatedBase = OBJECTIVE_BASE_TRANSLATIONS[baseName]
+            if translatedBase then
+                return string.format(entry.label, translatedBase)
+            end
+        end
+    end
+
+    local seamBase = name:match("^(.+) Seam$")
+    if seamBase then
+        local translatedBase = OBJECTIVE_BASE_TRANSLATIONS[seamBase]
+        if translatedBase then
+            return string.format("%s 광맥", translatedBase)
+        end
+    end
+
+    local baseTranslation = OBJECTIVE_BASE_TRANSLATIONS[name]
+    if baseTranslation then
+        return baseTranslation
+    end
+
+    return name
 end
 
 function Tracker:Initialize()
@@ -114,6 +237,26 @@ end
 
 function Tracker:GetDefinitionBySkillLine(skillLine)
     return KNOWN_SKILL_LINES[tonumber(skillLine) or 0]
+end
+
+function Tracker:GetObjectiveDisplayName(objective)
+    if not objective then
+        return ""
+    end
+
+    local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or nil
+    if language ~= (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN) then
+        return objective.name or ""
+    end
+
+    for _, questID in ipairs(objective.questIDs or {}) do
+        local questTitle = getQuestTitle(questID)
+        if questTitle and questTitle ~= "" then
+            return questTitle
+        end
+    end
+
+    return translateObjectiveName(objective.name or "")
 end
 
 function Tracker:IsQuestComplete(questID)
@@ -220,7 +363,7 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
 
         objectiveRows[#objectiveRows + 1] = {
             index = index,
-            name = objective.name or ("Objective " .. index),
+            name = self:GetObjectiveDisplayName(objective),
             points = points,
             complete = isComplete,
         }

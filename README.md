@@ -5,11 +5,12 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.2.1`
+- `v1.3.0`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
 - `전문기술 자동 추적` / `Midnight 지도 오버레이` 개선 반영 완료
 - `고스트 덮어쓰기 안정화` / `스탯 오버레이 정리` 반영 완료
+- `설정 애드온 하위 카테고리` / `전문기술 오버레이 확장` 반영 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
@@ -17,10 +18,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.2.1`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.2.1/ABProfileManager-v1.2.1.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.2.1.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.2.1.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.2.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.2.1.md)
+- 릴리스 버전: `v1.3.0`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.0/ABProfileManager-v1.3.0.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.3.0.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.0.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.0.md)
 
 ## 설치
 
@@ -72,15 +73,16 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 전체 퀘스트 포기
 - 전문기술 주간 체크 탭
   - profession별 주간 획득원 / 1회성 획득원을 숨은 퀘스트 기반 자동 추적
-  - profession별 KP 합계 표시
+  - profession별 포인트 합계 표시
   - 주간 퀘스트 / Treatise / 주간 드랍 / 1회성 보물 / 평판 보상 / 일부 풍요 보상 / 처음 발견 보너스 자동 계산
 - 전문기술 체크 오버레이
-  - 작은 요약형 레이아웃
+  - profession 아이콘 포함
+  - 접기 / 펼치기 가능한 상세형 레이아웃
   - 드래그 이동 / 위치 저장
 - Midnight 지도 오버레이
   - 실버문 도심 주요 시설 대형 글자 표시
   - 포탈 이름, 정복 상인, 전문기술 허브, 교역소, 형상변환, 암시장 표시
-  - 던전 / 구렁 입구 이름 표시
+  - 던전 / 구렁 입구 이름을 더 크게, 한국어로 표시
   - 각 진영 평판 상인과 풍요 상인 위치 표시
 - 전투 중 작업 대기열 처리
 - 없는 주문/아이템/매크로는 고스트 오버레이 표시
@@ -88,7 +90,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 고스트 자동 재시도는 플레이어가 커서에 다른 액션을 들고 있을 때는 멈춰 수동 드래그를 방해하지 않음
 - 미니맵 버튼은 축소된 사각 `AB` 버튼형으로 표시
 - 캐릭터 스탯 오버레이 표시
-  - 상단에 `캐릭터 - 직업 - 특성` 헤더 표시
+  - 상단에 `캐릭터 직업 - 특성(아이템레벨)` 헤더 표시
   - 치명 / 가속 / 특화 / 유연을 `평점 (퍼센트)` 형식으로 표시
   - 현재 특성의 PvE 일반 스탯 우선순위 표시
   - 탱커 특성은 회피 / 무막 / 막기 같은 방어 스탯을 추가 표시
@@ -109,7 +111,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.2.1`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.0`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -128,7 +130,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `전문기술` 탭:
   - 현재 캐릭터 profession별 자동 추적 카드
   - 주간 / 1회성 소스별 진행도
-  - KP 합계 표시
+  - profession 아이콘과 포인트 합계 표시
   - 재스캔 버튼
 - `설정` 탭:
   - 언어
@@ -139,6 +141,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 전문기술 체크 오버레이 표시 여부
   - Midnight 지도 오버레이 표시 여부
   - 현재 세션 요약 / 오버레이 상태 / 전문기술 마지막 스캔 표시
+  - 와우 `설정 > 애드온` 하위 카테고리 연결
 - `퀘스트` 탭:
   - 정리 기준 요약
   - 안전 정리 대상 / 전체 포기 대상 / 유지 대상 목록
@@ -182,6 +185,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 제작 주문, catch-up 같은 일부 예외 획득원은 아직 별도 자동 집계하지 않습니다.
 - profession별 수치는 최신 가이드 기준으로 내장했지만, 향후 핫픽스로 달라질 수 있습니다.
 - Midnight 지도 오버레이는 `Midnight` 주요 지도 기준의 정적 좌표와 안내 라벨을 사용합니다.
+- profession 툴팁 이름은 한국어 클라이언트에서 퀘스트명을 우선 읽고, 나머지는 내장 번역 규칙으로 보정합니다.
 - 하단 요약창의 오른쪽 끝 정렬은 사용자 요청으로 후순위 보류 상태입니다.
 - 이 작업 환경에는 `lua`/`luac`가 없지만, 이번 버전은 `luaparser` 기반 정적 문법 파싱을 실행했습니다.
 - 메인 타이틀과 설정의 버전 표시는 `.toc` 메타데이터를 기준으로 동적으로 읽습니다.
@@ -197,7 +201,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.2.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.2.1.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.0.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.0.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

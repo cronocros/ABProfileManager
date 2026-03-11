@@ -26,9 +26,6 @@ local PRIORITY_VALUE_SIZE = 15
 local FONT_FLAGS = "OUTLINE"
 local SECONDARY_DR_THRESHOLDS = { 30, 39, 47, 54, 66 }
 local VALUE_PART_GAP = 4
-local PERCENT_WHOLE_DIGITS = 3
-local INVISIBLE_PAD_PREFIX = "|c00000000"
-local INVISIBLE_PAD_SUFFIX = "|r"
 local PAPERDOLL_TOOLTIP_SETTERS = {
     crit = "PaperDollFrame_SetCritChance",
     haste = "PaperDollFrame_SetHaste",
@@ -65,20 +62,10 @@ local function formatPercent(value)
     return string.format("%.2f%%", safeNumber(value))
 end
 
-local function buildInvisiblePad(characterCount)
-    if characterCount <= 0 then
-        return ""
-    end
-
-    return INVISIBLE_PAD_PREFIX .. string.rep("0", characterCount) .. INVISIBLE_PAD_SUFFIX
-end
-
 local function formatSplitStatPercent(value)
     local formatted = string.format("%.2f", safeNumber(value))
     local wholePart, decimalPart = formatted:match("^(%d+)%.(%d%d)$")
-    wholePart = wholePart or "0"
-    return "(" .. buildInvisiblePad(math.max(PERCENT_WHOLE_DIGITS - #wholePart, 0)) .. wholePart,
-        "." .. (decimalPart or "00") .. "%)"
+    return "(" .. (wholePart or "0"), "." .. (decimalPart or "00") .. "%)"
 end
 
 local function formatStatValueParts(rating)
@@ -127,6 +114,39 @@ local function getCurrentClassName()
     return className
 end
 
+local function getDisplayClassName(classTag)
+    local classLabels = {
+        DEATHKNIGHT = ns.L("stats_overlay_class_deathknight"),
+        DEMONHUNTER = ns.L("stats_overlay_class_demonhunter"),
+        DRUID = ns.L("stats_overlay_class_druid"),
+        EVOKER = ns.L("stats_overlay_class_evoker"),
+        HUNTER = ns.L("stats_overlay_class_hunter"),
+        MAGE = ns.L("stats_overlay_class_mage"),
+        MONK = ns.L("stats_overlay_class_monk"),
+        PALADIN = ns.L("stats_overlay_class_paladin"),
+        PRIEST = ns.L("stats_overlay_class_priest"),
+        ROGUE = ns.L("stats_overlay_class_rogue"),
+        SHAMAN = ns.L("stats_overlay_class_shaman"),
+        WARLOCK = ns.L("stats_overlay_class_warlock"),
+        WARRIOR = ns.L("stats_overlay_class_warrior"),
+    }
+
+    return classLabels[classTag or ""] or getCurrentClassName() or "?"
+end
+
+local function getEquippedItemLevel()
+    if type(GetAverageItemLevel) ~= "function" then
+        return nil
+    end
+
+    local _, equippedItemLevel = GetAverageItemLevel()
+    if not equippedItemLevel then
+        return nil
+    end
+
+    return math.floor(safeNumber(equippedItemLevel) + 0.5)
+end
+
 local function getCurrentClassTag()
     if type(UnitClass) ~= "function" then
         return nil
@@ -138,9 +158,11 @@ end
 
 local function buildIdentityText()
     local characterName = getCurrentCharacterName() or "?"
-    local className = getCurrentClassName() or "?"
+    local classTag = getCurrentClassTag()
+    local className = getDisplayClassName(classTag)
     local specName = getCurrentSpecName(getCurrentSpecIndex()) or ns.L("stats_overlay_unknown_spec")
-    return ns.L("stats_overlay_identity_line", characterName, className, specName)
+    local itemLevel = getEquippedItemLevel() or 0
+    return ns.L("stats_overlay_identity_line", characterName, className, specName, itemLevel)
 end
 
 local function buildPriorityText(orderGroups)
@@ -456,6 +478,24 @@ function StatsOverlay:GetTooltipProxyFrame()
     return frame
 end
 
+function StatsOverlay:GetMeasurementFontString()
+    if self.measurementFontString then
+        return self.measurementFontString
+    end
+
+    local measure = (self.frame or UIParent):CreateFontString(nil, "OVERLAY")
+    measure:Hide()
+    self.measurementFontString = measure
+    return measure
+end
+
+function StatsOverlay:MeasureTextWidth(text, size)
+    local measure = self:GetMeasurementFontString()
+    measure:SetFont(FONT_PATH, size or NORMAL_VALUE_SIZE, FONT_FLAGS)
+    measure:SetText(text or "")
+    return math.ceil(measure:GetStringWidth() or 0)
+end
+
 function StatsOverlay:PreparePaperDollTooltip(entry, owner)
     local setterName = entry and entry.key and PAPERDOLL_TOOLTIP_SETTERS[entry.key]
     local setter = setterName and _G[setterName]
@@ -677,8 +717,8 @@ function StatsOverlay:UpdateFrameSize(snapshot)
 
     local labelWidth = MIN_LABEL_WIDTH
     local primaryColumnWidth = 0
-    local secondaryColumnWidth = 0
-    local percentTailColumnWidth = 0
+    local secondaryColumnWidth = self:MeasureTextWidth("(100", NORMAL_VALUE_SIZE)
+    local percentTailColumnWidth = self:MeasureTextWidth(".00%)", NORMAL_VALUE_SIZE)
     for index, entry in ipairs(snapshot) do
         local row = self.rows[index]
         if entry and entry.style ~= "header" then

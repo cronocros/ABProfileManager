@@ -220,16 +220,20 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     local widgets = ns.UI.Widgets
     local refs = {}
+    local columnWidth = options.columnWidth or 420
+    local columnGap = options.columnGap or 12
+    local textWidth = options.textWidth or (columnWidth - 36)
+    local helpWidth = options.helpWidth or ((columnWidth * 2) + columnGap)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
     local settingsBoxHeight = 338
 
-    local languageBox = widgets.CreatePanelBox(parent, 420, settingsBoxHeight, nil)
+    local languageBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
     refs.languageLabel = widgets.CreateLabel(languageBox, "", nil, 12, -14, "GameFontHighlight")
     refs.languageHint = widgets.CreateLabel(languageBox, "", refs.languageLabel, 0, -12)
-    refs.languageHint:SetWidth(384)
+    refs.languageHint:SetWidth(textWidth)
     refs.languageHint:SetJustifyH("LEFT")
     refs.koreanButton = widgets.CreateButton(languageBox, "", 110, 26)
     refs.koreanButton:SetPoint("TOPLEFT", refs.languageHint, "BOTTOMLEFT", 0, -16)
@@ -245,8 +249,8 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.debugCheck = widgets.CreateCheckButton(languageBox, "")
     refs.debugCheck:SetPoint("TOPLEFT", refs.debugLabel, "BOTTOMLEFT", -4, -10)
 
-    local overlayBox = widgets.CreatePanelBox(parent, 420, settingsBoxHeight, nil)
-    overlayBox:SetPoint("LEFT", languageBox, "RIGHT", 12, 0)
+    local overlayBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
+    overlayBox:SetPoint("LEFT", languageBox, "RIGHT", columnGap, 0)
     refs.statsOverlayLabel = widgets.CreateLabel(overlayBox, "", nil, 12, -14, "GameFontHighlight")
     refs.statsOverlayCheck = widgets.CreateCheckButton(overlayBox, "")
     refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayLabel, "BOTTOMLEFT", -4, -10)
@@ -257,26 +261,26 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.silvermoonMapCheck = widgets.CreateCheckButton(overlayBox, "")
     refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -10)
 
-    refs.minimapCheck.Text:SetWidth(384)
+    refs.minimapCheck.Text:SetWidth(textWidth)
     refs.minimapCheck.Text:SetJustifyH("LEFT")
-    refs.confirmCheck.Text:SetWidth(384)
+    refs.confirmCheck.Text:SetWidth(textWidth)
     refs.confirmCheck.Text:SetJustifyH("LEFT")
-    refs.debugCheck.Text:SetWidth(384)
+    refs.debugCheck.Text:SetWidth(textWidth)
     refs.debugCheck.Text:SetJustifyH("LEFT")
-    refs.statsOverlayCheck.Text:SetWidth(384)
+    refs.statsOverlayCheck.Text:SetWidth(textWidth)
     refs.statsOverlayCheck.Text:SetJustifyH("LEFT")
-    refs.professionOverlayCheck.Text:SetWidth(384)
+    refs.professionOverlayCheck.Text:SetWidth(textWidth)
     refs.professionOverlayCheck.Text:SetJustifyH("LEFT")
-    refs.silvermoonMapCheck.Text:SetWidth(384)
+    refs.silvermoonMapCheck.Text:SetWidth(textWidth)
     refs.silvermoonMapCheck.Text:SetJustifyH("LEFT")
 
-    local helpBox = widgets.CreatePanelBox(parent, 852, options.showOpenButton and 184 or 160, nil)
+    local helpBox = widgets.CreatePanelBox(parent, helpWidth, options.showOpenButton and 184 or 160, nil)
     helpBox:SetPoint("TOPLEFT", languageBox, "BOTTOMLEFT", 0, -20)
     refs.helpText = widgets.CreateLabel(helpBox, "", nil, 12, -14)
-    refs.helpText:SetWidth(820)
+    refs.helpText:SetWidth(helpWidth - 32)
     refs.helpText:SetJustifyH("LEFT")
     refs.infoText = widgets.CreateLabel(helpBox, "", refs.helpText, 0, -14)
-    refs.infoText:SetWidth(820)
+    refs.infoText:SetWidth(helpWidth - 32)
     refs.infoText:SetJustifyH("LEFT")
 
     if options.showOpenButton then
@@ -285,7 +289,7 @@ function ConfigPanel:BuildControlSet(parent, options)
     end
 
     refs.statusText = widgets.CreateLabel(parent, "", helpBox, 0, -18)
-    refs.statusText:SetWidth(options.statusWidth or 852)
+    refs.statusText:SetWidth(options.statusWidth or helpWidth)
     refs.statusText:SetJustifyH("LEFT")
 
     self:BindControlSet(refs)
@@ -301,13 +305,17 @@ function ConfigPanel:RegisterSettingsCategory()
     if not panel then
         panel = CreateFrame("Frame", "ABPMSettingsCategoryPanel", UIParent)
         panel.name = ns.Constants.TITLE
-        panel:SetSize(940, 620)
+        panel:SetSize(780, 620)
 
         self.settingsFrame = panel
         self.settingsRefs = self:BuildControlSet(panel, {
             titleY = -16,
             showOpenButton = true,
-            statusWidth = 852,
+            columnWidth = 344,
+            columnGap = 16,
+            textWidth = 308,
+            helpWidth = 704,
+            statusWidth = 704,
         })
 
         panel:SetScript("OnShow", function()
@@ -334,6 +342,7 @@ function ConfigPanel:RegisterSettingsCategory()
             local addOk = pcall(Settings.RegisterAddOnCategory, category)
             if addOk then
                 self.settingsCategory = category
+                ns:SafeCall(ns.UI.AddonSettingsPages, "Register", category)
                 self.settingsRegistered = true
                 return
             end
@@ -379,4 +388,5 @@ function ConfigPanel:Refresh()
 
     self:RefreshControlSet(self.mainRefs)
     self:RefreshControlSet(self.settingsRefs)
+    ns:SafeCall(ns.UI.AddonSettingsPages, "Refresh")
 end

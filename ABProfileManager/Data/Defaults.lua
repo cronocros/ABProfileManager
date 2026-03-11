@@ -42,6 +42,7 @@ ns.Data.Defaults = {
             relativePoint = "CENTER",
             x = 420,
             y = 70,
+            collapsed = false,
         },
     },
 }

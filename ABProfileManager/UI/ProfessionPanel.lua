@@ -101,8 +101,13 @@ function ProfessionPanel:CreateCard(parent, point, relativeTo)
         card:SetPoint(point, parent, "TOPLEFT", 0, 0)
     end
 
+    card.icon = card:CreateTexture(nil, "OVERLAY")
+    card.icon:SetSize(22, 22)
+    card.icon:SetPoint("TOPLEFT", 14, -10)
+
     card.title = card:CreateFontString(nil, "OVERLAY")
-    card.title:SetPoint("TOPLEFT", 14, -12)
+    card.title:SetPoint("LEFT", card.icon, "RIGHT", 8, 0)
+    card.title:SetPoint("RIGHT", card, "RIGHT", -14, 0)
     applyText(card.title, 14, 1, 0.86, 0.42)
 
     card.summary = card:CreateFontString(nil, "OVERLAY")
@@ -199,7 +204,7 @@ end
 function ProfessionPanel:BindCardRow(row, rowData)
     row.rowData = rowData
     row.title:SetText(rowData.title or "")
-    row.note:SetText(ns.L("pk_note_auto_progress", rowData.current, rowData.max, rowData.maxPoints))
+    row.note:SetText(ns.L("pk_note_auto_progress", rowData.current, rowData.max, rowData.earned, rowData.maxPoints))
     row.value:SetText(ns.L("pk_value_format", rowData.current, rowData.max, rowData.earned, rowData.maxPoints))
 
     if rowData.complete then
@@ -227,6 +232,7 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
     local sections = ns.Modules.ProfessionKnowledgeTracker:GetProfessionSections(professionEntry.key)
 
     card:Show()
+    card.icon:SetTexture(professionEntry.icon or ns.Constants.DEFAULT_ICON)
     card.title:SetText(ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry))
     card.summary:SetText(ns.L(
         "professions_summary",
