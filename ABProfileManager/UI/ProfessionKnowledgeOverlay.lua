@@ -127,10 +127,16 @@ end
 
 local function buildRowFragments(rows, limit)
     local fragments = {}
+    local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or nil
+    local isKorean = language == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN)
     local maxRows = math.min(#(rows or {}), limit or #(rows or {}))
     for index = 1, maxRows do
         local row = rows[index]
-        fragments[#fragments + 1] = string.format("%s %d/%d", getSourceShortLabel(row), row.earned or 0, row.maxPoints or 0)
+        if isKorean then
+            fragments[#fragments + 1] = string.format("%s%d/%d", getSourceShortLabel(row), row.earned or 0, row.maxPoints or 0)
+        else
+            fragments[#fragments + 1] = string.format("%s %d/%d", getSourceShortLabel(row), row.earned or 0, row.maxPoints or 0)
+        end
     end
 
     return table.concat(fragments, " | ")
@@ -320,6 +326,11 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     local weeklyRows = sections[1] and sections[1].rows or {}
     local oneTimeRows = sections[2] and sections[2].rows or {}
     local expanded = displayMode == OVERLAY_MODE_EXPANDED
+    local fullyComplete = summary
+        and summary.weeklyMax > 0
+        and summary.oneTimeMax > 0
+        and summary.weeklyEarned >= summary.weeklyMax
+        and summary.oneTimeEarned >= summary.oneTimeMax
 
     row.icon:SetTexture(professionEntry.icon or ns.Constants.DEFAULT_ICON)
     row.title:SetText(tracker:GetProfessionDisplayName(professionEntry))
@@ -350,6 +361,13 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     end
 
     row.summary:SetText(displayMode == OVERLAY_MODE_COMPACT and compactLine ~= "" and compactLine or totalSummary)
+    if fullyComplete then
+        row.title:SetTextColor(0.72, 1.00, 0.78, 1)
+        row.summary:SetTextColor(0.70, 0.98, 0.80, 1)
+    else
+        row.title:SetTextColor(1.00, 0.86, 0.42, 1)
+        row.summary:SetTextColor(0.90, 0.96, 1.00, 1)
+    end
 
     row.weeklyDetails:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
     row.oneTimeDetails:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))

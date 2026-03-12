@@ -75,7 +75,7 @@ ns.Data.SilvermoonMapData = {
             points = {
                 { key = "caeris_fairdawn", labelKey = "map_label_caeris_fairdawn", x = 43.40, y = 47.40, category = "renown", size = 15, priority = 42, preferBelow = true },
                 { key = "windrunner_spire", labelKey = "map_label_windrunner_spire", x = 35.63, y = 78.87, category = "dungeon", size = 15, priority = 12, width = 116, wordsPerLine = 1 },
-                { key = "shadow_enclave", labelKey = "map_label_shadow_enclave", x = 45.55, y = 86.31, category = "delve", size = 15, priority = 18, width = 116, wordsPerLine = 1 },
+                { key = "shadow_enclave", labelKey = "map_label_shadow_enclave", x = 45.55, y = 86.31, category = "delve", size = 15, priority = 18, width = 116, wordsPerLine = 1, noWrap = true },
             },
         },
         [2413] = {

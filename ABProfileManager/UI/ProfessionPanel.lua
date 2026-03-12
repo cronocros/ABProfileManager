@@ -7,10 +7,10 @@ local HEADER_HINT_WIDTH = 540
 local CONTROL_FRAME_WIDTH = 252
 local CARD_WIDTH = 420
 local CARD_HEIGHT = 560
-local ROW_HEIGHT = 36
-local ROW_RIGHT_PADDING = 10
-local ROW_VALUE_WIDTH = 54
-local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 6
+local ROW_HEIGHT = 40
+local ROW_RIGHT_PADDING = 8
+local ROW_VALUE_WIDTH = 68
+local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 12
 local MAX_ROWS = 8
 local OVERLAY_SCALE_OPTIONS = {
     { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
@@ -102,18 +102,28 @@ function ProfessionPanel:CreateRow(parent, offsetY)
     row.title = row:CreateFontString(nil, "OVERLAY")
     row.title:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
     row.title:SetWidth(ROW_TEXT_WIDTH)
-    applyText(row.title, 11, 0.95, 0.95, 0.92, true)
+    applyText(row.title, 12, 0.95, 0.95, 0.92, true)
 
     row.note = row:CreateFontString(nil, "OVERLAY")
     row.note:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -1)
     row.note:SetWidth(ROW_TEXT_WIDTH)
-    applyText(row.note, 10, 0.68, 0.80, 0.92, true)
+    applyText(row.note, 11, 0.68, 0.80, 0.92, true)
 
-    row.value = row:CreateFontString(nil, "OVERLAY")
-    row.value:SetPoint("TOPRIGHT", row, "TOPRIGHT", -ROW_RIGHT_PADDING, 0)
-    row.value:SetWidth(ROW_VALUE_WIDTH)
-    applyText(row.value, 9, 1.00, 0.86, 0.42)
-    row.value:SetJustifyH("RIGHT")
+    row.valueBlock = CreateFrame("Frame", nil, row)
+    row.valueBlock:SetPoint("TOPRIGHT", row, "TOPRIGHT", -ROW_RIGHT_PADDING, 0)
+    row.valueBlock:SetSize(ROW_VALUE_WIDTH, ROW_HEIGHT)
+
+    row.valueLabel = row.valueBlock:CreateFontString(nil, "OVERLAY")
+    row.valueLabel:SetPoint("TOPRIGHT", row.valueBlock, "TOPRIGHT", 0, 0)
+    row.valueLabel:SetWidth(ROW_VALUE_WIDTH)
+    applyText(row.valueLabel, 10, 0.88, 0.86, 0.72, false)
+    row.valueLabel:SetJustifyH("RIGHT")
+
+    row.valueAmount = row.valueBlock:CreateFontString(nil, "OVERLAY")
+    row.valueAmount:SetPoint("TOPRIGHT", row.valueLabel, "BOTTOMRIGHT", 0, -1)
+    row.valueAmount:SetWidth(ROW_VALUE_WIDTH)
+    applyText(row.valueAmount, 11, 1.00, 0.86, 0.42, false)
+    row.valueAmount:SetJustifyH("RIGHT")
 
     row:SetScript("OnEnter", function(currentRow)
         if currentRow.rowData then
@@ -276,20 +286,29 @@ end
 
 function ProfessionPanel:BindCardRow(row, rowData)
     row.rowData = rowData
-    row.title:SetText(rowData.title or "")
+    if rowData.complete then
+        row.title:SetText(string.format("✓ %s", rowData.title or ""))
+    else
+        row.title:SetText(rowData.title or "")
+    end
     row.note:SetText(ns.L("pk_progress_compact_format", rowData.current, rowData.max))
-    row.value:SetText(ns.L("pk_points_value_compact_format", rowData.earned, rowData.maxPoints))
+    row.valueLabel:SetText(ns.L(rowData.complete and "pk_value_label_done" or "pk_value_label"))
+    row.valueAmount:SetText(ns.L("pk_points_value_compact_format", rowData.earned, rowData.maxPoints))
 
     local leftHeight = math.ceil(row.title:GetStringHeight() or 0) + 2 + math.ceil(row.note:GetStringHeight() or 0)
-    local rightHeight = math.ceil(row.value:GetStringHeight() or 0)
+    local rightHeight = math.ceil(row.valueLabel:GetStringHeight() or 0) + 1 + math.ceil(row.valueAmount:GetStringHeight() or 0)
     row:SetHeight(math.max(ROW_HEIGHT, leftHeight, rightHeight))
 
     if rowData.complete then
-        row.value:SetTextColor(0.55, 1.00, 0.70, 1)
+        row.title:SetTextColor(0.72, 1.00, 0.78, 1)
         row.note:SetTextColor(0.62, 0.95, 0.74, 1)
+        row.valueLabel:SetTextColor(0.62, 0.95, 0.74, 1)
+        row.valueAmount:SetTextColor(0.55, 1.00, 0.70, 1)
     else
-        row.value:SetTextColor(1.00, 0.86, 0.42, 1)
+        row.title:SetTextColor(0.95, 0.95, 0.92, 1)
         row.note:SetTextColor(0.68, 0.80, 0.92, 1)
+        row.valueLabel:SetTextColor(0.88, 0.86, 0.72, 1)
+        row.valueAmount:SetTextColor(1.00, 0.86, 0.42, 1)
     end
 
     row:Show()

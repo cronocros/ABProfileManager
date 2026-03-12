@@ -567,9 +567,9 @@ end
 
 local function buildCandidateOffsets(point, labelWidth, labelHeight, crowded)
     local markerRadius = getMarkerRadius(point)
-    local verticalPadding = crowded and 7 or 11
-    local horizontalPadding = crowded and 10 or 14
-    local lateralShift = crowded and math.max(12, labelWidth * 0.12) or math.max(18, labelWidth * 0.16)
+    local verticalPadding = crowded and 7 or 5
+    local horizontalPadding = crowded and 10 or 6
+    local lateralShift = crowded and math.max(12, labelWidth * 0.12) or math.max(10, labelWidth * 0.08)
     local verticalDistance = markerRadius + (labelHeight / 2) + verticalPadding
     local baseOffsetX = point.offsetX or 0
     local baseOffsetY = point.offsetY or 0

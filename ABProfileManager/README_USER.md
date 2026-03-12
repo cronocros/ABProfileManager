@@ -6,7 +6,7 @@
 
 현재 캐릭터의 액션바를 템플릿으로 저장하고, 필요할 때 전체 또는 일부 범위만 다시 적용할 수 있습니다.
 
-버전: `v1.3.6`
+버전: `v1.3.7`
 상태: 1차 출시 완료
 
 제작: `밍밍이와코코`
@@ -17,7 +17,7 @@
 
 최신 다운로드:
 - 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.6/ABProfileManager-v1.3.6.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.7/ABProfileManager-v1.3.7.zip`
 
 ## 한눈에 보는 핵심
 
@@ -83,6 +83,7 @@
 - 탭 안에서 `전문기술 포인트 오버레이 표시`를 바로 켜고 끌 수 있습니다.
 - 탭 안에서 `XS / S / M / L / XL` 버튼으로 전문기술 오버레이 크기를 바로 바꿀 수 있습니다.
 - 각 row는 `현재 획득 수 / 최대 획득 수`와 `획득 포인트 / 최대 포인트`를 같이 보여줍니다.
+- 완료된 획득원은 카드 안에서 초록색 강조와 `완료` 표기로 바로 구분됩니다.
 - 기본적으로 아래 항목들을 자동 추적합니다.
   - 주간 퀘스트
   - 주간 필드 / 상자 드랍
@@ -94,6 +95,7 @@
   - 일부 profession의 처음 발견 보너스
 - 각 profession 카드 하단의 `재스캔` 버튼으로 완료 플래그를 다시 읽을 수 있습니다.
 - 전문기술 오버레이 상세 모드에서는 마우스 오버로 주간/1회성 획득원과 objective 상태를 툴팁으로 확인할 수 있습니다.
+- 오버레이 요약은 한국어 기준으로 더 촘촘하게 압축해 작은 폭에서도 읽기 쉽게 정리했습니다.
 
 ## 템플릿 탭
 

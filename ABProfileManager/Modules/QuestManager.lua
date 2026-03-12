@@ -324,7 +324,7 @@ end
 
 function QuestManager:BuildSafeSectionText(scan)
     scan = scan or self:Scan(false)
-    return self:BuildSectionText(scan.safeCandidates or {}, "quest_list_safe_row", false)
+    return self:BuildSectionText(scan.safeCandidates or {}, "quest_list_safe_row", false, nil, true)
 end
 
 function QuestManager:BuildKeepSectionText(scan)

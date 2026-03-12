@@ -6,7 +6,7 @@
 연락처: `crono1232@gmail.com`
 
 현재 상태:
-- `v1.3.6`
+- `v1.3.7`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
 - `전문기술 자동 추적` / `한밤(Midnight) 지도 오버레이` 개선 반영 완료
@@ -17,6 +17,7 @@
 - `퀘스트 진행도 표기` / `설정 세션 요약 스크롤화` 반영 완료
 - `지도 라벨 카테고리 필터` / `퀘스트 3분할 후보 목록` 반영 완료
 - `지도 라벨 map 정합성 보강` / `전문기술 오버레이 툴팁` 반영 완료
+- `전문기술 카드 포인트 블록 재배치` / `지도 라벨 줄바꿈 예외 보강` 반영 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
@@ -24,10 +25,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.3.6`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.6/ABProfileManager-v1.3.6.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.3.6.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.6.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.6.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.6.md)
+- 릴리스 버전: `v1.3.7`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.7/ABProfileManager-v1.3.7.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.3.7.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.7.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.7.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.7.md)
 
 ## 한눈에 보기
 
@@ -129,7 +130,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.6`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.7`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -224,7 +225,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.6.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.6.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.7.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.7.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)
