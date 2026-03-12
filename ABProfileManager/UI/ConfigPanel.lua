@@ -9,6 +9,13 @@ local STATS_OVERLAY_SCALE_OPTIONS = {
     { value = 1.15, labelKey = "overlay_size_large", buttonText = "L" },
     { value = 1.30, labelKey = "overlay_size_xlarge", buttonText = "XL" },
 }
+local MAP_FILTER_OPTIONS = {
+    { key = "facilities", labelKey = "config_silvermoon_filter_facilities" },
+    { key = "portals", labelKey = "config_silvermoon_filter_portals" },
+    { key = "professions", labelKey = "config_silvermoon_filter_professions" },
+    { key = "dungeons", labelKey = "config_silvermoon_filter_dungeons" },
+    { key = "delves", labelKey = "config_silvermoon_filter_delves" },
+}
 
 local function setStatus(target, message)
     local formatted = ns.Utils.FormatStatusMessage(message)
@@ -87,11 +94,16 @@ local function buildOverviewText()
         ),
         ns.L("config_overview_profession_scan", lastScan),
         ns.L("config_overview_debug", getStateLabel(ns.DB:IsDebugEnabled())),
+        "",
+        ns.L("config_overview_guide_header"),
         ns.L("config_overview_hint_window"),
         ns.L("config_overview_hint_drag"),
         ns.L("config_overview_hint_map"),
         ns.L("config_overview_hint_debug"),
+        "",
+        ns.L("config_overview_author_header"),
         ns.L("config_overview_author", ns.Constants.AUTHOR or "-", ns.Constants.CONTACT_EMAIL or "-"),
+        "",
         ns.L("config_version_info", ns.Constants.VERSION or "?"),
     }, "\n")
 end
@@ -147,6 +159,12 @@ function ConfigPanel:ApplySilvermoonMapEnabled(enabled, refs)
     setStatus(refs, ns.L("config_saved_silvermoon_map", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplySilvermoonMapFilter(filterKey, enabled, refs, labelKey)
+    ns.DB:SetSilvermoonMapCategoryEnabled(filterKey, enabled)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_silvermoon_filter", ns.L(labelKey), enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
 function ConfigPanel:BindControlSet(refs)
     refs.koreanButton:SetScript("OnClick", function()
         self:ApplyLanguage(ns.Constants.LANGUAGE.KOREAN, refs)
@@ -187,6 +205,14 @@ function ConfigPanel:BindControlSet(refs)
     refs.silvermoonMapCheck:SetScript("OnClick", function(currentCheck)
         self:ApplySilvermoonMapEnabled(currentCheck:GetChecked(), refs)
     end)
+
+    for index, option in ipairs(MAP_FILTER_OPTIONS) do
+        local filterKey = option.key
+        local filterLabelKey = option.labelKey
+        refs.mapFilterChecks[index]:SetScript("OnClick", function(currentCheck)
+            self:ApplySilvermoonMapFilter(filterKey, currentCheck:GetChecked(), refs, filterLabelKey)
+        end)
+    end
 
     if refs.openWindowButton then
         refs.openWindowButton:SetScript("OnClick", showMainWindow)
@@ -230,6 +256,11 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.silvermoonMapLabel:SetText(ns.L("config_silvermoon_map"))
     refs.silvermoonMapCheck.Text:SetText(ns.L("config_silvermoon_map_show"))
+    refs.mapFiltersLabel:SetText(ns.L("config_silvermoon_filters"))
+    for index, option in ipairs(MAP_FILTER_OPTIONS) do
+        refs.mapFilterChecks[index].Text:SetText(ns.L(option.labelKey))
+        refs.mapFilterChecks[index]:SetChecked(ns.DB:IsSilvermoonMapCategoryEnabled(option.key))
+    end
     refs.overviewText:SetText(buildOverviewText())
 
     if refs.openWindowButton then
@@ -258,7 +289,7 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local settingsBoxHeight = 376
+    local settingsBoxHeight = 382
 
     local languageBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
@@ -304,6 +335,28 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.silvermoonMapLabel = widgets.CreateLabel(overlayBox, "", refs.professionOverlayCheck, 4, -16, "GameFontHighlight")
     refs.silvermoonMapCheck = widgets.CreateCheckButton(overlayBox, "")
     refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -10)
+    refs.mapFiltersLabel = widgets.CreateLabel(overlayBox, "", refs.silvermoonMapCheck, 4, -16, "GameFontHighlight")
+    refs.mapFilterChecks = {}
+    local lastLeftCheck = nil
+    local lastRightCheck = nil
+    for index, option in ipairs(MAP_FILTER_OPTIONS) do
+        local check = widgets.CreateCheckButton(overlayBox, "")
+        local column = ((index - 1) % 2)
+        if index <= 2 then
+            check:SetPoint("TOPLEFT", refs.mapFiltersLabel, "BOTTOMLEFT", (column * 176) - 4, -8)
+        else
+            local anchor = column == 0 and lastLeftCheck or lastRightCheck
+            check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -8)
+        end
+        check.Text:SetWidth(148)
+        check.Text:SetJustifyH("LEFT")
+        refs.mapFilterChecks[index] = check
+        if column == 0 then
+            lastLeftCheck = check
+        else
+            lastRightCheck = check
+        end
+    end
 
     refs.minimapCheck.Text:SetWidth(textWidth)
     refs.minimapCheck.Text:SetJustifyH("LEFT")

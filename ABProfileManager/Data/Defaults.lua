@@ -18,6 +18,13 @@ ns.Data.Defaults = {
             },
             silvermoonMapOverlay = {
                 enabled = false,
+                filters = {
+                    facilities = true,
+                    portals = true,
+                    professions = true,
+                    dungeons = true,
+                    delves = true,
+                },
             },
         },
     },

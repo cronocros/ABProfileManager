@@ -199,6 +199,20 @@ function DB:GetSilvermoonMapOverlaySettings()
     local settings = self:GetGlobalSettings()
     settings.silvermoonMapOverlay = settings.silvermoonMapOverlay or {
         enabled = false,
+        filters = {
+            facilities = true,
+            portals = true,
+            professions = true,
+            dungeons = true,
+            delves = true,
+        },
+    }
+    settings.silvermoonMapOverlay.filters = settings.silvermoonMapOverlay.filters or {
+        facilities = true,
+        portals = true,
+        professions = true,
+        dungeons = true,
+        delves = true,
     }
 
     return settings.silvermoonMapOverlay
@@ -211,6 +225,21 @@ end
 function DB:SetSilvermoonMapOverlayEnabled(enabled)
     self:GetSilvermoonMapOverlaySettings().enabled = enabled and true or false
     return self:IsSilvermoonMapOverlayEnabled()
+end
+
+function DB:IsSilvermoonMapCategoryEnabled(filterKey)
+    local filters = self:GetSilvermoonMapOverlaySettings().filters
+    if type(filters[filterKey]) ~= "boolean" then
+        filters[filterKey] = true
+    end
+
+    return filters[filterKey]
+end
+
+function DB:SetSilvermoonMapCategoryEnabled(filterKey, enabled)
+    local filters = self:GetSilvermoonMapOverlaySettings().filters
+    filters[filterKey] = enabled and true or false
+    return self:IsSilvermoonMapCategoryEnabled(filterKey)
 end
 
 function DB:GetTemplate(templateName)

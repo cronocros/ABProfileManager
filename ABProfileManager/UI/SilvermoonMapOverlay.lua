@@ -16,14 +16,14 @@ local CATEGORY_COLORS = {
     renown = { 1.00, 0.78, 0.54 },
 }
 local CATEGORY_SIZE_SCALE = {
-    service = 1.02,
-    travel = 1.02,
-    profession = 1.08,
-    pvp = 1.04,
-    dungeon = 1.12,
-    delve = 1.10,
-    raid = 1.16,
-    renown = 1.00,
+    service = 1.08,
+    travel = 1.08,
+    profession = 1.24,
+    pvp = 1.10,
+    dungeon = 1.18,
+    delve = 1.16,
+    raid = 1.22,
+    renown = 1.08,
 }
 local CATEGORY_PRIORITY = {
     raid = 10,
@@ -46,8 +46,8 @@ local CATEGORY_MARKER_RADIUS = {
     renown = 10,
 }
 local MAP_DENSITY_SCALE = {
-    dense = 0.90,
-    normal = 1.00,
+    dense = 0.98,
+    normal = 1.04,
 }
 local LAYOUT_PADDING = 8
 local ZOOM_BUCKET_STEP = 0.02
@@ -88,6 +88,31 @@ end
 
 local function getPointPriority(point)
     return point.priority or CATEGORY_PRIORITY[point.category] or 100
+end
+
+local function getFilterKey(point)
+    if point.category == "travel" then
+        return "portals"
+    end
+    if point.category == "profession" then
+        return "professions"
+    end
+    if point.category == "dungeon" or point.category == "raid" then
+        return "dungeons"
+    end
+    if point.category == "delve" then
+        return "delves"
+    end
+
+    return "facilities"
+end
+
+local function isPointEnabled(point)
+    if not ns.DB or not ns.DB.IsSilvermoonMapCategoryEnabled then
+        return true
+    end
+
+    return ns.DB:IsSilvermoonMapCategoryEnabled(getFilterKey(point))
 end
 
 local function getMarkerRadius(point)
@@ -362,16 +387,16 @@ end
 
 local function getCrowdScale(nearbyCount)
     if nearbyCount >= 4 then
-        return 0.88
-    end
-    if nearbyCount >= 2 then
         return 0.94
     end
+    if nearbyCount >= 2 then
+        return 0.99
+    end
     if nearbyCount == 0 then
-        return 1.12
+        return 1.18
     end
 
-    return 1.00
+    return 1.04
 end
 
 local function rectsOverlap(left, right)
@@ -644,7 +669,13 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
 
     local zoomScale, zoomBucket, canvasBucket = getZoomScaleMultiplier()
     local densityScale = getDensityScale(mapData)
-    local points = mapData.points or {}
+    local sourcePoints = mapData.points or {}
+    local points = {}
+    for _, point in ipairs(sourcePoints) do
+        if isPointEnabled(point) then
+            points[#points + 1] = point
+        end
+    end
     local entries = {}
 
     for _, point in ipairs(points) do
@@ -749,6 +780,17 @@ function SilvermoonMapOverlay:Refresh()
     local width = parent:GetWidth() or 0
     local height = parent:GetHeight() or 0
     local language = ns.DB and ns.DB:GetLanguage() or "?"
+    local filterSignature = ""
+    if ns.DB and ns.DB.GetSilvermoonMapOverlaySettings then
+        local filters = ns.DB:GetSilvermoonMapOverlaySettings().filters or {}
+        filterSignature = table.concat({
+            filters.facilities and "1" or "0",
+            filters.portals and "1" or "0",
+            filters.professions and "1" or "0",
+            filters.dungeons and "1" or "0",
+            filters.delves and "1" or "0",
+        }, "")
+    end
     local _, zoomBucket, canvasBucket = getZoomScaleMultiplier()
     local layoutKey = table.concat({
         tostring(currentMapID or 0),
@@ -756,6 +798,7 @@ function SilvermoonMapOverlay:Refresh()
         tostring(width),
         tostring(height),
         tostring(language),
+        filterSignature,
         tostring(zoomBucket or 0),
         tostring(canvasBucket or 0),
     }, ":")

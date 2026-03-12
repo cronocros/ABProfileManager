@@ -25,7 +25,7 @@ local function sortByTitle(left, right)
 end
 
 local function addBulletLine(lines, text)
-    lines[#lines + 1] = "■ " .. tostring(text or "")
+    lines[#lines + 1] = "• " .. tostring(text or "")
 end
 
 local function shouldTrackInfo(info)
@@ -275,7 +275,7 @@ function QuestManager:BuildCandidateListText(scan)
         for _, entry in ipairs(scan.keptQuests) do
             addBulletLine(lines, ns.L("quest_list_keep_row", entry.title, entry.keepReason or ns.L("quest_keep_unknown")))
             if entry.objectiveSummary and entry.objectiveSummary ~= "" then
-                lines[#lines + 1] = "  □ " .. ns.L("quest_list_progress", entry.objectiveSummary)
+                lines[#lines + 1] = "  → " .. ns.L("quest_list_progress", entry.objectiveSummary)
             end
         end
     end
@@ -288,12 +288,49 @@ function QuestManager:BuildCandidateListText(scan)
         for _, entry in ipairs(scan.allCandidates) do
             addBulletLine(lines, ns.L("quest_list_all_row", entry.title, entry.questID))
             if entry.objectiveSummary and entry.objectiveSummary ~= "" then
-                lines[#lines + 1] = "  □ " .. ns.L("quest_list_progress", entry.objectiveSummary)
+                lines[#lines + 1] = "  → " .. ns.L("quest_list_progress", entry.objectiveSummary)
             end
         end
     end
 
     return table.concat(lines, "\n")
+end
+
+function QuestManager:BuildSectionText(entries, rowLabelKey, includeProgress, reasonLabelKey)
+    local lines = {}
+    if #(entries or {}) == 0 then
+        addBulletLine(lines, ns.L("quest_list_none"))
+        return table.concat(lines, "\n")
+    end
+
+    for _, entry in ipairs(entries or {}) do
+        if reasonLabelKey then
+            addBulletLine(lines, ns.L(rowLabelKey, entry.title, entry.keepReason or ns.L(reasonLabelKey)))
+        else
+            addBulletLine(lines, ns.L(rowLabelKey, entry.title, entry.questID))
+        end
+
+        if includeProgress and entry.objectiveSummary and entry.objectiveSummary ~= "" then
+            lines[#lines + 1] = "  → " .. ns.L("quest_list_progress", entry.objectiveSummary)
+        end
+    end
+
+    return table.concat(lines, "\n")
+end
+
+function QuestManager:BuildSafeSectionText(scan)
+    scan = scan or self:Scan(false)
+    return self:BuildSectionText(scan.safeCandidates or {}, "quest_list_safe_row", false)
+end
+
+function QuestManager:BuildKeepSectionText(scan)
+    scan = scan or self:Scan(false)
+    return self:BuildSectionText(scan.keptQuests or {}, "quest_list_keep_row", true, "quest_keep_unknown")
+end
+
+function QuestManager:BuildAllSectionText(scan)
+    scan = scan or self:Scan(false)
+    return self:BuildSectionText(scan.allCandidates or {}, "quest_list_all_row", true)
 end
 
 function QuestManager:GetSafeCandidates()

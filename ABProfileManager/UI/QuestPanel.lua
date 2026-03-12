@@ -77,7 +77,12 @@ function QuestPanel:Refresh(forceScan)
 
     local scan = ns.Modules.QuestManager:Scan(forceScan and true or false)
     self.summaryText:SetText(ns.Modules.QuestManager:BuildSummaryText(scan))
-    self.listText:SetText(ns.Modules.QuestManager:BuildCandidateListText(scan))
+    self.safeListTitle:SetText(ns.L("quest_list_safe_header", #(scan.safeCandidates or {})))
+    self.keepListTitle:SetText(ns.L("quest_list_keep_header", #(scan.keptQuests or {})))
+    self.allListTitle:SetText(ns.L("quest_list_all_header", #(scan.allCandidates or {})))
+    self.safeListText:SetText(ns.Modules.QuestManager:BuildSafeSectionText(scan))
+    self.keepListText:SetText(ns.Modules.QuestManager:BuildKeepSectionText(scan))
+    self.allListText:SetText(ns.Modules.QuestManager:BuildAllSectionText(scan))
 
     local supported = scan and scan.supported
     local safeCount = supported and #(scan.safeCandidates or {}) or 0
@@ -127,8 +132,20 @@ function QuestPanel:Create(parent)
 
     local listBox = widgets.CreatePanelBox(frame, 852, 408, "")
     listBox:SetPoint("TOPLEFT", summaryBox, "BOTTOMLEFT", 0, -12)
-    local listText = widgets.CreateScrollTextBox(listBox, 816, 364)
-    listText:SetPoint("TOPLEFT", 14, -28)
+
+    local sectionWidth = 254
+    local sectionGap = 13
+    local safeListTitle = widgets.CreateLabel(listBox, "", nil, 14, -18, "GameFontHighlightLarge")
+    local safeListText = widgets.CreateScrollTextBox(listBox, sectionWidth, 324)
+    safeListText:SetPoint("TOPLEFT", 14, -52)
+
+    local keepListTitle = widgets.CreateLabel(listBox, "", nil, 14 + sectionWidth + sectionGap, -18, "GameFontHighlightLarge")
+    local keepListText = widgets.CreateScrollTextBox(listBox, sectionWidth, 324)
+    keepListText:SetPoint("TOPLEFT", 14 + sectionWidth + sectionGap, -52)
+
+    local allListTitle = widgets.CreateLabel(listBox, "", nil, 14 + ((sectionWidth + sectionGap) * 2), -18, "GameFontHighlightLarge")
+    local allListText = widgets.CreateScrollTextBox(listBox, sectionWidth, 324)
+    allListText:SetPoint("TOPLEFT", 14 + ((sectionWidth + sectionGap) * 2), -52)
 
     refreshButton:SetScript("OnClick", function()
         queueRefresh(self)
@@ -187,7 +204,12 @@ function QuestPanel:Create(parent)
     self.safeCleanupButton = safeCleanupButton
     self.abandonAllButton = abandonAllButton
     self.listBox = listBox
-    self.listText = listText
+    self.safeListTitle = safeListTitle
+    self.keepListTitle = keepListTitle
+    self.allListTitle = allListTitle
+    self.safeListText = safeListText
+    self.keepListText = keepListText
+    self.allListText = allListText
 
     self:Refresh(true)
     return frame

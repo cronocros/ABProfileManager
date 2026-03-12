@@ -1,7 +1,7 @@
 # ABPM Final Design
 
 현재 제품 상태:
-- `v1.3.4`
+- `v1.3.5`
 - 구현 완료
 - 1차 출시 완료
 - 최신 배포 기준 문서
@@ -163,6 +163,7 @@
 - `SilvermoonMapOverlay.lua`
   - 한밤(Midnight) 지도 텍스트 오버레이
   - 시설 / profession / 평판 상인 / 던전 / 구렁 라벨 표시
+  - 카테고리별 필터 on/off 반영
 - `Widgets.lua`
   - 공용 위젯 및 스크롤/패널 스타일
 
@@ -268,12 +269,13 @@
   - 현재 세션 요약
   - profession 마지막 스캔
   - 활성 오버레이 상태
+  - 지도 라벨 카테고리 체크박스
 
 ### 퀘스트 탭
 
 - 상단 좌측: 정리 기준과 현재 퀘스트 요약
 - 상단 우측: 새로고침 / 안전 정리 / 전체 포기 버튼
-- 하단 전체: 안전 정리 대상 / 전체 포기 대상 / 유지 대상 목록
+- 하단 3열: 안전 정리 대상 / 남겨둘 퀘스트 / 전체 포기 대상 목록
 
 ### profession 오버레이
 
@@ -338,6 +340,7 @@
 - profession / stats 오버레이는 저장된 scale 값을 읽어 전체 프레임 크기를 함께 조정한다
 - 지도 오버레이는 지원 지도에서만 활성화하고, 표시 중일 때만 갱신 드라이버를 유지
 - 지도 오버레이는 지도 줌 비율에 따라 글자 크기를 완만하게 조정
+- 지도 오버레이는 카테고리 필터 값이 바뀌면 즉시 재배치한다
 - 와우 `설정 > 애드온`은 메인 창과 레이아웃을 공유하지 않고 별도 경량 패널을 사용
 
 ## 보안/안전 설계
@@ -364,10 +367,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 기본 브랜치: `main`
-- 현재 배포 버전: `v1.3.4`
-- 현재 배포 산출물: `dist/ABProfileManager-v1.3.4.zip`
-- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.4.md`
-- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.4-<timestamp>.zip`
+- 현재 배포 버전: `v1.3.5`
+- 현재 배포 산출물: `dist/ABProfileManager-v1.3.5.zip`
+- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.5.md`
+- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.5-<timestamp>.zip`
 - 버전 기록 기준 문서: `CHANGELOG.md`
 
 ## 알려진 제한

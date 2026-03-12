@@ -3,7 +3,7 @@
 ## 현재 상태
 
 프로젝트는 직접 적용 가능한 WoW Retail 애드온 구조를 갖추고 있다.  
-현재 기준 버전은 `v1.3.4`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
+현재 기준 버전은 `v1.3.5`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
 
 ## 현재 구현 범위
 
@@ -51,6 +51,7 @@
   - 규칙 기반 라벨 엔진으로 접두어 / 줄바꿈 / 겹침 완화 / 축소 상태 보정을 한 번에 관리
   - 평판 / 풍요 상인 라벨은 NPC 이름 없이 기능명 중심으로 정리
   - 쿠엘다나스 섬은 mapID / 이름 fallback까지 포함해 지원 범위를 보강
+  - 설정에서 `주요 시설 / 포탈 / 전문기술 / 던전·공격대 / 구렁` 카테고리를 각각 켜고 끌 수 있게 보강
 - 오버레이 스케일 확장
   - profession / 스탯 오버레이 모두 `XS / S / M / L / XL` 5단계 프리셋 지원
 - 설정 세션 요약 정리
@@ -147,9 +148,9 @@
 ## 릴리스 자산
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 배포 ZIP: `dist/ABProfileManager-v1.3.4.zip`
-- 릴리스 노트: `RELEASE_NOTES_v1.3.4.md`
-- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.4-<timestamp>.zip`
+- 배포 ZIP: `dist/ABProfileManager-v1.3.5.zip`
+- 릴리스 노트: `RELEASE_NOTES_v1.3.5.md`
+- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.5-<timestamp>.zip`
 - 변경 이력: `CHANGELOG.md`
 
 ## 다음 LLM용 요약 프롬프트
@@ -159,7 +160,7 @@
 현재 구현 범위는 액션바 템플릿 저장/적용/비교/동기화/문자열 import-export/특성 전환/비행 바 지원/전투 중 대기열/퀘스트 정리/스탯 오버레이/전문기술 자동 추적/한밤(Midnight) 지도 오버레이/와우 설정 하위 카테고리까지 포함한다.
 
 최신 기준 문서는 README.md, ABPM_FINAL_DESIGN.md, ABPM_HANDOFF.md, SECURITY_REVIEW.md 이다.
-문서 버전은 v1.3.4 기준으로 맞춰져 있다.
+문서 버전은 v1.3.5 기준으로 맞춰져 있다.
 
 사용자가 민감하게 보는 지점:
 - 메인 UI 레이아웃은 건드리지 않고 유지할 것
@@ -170,7 +171,3 @@
 
 수정 시 한국어 기본 UI를 유지하고, 톤앤매너는 어두운 청색 바탕 + 금색 포인트 + 섹션 제목 앞 ● 기호를 유지하라.
 ```
-- 전문기술 탭 편의성 보강
-  - 전문기술 탭에서 profession 오버레이 표시 여부를 바로 켜고 끌 수 있게 변경
-- 메인 창 전면 표시 보강
-  - 일반 Blizzard 창보다 뒤로 묻히지 않도록 Toplevel / Raise 동작 보강
