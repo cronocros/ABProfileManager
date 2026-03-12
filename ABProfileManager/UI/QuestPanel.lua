@@ -29,6 +29,70 @@ local function setTooltip(owner, text)
     GameTooltip:Show()
 end
 
+local function openQuestFromLink(link)
+    local questID = tonumber(tostring(link or ""):match("^abpmquest:(%d+)$"))
+    if not questID or questID <= 0 then
+        return false
+    end
+
+    if C_QuestLog and type(C_QuestLog.SetSelectedQuest) == "function" then
+        pcall(C_QuestLog.SetSelectedQuest, questID)
+    elseif C_QuestLog and type(C_QuestLog.GetLogIndexForQuestID) == "function" and type(SelectQuestLogEntry) == "function" then
+        local logIndex = C_QuestLog.GetLogIndexForQuestID(questID)
+        if logIndex and logIndex > 0 then
+            pcall(SelectQuestLogEntry, logIndex)
+        end
+    end
+
+    if C_QuestLog and type(C_QuestLog.OpenToQuestDetails) == "function" then
+        local ok = pcall(C_QuestLog.OpenToQuestDetails, questID)
+        if ok then
+            return true
+        end
+    end
+
+    if type(QuestMapFrame_OpenToQuestDetails) == "function" then
+        local ok = pcall(QuestMapFrame_OpenToQuestDetails, questID)
+        if ok then
+            return true
+        end
+    end
+
+    if type(WorldMapFrame_ShowQuestDetails) == "function" then
+        local ok = pcall(WorldMapFrame_ShowQuestDetails, questID)
+        if ok then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function configureQuestListBox(listBox)
+    if not listBox or not listBox.editBox then
+        return
+    end
+
+    local editBox = listBox.editBox
+    if editBox.SetHyperlinksEnabled then
+        editBox:SetHyperlinksEnabled(true)
+    end
+    editBox:SetScript("OnHyperlinkClick", function(_, link)
+        if openQuestFromLink(link) then
+            ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("quest_refresh_done"))
+        end
+    end)
+    editBox:SetScript("OnHyperlinkEnter", function(currentBox)
+        if currentBox and currentBox.SetCursorPosition then
+            currentBox:SetCursorPosition(0)
+        end
+    end)
+    editBox:SetScript("OnMouseDown", nil)
+    editBox:SetScript("OnEditFocusGained", function(currentBox)
+        currentBox:ClearFocus()
+    end)
+end
+
 local function queueRefresh(panel)
     if not panel then
         return
@@ -139,16 +203,20 @@ function QuestPanel:Create(parent)
     local sectionTextY = -66
     local sectionTextHeight = 310
     local safeListTitle = widgets.CreateLabel(listBox, "", nil, 14, sectionTitleY, "GameFontHighlightLarge")
-    local safeListText = widgets.CreateScrollTextBox(listBox, sectionWidth, sectionTextHeight)
+    local safeListText = widgets.CreateScrollEditBox(listBox, sectionWidth, sectionTextHeight, true)
     safeListText:SetPoint("TOPLEFT", 14, sectionTextY)
 
     local keepListTitle = widgets.CreateLabel(listBox, "", nil, 14 + sectionWidth + sectionGap, sectionTitleY, "GameFontHighlightLarge")
-    local keepListText = widgets.CreateScrollTextBox(listBox, sectionWidth, sectionTextHeight)
+    local keepListText = widgets.CreateScrollEditBox(listBox, sectionWidth, sectionTextHeight, true)
     keepListText:SetPoint("TOPLEFT", 14 + sectionWidth + sectionGap, sectionTextY)
 
     local allListTitle = widgets.CreateLabel(listBox, "", nil, 14 + ((sectionWidth + sectionGap) * 2), sectionTitleY, "GameFontHighlightLarge")
-    local allListText = widgets.CreateScrollTextBox(listBox, sectionWidth, sectionTextHeight)
+    local allListText = widgets.CreateScrollEditBox(listBox, sectionWidth, sectionTextHeight, true)
     allListText:SetPoint("TOPLEFT", 14 + ((sectionWidth + sectionGap) * 2), sectionTextY)
+
+    configureQuestListBox(safeListText)
+    configureQuestListBox(keepListText)
+    configureQuestListBox(allListText)
 
     refreshButton:SetScript("OnClick", function()
         queueRefresh(self)

@@ -4,6 +4,7 @@
 
 - 실제 백업 ZIP은 `backups/source/` 아래에 생성됩니다.
 - `backups/source/`는 git에서 제외됩니다.
+- Git 저장소에는 바이너리 ZIP 대신 문서 아카이브와 GitHub 릴리스 자산을 유지합니다.
 - 생성 명령:
 
 ```powershell

@@ -538,6 +538,12 @@ end
 local function measureLabel(label, point, text, fontSize)
     label:SetFont(FONT_PATH, fontSize, point.outline or "THICKOUTLINE")
     label:SetWidth(0)
+    if label.SetHeight then
+        label:SetHeight(0)
+    end
+    if label.SetMaxLines then
+        label:SetMaxLines(0)
+    end
     if label.SetWordWrap then
         label:SetWordWrap(false)
     end
@@ -557,7 +563,7 @@ local function measureLabel(label, point, text, fontSize)
     local targetWidth = point.width
     if not targetWidth then
         if multiLine then
-            targetWidth = math.max(naturalWidth + 10, point.minWidth or 74)
+            targetWidth = math.max(naturalWidth + 28, point.minWidth or 92)
         elseif wrap then
             targetWidth = clamp(
                 math.floor((naturalWidth + 18) * (point.widthScale or 0.72)),
@@ -570,20 +576,23 @@ local function measureLabel(label, point, text, fontSize)
     end
 
     if multiLine then
-        targetWidth = math.max(targetWidth, naturalWidth + 10)
+        targetWidth = math.max(targetWidth, naturalWidth + 28)
     end
 
     label:SetWidth(targetWidth)
     if label.SetWordWrap then
-        label:SetWordWrap(wrap and true or false)
+        label:SetWordWrap((multiLine or wrap) and true or false)
     end
     if label.SetNonSpaceWrap then
-        label:SetNonSpaceWrap(wrap and true or false)
+        label:SetNonSpaceWrap((wrap and not multiLine) and true or false)
     end
     label:SetText(text)
 
-    local labelWidth = targetWidth
-    local labelHeight = math.max(fontSize + 4, naturalHeight, math.ceil(label:GetStringHeight() or 0))
+    local labelWidth = math.max(targetWidth, math.ceil(label:GetStringWidth() or 0) + 16)
+    local labelHeight = math.max(fontSize + 6, naturalHeight, math.ceil(label:GetStringHeight() or 0) + 4)
+    if label.SetHeight then
+        label:SetHeight(labelHeight)
+    end
     return labelWidth, labelHeight
 end
 

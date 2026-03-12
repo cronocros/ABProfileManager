@@ -15,6 +15,7 @@ ns.Data.Defaults = {
             },
             professionKnowledgeOverlay = {
                 enabled = false,
+                tooltips = true,
             },
             silvermoonMapOverlay = {
                 enabled = false,
@@ -25,6 +26,9 @@ ns.Data.Defaults = {
                     dungeons = true,
                     delves = true,
                 },
+            },
+            mouseMoveRestore = {
+                enabled = false,
             },
         },
     },

@@ -34,6 +34,16 @@ local function applyProfessionOverlayEnabled(enabled)
     setStatus(ns.L("config_saved_profession_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+local function applyProfessionOverlayTooltipsEnabled(enabled)
+    if not ns.DB then
+        return
+    end
+
+    ns.DB:SetProfessionKnowledgeOverlayTooltipEnabled(enabled)
+    ns:RefreshUI()
+    setStatus(ns.L("config_saved_profession_overlay_tooltips", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
 local function applyProfessionOverlayScale(scale, labelKey)
     if not ns.DB then
         return
@@ -189,7 +199,7 @@ function ProfessionPanel:CreateCard(parent, point, relativeTo)
     end
 
     card.rescanButton = ns.UI.Widgets.CreateButton(card, "", 108, 22)
-    card.rescanButton:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -14, 14)
+    card.rescanButton:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 14, 14)
 
     return card
 end
@@ -211,15 +221,22 @@ function ProfessionPanel:Create(parent)
     end
 
     local controlsFrame = CreateFrame("Frame", nil, frame)
-    controlsFrame:SetSize(CONTROL_FRAME_WIDTH, 86)
+    controlsFrame:SetSize(CONTROL_FRAME_WIDTH, 88)
     controlsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -18, -18)
 
     local overlayCheck = ns.UI.Widgets.CreateCheckButton(controlsFrame, "")
     overlayCheck:SetPoint("TOPLEFT", controlsFrame, "TOPLEFT", 0, 0)
-    overlayCheck.Text:SetWidth(CONTROL_FRAME_WIDTH - 32)
+    overlayCheck.Text:SetWidth(58)
     overlayCheck.Text:SetJustifyH("LEFT")
+    overlayCheck.Text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
 
-    local overlaySizeLabel = ns.UI.Widgets.CreateLabel(controlsFrame, "", overlayCheck, 4, -8, "GameFontHighlight")
+    local overlayTooltipCheck = ns.UI.Widgets.CreateCheckButton(controlsFrame, "")
+    overlayTooltipCheck:SetPoint("LEFT", overlayCheck.Text, "RIGHT", 16, 0)
+    overlayTooltipCheck.Text:SetWidth(54)
+    overlayTooltipCheck.Text:SetJustifyH("LEFT")
+    overlayTooltipCheck.Text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
+
+    local overlaySizeLabel = ns.UI.Widgets.CreateLabel(controlsFrame, "", overlayCheck, 4, -4, "GameFontHighlight")
     local overlayScaleButtons = {}
     local previousButton = nil
     for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
@@ -229,7 +246,7 @@ function ProfessionPanel:Create(parent)
         if previousButton then
             button:SetPoint("LEFT", previousButton, "RIGHT", 6, 0)
         else
-            button:SetPoint("TOPLEFT", overlaySizeLabel, "BOTTOMLEFT", 0, -8)
+            button:SetPoint("TOPLEFT", overlaySizeLabel, "BOTTOMLEFT", 0, -6)
         end
         button:SetScript("OnClick", function()
             applyProfessionOverlayScale(optionValue, optionLabelKey)
@@ -257,6 +274,7 @@ function ProfessionPanel:Create(parent)
     self.hint = hint
     self.controlsFrame = controlsFrame
     self.overlayCheck = overlayCheck
+    self.overlayTooltipCheck = overlayTooltipCheck
     self.overlaySizeLabel = overlaySizeLabel
     self.overlayScaleButtons = overlayScaleButtons
     self.cards = { leftCard, rightCard }
@@ -264,6 +282,9 @@ function ProfessionPanel:Create(parent)
 
     overlayCheck:SetScript("OnClick", function(currentCheck)
         applyProfessionOverlayEnabled(currentCheck:GetChecked())
+    end)
+    overlayTooltipCheck:SetScript("OnClick", function(currentCheck)
+        applyProfessionOverlayTooltipsEnabled(currentCheck:GetChecked())
     end)
 
     return frame
@@ -276,7 +297,8 @@ function ProfessionPanel:RefreshLocale()
 
     self.title:SetText(ns.L("professions_title"))
     self.hint:SetText(ns.L("professions_hint"))
-    self.overlayCheck.Text:SetText(ns.L("professions_overlay_toggle"))
+    self.overlayCheck.Text:SetText(ns.L("professions_overlay_toggle_short"))
+    self.overlayTooltipCheck.Text:SetText(ns.L("professions_overlay_tooltips_toggle_short"))
     self.overlaySizeLabel:SetText(ns.L("overlay_size_label"))
     for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
         self.overlayScaleButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
@@ -418,6 +440,7 @@ function ProfessionPanel:Refresh()
         end
     end
     self.overlayCheck:SetChecked(ns.DB and ns.DB:IsProfessionKnowledgeOverlayEnabled() or false)
+    self.overlayTooltipCheck:SetChecked(ns.DB and ns.DB:IsProfessionKnowledgeOverlayTooltipEnabled() or false)
     for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
         ns.UI.Widgets.SetButtonSelected(self.overlayScaleButtons[index], index == selectedScaleIndex)
     end

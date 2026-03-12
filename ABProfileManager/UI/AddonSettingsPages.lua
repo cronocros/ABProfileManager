@@ -35,25 +35,25 @@ end
 function AddonSettingsPages:CreatePanel(panelKey, tabName, titleKey, bodyKey, buttonKey, summaryBuilder)
     local frame = CreateFrame("Frame", nil, UIParent)
     frame.name = ns.Constants.TITLE .. "_" .. panelKey
-    frame:SetSize(780, 620)
+    frame:SetSize(660, 560)
 
     frame.title = ns.UI.Widgets.CreateLabel(frame, "", nil, 18, -18, "GameFontHighlightLarge")
 
-    frame.bodyBox = ns.UI.Widgets.CreatePanelBox(frame, 728, 166, nil)
+    frame.bodyBox = ns.UI.Widgets.CreatePanelBox(frame, 612, 148, nil)
     frame.bodyBox:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -18)
 
     frame.bodyText = ns.UI.Widgets.CreateLabel(frame.bodyBox, "", nil, 14, -16)
-    frame.bodyText:SetWidth(698)
+    frame.bodyText:SetWidth(582)
     frame.bodyText:SetJustifyH("LEFT")
     if frame.bodyText.SetWordWrap then
         frame.bodyText:SetWordWrap(true)
     end
 
-    frame.summaryBox = ns.UI.Widgets.CreatePanelBox(frame, 728, 154, nil)
+    frame.summaryBox = ns.UI.Widgets.CreatePanelBox(frame, 612, 136, nil)
     frame.summaryBox:SetPoint("TOPLEFT", frame.bodyBox, "BOTTOMLEFT", 0, -18)
 
     frame.summaryText = ns.UI.Widgets.CreateLabel(frame.summaryBox, "", nil, 14, -16)
-    frame.summaryText:SetWidth(698)
+    frame.summaryText:SetWidth(582)
     frame.summaryText:SetJustifyH("LEFT")
     if frame.summaryText.SetWordWrap then
         frame.summaryText:SetWordWrap(true)

@@ -100,8 +100,12 @@ function DB:GetGlobalSettings()
         },
         professionKnowledgeOverlay = {
             enabled = false,
+            tooltips = true,
         },
         silvermoonMapOverlay = {
+            enabled = false,
+        },
+        mouseMoveRestore = {
             enabled = false,
         },
     }
@@ -181,7 +185,11 @@ function DB:GetProfessionKnowledgeOverlaySettings()
     local settings = self:GetGlobalSettings()
     settings.professionKnowledgeOverlay = settings.professionKnowledgeOverlay or {
         enabled = false,
+        tooltips = true,
     }
+    if type(settings.professionKnowledgeOverlay.tooltips) ~= "boolean" then
+        settings.professionKnowledgeOverlay.tooltips = true
+    end
 
     return settings.professionKnowledgeOverlay
 end
@@ -193,6 +201,15 @@ end
 function DB:SetProfessionKnowledgeOverlayEnabled(enabled)
     self:GetProfessionKnowledgeOverlaySettings().enabled = enabled and true or false
     return self:IsProfessionKnowledgeOverlayEnabled()
+end
+
+function DB:IsProfessionKnowledgeOverlayTooltipEnabled()
+    return self:GetProfessionKnowledgeOverlaySettings().tooltips ~= false
+end
+
+function DB:SetProfessionKnowledgeOverlayTooltipEnabled(enabled)
+    self:GetProfessionKnowledgeOverlaySettings().tooltips = enabled and true or false
+    return self:IsProfessionKnowledgeOverlayTooltipEnabled()
 end
 
 function DB:GetSilvermoonMapOverlaySettings()
@@ -240,6 +257,24 @@ function DB:SetSilvermoonMapCategoryEnabled(filterKey, enabled)
     local filters = self:GetSilvermoonMapOverlaySettings().filters
     filters[filterKey] = enabled and true or false
     return self:IsSilvermoonMapCategoryEnabled(filterKey)
+end
+
+function DB:GetMouseMoveRestoreSettings()
+    local settings = self:GetGlobalSettings()
+    settings.mouseMoveRestore = settings.mouseMoveRestore or {
+        enabled = false,
+    }
+
+    return settings.mouseMoveRestore
+end
+
+function DB:IsMouseMoveRestoreEnabled()
+    return self:GetMouseMoveRestoreSettings().enabled and true or false
+end
+
+function DB:SetMouseMoveRestoreEnabled(enabled)
+    self:GetMouseMoveRestoreSettings().enabled = enabled and true or false
+    return self:IsMouseMoveRestoreEnabled()
 end
 
 function DB:GetTemplate(templateName)

@@ -44,16 +44,22 @@ local QUEST_INFO_COLOR = "ff8fcfff"
 local QUEST_REASON_COLOR = "ffa9d89e"
 local QUEST_PROGRESS_COLOR = "ff9ad9ff"
 
+local function buildQuestIDLink(questID)
+    questID = tonumber(questID) or 0
+    return string.format("|Habpmquest:%d|h[%s]|h", questID, ns.L("quest_list_id_format", questID))
+end
+
 local function buildQuestRowText(entry, reasonText)
     local title = colorize(entry and entry.title or "", QUEST_TITLE_COLOR)
+    local idLink = buildQuestIDLink(entry and entry.questID or 0)
     if reasonText then
-        return string.format("%s  [%s]", title, colorize(reasonText, QUEST_REASON_COLOR))
+        return string.format("%s  %s  [%s]", title, idLink, colorize(reasonText, QUEST_REASON_COLOR))
     end
 
     return string.format(
-        "%s  [%s]",
+        "%s  %s",
         title,
-        colorize(ns.L("quest_list_id_format", entry and entry.questID or 0), QUEST_INFO_COLOR)
+        idLink
     )
 end
 

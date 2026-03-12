@@ -28,6 +28,30 @@ local function refreshProfessionKnowledgeViews(forceScan)
     ns:SafeCall(ns.UI.ProfessionKnowledgeOverlay, "Refresh")
 end
 
+local function ensureMouseMoveSetting()
+    if not ns.DB or not ns.DB:IsMouseMoveRestoreEnabled() then
+        return
+    end
+
+    if type(GetCVarBool) == "function" then
+        local ok, enabled = pcall(GetCVarBool, "autoInteract")
+        if ok and enabled then
+            return
+        end
+    end
+
+    if type(GetCVar) == "function" then
+        local ok, value = pcall(GetCVar, "autoInteract")
+        if ok and tostring(value) == "1" then
+            return
+        end
+    end
+
+    if type(SetCVar) == "function" then
+        pcall(SetCVar, "autoInteract", "1")
+    end
+end
+
 function Events:Initialize()
     frame:SetScript("OnEvent", function(_, event, ...)
         if type(self[event]) == "function" then
@@ -78,6 +102,7 @@ function Events:PLAYER_LOGIN()
     ns.State.playerLoggedIn = true
     ns:SafeCall(ns.DB, "SetDebugEnabled", false)
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
+    ensureMouseMoveSetting()
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
     refreshStatsOverlay()
     refreshProfessionKnowledgeViews(true)
@@ -90,6 +115,7 @@ end
 
 function Events:PLAYER_ENTERING_WORLD()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
+    ensureMouseMoveSetting()
     refreshGhostsAndRetries()
     refreshProfessionKnowledgeViews(true)
     ns:RefreshUI()

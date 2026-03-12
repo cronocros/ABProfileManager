@@ -172,6 +172,15 @@ function ConfigPanel:ApplySilvermoonMapFilter(filterKey, enabled, refs, labelKey
     setStatus(refs, ns.L("config_saved_silvermoon_filter", ns.L(labelKey), enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplyMouseMoveRestore(enabled, refs)
+    ns.DB:SetMouseMoveRestoreEnabled(enabled)
+    if enabled and type(SetCVar) == "function" then
+        pcall(SetCVar, "autoInteract", "1")
+    end
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_mouse_move_restore", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
 function ConfigPanel:BindControlSet(refs)
     refs.koreanButton:SetScript("OnClick", function()
         self:ApplyLanguage(ns.Constants.LANGUAGE.KOREAN, refs)
@@ -221,6 +230,10 @@ function ConfigPanel:BindControlSet(refs)
         end)
     end
 
+    refs.mouseMoveRestoreCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyMouseMoveRestore(currentCheck:GetChecked(), refs)
+    end)
+
     if refs.openWindowButton then
         refs.openWindowButton:SetScript("OnClick", showMainWindow)
     end
@@ -268,6 +281,8 @@ function ConfigPanel:RefreshControlSet(refs)
         refs.mapFilterChecks[index].Text:SetText(ns.L(option.labelKey))
         refs.mapFilterChecks[index]:SetChecked(ns.DB:IsSilvermoonMapCategoryEnabled(option.key))
     end
+    refs.mouseMoveRestoreLabel:SetText(ns.L("config_mouse_move_restore"))
+    refs.mouseMoveRestoreCheck.Text:SetText(ns.L("config_mouse_move_restore_show"))
     refs.overviewText:SetText(buildOverviewText())
 
     if refs.openWindowButton then
@@ -280,6 +295,7 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
     refs.silvermoonMapCheck:SetChecked(ns.DB:IsSilvermoonMapOverlayEnabled())
+    refs.mouseMoveRestoreCheck:SetChecked(ns.DB:IsMouseMoveRestoreEnabled())
     ns.UI.Widgets.SetButtonSelected(refs.koreanButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN)
     ns.UI.Widgets.SetButtonSelected(refs.englishButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.ENGLISH)
 end
@@ -293,10 +309,12 @@ function ConfigPanel:BuildControlSet(parent, options)
     local columnGap = options.columnGap or 12
     local textWidth = options.textWidth or (columnWidth - 36)
     local helpWidth = options.helpWidth or ((columnWidth * 2) + columnGap)
+    local helpBoxHeight = options.helpBoxHeight or (options.showOpenButton and 208 or 180)
+    local overviewHeight = options.overviewHeight or (options.showOpenButton and 136 or 144)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local settingsBoxHeight = 382
+    local settingsBoxHeight = options.settingsBoxHeight or 382
 
     local languageBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
@@ -305,28 +323,28 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.languageHint:SetWidth(textWidth)
     refs.languageHint:SetJustifyH("LEFT")
     refs.koreanButton = widgets.CreateButton(languageBox, "", 110, 26)
-    refs.koreanButton:SetPoint("TOPLEFT", refs.languageHint, "BOTTOMLEFT", 0, -16)
+    refs.koreanButton:SetPoint("TOPLEFT", refs.languageHint, "BOTTOMLEFT", 0, -12)
     refs.englishButton = widgets.CreateButton(languageBox, "", 110, 26)
     refs.englishButton:SetPoint("LEFT", refs.koreanButton, "RIGHT", 10, 0)
-    refs.minimapLabel = widgets.CreateLabel(languageBox, "", refs.koreanButton, 0, -20, "GameFontHighlight")
+    refs.minimapLabel = widgets.CreateLabel(languageBox, "", refs.koreanButton, 0, -14, "GameFontHighlight")
     refs.minimapCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.minimapCheck:SetPoint("TOPLEFT", refs.minimapLabel, "BOTTOMLEFT", -4, -10)
-    refs.confirmLabel = widgets.CreateLabel(languageBox, "", refs.minimapCheck, 4, -16, "GameFontHighlight")
+    refs.minimapCheck:SetPoint("TOPLEFT", refs.minimapLabel, "BOTTOMLEFT", -4, -6)
+    refs.confirmLabel = widgets.CreateLabel(languageBox, "", refs.minimapCheck, 4, -12, "GameFontHighlight")
     refs.confirmCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.confirmCheck:SetPoint("TOPLEFT", refs.confirmLabel, "BOTTOMLEFT", -4, -10)
-    refs.debugLabel = widgets.CreateLabel(languageBox, "", refs.confirmCheck, 4, -16, "GameFontHighlight")
+    refs.confirmCheck:SetPoint("TOPLEFT", refs.confirmLabel, "BOTTOMLEFT", -4, -6)
+    refs.debugLabel = widgets.CreateLabel(languageBox, "", refs.confirmCheck, 4, -12, "GameFontHighlight")
     refs.debugCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.debugCheck:SetPoint("TOPLEFT", refs.debugLabel, "BOTTOMLEFT", -4, -10)
-    refs.professionOverlayLabel = widgets.CreateLabel(languageBox, "", refs.debugCheck, 4, -16, "GameFontHighlight")
+    refs.debugCheck:SetPoint("TOPLEFT", refs.debugLabel, "BOTTOMLEFT", -4, -6)
+    refs.professionOverlayLabel = widgets.CreateLabel(languageBox, "", refs.debugCheck, 4, -12, "GameFontHighlight")
     refs.professionOverlayCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.professionOverlayLabel, "BOTTOMLEFT", -4, -10)
+    refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.professionOverlayLabel, "BOTTOMLEFT", -4, -6)
 
     local overlayBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     overlayBox:SetPoint("LEFT", languageBox, "RIGHT", columnGap, 0)
     refs.statsOverlayLabel = widgets.CreateLabel(overlayBox, "", nil, 12, -14, "GameFontHighlight")
     refs.statsOverlayCheck = widgets.CreateCheckButton(overlayBox, "")
-    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayLabel, "BOTTOMLEFT", -4, -10)
-    refs.statsScaleLabel = widgets.CreateLabel(overlayBox, "", refs.statsOverlayCheck, 4, -10, "GameFontHighlight")
+    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayLabel, "BOTTOMLEFT", -4, -6)
+    refs.statsScaleLabel = widgets.CreateLabel(overlayBox, "", refs.statsOverlayCheck, 4, -8, "GameFontHighlight")
     refs.statsScaleButtons = {}
     local previousScaleButton = nil
     for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
@@ -334,15 +352,15 @@ function ConfigPanel:BuildControlSet(parent, options)
         if previousScaleButton then
             button:SetPoint("LEFT", previousScaleButton, "RIGHT", 4, 0)
         else
-            button:SetPoint("TOPLEFT", refs.statsScaleLabel, "BOTTOMLEFT", 0, -8)
+            button:SetPoint("TOPLEFT", refs.statsScaleLabel, "BOTTOMLEFT", 0, -6)
         end
         refs.statsScaleButtons[index] = button
         previousScaleButton = button
     end
-    refs.silvermoonMapLabel = widgets.CreateLabel(overlayBox, "", refs.statsScaleButtons[1], 0, -18, "GameFontHighlight")
+    refs.silvermoonMapLabel = widgets.CreateLabel(overlayBox, "", refs.statsScaleButtons[1], 0, -14, "GameFontHighlight")
     refs.silvermoonMapCheck = widgets.CreateCheckButton(overlayBox, "")
-    refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -8)
-    refs.mapFiltersLabel = widgets.CreateLabel(overlayBox, "", refs.silvermoonMapCheck, 4, -12, "GameFontHighlight")
+    refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -6)
+    refs.mapFiltersLabel = widgets.CreateLabel(overlayBox, "", refs.silvermoonMapCheck, 4, -8, "GameFontHighlight")
     refs.mapFilterChecks = {}
     local mapFilterTextWidth = math.floor((columnWidth - 68) / 2)
     local mapFilterColumnOffset = math.floor(columnWidth / 2) - 6
@@ -352,10 +370,10 @@ function ConfigPanel:BuildControlSet(parent, options)
         local check = widgets.CreateCheckButton(overlayBox, "")
         local column = ((index - 1) % 2)
         if index <= 2 then
-            check:SetPoint("TOPLEFT", refs.mapFiltersLabel, "BOTTOMLEFT", (column * mapFilterColumnOffset) - 4, -6)
+            check:SetPoint("TOPLEFT", refs.mapFiltersLabel, "BOTTOMLEFT", (column * mapFilterColumnOffset) - 4, -4)
         else
             local anchor = column == 0 and lastLeftCheck or lastRightCheck
-            check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
+            check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
         end
         check.Text:SetWidth(mapFilterTextWidth)
         check.Text:SetJustifyH("LEFT")
@@ -370,6 +388,10 @@ function ConfigPanel:BuildControlSet(parent, options)
         end
     end
 
+    refs.mouseMoveRestoreLabel = widgets.CreateLabel(overlayBox, "", lastLeftCheck or refs.mapFiltersLabel, 4, -10, "GameFontHighlight")
+    refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(overlayBox, "")
+    refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreLabel, "BOTTOMLEFT", -4, -6)
+
     refs.minimapCheck.Text:SetWidth(textWidth)
     refs.minimapCheck.Text:SetJustifyH("LEFT")
     refs.confirmCheck.Text:SetWidth(textWidth)
@@ -382,11 +404,12 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.statsOverlayCheck.Text:SetJustifyH("LEFT")
     refs.silvermoonMapCheck.Text:SetWidth(textWidth)
     refs.silvermoonMapCheck.Text:SetJustifyH("LEFT")
+    refs.mouseMoveRestoreCheck.Text:SetWidth(textWidth)
+    refs.mouseMoveRestoreCheck.Text:SetJustifyH("LEFT")
 
-    local helpBoxHeight = options.showOpenButton and 208 or 180
     local helpBox = widgets.CreatePanelBox(parent, helpWidth, helpBoxHeight, nil)
     helpBox:SetPoint("TOPLEFT", languageBox, "BOTTOMLEFT", 0, -20)
-    refs.overviewText = widgets.CreateScrollTextBox(helpBox, helpWidth - 28, options.showOpenButton and 136 or 144)
+    refs.overviewText = widgets.CreateScrollTextBox(helpBox, helpWidth - 28, overviewHeight)
     refs.overviewText:SetPoint("TOPLEFT", 12, -14)
 
     if options.showOpenButton then
@@ -411,17 +434,20 @@ function ConfigPanel:RegisterSettingsCategory()
     if not panel then
         panel = CreateFrame("Frame", "ABPMSettingsCategoryPanel", UIParent)
         panel.name = ns.Constants.TITLE
-        panel:SetSize(780, 620)
+        panel:SetSize(660, 620)
 
         self.settingsFrame = panel
         self.settingsRefs = self:BuildControlSet(panel, {
             titleY = -16,
             showOpenButton = true,
-            columnWidth = 344,
-            columnGap = 16,
-            textWidth = 308,
-            helpWidth = 704,
-            statusWidth = 704,
+            columnWidth = 300,
+            columnGap = 12,
+            textWidth = 264,
+            helpWidth = 612,
+            statusWidth = 612,
+            settingsBoxHeight = 352,
+            helpBoxHeight = 172,
+            overviewHeight = 102,
         })
 
         panel:SetScript("OnShow", function()

@@ -4,9 +4,9 @@ local ProfessionKnowledgeOverlay = {}
 ns.UI.ProfessionKnowledgeOverlay = ProfessionKnowledgeOverlay
 
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
-local TITLE_SIZE = 15
-local SUMMARY_SIZE = 12
-local DETAIL_SIZE = 11
+local TITLE_SIZE = 16
+local SUMMARY_SIZE = 13
+local DETAIL_SIZE = 12
 local MIN_WIDTH = 240
 local MIN_HEIGHT = 56
 local MINI_WIDTH = 190
@@ -17,8 +17,12 @@ local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
 local ICON_SIZE = 18
-local DETAIL_PREFIX_WIDTH = 56
-local DETAIL_DIVIDER_WIDTH = 12
+local DETAIL_PREFIX_WIDTH = 42
+local DETAIL_DIVIDER_WIDTH = 0
+local HOVER_PANEL_WIDTH = 276
+local HOVER_PANEL_PADDING = 8
+local HOVER_PANEL_ROW_HEIGHT = 18
+local HOVER_HIDE_DELAY = 0.10
 local OVERLAY_MODE_EXPANDED = "expanded"
 local OVERLAY_MODE_COMPACT = "compact"
 local OVERLAY_MODE_MINI = "mini"
@@ -50,7 +54,7 @@ local function applyTextStyle(fontString, size, r, g, b)
     end
 end
 
-local function wrapColor(text, colorHex)
+local function colorize(text, colorHex)
     local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
     if #hex == 6 then
         hex = "ff" .. hex
@@ -138,6 +142,51 @@ local function getSourceShortLabel(row)
     return row and row.title or ""
 end
 
+local function getCompleteColorHex()
+    return "ff7fd46f"
+end
+
+local function getPendingColorHex()
+    return "ff78d7ff"
+end
+
+local function getWeeklyResetDaysRemaining()
+    if C_DateAndTime and type(C_DateAndTime.GetSecondsUntilWeeklyReset) == "function" then
+        local ok, seconds = pcall(C_DateAndTime.GetSecondsUntilWeeklyReset)
+        if ok and type(seconds) == "number" and seconds >= 0 then
+            return math.floor((seconds + 86399) / 86400)
+        end
+    end
+
+    local now = GetServerTime and GetServerTime() or time()
+    local t = date("*t", now)
+    local weekday = tonumber(t and t.wday) or 1
+    local targetWeekday = 5
+    local delta = (targetWeekday - weekday) % 7
+    return delta
+end
+
+local function isKoreanOverlay()
+    return ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN)
+end
+
+local function getDetailPrefixText(sectionKey)
+    if isKoreanOverlay() then
+        if sectionKey == "weekly" then
+            return "주  간:"
+        end
+        if sectionKey == "oneTime" then
+            return "1회성:"
+        end
+    end
+
+    if sectionKey == "weekly" then
+        return ns.L("professions_overlay_prefix_weekly") .. ":"
+    end
+
+    return ns.L("professions_overlay_prefix_onetime") .. ":"
+end
+
 local function buildRowFragments(rows, limit)
     local fragments = {}
     local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or nil
@@ -145,36 +194,79 @@ local function buildRowFragments(rows, limit)
     local maxRows = math.min(#(rows or {}), limit or #(rows or {}))
     for index = 1, maxRows do
         local row = rows[index]
+        local countText = colorize(
+            string.format("%d/%d", row.earned or 0, row.maxPoints or 0),
+            row.complete and getCompleteColorHex() or getPendingColorHex()
+        )
         if isKorean then
-            fragments[#fragments + 1] = string.format("%s%d/%d", getSourceShortLabel(row), row.earned or 0, row.maxPoints or 0)
+            fragments[#fragments + 1] = string.format("%s %s", getSourceShortLabel(row), countText)
         else
-            fragments[#fragments + 1] = string.format("%s %d/%d", getSourceShortLabel(row), row.earned or 0, row.maxPoints or 0)
+            fragments[#fragments + 1] = string.format("%s %s", getSourceShortLabel(row), countText)
         end
     end
 
-    return table.concat(fragments, " · ")
+    return table.concat(fragments, "   ·   ")
 end
 
-local function appendTooltipSection(lines, title, rows)
+local function joinObjectiveNames(objectiveRows, complete)
+    local names = {}
+    for _, objective in ipairs(objectiveRows or {}) do
+        if (objective.complete and true or false) == (complete and true or false) then
+            names[#names + 1] = objective.name or ""
+        end
+    end
+
+    return table.concat(names, ", ")
+end
+
+local function appendTooltipSection(lines, title, rows, showObjectives)
     if #(rows or {}) == 0 then
         return
     end
 
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = title
+    lines[#lines + 1] = string.format("● %s", title)
     for _, row in ipairs(rows or {}) do
-        lines[#lines + 1] = string.format("• %s %d/%d · %d/%d", row.title or "", row.current or 0, row.max or 0, row.earned or 0, row.maxPoints or 0)
-        for _, objective in ipairs(row.objectiveRows or {}) do
-            local stateColor = objective.complete and "ff7fd46f" or "ffffd06b"
-            local nameColor = objective.complete and "ff8f9aa4" or "ffece9d8"
-            local stateLabel = objective.complete and ns.L("professions_overlay_tooltip_done") or ns.L("professions_overlay_tooltip_pending")
-            lines[#lines + 1] = string.format(
-                "  %s %s",
-                wrapColor(stateLabel, stateColor),
-                wrapColor(objective.name or "", nameColor)
-            )
+        local countsText = colorize(
+            string.format("%d/%d · %d/%dP", row.current or 0, row.max or 0, row.earned or 0, row.maxPoints or 0),
+            row.complete and getCompleteColorHex() or getPendingColorHex()
+        )
+        lines[#lines + 1] = string.format(
+            "  - %s %s",
+            colorize(row.title or "", "ffffffff"),
+            countsText
+        )
+
+        if showObjectives then
+            local doneNames = joinObjectiveNames(row.objectiveRows, true)
+            local openNames = joinObjectiveNames(row.objectiveRows, false)
+            if doneNames ~= "" then
+                lines[#lines + 1] = string.format(
+                    "      · %s %s",
+                    colorize(ns.L("professions_overlay_tooltip_done"), getCompleteColorHex()),
+                    doneNames
+                )
+            end
+            if openNames ~= "" then
+                lines[#lines + 1] = string.format(
+                    "      · %s %s",
+                    colorize(ns.L("professions_overlay_tooltip_pending"), getPendingColorHex()),
+                    openNames
+                )
+            end
         end
+
+        lines[#lines + 1] = ""
     end
+end
+
+local function buildTooltipSummaryLine(summary)
+    return ns.L(
+        "professions_overlay_tooltip_summary",
+        summary and summary.weeklyEarned or 0,
+        summary and summary.weeklyMax or 0,
+        summary and summary.oneTimeEarned or 0,
+        summary and summary.oneTimeMax or 0
+    )
 end
 
 local function buildOverlayTooltipLines(professionEntry)
@@ -187,38 +279,88 @@ local function buildOverlayTooltipLines(professionEntry)
     local sections = tracker:GetProfessionSections(professionEntry.key)
     local lines = {
         tracker:GetProfessionDisplayName(professionEntry),
-        ns.L(
-            "professions_overlay_row",
-            summary and summary.weeklyEarned or 0,
-            summary and summary.weeklyMax or 0,
-            summary and summary.oneTimeEarned or 0,
-            summary and summary.oneTimeMax or 0
+        buildTooltipSummaryLine(summary),
+        colorize(ns.L("professions_overlay_tooltip_reset", getWeeklyResetDaysRemaining()), "ffff72d2"),
+        "",
+        string.format("● %s", ns.L("professions_overlay_tooltip_legend")),
+        string.format(
+            "%s %s · %s",
+            ns.L("professions_overlay_tooltip_colors"),
+            colorize(ns.L("professions_overlay_tooltip_done"), getCompleteColorHex()),
+            colorize(ns.L("professions_overlay_tooltip_pending"), getPendingColorHex())
         ),
+        ns.L("professions_overlay_tooltip_metrics"),
+        "",
     }
 
-    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_weekly"), sections[1] and sections[1].rows or {})
-    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_onetime"), sections[2] and sections[2].rows or {})
+    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_weekly"), sections[1] and sections[1].rows or {}, true)
+    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_onetime"), sections[2] and sections[2].rows or {}, false)
 
-    local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
     local tomTom = ns.Modules and ns.Modules.TomTomBridge
     if tracker then
         local waypoint = tracker:GetNextTreasureWaypoint(professionEntry.key)
+        lines[#lines + 1] = ""
         if waypoint and tomTom and tomTom:IsAvailable() then
-            lines[#lines + 1] = ""
-            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_header")
-            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_ready", waypoint.objective and waypoint.objective.name or "")
+            lines[#lines + 1] = string.format("● %s", ns.L("professions_overlay_tooltip_tomtom_header"))
+            lines[#lines + 1] = colorize(
+                ns.L("professions_overlay_tooltip_tomtom_ready", waypoint.objective and waypoint.objective.name or ""),
+                "ffffd06b"
+            )
         elseif tomTom and tomTom:IsAvailable() then
-            lines[#lines + 1] = ""
-            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_header")
-            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_none")
+            lines[#lines + 1] = string.format("● %s", ns.L("professions_overlay_tooltip_tomtom_header"))
+            lines[#lines + 1] = colorize(ns.L("professions_overlay_tooltip_tomtom_none"), "ff87d76d")
         else
-            lines[#lines + 1] = ""
-            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_header")
-            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_missing")
+            lines[#lines + 1] = string.format("● %s", ns.L("professions_overlay_tooltip_tomtom_header"))
+            lines[#lines + 1] = colorize(ns.L("professions_overlay_tooltip_tomtom_missing"), "ffffc26a")
         end
     end
 
     return lines
+end
+
+local function getPendingTreasureWaypoints(professionKey)
+    local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
+    if not tracker or not professionKey then
+        return {}
+    end
+
+    local treasureRow = tracker:EvaluateSource(professionKey, "treasures")
+    if not treasureRow then
+        return {}
+    end
+
+    local results = {}
+    for _, objectiveRow in ipairs(treasureRow.objectiveRows or {}) do
+        if not objectiveRow.complete then
+            local waypoint = tracker:GetTreasureWaypoint(professionKey, objectiveRow)
+            if waypoint then
+                results[#results + 1] = {
+                    title = objectiveRow.name or waypoint.title or "",
+                    mapID = waypoint.mapID,
+                    x = waypoint.x,
+                    y = waypoint.y,
+                    objective = objectiveRow,
+                    waypointTitle = waypoint.title or objectiveRow.name or "",
+                }
+            end
+        end
+    end
+
+    return results
+end
+
+local function getWaypointMapName(mapID)
+    mapID = tonumber(mapID)
+    if not mapID or not C_Map or type(C_Map.GetMapInfo) ~= "function" then
+        return tostring(mapID or "")
+    end
+
+    local ok, mapInfo = pcall(C_Map.GetMapInfo, mapID)
+    if ok and mapInfo and mapInfo.name and mapInfo.name ~= "" then
+        return mapInfo.name
+    end
+
+    return tostring(mapID)
 end
 
 local function showRowTooltip(owner, lines)
@@ -227,6 +369,9 @@ local function showRowTooltip(owner, lines)
     end
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    if GameTooltip.SetMinimumWidth then
+        GameTooltip:SetMinimumWidth(360)
+    end
     GameTooltip:SetText(lines[1], 1, 0.86, 0.40)
     for index = 2, #lines do
         local line = lines[index]
@@ -234,9 +379,57 @@ local function showRowTooltip(owner, lines)
             GameTooltip:AddLine(" ")
         else
             GameTooltip:AddLine(line, 0.92, 0.92, 0.88, true)
+            local fontString = _G["GameTooltipTextLeft" .. GameTooltip:NumLines()]
+            if fontString and fontString.SetFont then
+                local fontSize = 12
+                if type(line) == "string" and line:match("^● ") then
+                    fontSize = 13
+                elseif index == 3 then
+                    fontSize = 13
+                end
+                fontString:SetFont(FONT_PATH, fontSize, "OUTLINE")
+            end
         end
     end
     GameTooltip:Show()
+end
+
+local function isCursorInsideBounds(left, right, top, bottom, scale)
+    if not left or not right or not top or not bottom then
+        return false
+    end
+
+    local cursorX, cursorY = GetCursorPosition()
+    scale = scale or (UIParent and UIParent:GetEffectiveScale()) or 1
+    cursorX = cursorX / scale
+    cursorY = cursorY / scale
+    return cursorX >= left and cursorX <= right and cursorY >= bottom and cursorY <= top
+end
+
+local function isCursorOverOneTimeArea(row)
+    if not row then
+        return false
+    end
+
+    local left, right, top, bottom
+    if row.displayMode == OVERLAY_MODE_COMPACT then
+        left = row:GetLeft()
+        right = row:GetRight()
+        top = row:GetTop()
+        bottom = row:GetBottom()
+    else
+        if not row.oneTimePrefix or not row.oneTimeDetails or not row.oneTimePrefix:IsShown() then
+            return false
+        end
+        left = row:GetLeft()
+        right = row:GetRight()
+        top = row.oneTimePrefix:GetTop()
+        bottom = row.oneTimeDetails:GetBottom()
+    end
+
+    local scale = row:GetEffectiveScale() or 1
+
+    return isCursorInsideBounds(left, right, top, bottom, scale)
 end
 
 function ProfessionKnowledgeOverlay:Initialize()
@@ -305,6 +498,249 @@ function ProfessionKnowledgeOverlay:Initialize()
     frame:Hide()
 end
 
+function ProfessionKnowledgeOverlay:CreateHoverPanel()
+    if self.hoverPanel then
+        return self.hoverPanel
+    end
+
+    local panel = CreateFrame("Frame", nil, self.frame)
+    panel:SetFrameStrata(self.frame:GetFrameStrata())
+    panel:SetFrameLevel(self.frame:GetFrameLevel() + 30)
+    panel:SetSize(HOVER_PANEL_WIDTH, 76)
+    panel:EnableMouse(true)
+    panel:SetClampedToScreen(true)
+    panel:Hide()
+
+    panel.bg = panel:CreateTexture(nil, "BACKGROUND")
+    panel.bg:SetAllPoints(panel)
+    panel.bg:SetColorTexture(0.05, 0.07, 0.10, 0.95)
+
+    panel.borderTop = panel:CreateTexture(nil, "BORDER")
+    panel.borderTop:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, 0)
+    panel.borderTop:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, 0)
+    panel.borderTop:SetHeight(1)
+    panel.borderTop:SetColorTexture(1.0, 0.82, 0.40, 0.70)
+
+    panel.borderBottom = panel:CreateTexture(nil, "BORDER")
+    panel.borderBottom:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 0, 0)
+    panel.borderBottom:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", 0, 0)
+    panel.borderBottom:SetHeight(1)
+    panel.borderBottom:SetColorTexture(1.0, 0.82, 0.40, 0.70)
+
+    panel.borderLeft = panel:CreateTexture(nil, "BORDER")
+    panel.borderLeft:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, 0)
+    panel.borderLeft:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 0, 0)
+    panel.borderLeft:SetWidth(1)
+    panel.borderLeft:SetColorTexture(1.0, 0.82, 0.40, 0.70)
+
+    panel.borderRight = panel:CreateTexture(nil, "BORDER")
+    panel.borderRight:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, 0)
+    panel.borderRight:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", 0, 0)
+    panel.borderRight:SetWidth(1)
+    panel.borderRight:SetColorTexture(1.0, 0.82, 0.40, 0.70)
+
+    panel.title = panel:CreateFontString(nil, "OVERLAY")
+    panel.title:SetPoint("TOPLEFT", panel, "TOPLEFT", HOVER_PANEL_PADDING, -HOVER_PANEL_PADDING)
+    panel.title:SetWidth(HOVER_PANEL_WIDTH - (HOVER_PANEL_PADDING * 2))
+    applyTextStyle(panel.title, 12, 1.00, 0.86, 0.40)
+    if panel.title.SetWordWrap then
+        panel.title:SetWordWrap(true)
+    end
+
+    panel.hint = panel:CreateFontString(nil, "OVERLAY")
+    panel.hint:SetPoint("TOPLEFT", panel.title, "BOTTOMLEFT", 0, -4)
+    panel.hint:SetWidth(HOVER_PANEL_WIDTH - (HOVER_PANEL_PADDING * 2))
+    applyTextStyle(panel.hint, 12, 0.82, 0.90, 1.00)
+    if panel.hint.SetWordWrap then
+        panel.hint:SetWordWrap(true)
+    end
+
+    panel.empty = panel:CreateFontString(nil, "OVERLAY")
+    panel.empty:SetPoint("TOPLEFT", panel.hint, "BOTTOMLEFT", 0, -4)
+    panel.empty:SetWidth(HOVER_PANEL_WIDTH - (HOVER_PANEL_PADDING * 2))
+    applyTextStyle(panel.empty, 11, 0.92, 0.92, 0.88)
+    if panel.empty.SetWordWrap then
+        panel.empty:SetWordWrap(true)
+    end
+
+    panel.buttons = {}
+    panel:SetScript("OnEnter", function()
+        self.hoverHideToken = (self.hoverHideToken or 0) + 1
+    end)
+    panel:SetScript("OnLeave", function()
+        self:QueueHideHoverPanel()
+    end)
+
+    self.hoverPanel = panel
+    return panel
+end
+
+function ProfessionKnowledgeOverlay:EnsureHoverButtonCount(count)
+    local panel = self:CreateHoverPanel()
+    while #panel.buttons < count do
+        local button = CreateFrame("Button", nil, panel)
+        button:SetSize(HOVER_PANEL_WIDTH - (HOVER_PANEL_PADDING * 2), HOVER_PANEL_ROW_HEIGHT)
+        button:EnableMouse(true)
+        button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        button:SetHitRectInsets(0, 0, 0, 0)
+        button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+
+        button.text = button:CreateFontString(nil, "OVERLAY")
+        button.text:SetPoint("TOPLEFT", button, "TOPLEFT", 0, 0)
+        button.text:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
+        applyTextStyle(button.text, 11, 0.94, 0.95, 0.88)
+        if button.text.SetWordWrap then
+            button.text:SetWordWrap(false)
+        end
+
+        button:SetScript("OnClick", function(currentButton)
+            local tomTom = ns.Modules and ns.Modules.TomTomBridge
+            if not tomTom or not tomTom:IsAvailable() then
+                ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("tomtom_missing"))
+                return
+            end
+
+            local waypoint = currentButton.waypoint
+            if not waypoint then
+                ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("tomtom_no_pending_treasure"))
+                return
+            end
+
+            local _, err = tomTom:AddWaypoint(waypoint.mapID, waypoint.x, waypoint.y, waypoint.waypointTitle)
+            if err then
+                ns:SafeCall(ns.UI.MainWindow, "SetStatus", err)
+                return
+            end
+
+            ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("tomtom_waypoint_set", waypoint.title or waypoint.waypointTitle or ""))
+            self:HideHoverPanel()
+        end)
+
+        panel.buttons[#panel.buttons + 1] = button
+    end
+end
+
+function ProfessionKnowledgeOverlay:HideHoverPanel()
+    local panel = self.hoverPanel
+    self.hoverHideToken = (self.hoverHideToken or 0) + 1
+    if not panel then
+        return
+    end
+
+    panel.ownerRow = nil
+    panel:Hide()
+    for _, button in ipairs(panel.buttons or {}) do
+        button:Hide()
+        button.waypoint = nil
+    end
+end
+
+function ProfessionKnowledgeOverlay:QueueHideHoverPanel()
+    local panel = self.hoverPanel
+    if not panel or not panel:IsShown() then
+        return
+    end
+
+    self.hoverHideToken = (self.hoverHideToken or 0) + 1
+    local token = self.hoverHideToken
+    if C_Timer and C_Timer.After then
+        C_Timer.After(HOVER_HIDE_DELAY, function()
+            if self.hoverHideToken ~= token then
+                return
+            end
+
+            local currentPanel = self.hoverPanel
+            local ownerRow = currentPanel and currentPanel.ownerRow or nil
+            local panelHovered = currentPanel and currentPanel:IsShown() and currentPanel.IsMouseOver and currentPanel:IsMouseOver()
+            local rowHovered = ownerRow and ownerRow:IsShown() and ownerRow.IsMouseOver and ownerRow:IsMouseOver()
+            if not panelHovered and not rowHovered then
+                self:HideHoverPanel()
+            end
+        end)
+        return
+    end
+
+    self:HideHoverPanel()
+end
+
+function ProfessionKnowledgeOverlay:ShowHoverPanel(row)
+    if not row or not row.professionKey then
+        self:HideHoverPanel()
+        return
+    end
+
+    local panel = self:CreateHoverPanel()
+    local tomTom = ns.Modules and ns.Modules.TomTomBridge
+    local pendingWaypoints = getPendingTreasureWaypoints(row.professionKey)
+    local professionName = row.title and row.title.GetText and row.title:GetText() or ns.L("professions_overlay_title")
+
+    panel.ownerRow = row
+    panel:ClearAllPoints()
+    panel:SetPoint("TOPLEFT", row, "TOPRIGHT", 10, 0)
+    panel.title:SetText(string.format("%s | %s", professionName, ns.L("professions_overlay_panel_title")))
+
+    if not tomTom or not tomTom:IsAvailable() then
+        panel.hint:SetText(ns.L("professions_overlay_panel_missing"))
+        panel.empty:SetText(ns.L("professions_overlay_tooltip_tomtom_missing"))
+        for _, button in ipairs(panel.buttons or {}) do
+            button:Hide()
+            button.waypoint = nil
+        end
+        panel:SetHeight(76)
+        panel:Show()
+        return
+    end
+
+    if #pendingWaypoints == 0 then
+        panel.hint:SetText(ns.L("professions_overlay_panel_empty"))
+        panel.empty:SetText(ns.L("professions_overlay_tooltip_tomtom_none"))
+        for _, button in ipairs(panel.buttons or {}) do
+            button:Hide()
+            button.waypoint = nil
+        end
+        panel:SetHeight(76)
+        panel:Show()
+        return
+    end
+
+    panel.hint:SetText(ns.L("professions_overlay_panel_hint"))
+    panel.empty:SetText("")
+
+    self:EnsureHoverButtonCount(#pendingWaypoints)
+
+    local previous = panel.empty
+    for index, waypoint in ipairs(pendingWaypoints) do
+        local button = panel.buttons[index]
+        button:ClearAllPoints()
+        button:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -4)
+        button.waypoint = waypoint
+        button.text:SetText(string.format(
+            "%s - %s (%d, %d)",
+            waypoint.title or waypoint.waypointTitle or "",
+            getWaypointMapName(waypoint.mapID),
+            math.floor((waypoint.x or 0) + 0.5),
+            math.floor((waypoint.y or 0) + 0.5)
+        ))
+        button:Show()
+        previous = button
+    end
+
+    for index = #pendingWaypoints + 1, #(panel.buttons or {}) do
+        panel.buttons[index]:Hide()
+        panel.buttons[index].waypoint = nil
+    end
+
+    local height = HOVER_PANEL_PADDING
+        + math.ceil(panel.title:GetStringHeight() or 12)
+        + 4
+        + math.ceil(panel.hint:GetStringHeight() or 11)
+        + 4
+        + (#pendingWaypoints * (HOVER_PANEL_ROW_HEIGHT + 4))
+        + HOVER_PANEL_PADDING
+    panel:SetHeight(math.max(78, height))
+    panel:Show()
+end
+
 function ProfessionKnowledgeOverlay:CreateRow()
     local row = CreateFrame("Frame", nil, self.frame)
     row:SetSize(MIN_WIDTH - (PADDING_X * 2), 24)
@@ -320,46 +756,25 @@ function ProfessionKnowledgeOverlay:CreateRow()
         end
     end)
     row:SetScript("OnEnter", function(currentRow)
-        if currentRow.tooltipLines then
+        if currentRow.tooltipLines and ns.DB and ns.DB:IsProfessionKnowledgeOverlayTooltipEnabled() then
             showRowTooltip(currentRow, currentRow.tooltipLines)
         end
     end)
-    row:SetScript("OnLeave", GameTooltip_Hide)
-    row:RegisterForClicks("RightButtonUp")
-    row:SetScript("OnClick", function(currentRow, button)
+    row:SetScript("OnLeave", function()
+        GameTooltip_Hide()
+        self:QueueHideHoverPanel()
+    end)
+    row:SetScript("OnMouseUp", function(currentRow, button)
         if button ~= "RightButton" then
             return
         end
 
-        local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
-        local tomTom = ns.Modules and ns.Modules.TomTomBridge
-        local professionKey = currentRow.professionKey
-        if not tracker or not professionKey then
+        if not isCursorOverOneTimeArea(currentRow) then
             return
         end
 
-        if not tomTom or not tomTom:IsAvailable() then
-            ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("tomtom_missing"))
-            return
-        end
-
-        local waypoint = tracker:GetNextTreasureWaypoint(professionKey)
-        if not waypoint then
-            ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("tomtom_no_pending_treasure"))
-            return
-        end
-
-        local _, err = tomTom:AddWaypoint(waypoint.mapID, waypoint.x, waypoint.y, waypoint.title)
-        if err then
-            ns:SafeCall(ns.UI.MainWindow, "SetStatus", err)
-            return
-        end
-
-        ns:SafeCall(
-            ns.UI.MainWindow,
-            "SetStatus",
-            ns.L("tomtom_waypoint_set", waypoint.objective and waypoint.objective.name or waypoint.title or "")
-        )
+        GameTooltip_Hide()
+        self:ShowHoverPanel(currentRow)
     end)
 
     row.icon = row:CreateTexture(nil, "OVERLAY")
@@ -381,13 +796,13 @@ function ProfessionKnowledgeOverlay:CreateRow()
     row.weeklyPrefix:SetJustifyH("LEFT")
 
     row.weeklyDivider = row:CreateFontString(nil, "OVERLAY")
-    row.weeklyDivider:SetPoint("TOPLEFT", row.weeklyPrefix, "TOPRIGHT", 2, 0)
+    row.weeklyDivider:SetPoint("TOPLEFT", row.weeklyPrefix, "TOPRIGHT", 0, 0)
     row.weeklyDivider:SetWidth(DETAIL_DIVIDER_WIDTH)
     applyTextStyle(row.weeklyDivider, DETAIL_SIZE, 0.92, 0.84, 0.56)
     row.weeklyDivider:SetJustifyH("CENTER")
 
     row.weeklyDetails = row:CreateFontString(nil, "OVERLAY")
-    row.weeklyDetails:SetPoint("TOPLEFT", row.weeklyDivider, "TOPRIGHT", 4, 0)
+    row.weeklyDetails:SetPoint("TOPLEFT", row.weeklyPrefix, "TOPRIGHT", 2, 0)
     applyTextStyle(row.weeklyDetails, DETAIL_SIZE, 0.70, 0.92, 1.00)
 
     row.oneTimePrefix = row:CreateFontString(nil, "OVERLAY")
@@ -397,13 +812,13 @@ function ProfessionKnowledgeOverlay:CreateRow()
     row.oneTimePrefix:SetJustifyH("LEFT")
 
     row.oneTimeDivider = row:CreateFontString(nil, "OVERLAY")
-    row.oneTimeDivider:SetPoint("TOPLEFT", row.oneTimePrefix, "TOPRIGHT", 2, 0)
+    row.oneTimeDivider:SetPoint("TOPLEFT", row.oneTimePrefix, "TOPRIGHT", 0, 0)
     row.oneTimeDivider:SetWidth(DETAIL_DIVIDER_WIDTH)
     applyTextStyle(row.oneTimeDivider, DETAIL_SIZE, 0.92, 0.84, 0.56)
     row.oneTimeDivider:SetJustifyH("CENTER")
 
     row.oneTimeDetails = row:CreateFontString(nil, "OVERLAY")
-    row.oneTimeDetails:SetPoint("TOPLEFT", row.oneTimeDivider, "TOPRIGHT", 4, 0)
+    row.oneTimeDetails:SetPoint("TOPLEFT", row.oneTimePrefix, "TOPRIGHT", 2, 0)
     applyTextStyle(row.oneTimeDetails, DETAIL_SIZE, 0.74, 0.96, 0.80)
 
     row.lineBreak = row:CreateTexture(nil, "ARTWORK")
@@ -460,10 +875,26 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
             parts[#parts + 1] = oneTimeCompact
         end
 
-        compactLine = table.concat(parts, " | ")
+        compactLine = table.concat(parts, "   ")
     end
 
-    row.summary:SetText(displayMode == OVERLAY_MODE_COMPACT and compactLine ~= "" and compactLine or totalSummary)
+    local weeklySummaryComplete = summary and summary.weeklyMax > 0 and summary.weeklyEarned >= summary.weeklyMax
+    local oneTimeSummaryComplete = summary and summary.oneTimeMax > 0 and summary.oneTimeEarned >= summary.oneTimeMax
+    local coloredSummary = string.format(
+        "◆ %s %s       ◆ %s %s",
+        ns.L("professions_overlay_prefix_weekly"),
+        colorize(
+            string.format("%d/%d", summary and summary.weeklyEarned or 0, summary and summary.weeklyMax or 0),
+            weeklySummaryComplete and getCompleteColorHex() or getPendingColorHex()
+        ),
+        ns.L("professions_overlay_prefix_onetime"),
+        colorize(
+            string.format("%d/%d", summary and summary.oneTimeEarned or 0, summary and summary.oneTimeMax or 0),
+            oneTimeSummaryComplete and getCompleteColorHex() or getPendingColorHex()
+        )
+    )
+
+    row.summary:SetText(displayMode == OVERLAY_MODE_COMPACT and compactLine ~= "" and compactLine or coloredSummary)
     if fullyComplete then
         row.title:SetTextColor(0.72, 1.00, 0.78, 1)
         row.summary:SetTextColor(0.70, 0.98, 0.80, 1)
@@ -472,16 +903,35 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
         row.summary:SetTextColor(0.90, 0.96, 1.00, 1)
     end
 
-    local detailWidth = math.max(contentWidth - ICON_SIZE - 8 - DETAIL_PREFIX_WIDTH - DETAIL_DIVIDER_WIDTH - 6, 120)
-    row.weeklyPrefix:SetText(ns.L("professions_weekly"))
-    row.weeklyDivider:SetText("|")
+    local detailWidth = math.max(contentWidth - ICON_SIZE - 8 - DETAIL_PREFIX_WIDTH - 4, 120)
+    local weeklyComplete = #weeklyRows > 0
+    for _, weeklyRow in ipairs(weeklyRows) do
+        if not weeklyRow.complete then
+            weeklyComplete = false
+            break
+        end
+    end
+    local oneTimeComplete = #oneTimeRows > 0
+    for _, oneTimeRow in ipairs(oneTimeRows) do
+        if not oneTimeRow.complete then
+            oneTimeComplete = false
+            break
+        end
+    end
+
+    row.weeklyPrefix:SetText(getDetailPrefixText("weekly"))
+    row.weeklyDivider:SetText("")
     row.weeklyDetails:SetWidth(detailWidth)
     row.weeklyDetails:SetText(weeklyLine ~= "" and weeklyLine or ns.L("no_items"))
-    row.oneTimePrefix:SetText(ns.L("professions_one_time"))
-    row.oneTimeDivider:SetText("|")
+    row.oneTimePrefix:SetText(getDetailPrefixText("oneTime"))
+    row.oneTimeDivider:SetText("")
     row.oneTimeDetails:SetWidth(detailWidth)
     row.oneTimeDetails:SetText(oneTimeLine ~= "" and oneTimeLine or ns.L("no_items"))
     row.tooltipLines = buildOverlayTooltipLines(professionEntry)
+    row.displayMode = displayMode
+
+    row.weeklyDetails:SetTextColor(0.92, 0.94, 0.95, 1)
+    row.oneTimeDetails:SetTextColor(0.92, 0.94, 0.95, 1)
 
     row.weeklyPrefix:SetShown(expanded)
     row.weeklyDivider:SetShown(expanded)
@@ -516,8 +966,11 @@ function ProfessionKnowledgeOverlay:Refresh()
         self:Initialize()
     end
 
+    self:HideHoverPanel()
+
     if not self.frame or not ns.DB or not ns.DB:IsProfessionKnowledgeOverlayEnabled() then
         if self.frame then
+            self:HideHoverPanel()
             self.frame:Hide()
         end
         return
@@ -525,6 +978,7 @@ function ProfessionKnowledgeOverlay:Refresh()
 
     local professions = ns.Modules.ProfessionKnowledgeTracker:GetKnownProfessions()
     if #professions == 0 then
+        self:HideHoverPanel()
         self.frame:Hide()
         return
     end
@@ -535,6 +989,7 @@ function ProfessionKnowledgeOverlay:Refresh()
     self.frame.toggleButton:SetText(getModeButtonGlyph(displayMode))
 
     if displayMode == OVERLAY_MODE_MINI then
+        self:HideHoverPanel()
         for _, row in ipairs(self.rows or {}) do
             row:Hide()
         end
