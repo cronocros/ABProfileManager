@@ -3,7 +3,7 @@
 ## 현재 상태
 
 프로젝트는 직접 적용 가능한 WoW Retail 애드온 구조를 갖추고 있다.  
-현재 기준 버전은 `v1.3.1`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
+현재 기준 버전은 `v1.3.2`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
 
 ## 현재 구현 범위
 
@@ -21,7 +21,7 @@
 - 캐릭터 스탯 오버레이
 - 전문기술 주간 체크 탭
 - 전문기술 체크 오버레이
-- Midnight 지도 오버레이
+- 한밤(Midnight) 지도 오버레이
 - 와우 `설정 > 애드온` 루트 / 하위 카테고리
 
 ## 이번 배포까지 반영된 핵심 사항
@@ -38,14 +38,16 @@
   - profession 아이콘 추가
   - `KP` 표현을 `포인트`로 정리
   - 한국어 클라이언트에서는 공식 퀘스트명을 우선 사용
+  - 카드 레이아웃과 source 설명을 더 짧고 읽기 쉽게 정리
 - profession 오버레이 확장
   - profession별 아이콘 표시
   - `상세 / 요약 / 최소` 3단 표시 지원
   - 주간 / 1회성 외에 핵심 소스 요약 표시
-- Midnight 지도 오버레이 개선
-  - 시설 / profession / PvP / 던전 / 구렁 / 평판 카테고리별 라벨 크기 재조정
-  - 주요 던전 / 구렁 이름을 한국어 라벨로 보강
+- 한밤(Midnight) 지도 오버레이 개선
+  - 시설 / profession / PvP / 던전 / 구렁 / 평판 카테고리별 라벨 크기와 폭을 다시 재조정
+  - 주요 던전 / 구렁 이름을 한국어 라벨과 줄바꿈 규칙으로 보강
   - 포탈 이름, 평판 상인, profession 허브 표시 보강
+  - 쿠엘다나스 섬의 `마법학자의 정원` / `태양샘 고원` 입구 라벨 추가
   - 지도 확대 / 축소에 따라 라벨 크기를 완만하게 조정
 - 설정 패널 안정화
   - 메인 창용 레이아웃과 와우 `설정 > 애드온`용 레이아웃 분리
@@ -58,7 +60,7 @@
 1. profession 자동 추적 한계
 - 제작 주문, catch-up 같은 일부 예외 획득원은 아직 별도 자동 집계하지 않는다.
 
-2. Midnight 지도 데이터
+2. 한밤(Midnight) 지도 데이터
 - 정적 좌표와 수동 라벨 기반이라 패치 후 좌표 보정이 필요할 수 있다.
 
 3. 정적 검사 환경
@@ -138,19 +140,19 @@
 ## 릴리스 자산
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 배포 ZIP: `dist/ABProfileManager-v1.3.1.zip`
-- 릴리스 노트: `RELEASE_NOTES_v1.3.1.md`
-- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.1-<timestamp>.zip`
+- 배포 ZIP: `dist/ABProfileManager-v1.3.2.zip`
+- 릴리스 노트: `RELEASE_NOTES_v1.3.2.md`
+- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.2-<timestamp>.zip`
 - 변경 이력: `CHANGELOG.md`
 
 ## 다음 LLM용 요약 프롬프트
 
 ```text
 프로젝트는 WoW Retail 애드온 ABProfileManager다.
-현재 구현 범위는 액션바 템플릿 저장/적용/비교/동기화/문자열 import-export/특성 전환/비행 바 지원/전투 중 대기열/퀘스트 정리/스탯 오버레이/전문기술 자동 추적/Midnight 지도 오버레이/와우 설정 하위 카테고리까지 포함한다.
+현재 구현 범위는 액션바 템플릿 저장/적용/비교/동기화/문자열 import-export/특성 전환/비행 바 지원/전투 중 대기열/퀘스트 정리/스탯 오버레이/전문기술 자동 추적/한밤(Midnight) 지도 오버레이/와우 설정 하위 카테고리까지 포함한다.
 
 최신 기준 문서는 README.md, ABPM_FINAL_DESIGN.md, ABPM_HANDOFF.md, SECURITY_REVIEW.md 이다.
-문서 버전은 v1.3.1 기준으로 맞춰져 있다.
+문서 버전은 v1.3.2 기준으로 맞춰져 있다.
 
 사용자가 민감하게 보는 지점:
 - 메인 UI 레이아웃은 건드리지 않고 유지할 것

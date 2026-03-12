@@ -12,19 +12,21 @@ local CATEGORY_COLORS = {
     pvp = { 1.00, 0.44, 0.44 },
     dungeon = { 1.00, 0.64, 0.34 },
     delve = { 0.82, 0.74, 1.00 },
+    raid = { 1.00, 0.56, 0.30 },
     renown = { 1.00, 0.78, 0.54 },
 }
 local CATEGORY_SIZE_SCALE = {
-    service = 1.45,
-    travel = 1.52,
-    profession = 2.12,
-    pvp = 1.58,
-    dungeon = 2.32,
-    delve = 2.32,
-    renown = 1.66,
+    service = 1.12,
+    travel = 1.14,
+    profession = 1.42,
+    pvp = 1.16,
+    dungeon = 1.18,
+    delve = 1.18,
+    raid = 1.22,
+    renown = 1.18,
 }
-local ZOOM_SCALE_MIN = 0.88
-local ZOOM_SCALE_MAX = 1.12
+local ZOOM_SCALE_MIN = 0.92
+local ZOOM_SCALE_MAX = 1.08
 local ZOOM_BUCKET_STEP = 0.02
 
 local function getMapCanvasParent()
@@ -43,7 +45,7 @@ local function getPointColor(category)
 end
 
 local function getPointScale(category)
-    return CATEGORY_SIZE_SCALE[category] or 1.6
+    return CATEGORY_SIZE_SCALE[category] or 1.2
 end
 
 local function roundToStep(value, step)
@@ -238,7 +240,13 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         local label = self:EnsureLabel(index)
         local red, green, blue = getPointColor(point.category)
         local scale = (point.scale or getPointScale(point.category)) * (zoomScale or 1)
-        local fontSize = math.max(point.minFontSize or 14, math.floor(((point.size or 16) * scale) + 0.5))
+        local fontSize = math.max(point.minFontSize or 12, math.floor(((point.size or 16) * scale) + 0.5))
+        local text = ns.L(point.labelKey)
+        local shouldWrap = point.wrap
+        if shouldWrap == nil then
+            shouldWrap = type(point.width) == "number" or (type(text) == "string" and string.find(text, "\n", 1, true) ~= nil)
+        end
+
         label:ClearAllPoints()
         label:SetPoint(
             "CENTER",
@@ -249,17 +257,17 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         )
         label:SetFont(FONT_PATH, fontSize, point.outline or "THICKOUTLINE")
         label:SetTextColor(red, green, blue, point.alpha or 1)
-        label:SetText(ns.L(point.labelKey))
+        if label.SetSpacing then
+            label:SetSpacing(point.spacing or 0)
+        end
+        label:SetText(text)
         if point.width then
-            label:SetWidth(math.floor(point.width * math.max(scale * 0.82, 1.1)))
-            if label.SetWordWrap then
-                label:SetWordWrap(true)
-            end
+            label:SetWidth(point.width)
         else
-            label:SetWidth(math.max(80, math.ceil(label:GetStringWidth() or 0) + 24))
-            if label.SetWordWrap then
-                label:SetWordWrap(false)
-            end
+            label:SetWidth(math.max(68, math.ceil(label:GetStringWidth() or 0) + 18))
+        end
+        if label.SetWordWrap then
+            label:SetWordWrap(shouldWrap and true or false)
         end
         label:Show()
     end

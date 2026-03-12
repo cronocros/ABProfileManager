@@ -188,6 +188,7 @@ function QuestManager:BuildSummaryText(scan)
     return table.concat({
         ns.L("quest_summary_header"),
         ns.L("quest_summary_rule_safe"),
+        ns.L("quest_summary_rule_safe_keep"),
         ns.L("quest_summary_rule_all"),
         "",
         ns.L("quest_summary_counts"),

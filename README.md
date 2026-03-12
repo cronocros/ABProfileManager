@@ -5,10 +5,10 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.3.1`
+- `v1.3.2`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
-- `전문기술 자동 추적` / `Midnight 지도 오버레이` 개선 반영 완료
+- `전문기술 자동 추적` / `한밤(Midnight) 지도 오버레이` 개선 반영 완료
 - `고스트 덮어쓰기 안정화` / `스탯 오버레이 정리` 반영 완료
 - `설정 애드온 하위 카테고리` / `전문기술 오버레이 확장` 반영 완료
 - `지도 줌 연동 라벨 조정` / `전문기술 오버레이 3단 접기` 반영 완료
@@ -19,16 +19,16 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.3.1`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.1/ABProfileManager-v1.3.1.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.3.1.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.1.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.1.md)
+- 릴리스 버전: `v1.3.2`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.2/ABProfileManager-v1.3.2.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.3.2.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.2.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.2.md)
 
 ## 한눈에 보기
 
 - 액션바 템플릿 저장, 비교, 동기화, 부분 적용, 최근 1회 되돌리기를 한 창에서 처리
 - 전문기술 포인트를 자동 추적하고 탭과 오버레이에서 바로 확인
-- Midnight 지도 주요 시설과 입구를 글자 오버레이로 표시
+- 한밤(Midnight) 지도 주요 시설과 입구를 글자 오버레이로 표시
 - 퀘스트 정리, 스탯 오버레이, 미니맵 버튼까지 함께 제공
 
 ## 설치
@@ -82,12 +82,12 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 전문기술 주간 체크 탭
   - profession별 주간 획득원 / 1회성 획득원을 숨은 퀘스트 기반 자동 추적
   - profession별 포인트 합계 표시
-  - 주간 퀘스트 / Treatise / 주간 드랍 / 1회성 보물 / 평판 보상 / 일부 풍요 보상 / 처음 발견 보너스 자동 계산
+  - 주간 퀘스트 / 전문기술 논문 / 주간 드랍 / 1회성 보물 / 평판 보상 / 일부 풍요 보상 / 처음 발견 보너스 자동 계산
 - 전문기술 체크 오버레이
   - profession 아이콘 포함
   - 상세 / 요약 / 최소 3단 표시 모드
   - 드래그 이동 / 위치 저장
-- Midnight 지도 오버레이
+- 한밤(Midnight) 지도 오버레이
   - 실버문 도심 주요 시설 가독성 중심 글자 표시
   - 포탈 이름, 정복 상인, 전문기술 허브, 교역소, 형상변환, 암시장 표시
   - 던전 / 구렁 입구 이름을 한국어로 표시
@@ -120,7 +120,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.1`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.2`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -149,7 +149,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 디버그 로그
   - 스탯 오버레이 표시 여부
   - 전문기술 체크 오버레이 표시 여부
-  - Midnight 지도 오버레이 표시 여부
+  - 한밤(Midnight) 지도 오버레이 표시 여부
   - 현재 세션 요약 / 오버레이 상태 / 전문기술 마지막 스캔 표시
   - 와우 `설정 > 애드온` 하위 카테고리 연결
 - `퀘스트` 탭:
@@ -191,11 +191,11 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 퀘스트 안전 정리는 포기 가능 + 완료 아님 + 보고 가능 아님 + 진행도 없음 기준만 정리합니다.
 - 전체 퀘스트 포기는 현재 목록에서 포기 가능한 퀘스트만 대상으로 합니다.
 - 퀘스트 탭은 일반 퀘스트 기준으로 동작하며, 숨김/작업/현상금 계열 항목은 후보에서 제외합니다.
-- 전문기술 체크 탭은 현재 `Midnight 12.0.1` 기준 숨은 퀘스트 / 완료 플래그 기반 자동 추적 구조입니다.
+- 전문기술 체크 탭은 현재 `한밤(Midnight) 12.0.1` 기준 숨은 퀘스트 / 완료 플래그 기반 자동 추적 구조입니다.
 - 제작 주문, catch-up 같은 일부 예외 획득원은 아직 별도 자동 집계하지 않습니다.
 - profession별 수치는 최신 가이드 기준으로 내장했지만, 향후 핫픽스로 달라질 수 있습니다.
-- Midnight 지도 오버레이는 `Midnight` 주요 지도 기준의 정적 좌표와 안내 라벨을 사용합니다.
-- Midnight 지도 오버레이 글자 크기는 지도 확대 / 축소 상태에 따라 완만하게 조정됩니다.
+- 한밤(Midnight) 지도 오버레이는 `한밤(Midnight)` 주요 지도와 쿠엘다나스 섬 기준의 정적 좌표와 안내 라벨을 사용합니다.
+- 한밤(Midnight) 지도 오버레이 글자 크기는 지도 확대 / 축소 상태에 따라 완만하게 조정됩니다.
 - profession 툴팁 이름은 한국어 클라이언트에서 퀘스트명을 우선 읽고, 나머지는 내장 번역 규칙으로 보정합니다.
 - 하단 요약창의 오른쪽 끝 정렬은 사용자 요청으로 후순위 보류 상태입니다.
 - 이 작업 환경에는 `lua`/`luac`가 없지만, 이번 버전은 `luaparser` 기반 정적 문법 파싱을 실행했습니다.
@@ -212,7 +212,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.1.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.1.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.2.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

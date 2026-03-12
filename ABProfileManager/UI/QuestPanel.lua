@@ -112,6 +112,9 @@ function QuestPanel:Create(parent)
     local hint = widgets.CreateLabel(actionsBox, "", nil, 14, -28)
     hint:SetWidth(382)
     hint:SetJustifyH("LEFT")
+    if hint.SetWordWrap then
+        hint:SetWordWrap(true)
+    end
 
     local refreshButton = widgets.CreateButton(actionsBox, "", 382, 30)
     refreshButton:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -14)

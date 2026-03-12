@@ -1,7 +1,7 @@
 # ABPM Final Design
 
 현재 제품 상태:
-- `v1.3.1`
+- `v1.3.2`
 - 구현 완료
 - 1차 출시 완료
 - 최신 배포 기준 문서
@@ -9,7 +9,7 @@
 ## 목적
 
 `ABProfileManager`는 WoW Retail용 액션바 템플릿 관리 애드온이다.
-현재 범위는 액션바 템플릿 저장, 적용, 비교, 동기화, 전체/부분 비우기, 문자열 내보내기/가져오기, 퀘스트 정리, 스탯 오버레이, 전문기술 추적, Midnight 지도 오버레이까지 포함한다.
+현재 범위는 액션바 템플릿 저장, 적용, 비교, 동기화, 전체/부분 비우기, 문자열 내보내기/가져오기, 퀘스트 정리, 스탯 오버레이, 전문기술 추적, 한밤(Midnight) 지도 오버레이까지 포함한다.
 
 ## 제품 범위
 
@@ -31,7 +31,7 @@
 - 캐릭터 스탯 오버레이
 - 전문기술 주간 체크 탭
 - 전문기술 체크 오버레이
-- Midnight 지도 오버레이
+- 한밤(Midnight) 지도 오버레이
 - 와우 `설정 > 애드온` 루트 / 하위 카테고리
 - 메인 타이틀 / 설정 버전 표기
 - 메인 창 전면 표시 보강
@@ -108,7 +108,7 @@
 - `Data/ProfessionKnowledge.lua`
   - profession별 획득원 정의
 - `Data/SilvermoonMapData.lua`
-  - Midnight 지도 라벨 위치 정의
+  - 한밤(Midnight) 지도 라벨 위치 정의
 - `Data/StatPriorities.lua`
   - 특성별 PvE 일반 우선순위 정의
 
@@ -159,7 +159,7 @@
   - profession 포인트 오버레이
   - 아이콘 / 접기 / 펼치기 / 드래그 이동
 - `SilvermoonMapOverlay.lua`
-  - Midnight 지도 텍스트 오버레이
+  - 한밤(Midnight) 지도 텍스트 오버레이
   - 시설 / profession / 평판 상인 / 던전 / 구렁 라벨 표시
 - `Widgets.lua`
   - 공용 위젯 및 스크롤/패널 스타일
@@ -261,7 +261,7 @@
 - 우측:
   - 스탯 오버레이
   - profession 오버레이
-  - Midnight 지도 오버레이
+  - 한밤(Midnight) 지도 오버레이
 - 하단:
   - 현재 세션 요약
   - profession 마지막 스캔
@@ -286,7 +286,7 @@
 - 드래그 이동
 - 접기 / 펼치기
 
-### Midnight 지도 오버레이
+### 한밤(Midnight) 지도 오버레이
 
 - 대형 텍스트 라벨 기반
 - 카테고리별 크기 차등
@@ -299,6 +299,8 @@
   - 평판
 - 정적 좌표 데이터 기반
 - 한국어 라벨 우선
+- 긴 라벨은 붙여쓰기 또는 수동 줄바꿈 라벨을 우선 사용
+- 쿠엘다나스 섬의 `마법학자의 정원` / `태양샘 고원` 입구 라벨 포함
 
 ### 와우 설정 하위 카테고리
 
@@ -359,10 +361,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 기본 브랜치: `main`
-- 현재 배포 버전: `v1.3.1`
-- 현재 배포 산출물: `dist/ABProfileManager-v1.3.1.zip`
-- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.1.md`
-- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.1-<timestamp>.zip`
+- 현재 배포 버전: `v1.3.2`
+- 현재 배포 산출물: `dist/ABProfileManager-v1.3.2.zip`
+- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.2.md`
+- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.2-<timestamp>.zip`
 - 버전 기록 기준 문서: `CHANGELOG.md`
 
 ## 알려진 제한
@@ -370,7 +372,7 @@
 - 실제 변경 허용 범위는 현재 `1-132`, `145-180`만 사용한다
 - 바 모델은 `1~9번 바`까지만 지원한다
 - 제작 주문, catch-up 같은 profession 예외 획득원은 아직 전체 자동 집계를 하지 않는다
-- Midnight 지도 오버레이는 정적 좌표 기반이라 향후 패치 시 좌표 보정이 필요할 수 있다
+- 한밤(Midnight) 지도 오버레이는 정적 좌표 기반이라 향후 패치 시 좌표 보정이 필요할 수 있다
 - 이 작업 환경에는 `lua`/`luac`가 없고, 정적 문법 검사는 `luaparser` 기준으로 수행한다
 
 ## 기준 문서

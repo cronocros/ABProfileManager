@@ -4,8 +4,8 @@ local ProfessionPanel = {}
 ns.UI.ProfessionPanel = ProfessionPanel
 
 local CARD_WIDTH = 420
-local CARD_HEIGHT = 604
-local ROW_HEIGHT = 38
+local CARD_HEIGHT = 560
+local ROW_HEIGHT = 36
 local MAX_ROWS = 8
 
 local function setStatus(message)
@@ -22,13 +22,13 @@ local function applyProfessionOverlayEnabled(enabled)
     setStatus(ns.L("config_saved_profession_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
-local function applyText(fontString, size, r, g, b)
+local function applyText(fontString, size, r, g, b, wrap)
     fontString:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", size, "")
     fontString:SetTextColor(r, g, b, 1)
     fontString:SetJustifyH("LEFT")
     fontString:SetJustifyV("TOP")
     if fontString.SetWordWrap then
-        fontString:SetWordWrap(false)
+        fontString:SetWordWrap(wrap and true or false)
     end
 end
 
@@ -79,19 +79,19 @@ function ProfessionPanel:CreateRow(parent, offsetY)
 
     row.title = row:CreateFontString(nil, "OVERLAY")
     row.title:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    row.title:SetWidth(208)
+    row.title:SetWidth(210)
     applyText(row.title, 12, 0.95, 0.95, 0.92)
 
     row.note = row:CreateFontString(nil, "OVERLAY")
-    row.note:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -2)
-    row.note:SetWidth(240)
+    row.note:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -1)
+    row.note:SetWidth(220)
     applyText(row.note, 11, 0.68, 0.80, 0.92)
 
     row.value = row:CreateFontString(nil, "OVERLAY")
-    row.value:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-    row.value:SetWidth(152)
-    row.value:SetJustifyH("RIGHT")
+    row.value:SetPoint("RIGHT", row, "RIGHT", 0, -1)
+    row.value:SetWidth(150)
     applyText(row.value, 12, 1.00, 0.86, 0.42)
+    row.value:SetJustifyH("RIGHT")
 
     row:SetScript("OnEnter", function(currentRow)
         if currentRow.rowData then
@@ -123,16 +123,19 @@ function ProfessionPanel:CreateCard(parent, point, relativeTo)
     card.summary = card:CreateFontString(nil, "OVERLAY")
     card.summary:SetPoint("TOPLEFT", card.title, "BOTTOMLEFT", 0, -8)
     card.summary:SetWidth(CARD_WIDTH - 28)
-    applyText(card.summary, 12, 0.92, 0.95, 1.00)
+    applyText(card.summary, 12, 0.92, 0.95, 1.00, true)
+    if card.summary.SetSpacing then
+        card.summary:SetSpacing(2)
+    end
 
     card.note = card:CreateFontString(nil, "OVERLAY")
     card.note:SetPoint("TOPLEFT", card.summary, "BOTTOMLEFT", 0, -8)
     card.note:SetWidth(CARD_WIDTH - 28)
     card.note:SetJustifyH("LEFT")
     card.note:SetJustifyV("TOP")
-    applyText(card.note, 11, 0.74, 0.84, 0.94)
-    if card.note.SetWordWrap then
-        card.note:SetWordWrap(true)
+    applyText(card.note, 11, 0.74, 0.84, 0.94, true)
+    if card.note.SetSpacing then
+        card.note:SetSpacing(2)
     end
 
     card.weeklyTitle = card:CreateFontString(nil, "OVERLAY")
@@ -143,9 +146,9 @@ function ProfessionPanel:CreateCard(parent, point, relativeTo)
     applyText(card.oneTimeTitle, 12, 1, 0.86, 0.42)
 
     card.rows = {}
-    local startOffset = -124
+    local startOffset = -138
     for index = 1, MAX_ROWS do
-        local row = self:CreateRow(card, startOffset - ((index - 1) * 46))
+        local row = self:CreateRow(card, startOffset - ((index - 1) * 40))
         card.rows[index] = row
     end
 
@@ -165,33 +168,30 @@ function ProfessionPanel:Create(parent)
 
     local title = ns.UI.Widgets.CreateLabel(frame, "", nil, 16, -14, "GameFontHighlightLarge")
     local hint = ns.UI.Widgets.CreateLabel(frame, "", title, 0, -10)
-    hint:SetWidth(852)
+    hint:SetWidth(612)
     hint:SetJustifyH("LEFT")
     if hint.SetWordWrap then
         hint:SetWordWrap(true)
     end
 
     local overlayCheck = ns.UI.Widgets.CreateCheckButton(frame, "")
-    overlayCheck:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", -4, -12)
-    overlayCheck.Text:SetWidth(400)
+    overlayCheck:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -18, -18)
+    overlayCheck.Text:SetWidth(210)
     overlayCheck.Text:SetJustifyH("LEFT")
 
     local leftCard = self:CreateCard(frame, "TOPLEFT", nil)
     leftCard:ClearAllPoints()
-    leftCard:SetPoint("TOPLEFT", overlayCheck, "BOTTOMLEFT", 4, -12)
+    leftCard:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -14)
     local rightCard = self:CreateCard(frame, "TOPLEFT", leftCard)
     rightCard:ClearAllPoints()
     rightCard:SetPoint("TOPLEFT", leftCard, "TOPRIGHT", 12, 0)
 
     local emptyText = frame:CreateFontString(nil, "OVERLAY")
-    emptyText:SetPoint("TOPLEFT", overlayCheck, "BOTTOMLEFT", 4, -18)
+    emptyText:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -18)
     emptyText:SetWidth(852)
     emptyText:SetJustifyH("LEFT")
     emptyText:SetJustifyV("TOP")
-    applyText(emptyText, 13, 0.90, 0.94, 1.00)
-    if emptyText.SetWordWrap then
-        emptyText:SetWordWrap(true)
-    end
+    applyText(emptyText, 13, 0.90, 0.94, 1.00, true)
 
     self.frame = frame
     self.title = title
@@ -225,8 +225,8 @@ end
 function ProfessionPanel:BindCardRow(row, rowData)
     row.rowData = rowData
     row.title:SetText(rowData.title or "")
-    row.note:SetText(ns.L("pk_note_auto_progress", rowData.current, rowData.max, rowData.earned, rowData.maxPoints))
-    row.value:SetText(ns.L("pk_value_format", rowData.current, rowData.max, rowData.earned, rowData.maxPoints))
+    row.note:SetText(ns.L("pk_progress_format", rowData.current, rowData.max))
+    row.value:SetText(ns.L("pk_points_value_format", rowData.earned, rowData.maxPoints))
 
     if rowData.complete then
         row.value:SetTextColor(0.55, 1.00, 0.70, 1)
@@ -255,21 +255,22 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
     card:Show()
     card.icon:SetTexture(professionEntry.icon or ns.Constants.DEFAULT_ICON)
     card.title:SetText(ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry))
-    card.summary:SetText(ns.L(
-        "professions_summary",
-        summary and summary.weeklyEarned or 0,
-        summary and summary.weeklyMax or 0,
-        summary and summary.oneTimeEarned or 0,
-        summary and summary.oneTimeMax or 0
-    ))
-    card.note:SetText(string.format(
+    card.summary:SetText(string.format(
         "%s\n%s",
-        definition and ns.L(definition.noteKey) or "",
+        ns.L(
+            "professions_summary",
+            summary and summary.weeklyEarned or 0,
+            summary and summary.weeklyMax or 0,
+            summary and summary.oneTimeEarned or 0,
+            summary and summary.oneTimeMax or 0
+        ),
         ns.L("professions_last_scan", ns.Modules.ProfessionKnowledgeTracker:GetLastScanLabel())
     ))
+    card.note:SetText(definition and ns.L(definition.noteKey) or "")
 
     card.weeklyTitle:ClearAllPoints()
     card.weeklyTitle:SetPoint("TOPLEFT", card.note, "BOTTOMLEFT", 0, -14)
+    card.weeklyTitle:SetText(ns.L("professions_section_summary", ns.L("professions_weekly"), summary and summary.weeklyEarned or 0, summary and summary.weeklyMax or 0))
 
     local rowIndex = 1
     local currentAnchor = card.weeklyTitle
@@ -288,6 +289,7 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
 
     card.oneTimeTitle:ClearAllPoints()
     card.oneTimeTitle:SetPoint("TOPLEFT", currentAnchor, "BOTTOMLEFT", 0, -16)
+    card.oneTimeTitle:SetText(ns.L("professions_section_summary", ns.L("professions_one_time"), summary and summary.oneTimeEarned or 0, summary and summary.oneTimeMax or 0))
 
     local oneTimeRows = sections[2] and sections[2].rows or {}
     currentAnchor = card.oneTimeTitle
