@@ -36,6 +36,7 @@ ns.Data.Defaults = {
             relativePoint = "CENTER",
             x = 420,
             y = 140,
+            scale = 1,
         },
         professionKnowledgeOverlay = {
             point = "CENTER",
@@ -44,6 +45,7 @@ ns.Data.Defaults = {
             y = 70,
             collapsed = false,
             displayMode = "expanded",
+            scale = 1,
         },
     },
 }

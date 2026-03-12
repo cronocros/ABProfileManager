@@ -3,10 +3,19 @@ local _, ns = ...
 local ProfessionPanel = {}
 ns.UI.ProfessionPanel = ProfessionPanel
 
+local HEADER_HINT_WIDTH = 548
+local CONTROL_FRAME_WIDTH = 248
 local CARD_WIDTH = 420
 local CARD_HEIGHT = 560
 local ROW_HEIGHT = 36
+local ROW_VALUE_WIDTH = 132
+local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - 12
 local MAX_ROWS = 8
+local OVERLAY_SCALE_OPTIONS = {
+    { value = 0.9, labelKey = "overlay_size_small" },
+    { value = 1.0, labelKey = "overlay_size_default" },
+    { value = 1.15, labelKey = "overlay_size_large" },
+}
 
 local function setStatus(message)
     ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
@@ -20,6 +29,16 @@ local function applyProfessionOverlayEnabled(enabled)
     ns.DB:SetProfessionKnowledgeOverlayEnabled(enabled)
     ns:RefreshUI()
     setStatus(ns.L("config_saved_profession_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+local function applyProfessionOverlayScale(scale, labelKey)
+    if not ns.DB then
+        return
+    end
+
+    ns.DB:SetProfessionKnowledgeOverlayScale(scale)
+    ns:RefreshUI()
+    setStatus(ns.L("config_saved_profession_overlay_scale", ns.L(labelKey)))
 end
 
 local function applyText(fontString, size, r, g, b, wrap)
@@ -79,17 +98,17 @@ function ProfessionPanel:CreateRow(parent, offsetY)
 
     row.title = row:CreateFontString(nil, "OVERLAY")
     row.title:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    row.title:SetWidth(210)
-    applyText(row.title, 12, 0.95, 0.95, 0.92)
+    row.title:SetWidth(ROW_TEXT_WIDTH)
+    applyText(row.title, 12, 0.95, 0.95, 0.92, true)
 
     row.note = row:CreateFontString(nil, "OVERLAY")
     row.note:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -1)
-    row.note:SetWidth(220)
-    applyText(row.note, 11, 0.68, 0.80, 0.92)
+    row.note:SetWidth(ROW_TEXT_WIDTH)
+    applyText(row.note, 11, 0.68, 0.80, 0.92, true)
 
     row.value = row:CreateFontString(nil, "OVERLAY")
-    row.value:SetPoint("RIGHT", row, "RIGHT", 0, -1)
-    row.value:SetWidth(150)
+    row.value:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
+    row.value:SetWidth(ROW_VALUE_WIDTH)
     applyText(row.value, 12, 1.00, 0.86, 0.42)
     row.value:SetJustifyH("RIGHT")
 
@@ -168,26 +187,49 @@ function ProfessionPanel:Create(parent)
 
     local title = ns.UI.Widgets.CreateLabel(frame, "", nil, 16, -14, "GameFontHighlightLarge")
     local hint = ns.UI.Widgets.CreateLabel(frame, "", title, 0, -10)
-    hint:SetWidth(612)
+    hint:SetWidth(HEADER_HINT_WIDTH)
     hint:SetJustifyH("LEFT")
     if hint.SetWordWrap then
         hint:SetWordWrap(true)
     end
 
-    local overlayCheck = ns.UI.Widgets.CreateCheckButton(frame, "")
-    overlayCheck:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -18, -18)
-    overlayCheck.Text:SetWidth(210)
+    local controlsFrame = CreateFrame("Frame", nil, frame)
+    controlsFrame:SetSize(CONTROL_FRAME_WIDTH, 84)
+    controlsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -18, -18)
+
+    local overlayCheck = ns.UI.Widgets.CreateCheckButton(controlsFrame, "")
+    overlayCheck:SetPoint("TOPLEFT", controlsFrame, "TOPLEFT", 0, 0)
+    overlayCheck.Text:SetWidth(CONTROL_FRAME_WIDTH - 32)
     overlayCheck.Text:SetJustifyH("LEFT")
+
+    local overlaySizeLabel = ns.UI.Widgets.CreateLabel(controlsFrame, "", overlayCheck, 4, -8, "GameFontHighlight")
+    local overlayScaleButtons = {}
+    local previousButton = nil
+    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
+        local optionValue = option.value
+        local optionLabelKey = option.labelKey
+        local button = ns.UI.Widgets.CreateButton(controlsFrame, "", 56, 20)
+        if previousButton then
+            button:SetPoint("LEFT", previousButton, "RIGHT", 6, 0)
+        else
+            button:SetPoint("TOPLEFT", overlaySizeLabel, "BOTTOMLEFT", 0, -8)
+        end
+        button:SetScript("OnClick", function()
+            applyProfessionOverlayScale(optionValue, optionLabelKey)
+        end)
+        overlayScaleButtons[index] = button
+        previousButton = button
+    end
 
     local leftCard = self:CreateCard(frame, "TOPLEFT", nil)
     leftCard:ClearAllPoints()
-    leftCard:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -14)
+    leftCard:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -122)
     local rightCard = self:CreateCard(frame, "TOPLEFT", leftCard)
     rightCard:ClearAllPoints()
     rightCard:SetPoint("TOPLEFT", leftCard, "TOPRIGHT", 12, 0)
 
     local emptyText = frame:CreateFontString(nil, "OVERLAY")
-    emptyText:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -18)
+    emptyText:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -128)
     emptyText:SetWidth(852)
     emptyText:SetJustifyH("LEFT")
     emptyText:SetJustifyV("TOP")
@@ -196,7 +238,10 @@ function ProfessionPanel:Create(parent)
     self.frame = frame
     self.title = title
     self.hint = hint
+    self.controlsFrame = controlsFrame
     self.overlayCheck = overlayCheck
+    self.overlaySizeLabel = overlaySizeLabel
+    self.overlayScaleButtons = overlayScaleButtons
     self.cards = { leftCard, rightCard }
     self.emptyText = emptyText
 
@@ -215,6 +260,10 @@ function ProfessionPanel:RefreshLocale()
     self.title:SetText(ns.L("professions_title"))
     self.hint:SetText(ns.L("professions_hint"))
     self.overlayCheck.Text:SetText(ns.L("professions_overlay_toggle"))
+    self.overlaySizeLabel:SetText(ns.L("overlay_size_label"))
+    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
+        self.overlayScaleButtons[index]:SetText(ns.L(option.labelKey))
+    end
     for _, card in ipairs(self.cards or {}) do
         card.weeklyTitle:SetText(ns.L("professions_weekly"))
         card.oneTimeTitle:SetText(ns.L("professions_one_time"))
@@ -227,6 +276,10 @@ function ProfessionPanel:BindCardRow(row, rowData)
     row.title:SetText(rowData.title or "")
     row.note:SetText(ns.L("pk_progress_format", rowData.current, rowData.max))
     row.value:SetText(ns.L("pk_points_value_format", rowData.earned, rowData.maxPoints))
+
+    local leftHeight = math.ceil(row.title:GetStringHeight() or 0) + 2 + math.ceil(row.note:GetStringHeight() or 0)
+    local rightHeight = math.ceil(row.value:GetStringHeight() or 0)
+    row:SetHeight(math.max(ROW_HEIGHT, leftHeight, rightHeight))
 
     if rowData.complete then
         row.value:SetTextColor(0.55, 1.00, 0.70, 1)
@@ -326,7 +379,11 @@ function ProfessionPanel:Refresh()
     self:RefreshLocale()
 
     local professions = ns.Modules.ProfessionKnowledgeTracker:GetKnownProfessions()
+    local currentScale = ns.DB and ns.DB:GetProfessionKnowledgeOverlayScale() or 1
     self.overlayCheck:SetChecked(ns.DB and ns.DB:IsProfessionKnowledgeOverlayEnabled() or false)
+    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
+        ns.UI.Widgets.SetButtonSelected(self.overlayScaleButtons[index], math.abs(currentScale - option.value) < 0.001)
+    end
     self.emptyText:SetShown(#professions == 0)
     self.emptyText:SetText(#professions == 0 and ns.L("professions_empty") or "")
 

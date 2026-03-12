@@ -2,6 +2,11 @@ local _, ns = ...
 
 local ConfigPanel = {}
 ns.UI.ConfigPanel = ConfigPanel
+local STATS_OVERLAY_SCALE_OPTIONS = {
+    { value = 0.9, labelKey = "overlay_size_small" },
+    { value = 1.0, labelKey = "overlay_size_default" },
+    { value = 1.15, labelKey = "overlay_size_large" },
+}
 
 local function setStatus(target, message)
     local formatted = ns.Utils.FormatStatusMessage(message)
@@ -126,6 +131,12 @@ function ConfigPanel:ApplyStatsOverlayEnabled(enabled, refs)
     setStatus(refs, ns.L("config_saved_stats_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplyStatsOverlayScale(scale, refs, labelKey)
+    ns.DB:SetStatsOverlayScale(scale)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_stats_overlay_scale", ns.L(labelKey)))
+end
+
 function ConfigPanel:ApplyProfessionOverlayEnabled(enabled, refs)
     ns.DB:SetProfessionKnowledgeOverlayEnabled(enabled)
     ns:RefreshUI()
@@ -163,6 +174,14 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyStatsOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
 
+    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
+        local optionValue = option.value
+        local optionLabelKey = option.labelKey
+        refs.statsScaleButtons[index]:SetScript("OnClick", function()
+            self:ApplyStatsOverlayScale(optionValue, refs, optionLabelKey)
+        end)
+    end
+
     refs.professionOverlayCheck:SetScript("OnClick", function(currentCheck)
         self:ApplyProfessionOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
@@ -194,6 +213,11 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
     refs.statsOverlayLabel:SetText(ns.L("config_stats_overlay"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
+    refs.statsScaleLabel:SetText(ns.L("overlay_size_label"))
+    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
+        refs.statsScaleButtons[index]:SetText(ns.L(option.labelKey))
+        ns.UI.Widgets.SetButtonSelected(refs.statsScaleButtons[index], math.abs(ns.DB:GetStatsOverlayScale() - option.value) < 0.001)
+    end
     refs.professionOverlayLabel:SetText(ns.L("config_profession_overlay"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.silvermoonMapLabel:SetText(ns.L("config_silvermoon_map"))
@@ -227,7 +251,7 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local settingsBoxHeight = 338
+    local settingsBoxHeight = 360
 
     local languageBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
@@ -254,7 +278,20 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.statsOverlayLabel = widgets.CreateLabel(overlayBox, "", nil, 12, -14, "GameFontHighlight")
     refs.statsOverlayCheck = widgets.CreateCheckButton(overlayBox, "")
     refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayLabel, "BOTTOMLEFT", -4, -10)
-    refs.professionOverlayLabel = widgets.CreateLabel(overlayBox, "", refs.statsOverlayCheck, 4, -16, "GameFontHighlight")
+    refs.statsScaleLabel = widgets.CreateLabel(overlayBox, "", refs.statsOverlayCheck, 4, -10, "GameFontHighlight")
+    refs.statsScaleButtons = {}
+    local previousScaleButton = nil
+    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
+        local button = widgets.CreateButton(overlayBox, "", 58, 20)
+        if previousScaleButton then
+            button:SetPoint("LEFT", previousScaleButton, "RIGHT", 6, 0)
+        else
+            button:SetPoint("TOPLEFT", refs.statsScaleLabel, "BOTTOMLEFT", 0, -8)
+        end
+        refs.statsScaleButtons[index] = button
+        previousScaleButton = button
+    end
+    refs.professionOverlayLabel = widgets.CreateLabel(overlayBox, "", refs.statsScaleButtons[1], 0, -18, "GameFontHighlight")
     refs.professionOverlayCheck = widgets.CreateCheckButton(overlayBox, "")
     refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.professionOverlayLabel, "BOTTOMLEFT", -4, -10)
     refs.silvermoonMapLabel = widgets.CreateLabel(overlayBox, "", refs.professionOverlayCheck, 4, -16, "GameFontHighlight")

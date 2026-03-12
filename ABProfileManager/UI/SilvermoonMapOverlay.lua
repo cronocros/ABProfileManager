@@ -25,8 +25,8 @@ local CATEGORY_SIZE_SCALE = {
     raid = 1.22,
     renown = 1.18,
 }
-local ZOOM_SCALE_MIN = 0.92
-local ZOOM_SCALE_MAX = 1.08
+local ZOOM_SCALE_MIN = 1.02
+local ZOOM_SCALE_MAX = 1.10
 local ZOOM_BUCKET_STEP = 0.02
 
 local function getMapCanvasParent()

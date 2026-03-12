@@ -11,6 +11,8 @@ local MIN_WIDTH = 240
 local MIN_HEIGHT = 56
 local MINI_WIDTH = 190
 local MINI_HEIGHT = 34
+local TOGGLE_BUTTON_WIDTH = 22
+local TOGGLE_BUTTON_HEIGHT = 18
 local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
@@ -46,17 +48,12 @@ local function applyTextStyle(fontString, size, r, g, b)
     end
 end
 
-local function getButtonTextWidth(button)
-    if not button or type(button.GetFontString) ~= "function" then
-        return 0
-    end
-
-    local fontString = button:GetFontString()
-    return fontString and math.ceil(fontString:GetStringWidth() or 0) or 0
-end
-
 local function getOverlayConfig()
     return ns.DB and ns.DB:GetProfessionKnowledgeOverlayConfig() or ns.Data.Defaults.ui.professionKnowledgeOverlay
+end
+
+local function getOverlayScale()
+    return ns.DB and ns.DB:GetProfessionKnowledgeOverlayScale() or 1
 end
 
 local function normalizeDisplayMode(mode, config)
@@ -107,6 +104,18 @@ local function getModeButtonLabelKey(mode)
     return "professions_overlay_mode_expanded"
 end
 
+local function getModeButtonGlyph(mode)
+    if mode == OVERLAY_MODE_EXPANDED then
+        return "-"
+    end
+
+    if mode == OVERLAY_MODE_COMPACT then
+        return "_"
+    end
+
+    return "+"
+end
+
 local function getSourceShortLabel(row)
     local key = row and row.key and OVERLAY_LABEL_KEYS[row.key]
     if key then
@@ -136,6 +145,7 @@ function ProfessionKnowledgeOverlay:Initialize()
     local frame = CreateFrame("Frame", "ABPM_ProfessionKnowledgeOverlay", UIParent)
     frame:SetPoint(config.point or "CENTER", UIParent, config.relativePoint or "CENTER", config.x or 0, config.y or 0)
     frame:SetSize(MIN_WIDTH, MIN_HEIGHT)
+    frame:SetScale(getOverlayScale())
     frame:SetFrameStrata("HIGH")
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
@@ -159,12 +169,30 @@ function ProfessionKnowledgeOverlay:Initialize()
     applyTextStyle(frame.title, TITLE_SIZE, 1, 0.86, 0.40)
 
     frame.toggleButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    frame.toggleButton:SetSize(62, 20)
+    frame.toggleButton:SetSize(TOGGLE_BUTTON_WIDTH, TOGGLE_BUTTON_HEIGHT)
     frame.toggleButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING_X, -PADDING_Y + 1)
     frame.toggleButton:SetScript("OnClick", function()
         setDisplayMode(getNextDisplayMode(getDisplayMode()))
         self:Refresh()
     end)
+    frame.toggleButton:SetScript("OnEnter", function(currentButton)
+        if not GameTooltip then
+            return
+        end
+
+        GameTooltip:SetOwner(currentButton, "ANCHOR_RIGHT")
+        GameTooltip:SetText(ns.L("professions_overlay_toggle_tooltip", ns.L(getModeButtonLabelKey(getDisplayMode()))), 1, 0.86, 0.4)
+        GameTooltip:Show()
+    end)
+    frame.toggleButton:SetScript("OnLeave", GameTooltip_Hide)
+    if frame.toggleButton.GetFontString then
+        local fontString = frame.toggleButton:GetFontString()
+        if fontString then
+            fontString:SetFont(FONT_PATH, 11, "OUTLINE")
+            fontString:SetJustifyH("CENTER")
+            fontString:SetJustifyV("MIDDLE")
+        end
+    end
 
     self.rows = {}
     self.frame = frame
@@ -296,8 +324,9 @@ function ProfessionKnowledgeOverlay:Refresh()
     end
 
     local displayMode = getDisplayMode()
+    self.frame:SetScale(getOverlayScale())
     self.frame.title:SetText(ns.L("professions_overlay_title"))
-    self.frame.toggleButton:SetText(ns.L(getModeButtonLabelKey(displayMode)))
+    self.frame.toggleButton:SetText(getModeButtonGlyph(displayMode))
 
     if displayMode == OVERLAY_MODE_MINI then
         for _, row in ipairs(self.rows or {}) do
@@ -305,9 +334,7 @@ function ProfessionKnowledgeOverlay:Refresh()
         end
 
         local titleWidth = math.ceil(self.frame.title:GetStringWidth() or 0)
-        local buttonWidth = math.max(62, getButtonTextWidth(self.frame.toggleButton) + 18)
-        self.frame.toggleButton:SetWidth(buttonWidth)
-        self.frame:SetSize(math.max(MINI_WIDTH, titleWidth + buttonWidth + (PADDING_X * 4)), MINI_HEIGHT)
+        self.frame:SetSize(math.max(MINI_WIDTH, titleWidth + TOGGLE_BUTTON_WIDTH + (PADDING_X * 4)), MINI_HEIGHT)
         self.frame:Show()
         return
     end
@@ -315,9 +342,7 @@ function ProfessionKnowledgeOverlay:Refresh()
     self:EnsureRowCount(#professions)
 
     local contentWidth = 860
-    local buttonWidth = math.max(62, getButtonTextWidth(self.frame.toggleButton) + 18)
-    self.frame.toggleButton:SetWidth(buttonWidth)
-    local maxWidth = math.ceil(self.frame.title:GetStringWidth() or 0) + buttonWidth + 18
+    local maxWidth = math.ceil(self.frame.title:GetStringWidth() or 0) + TOGGLE_BUTTON_WIDTH + 18
     local previous = self.frame.title
     local totalHeight = (PADDING_Y * 2) + math.ceil(self.frame.title:GetStringHeight() or TITLE_SIZE)
 

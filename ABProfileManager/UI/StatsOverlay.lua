@@ -36,6 +36,10 @@ local PAPERDOLL_TOOLTIP_SETTERS = {
     block = "PaperDollFrame_SetBlock",
 }
 
+local function getOverlayScale()
+    return ns.DB and ns.DB:GetStatsOverlayScale() or 1
+end
+
 local function safeNumber(value)
     local numeric = tonumber(value) or 0
     if numeric < 0 then
@@ -586,6 +590,7 @@ function StatsOverlay:Initialize()
     local frame = CreateFrame("Frame", "ABPM_StatsOverlay", UIParent)
     frame:SetPoint(config.point or "CENTER", UIParent, config.relativePoint or "CENTER", config.x or 0, config.y or 0)
     frame:SetSize(MIN_FRAME_WIDTH, MIN_FRAME_HEIGHT)
+    frame:SetScale(getOverlayScale())
     frame:SetFrameStrata("HIGH")
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
@@ -886,6 +891,7 @@ function StatsOverlay:Refresh()
         return
     end
 
+    self.frame:SetScale(getOverlayScale())
     self:RefreshStats()
     self.frame:Show()
 end

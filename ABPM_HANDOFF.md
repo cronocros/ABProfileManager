@@ -3,7 +3,7 @@
 ## 현재 상태
 
 프로젝트는 직접 적용 가능한 WoW Retail 애드온 구조를 갖추고 있다.  
-현재 기준 버전은 `v1.3.2`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
+현재 기준 버전은 `v1.3.3`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
 
 ## 현재 구현 범위
 
@@ -43,12 +43,16 @@
   - profession별 아이콘 표시
   - `상세 / 요약 / 최소` 3단 표시 지원
   - 주간 / 1회성 외에 핵심 소스 요약 표시
+  - profession 탭에서 `작게 / 기본 / 크게` 크기 조절 지원
+- 스탯 오버레이 크기 조절
+  - 설정 탭에서 `작게 / 기본 / 크게` 크기 조절 지원
+  - 오버레이 전체 프레임 스케일을 함께 조정
 - 한밤(Midnight) 지도 오버레이 개선
   - 시설 / profession / PvP / 던전 / 구렁 / 평판 카테고리별 라벨 크기와 폭을 다시 재조정
   - 주요 던전 / 구렁 이름을 한국어 라벨과 줄바꿈 규칙으로 보강
   - 포탈 이름, 평판 상인, profession 허브 표시 보강
   - 쿠엘다나스 섬의 `마법학자의 정원` / `태양샘 고원` 입구 라벨 추가
-  - 지도 확대 / 축소에 따라 라벨 크기를 완만하게 조정
+  - 지도 확대 / 축소에 따라 라벨 크기를 완만하게 조정하고, 축소 상태 최소 크기를 더 높게 보정
 - 설정 패널 안정화
   - 메인 창용 레이아웃과 와우 `설정 > 애드온`용 레이아웃 분리
   - 우측 박스 overflow 완화
@@ -140,9 +144,9 @@
 ## 릴리스 자산
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 배포 ZIP: `dist/ABProfileManager-v1.3.2.zip`
-- 릴리스 노트: `RELEASE_NOTES_v1.3.2.md`
-- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.2-<timestamp>.zip`
+- 배포 ZIP: `dist/ABProfileManager-v1.3.3.zip`
+- 릴리스 노트: `RELEASE_NOTES_v1.3.3.md`
+- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.3-<timestamp>.zip`
 - 변경 이력: `CHANGELOG.md`
 
 ## 다음 LLM용 요약 프롬프트
@@ -152,7 +156,7 @@
 현재 구현 범위는 액션바 템플릿 저장/적용/비교/동기화/문자열 import-export/특성 전환/비행 바 지원/전투 중 대기열/퀘스트 정리/스탯 오버레이/전문기술 자동 추적/한밤(Midnight) 지도 오버레이/와우 설정 하위 카테고리까지 포함한다.
 
 최신 기준 문서는 README.md, ABPM_FINAL_DESIGN.md, ABPM_HANDOFF.md, SECURITY_REVIEW.md 이다.
-문서 버전은 v1.3.2 기준으로 맞춰져 있다.
+문서 버전은 v1.3.3 기준으로 맞춰져 있다.
 
 사용자가 민감하게 보는 지점:
 - 메인 UI 레이아웃은 건드리지 않고 유지할 것

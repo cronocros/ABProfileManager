@@ -5,13 +5,14 @@
 제작: `밍밍이와코코`
 
 현재 상태:
-- `v1.3.2`
+- `v1.3.3`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
 - `전문기술 자동 추적` / `한밤(Midnight) 지도 오버레이` 개선 반영 완료
 - `고스트 덮어쓰기 안정화` / `스탯 오버레이 정리` 반영 완료
 - `설정 애드온 하위 카테고리` / `전문기술 오버레이 확장` 반영 완료
 - `지도 줌 연동 라벨 조정` / `전문기술 오버레이 3단 접기` 반영 완료
+- `전문기술 카드 레이아웃 정리` / `오버레이 크기 조절 옵션` 반영 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
@@ -19,10 +20,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.3.2`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.2/ABProfileManager-v1.3.2.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.3.2.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.2.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.2.md)
+- 릴리스 버전: `v1.3.3`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.3/ABProfileManager-v1.3.3.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.3.3.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.3.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.3.md)
 
 ## 한눈에 보기
 
@@ -86,6 +87,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 전문기술 체크 오버레이
   - profession 아이콘 포함
   - 상세 / 요약 / 최소 3단 표시 모드
+  - 작게 / 기본 / 크게 크기 조절
   - 드래그 이동 / 위치 저장
 - 한밤(Midnight) 지도 오버레이
   - 실버문 도심 주요 시설 가독성 중심 글자 표시
@@ -103,6 +105,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 치명 / 가속 / 특화 / 유연을 `평점 (퍼센트)` 형식으로 표시
   - 현재 특성의 PvE 일반 스탯 우선순위 표시
   - 탱커 특성은 회피 / 무막 / 막기 같은 방어 스탯을 추가 표시
+  - 작게 / 기본 / 크게 크기 조절 지원
   - 배경 없는 글자형 레이아웃, 좁은 힛트박스, 드래그 이동, 위치 저장 지원
   - 값 영역 마우스 오버 시 캐릭터창에 가까운 스탯 설명과 DR 구간 안내 툴팁 표시
 - 한국어 기본 UI, 영어 옵션 제공
@@ -120,7 +123,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.2`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.3`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -139,6 +142,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `전문기술` 탭:
   - 현재 캐릭터 profession별 자동 추적 카드
   - 오버레이 표시 체크박스
+  - 오버레이 크기 조절 버튼
   - 주간 / 1회성 소스별 진행도
   - profession 아이콘과 포인트 합계 표시
   - 재스캔 버튼
@@ -148,6 +152,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 확인창 사용 여부
   - 디버그 로그
   - 스탯 오버레이 표시 여부
+  - 스탯 오버레이 크기 조절
   - 전문기술 체크 오버레이 표시 여부
   - 한밤(Midnight) 지도 오버레이 표시 여부
   - 현재 세션 요약 / 오버레이 상태 / 전문기술 마지막 스캔 표시
@@ -212,7 +217,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.2.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.2.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.3.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

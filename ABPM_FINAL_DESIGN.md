@@ -1,7 +1,7 @@
 # ABPM Final Design
 
 현재 제품 상태:
-- `v1.3.2`
+- `v1.3.3`
 - 구현 완료
 - 1차 출시 완료
 - 최신 배포 기준 문서
@@ -155,9 +155,11 @@
   - 드래그 이동 및 위치 저장
   - 탱커 방어 스탯 / 특성별 우선순위 표시
   - `캐릭터 직업 - 특성(아이템레벨)` 헤더
+  - 크기 스케일 적용
 - `ProfessionKnowledgeOverlay.lua`
   - profession 포인트 오버레이
   - 아이콘 / 접기 / 펼치기 / 드래그 이동
+  - 크기 스케일 적용
 - `SilvermoonMapOverlay.lua`
   - 한밤(Midnight) 지도 텍스트 오버레이
   - 시설 / profession / 평판 상인 / 던전 / 구렁 라벨 표시
@@ -333,6 +335,7 @@
 - profession 체크는 숨은 퀘스트 / 완료 플래그 / 내장 데이터 기반으로 계산
 - profession 오버레이는 접힘 상태도 SavedVariables에 저장
 - profession 오버레이는 `상세 / 요약 / 최소` 3단 표시 모드를 지원
+- profession / stats 오버레이는 저장된 scale 값을 읽어 전체 프레임 크기를 함께 조정한다
 - 지도 오버레이는 지원 지도에서만 활성화하고, 표시 중일 때만 갱신 드라이버를 유지
 - 지도 오버레이는 지도 줌 비율에 따라 글자 크기를 완만하게 조정
 - 와우 `설정 > 애드온`은 메인 창과 레이아웃을 공유하지 않고 별도 경량 패널을 사용
@@ -361,10 +364,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 기본 브랜치: `main`
-- 현재 배포 버전: `v1.3.2`
-- 현재 배포 산출물: `dist/ABProfileManager-v1.3.2.zip`
-- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.2.md`
-- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.2-<timestamp>.zip`
+- 현재 배포 버전: `v1.3.3`
+- 현재 배포 산출물: `dist/ABProfileManager-v1.3.3.zip`
+- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.3.md`
+- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.3-<timestamp>.zip`
 - 버전 기록 기준 문서: `CHANGELOG.md`
 
 ## 알려진 제한

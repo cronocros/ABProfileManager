@@ -2,13 +2,14 @@ ABProfileManager
 
 반복되는 액션바 정리와 전문기술 체크를 한 번에 끝내는 WoW Retail용 관리 애드온입니다.
 
-버전: v1.3.2
+버전: v1.3.3
 제작: 밍밍이와코코
 
 [한눈에 보는 핵심]
 - 액션바를 템플릿으로 저장하고, 필요할 때 전체 또는 일부 범위만 다시 적용
 - 비교, 동기화, 최근 1회 되돌리기로 세팅 복구를 더 빠르게 처리
 - 전문기술 주간 / 1회성 포인트를 자동 추적하고 오버레이로 바로 확인
+- 전문기술 / 스탯 오버레이 크기를 직접 조절 가능
 - 한밤(Midnight) 지도에서 주요 시설, 포탈, 던전, 구렁 위치를 읽기 쉬운 글자로 표시
 - 퀘스트 정리, 스탯 오버레이, 미니맵 버튼까지 한 애드온 안에서 제공
 
@@ -28,7 +29,7 @@ ABProfileManager
 2. 전문기술 주간 체크
 - profession별 주간 / 1회성 획득원 자동 추적
 - profession 아이콘, 포인트 합계, 재스캔 지원
-- 3단 접기 상태를 지원하는 profession 오버레이 제공
+- 3단 접기 상태와 크기 조절을 지원하는 profession 오버레이 제공
 
 3. 한밤(Midnight) 지도 오버레이
 - 주요 시설, 포탈, 정복 상인, 평판 상인, 전문기술 허브 표시
@@ -38,6 +39,7 @@ ABProfileManager
 4. 추가 편의 기능
 - 퀘스트 후보 새로고침 / 안전 정리 / 전체 포기
 - 캐릭터 직업 - 특성(아이템레벨) 스탯 오버레이
+- 스탯 / 전문기술 오버레이는 작게 / 기본 / 크게 크기 조절 가능
 - 전투 중 대기열 처리와 고스트 슬롯 안내
 
 [상세 기능]
@@ -49,4 +51,4 @@ ABProfileManager
 [다운로드]
 - 저장소: https://github.com/cronocros/ABProfileManager
 - 최신 릴리스: https://github.com/cronocros/ABProfileManager/releases/latest
-- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.2/ABProfileManager-v1.3.2.zip
+- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.3/ABProfileManager-v1.3.3.zip

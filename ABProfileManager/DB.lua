@@ -3,6 +3,15 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
+local function clampOverlayScale(value)
+    local numeric = tonumber(value)
+    if not numeric then
+        return 1
+    end
+
+    return math.max(0.85, math.min(1.25, numeric))
+end
+
 local function getSpecializationID()
     local specIndex = GetSpecialization and GetSpecialization()
     if not specIndex then
@@ -248,6 +257,7 @@ function DB:GetStatsOverlayConfig()
 
     ns.db.ui = ns.db.ui or {}
     ns.db.ui.statsOverlay = ns.db.ui.statsOverlay or ns.Utils.DeepCopy(ns.Data.Defaults.ui.statsOverlay)
+    ns.db.ui.statsOverlay.scale = clampOverlayScale(ns.db.ui.statsOverlay.scale)
     return ns.db.ui.statsOverlay
 end
 
@@ -259,7 +269,28 @@ function DB:GetProfessionKnowledgeOverlayConfig()
     ns.db.ui = ns.db.ui or {}
     ns.db.ui.professionKnowledgeOverlay =
         ns.db.ui.professionKnowledgeOverlay or ns.Utils.DeepCopy(ns.Data.Defaults.ui.professionKnowledgeOverlay)
+    ns.db.ui.professionKnowledgeOverlay.scale = clampOverlayScale(ns.db.ui.professionKnowledgeOverlay.scale)
     return ns.db.ui.professionKnowledgeOverlay
+end
+
+function DB:GetStatsOverlayScale()
+    return clampOverlayScale(self:GetStatsOverlayConfig().scale)
+end
+
+function DB:SetStatsOverlayScale(scale)
+    local config = self:GetStatsOverlayConfig()
+    config.scale = clampOverlayScale(scale)
+    return config.scale
+end
+
+function DB:GetProfessionKnowledgeOverlayScale()
+    return clampOverlayScale(self:GetProfessionKnowledgeOverlayConfig().scale)
+end
+
+function DB:SetProfessionKnowledgeOverlayScale(scale)
+    local config = self:GetProfessionKnowledgeOverlayConfig()
+    config.scale = clampOverlayScale(scale)
+    return config.scale
 end
 
 function DB:SaveMainWindowPosition(frame)
