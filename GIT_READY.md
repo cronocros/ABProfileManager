@@ -1,6 +1,6 @@
 # Git Upload Ready
 
-현재 폴더는 `v1.3.0` 배포 기준으로 깃 업로드와 릴리스 생성이 가능한 상태를 설명하는 문서입니다.
+현재 폴더는 `v1.3.1` 배포 기준으로 깃 업로드와 릴리스 생성이 가능한 상태를 설명하는 문서입니다.
 
 ## 현재 준비 상태
 
@@ -14,9 +14,9 @@
 
 ```powershell
 git add .
-git commit -m "Release v1.3.0"
+git commit -m "Release v1.3.1"
 git push origin main
-gh release create v1.3.0 "dist/ABProfileManager-v1.3.0.zip" --title "v1.3.0" --notes-file "RELEASE_NOTES_v1.3.0.md"
+gh release create v1.3.1 "dist/ABProfileManager-v1.3.1.zip" --title "v1.3.1" --notes-file "RELEASE_NOTES_v1.3.1.md"
 ```
 
 ## 배포 ZIP 다시 만들기
@@ -28,6 +28,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package_release.ps1
 생성 결과:
 
 ```text
-dist\ABProfileManager-v1.3.0.zip
-backups\source\ABProfileManager-source-v1.3.0-<timestamp>.zip
+dist\ABProfileManager-v1.3.1.zip
+backups\source\ABProfileManager-source-v1.3.1-<timestamp>.zip
 ```

@@ -15,14 +15,17 @@ local CATEGORY_COLORS = {
     renown = { 1.00, 0.78, 0.54 },
 }
 local CATEGORY_SIZE_SCALE = {
-    service = 2.2,
-    travel = 2.3,
-    profession = 3.2,
-    pvp = 2.4,
-    dungeon = 3.5,
-    delve = 3.5,
-    renown = 2.5,
+    service = 1.45,
+    travel = 1.52,
+    profession = 2.12,
+    pvp = 1.58,
+    dungeon = 2.32,
+    delve = 2.32,
+    renown = 1.66,
 }
+local ZOOM_SCALE_MIN = 0.88
+local ZOOM_SCALE_MAX = 1.12
+local ZOOM_BUCKET_STEP = 0.02
 
 local function getMapCanvasParent()
     if not WorldMapFrame or not WorldMapFrame.ScrollContainer then
@@ -40,7 +43,52 @@ local function getPointColor(category)
 end
 
 local function getPointScale(category)
-    return CATEGORY_SIZE_SCALE[category] or 2.4
+    return CATEGORY_SIZE_SCALE[category] or 1.6
+end
+
+local function roundToStep(value, step)
+    step = step or 0.01
+    if type(value) ~= "number" then
+        return nil
+    end
+
+    return math.floor((value / step) + 0.5) * step
+end
+
+local function clamp(value, minValue, maxValue)
+    return math.max(minValue, math.min(maxValue, value))
+end
+
+local function getCanvasZoomPercent()
+    if not WorldMapFrame then
+        return nil
+    end
+
+    if type(WorldMapFrame.GetCanvasZoomPercent) == "function" then
+        local ok, percent = pcall(WorldMapFrame.GetCanvasZoomPercent, WorldMapFrame)
+        if ok and type(percent) == "number" then
+            return clamp(percent, 0, 1)
+        end
+    end
+
+    local scrollContainer = WorldMapFrame.ScrollContainer
+    if scrollContainer and type(scrollContainer.GetCanvasZoomPercent) == "function" then
+        local ok, percent = pcall(scrollContainer.GetCanvasZoomPercent, scrollContainer)
+        if ok and type(percent) == "number" then
+            return clamp(percent, 0, 1)
+        end
+    end
+
+    return nil
+end
+
+local function getZoomScaleMultiplier()
+    local zoomPercent = getCanvasZoomPercent()
+    if type(zoomPercent) ~= "number" then
+        return 1, nil
+    end
+
+    return ZOOM_SCALE_MIN + ((ZOOM_SCALE_MAX - ZOOM_SCALE_MIN) * zoomPercent), roundToStep(zoomPercent, ZOOM_BUCKET_STEP)
 end
 
 function SilvermoonMapOverlay:Initialize()
@@ -182,12 +230,15 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         return
     end
 
+    local zoomScale, zoomBucket = getZoomScaleMultiplier()
+    self.lastZoomBucket = zoomBucket
+
     local points = mapData.points or {}
     for index, point in ipairs(points) do
         local label = self:EnsureLabel(index)
         local red, green, blue = getPointColor(point.category)
-        local scale = point.scale or getPointScale(point.category)
-        local fontSize = math.max(18, math.floor((point.size or 16) * scale))
+        local scale = (point.scale or getPointScale(point.category)) * (zoomScale or 1)
+        local fontSize = math.max(point.minFontSize or 14, math.floor(((point.size or 16) * scale) + 0.5))
         label:ClearAllPoints()
         label:SetPoint(
             "CENTER",
@@ -200,7 +251,7 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         label:SetTextColor(red, green, blue, point.alpha or 1)
         label:SetText(ns.L(point.labelKey))
         if point.width then
-            label:SetWidth(math.floor(point.width * math.max(scale * 0.75, 1.4)))
+            label:SetWidth(math.floor(point.width * math.max(scale * 0.82, 1.1)))
             if label.SetWordWrap then
                 label:SetWordWrap(true)
             end
@@ -251,7 +302,12 @@ function SilvermoonMapOverlay:Refresh()
     local width = parent:GetWidth() or 0
     local height = parent:GetHeight() or 0
     local language = ns.DB and ns.DB:GetLanguage() or nil
-    if mapID ~= self.currentMapID or width ~= self.lastWidth or height ~= self.lastHeight or language ~= self.lastLanguage then
+    local _, zoomBucket = getZoomScaleMultiplier()
+    if mapID ~= self.currentMapID
+        or width ~= self.lastWidth
+        or height ~= self.lastHeight
+        or language ~= self.lastLanguage
+        or zoomBucket ~= self.lastZoomBucket then
         self.currentMapID = mapID
         self.lastWidth = width
         self.lastHeight = height

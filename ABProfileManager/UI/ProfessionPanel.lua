@@ -12,6 +12,16 @@ local function setStatus(message)
     ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
 end
 
+local function applyProfessionOverlayEnabled(enabled)
+    if not ns.DB then
+        return
+    end
+
+    ns.DB:SetProfessionKnowledgeOverlayEnabled(enabled)
+    ns:RefreshUI()
+    setStatus(ns.L("config_saved_profession_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
 local function applyText(fontString, size, r, g, b)
     fontString:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", size, "")
     fontString:SetTextColor(r, g, b, 1)
@@ -161,15 +171,20 @@ function ProfessionPanel:Create(parent)
         hint:SetWordWrap(true)
     end
 
+    local overlayCheck = ns.UI.Widgets.CreateCheckButton(frame, "")
+    overlayCheck:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", -4, -12)
+    overlayCheck.Text:SetWidth(400)
+    overlayCheck.Text:SetJustifyH("LEFT")
+
     local leftCard = self:CreateCard(frame, "TOPLEFT", nil)
     leftCard:ClearAllPoints()
-    leftCard:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -12)
+    leftCard:SetPoint("TOPLEFT", overlayCheck, "BOTTOMLEFT", 4, -12)
     local rightCard = self:CreateCard(frame, "TOPLEFT", leftCard)
     rightCard:ClearAllPoints()
     rightCard:SetPoint("TOPLEFT", leftCard, "TOPRIGHT", 12, 0)
 
     local emptyText = frame:CreateFontString(nil, "OVERLAY")
-    emptyText:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -18)
+    emptyText:SetPoint("TOPLEFT", overlayCheck, "BOTTOMLEFT", 4, -18)
     emptyText:SetWidth(852)
     emptyText:SetJustifyH("LEFT")
     emptyText:SetJustifyV("TOP")
@@ -181,8 +196,13 @@ function ProfessionPanel:Create(parent)
     self.frame = frame
     self.title = title
     self.hint = hint
+    self.overlayCheck = overlayCheck
     self.cards = { leftCard, rightCard }
     self.emptyText = emptyText
+
+    overlayCheck:SetScript("OnClick", function(currentCheck)
+        applyProfessionOverlayEnabled(currentCheck:GetChecked())
+    end)
 
     return frame
 end
@@ -194,6 +214,7 @@ function ProfessionPanel:RefreshLocale()
 
     self.title:SetText(ns.L("professions_title"))
     self.hint:SetText(ns.L("professions_hint"))
+    self.overlayCheck.Text:SetText(ns.L("professions_overlay_toggle"))
     for _, card in ipairs(self.cards or {}) do
         card.weeklyTitle:SetText(ns.L("professions_weekly"))
         card.oneTimeTitle:SetText(ns.L("professions_one_time"))
@@ -303,6 +324,7 @@ function ProfessionPanel:Refresh()
     self:RefreshLocale()
 
     local professions = ns.Modules.ProfessionKnowledgeTracker:GetKnownProfessions()
+    self.overlayCheck:SetChecked(ns.DB and ns.DB:IsProfessionKnowledgeOverlayEnabled() or false)
     self.emptyText:SetShown(#professions == 0)
     self.emptyText:SetText(#professions == 0 and ns.L("professions_empty") or "")
 

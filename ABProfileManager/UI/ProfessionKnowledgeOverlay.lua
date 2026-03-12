@@ -9,10 +9,15 @@ local SUMMARY_SIZE = 13
 local DETAIL_SIZE = 12
 local MIN_WIDTH = 240
 local MIN_HEIGHT = 56
+local MINI_WIDTH = 190
+local MINI_HEIGHT = 34
 local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
 local ICON_SIZE = 18
+local OVERLAY_MODE_EXPANDED = "expanded"
+local OVERLAY_MODE_COMPACT = "compact"
+local OVERLAY_MODE_MINI = "mini"
 
 local OVERLAY_LABEL_KEYS = {
     weekly_quest = "professions_overlay_short_weekly_quest",
@@ -41,18 +46,65 @@ local function applyTextStyle(fontString, size, r, g, b)
     end
 end
 
+local function getButtonTextWidth(button)
+    if not button or type(button.GetFontString) ~= "function" then
+        return 0
+    end
+
+    local fontString = button:GetFontString()
+    return fontString and math.ceil(fontString:GetStringWidth() or 0) or 0
+end
+
 local function getOverlayConfig()
     return ns.DB and ns.DB:GetProfessionKnowledgeOverlayConfig() or ns.Data.Defaults.ui.professionKnowledgeOverlay
 end
 
-local function isCollapsed()
-    local config = getOverlayConfig()
-    return config.collapsed and true or false
+local function normalizeDisplayMode(mode, config)
+    if mode == OVERLAY_MODE_EXPANDED or mode == OVERLAY_MODE_COMPACT or mode == OVERLAY_MODE_MINI then
+        return mode
+    end
+
+    if config and config.collapsed then
+        return OVERLAY_MODE_COMPACT
+    end
+
+    return OVERLAY_MODE_EXPANDED
 end
 
-local function setCollapsed(collapsed)
+local function getDisplayMode()
     local config = getOverlayConfig()
-    config.collapsed = collapsed and true or false
+    return normalizeDisplayMode(config.displayMode, config)
+end
+
+local function setDisplayMode(mode)
+    local config = getOverlayConfig()
+    local normalized = normalizeDisplayMode(mode, config)
+    config.displayMode = normalized
+    config.collapsed = normalized ~= OVERLAY_MODE_EXPANDED
+end
+
+local function getNextDisplayMode(mode)
+    if mode == OVERLAY_MODE_EXPANDED then
+        return OVERLAY_MODE_COMPACT
+    end
+
+    if mode == OVERLAY_MODE_COMPACT then
+        return OVERLAY_MODE_MINI
+    end
+
+    return OVERLAY_MODE_EXPANDED
+end
+
+local function getModeButtonLabelKey(mode)
+    if mode == OVERLAY_MODE_EXPANDED then
+        return "professions_overlay_mode_compact"
+    end
+
+    if mode == OVERLAY_MODE_COMPACT then
+        return "professions_overlay_mode_mini"
+    end
+
+    return "professions_overlay_mode_expanded"
 end
 
 local function getSourceShortLabel(row)
@@ -110,7 +162,7 @@ function ProfessionKnowledgeOverlay:Initialize()
     frame.toggleButton:SetSize(62, 20)
     frame.toggleButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING_X, -PADDING_Y + 1)
     frame.toggleButton:SetScript("OnClick", function()
-        setCollapsed(not isCollapsed())
+        setDisplayMode(getNextDisplayMode(getDisplayMode()))
         self:Refresh()
     end)
 
@@ -158,12 +210,13 @@ function ProfessionKnowledgeOverlay:EnsureRowCount(count)
     end
 end
 
-function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, collapsed, contentWidth)
+function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode, contentWidth)
     local tracker = ns.Modules.ProfessionKnowledgeTracker
     local summary = tracker:GetProfessionSummary(professionEntry.key)
     local sections = tracker:GetProfessionSections(professionEntry.key)
     local weeklyRows = sections[1] and sections[1].rows or {}
     local oneTimeRows = sections[2] and sections[2].rows or {}
+    local expanded = displayMode == OVERLAY_MODE_EXPANDED
 
     row.icon:SetTexture(professionEntry.icon or ns.Constants.DEFAULT_ICON)
     row.title:SetText(tracker:GetProfessionDisplayName(professionEntry))
@@ -193,16 +246,16 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, collapsed, 
         compactLine = table.concat(parts, "  |  ")
     end
 
-    row.summary:SetText(collapsed and compactLine ~= "" and compactLine or totalSummary)
+    row.summary:SetText(displayMode == OVERLAY_MODE_COMPACT and compactLine ~= "" and compactLine or totalSummary)
 
     row.weeklyDetails:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
     row.oneTimeDetails:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
     row.weeklyDetails:SetText(ns.L("professions_overlay_detail_weekly", weeklyLine ~= "" and weeklyLine or ns.L("no_items")))
     row.oneTimeDetails:SetText(ns.L("professions_overlay_detail_onetime", oneTimeLine ~= "" and oneTimeLine or ns.L("no_items")))
 
-    row.weeklyDetails:SetShown(not collapsed)
-    row.oneTimeDetails:SetShown(not collapsed)
-    row.lineBreak:SetShown(not collapsed)
+    row.weeklyDetails:SetShown(expanded)
+    row.oneTimeDetails:SetShown(expanded)
+    row.lineBreak:SetShown(expanded)
 
     local rowHeight = math.max(
         ICON_SIZE,
@@ -211,7 +264,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, collapsed, 
             math.ceil(row.summary:GetStringHeight() or SUMMARY_SIZE)
     )
 
-    if not collapsed then
+    if expanded then
         rowHeight = rowHeight +
             3 +
             math.ceil(row.weeklyDetails:GetStringHeight() or DETAIL_SIZE) +
@@ -242,14 +295,29 @@ function ProfessionKnowledgeOverlay:Refresh()
         return
     end
 
-    local collapsed = isCollapsed()
+    local displayMode = getDisplayMode()
     self.frame.title:SetText(ns.L("professions_overlay_title"))
-    self.frame.toggleButton:SetText(ns.L(collapsed and "professions_overlay_expand" or "professions_overlay_collapse"))
+    self.frame.toggleButton:SetText(ns.L(getModeButtonLabelKey(displayMode)))
+
+    if displayMode == OVERLAY_MODE_MINI then
+        for _, row in ipairs(self.rows or {}) do
+            row:Hide()
+        end
+
+        local titleWidth = math.ceil(self.frame.title:GetStringWidth() or 0)
+        local buttonWidth = math.max(62, getButtonTextWidth(self.frame.toggleButton) + 18)
+        self.frame.toggleButton:SetWidth(buttonWidth)
+        self.frame:SetSize(math.max(MINI_WIDTH, titleWidth + buttonWidth + (PADDING_X * 4)), MINI_HEIGHT)
+        self.frame:Show()
+        return
+    end
 
     self:EnsureRowCount(#professions)
 
     local contentWidth = 860
-    local maxWidth = math.ceil(self.frame.title:GetStringWidth() or 0) + 72
+    local buttonWidth = math.max(62, getButtonTextWidth(self.frame.toggleButton) + 18)
+    self.frame.toggleButton:SetWidth(buttonWidth)
+    local maxWidth = math.ceil(self.frame.title:GetStringWidth() or 0) + buttonWidth + 18
     local previous = self.frame.title
     local totalHeight = (PADDING_Y * 2) + math.ceil(self.frame.title:GetStringHeight() or TITLE_SIZE)
 
@@ -257,13 +325,13 @@ function ProfessionKnowledgeOverlay:Refresh()
         local row = self.rows[index]
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -ROW_GAP)
-        self:RefreshRow(row, professionEntry, collapsed, contentWidth)
+        self:RefreshRow(row, professionEntry, displayMode, contentWidth)
 
         local widest = math.max(
             math.ceil(row.title:GetStringWidth() or 0) + ICON_SIZE + 8,
             math.ceil(row.summary:GetStringWidth() or 0) + ICON_SIZE + 8
         )
-        if not collapsed then
+        if displayMode == OVERLAY_MODE_EXPANDED then
             widest = math.max(
                 widest,
                 math.ceil(row.weeklyDetails:GetStringWidth() or 0) + ICON_SIZE + 8,
@@ -280,7 +348,10 @@ function ProfessionKnowledgeOverlay:Refresh()
         self.rows[index]:Hide()
     end
 
-    local width = math.max(MIN_WIDTH, math.min(maxWidth + (PADDING_X * 2) + 18, collapsed and 760 or 920))
+    local width = math.max(
+        MIN_WIDTH,
+        math.min(maxWidth + (PADDING_X * 2) + 18, displayMode == OVERLAY_MODE_COMPACT and 760 or 920)
+    )
     self.frame:SetSize(width, math.max(MIN_HEIGHT, totalHeight))
     self.frame:Show()
 end

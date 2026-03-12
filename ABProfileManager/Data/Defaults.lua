@@ -43,6 +43,7 @@ ns.Data.Defaults = {
             x = 420,
             y = 70,
             collapsed = false,
+            displayMode = "expanded",
         },
     },
 }

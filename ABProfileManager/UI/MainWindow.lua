@@ -54,15 +54,34 @@ function MainWindow:Initialize()
     local frame = CreateFrame("Frame", "ABProfileManagerMainWindow", UIParent, "BackdropTemplate")
     frame:SetSize(windowWidth, windowHeight)
     frame:SetPoint(config.point, UIParent, config.relativePoint, config.x, config.y)
+    frame:SetFrameStrata("DIALOG")
+    if frame.SetToplevel then
+        frame:SetToplevel(true)
+    end
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnMouseDown", function(currentFrame)
+        if currentFrame.Raise then
+            currentFrame:Raise()
+        end
+    end)
+    frame:SetScript("OnDragStart", function(currentFrame)
+        if currentFrame.Raise then
+            currentFrame:Raise()
+        end
+        currentFrame:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(currentFrame)
         currentFrame:StopMovingOrSizing()
         if ns.DB then
             ns.DB:SaveMainWindowPosition(currentFrame)
+        end
+    end)
+    frame:SetScript("OnShow", function(currentFrame)
+        if currentFrame.Raise then
+            currentFrame:Raise()
         end
     end)
     frame:SetBackdrop({
@@ -213,6 +232,9 @@ function MainWindow:Toggle()
     end
 
     self.frame:Show()
+    if self.frame.Raise then
+        self.frame:Raise()
+    end
     ns:RefreshUI()
 end
 
@@ -226,6 +248,9 @@ function MainWindow:OpenToTab(tabName)
     end
 
     self.frame:Show()
+    if self.frame.Raise then
+        self.frame:Raise()
+    end
 
     local validTabs = {
         profiles = true,
