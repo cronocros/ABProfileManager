@@ -63,6 +63,9 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
     frame:RegisterEvent("COMBAT_RATING_UPDATE")
     frame:RegisterEvent("MASTERY_UPDATE")
+    frame:RegisterEvent("PLAYER_DAMAGE_DONE_MODS")
+    frame:RegisterEvent("SPELL_POWER_CHANGED")
+    frame:RegisterEvent("UNIT_ATTACK_POWER")
     frame:RegisterEvent("UNIT_STATS")
     frame:RegisterEvent("UNIT_AURA")
     frame:RegisterEvent("QUEST_LOG_UPDATE")
@@ -138,6 +141,22 @@ function Events:COMBAT_RATING_UPDATE()
 end
 
 function Events:MASTERY_UPDATE()
+    refreshStatsOverlay()
+end
+
+function Events:PLAYER_DAMAGE_DONE_MODS()
+    refreshStatsOverlay()
+end
+
+function Events:SPELL_POWER_CHANGED()
+    refreshStatsOverlay()
+end
+
+function Events:UNIT_ATTACK_POWER(unitToken)
+    if unitToken ~= "player" then
+        return
+    end
+
     refreshStatsOverlay()
 end
 

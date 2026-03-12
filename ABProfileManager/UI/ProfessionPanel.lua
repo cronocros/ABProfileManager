@@ -3,18 +3,20 @@ local _, ns = ...
 local ProfessionPanel = {}
 ns.UI.ProfessionPanel = ProfessionPanel
 
-local HEADER_HINT_WIDTH = 548
-local CONTROL_FRAME_WIDTH = 248
+local HEADER_HINT_WIDTH = 540
+local CONTROL_FRAME_WIDTH = 252
 local CARD_WIDTH = 420
 local CARD_HEIGHT = 560
 local ROW_HEIGHT = 36
-local ROW_VALUE_WIDTH = 132
-local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - 12
+local ROW_VALUE_WIDTH = 96
+local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - 6
 local MAX_ROWS = 8
 local OVERLAY_SCALE_OPTIONS = {
-    { value = 0.9, labelKey = "overlay_size_small" },
-    { value = 1.0, labelKey = "overlay_size_default" },
-    { value = 1.15, labelKey = "overlay_size_large" },
+    { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
+    { value = 0.90, labelKey = "overlay_size_small", buttonText = "S" },
+    { value = 1.00, labelKey = "overlay_size_default", buttonText = "M" },
+    { value = 1.15, labelKey = "overlay_size_large", buttonText = "L" },
+    { value = 1.30, labelKey = "overlay_size_xlarge", buttonText = "XL" },
 }
 
 local function setStatus(message)
@@ -104,12 +106,12 @@ function ProfessionPanel:CreateRow(parent, offsetY)
     row.note = row:CreateFontString(nil, "OVERLAY")
     row.note:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -1)
     row.note:SetWidth(ROW_TEXT_WIDTH)
-    applyText(row.note, 11, 0.68, 0.80, 0.92, true)
+    applyText(row.note, 10, 0.68, 0.80, 0.92, true)
 
     row.value = row:CreateFontString(nil, "OVERLAY")
-    row.value:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
+    row.value:SetPoint("TOPRIGHT", row, "TOPRIGHT", -2, 0)
     row.value:SetWidth(ROW_VALUE_WIDTH)
-    applyText(row.value, 12, 1.00, 0.86, 0.42)
+    applyText(row.value, 11, 1.00, 0.86, 0.42)
     row.value:SetJustifyH("RIGHT")
 
     row:SetScript("OnEnter", function(currentRow)
@@ -194,7 +196,7 @@ function ProfessionPanel:Create(parent)
     end
 
     local controlsFrame = CreateFrame("Frame", nil, frame)
-    controlsFrame:SetSize(CONTROL_FRAME_WIDTH, 84)
+    controlsFrame:SetSize(CONTROL_FRAME_WIDTH, 86)
     controlsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -18, -18)
 
     local overlayCheck = ns.UI.Widgets.CreateCheckButton(controlsFrame, "")
@@ -208,7 +210,7 @@ function ProfessionPanel:Create(parent)
     for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
         local optionValue = option.value
         local optionLabelKey = option.labelKey
-        local button = ns.UI.Widgets.CreateButton(controlsFrame, "", 56, 20)
+        local button = ns.UI.Widgets.CreateButton(controlsFrame, "", 44, 20)
         if previousButton then
             button:SetPoint("LEFT", previousButton, "RIGHT", 6, 0)
         else
@@ -262,7 +264,7 @@ function ProfessionPanel:RefreshLocale()
     self.overlayCheck.Text:SetText(ns.L("professions_overlay_toggle"))
     self.overlaySizeLabel:SetText(ns.L("overlay_size_label"))
     for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
-        self.overlayScaleButtons[index]:SetText(ns.L(option.labelKey))
+        self.overlayScaleButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
     end
     for _, card in ipairs(self.cards or {}) do
         card.weeklyTitle:SetText(ns.L("professions_weekly"))
@@ -380,9 +382,18 @@ function ProfessionPanel:Refresh()
 
     local professions = ns.Modules.ProfessionKnowledgeTracker:GetKnownProfessions()
     local currentScale = ns.DB and ns.DB:GetProfessionKnowledgeOverlayScale() or 1
+    local selectedScaleIndex = 1
+    local selectedScaleDiff = nil
+    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
+        local diff = math.abs(currentScale - option.value)
+        if not selectedScaleDiff or diff < selectedScaleDiff then
+            selectedScaleDiff = diff
+            selectedScaleIndex = index
+        end
+    end
     self.overlayCheck:SetChecked(ns.DB and ns.DB:IsProfessionKnowledgeOverlayEnabled() or false)
     for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
-        ns.UI.Widgets.SetButtonSelected(self.overlayScaleButtons[index], math.abs(currentScale - option.value) < 0.001)
+        ns.UI.Widgets.SetButtonSelected(self.overlayScaleButtons[index], index == selectedScaleIndex)
     end
     self.emptyText:SetShown(#professions == 0)
     self.emptyText:SetText(#professions == 0 and ns.L("professions_empty") or "")

@@ -3,16 +3,18 @@
 월드 오브 워크래프트 Retail용 액션바 템플릿 관리 애드온입니다.
 
 제작: `밍밍이와코코`
+연락처: `crono1232@gmail.com`
 
 현재 상태:
-- `v1.3.3`
+- `v1.3.4`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
 - `전문기술 자동 추적` / `한밤(Midnight) 지도 오버레이` 개선 반영 완료
 - `고스트 덮어쓰기 안정화` / `스탯 오버레이 정리` 반영 완료
 - `설정 애드온 하위 카테고리` / `전문기술 오버레이 확장` 반영 완료
-- `지도 줌 연동 라벨 조정` / `전문기술 오버레이 3단 접기` 반영 완료
-- `전문기술 카드 레이아웃 정리` / `오버레이 크기 조절 옵션` 반영 완료
+- `지도 라벨 규칙 기반 배치` / `겹침 완화` 반영 완료
+- `전문기술 / 스탯 오버레이 5단계 스케일` 반영 완료
+- `퀘스트 진행도 표기` / `설정 세션 요약 스크롤화` 반영 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
@@ -20,10 +22,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.3.3`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.3/ABProfileManager-v1.3.3.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.3.3.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.3.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.3.md)
+- 릴리스 버전: `v1.3.4`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.4/ABProfileManager-v1.3.4.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.3.4.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.4.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.4.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.4.md)
 
 ## 한눈에 보기
 
@@ -87,14 +89,14 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 전문기술 체크 오버레이
   - profession 아이콘 포함
   - 상세 / 요약 / 최소 3단 표시 모드
-  - 작게 / 기본 / 크게 크기 조절
+  - `XS / S / M / L / XL` 5단계 크기 조절
   - 드래그 이동 / 위치 저장
 - 한밤(Midnight) 지도 오버레이
   - 실버문 도심 주요 시설 가독성 중심 글자 표시
   - 포탈 이름, 정복 상인, 전문기술 허브, 교역소, 형상변환, 암시장 표시
   - 던전 / 구렁 입구 이름을 한국어로 표시
   - 각 진영 평판 상인과 풍요 상인 위치 표시
-  - 지도 확대 / 축소에 따라 글자 크기를 완만하게 조정
+  - 지도 확대 / 축소에 따라 글자 크기를 보정하고, `던전:` / `구렁:` / `공격대:` 접두어와 줄바꿈 규칙을 함께 적용
 - 전투 중 작업 대기열 처리
 - 없는 주문/아이템/매크로는 고스트 오버레이 표시
 - 고스트 오버레이는 드래그로 해제하거나 다른 액션을 올려 덮어쓸 수 있음
@@ -105,7 +107,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 치명 / 가속 / 특화 / 유연을 `평점 (퍼센트)` 형식으로 표시
   - 현재 특성의 PvE 일반 스탯 우선순위 표시
   - 탱커 특성은 회피 / 무막 / 막기 같은 방어 스탯을 추가 표시
-  - 작게 / 기본 / 크게 크기 조절 지원
+  - `XS / S / M / L / XL` 5단계 크기 조절 지원
   - 배경 없는 글자형 레이아웃, 좁은 힛트박스, 드래그 이동, 위치 저장 지원
   - 값 영역 마우스 오버 시 캐릭터창에 가까운 스탯 설명과 DR 구간 안내 툴팁 표시
 - 한국어 기본 UI, 영어 옵션 제공
@@ -123,7 +125,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.3`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.4`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -155,7 +157,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 스탯 오버레이 크기 조절
   - 전문기술 체크 오버레이 표시 여부
   - 한밤(Midnight) 지도 오버레이 표시 여부
-  - 현재 세션 요약 / 오버레이 상태 / 전문기술 마지막 스캔 표시
+  - 현재 세션 요약 / 오버레이 상태 / 전문기술 마지막 스캔 / 제작자 연락처를 스크롤 박스로 표시
   - 와우 `설정 > 애드온` 하위 카테고리 연결
 - `퀘스트` 탭:
   - 정리 기준 요약
@@ -217,7 +219,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.3.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.3.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.4.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.4.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

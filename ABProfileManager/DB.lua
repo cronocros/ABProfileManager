@@ -9,7 +9,7 @@ local function clampOverlayScale(value)
         return 1
     end
 
-    return math.max(0.85, math.min(1.25, numeric))
+    return math.max(0.75, math.min(1.35, numeric))
 end
 
 local function getSpecializationID()

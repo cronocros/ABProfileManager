@@ -582,7 +582,18 @@ function ProfilePanel:Refresh()
     local classTag = record and record.class or "UNKNOWN"
     local className = ns.ClassL(classTag)
     local specID = record and record.specID or 0
-    self.characterInfo:SetText(ns.L("current_character", key, className, specID))
+    local specName = "-"
+    if type(GetSpecializationInfoByID) == "function" and specID and specID > 0 then
+        local _, localizedSpecName = GetSpecializationInfoByID(specID)
+        specName = localizedSpecName or specName
+    elseif type(GetSpecialization) == "function" and type(GetSpecializationInfo) == "function" then
+        local currentSpecIndex = GetSpecialization()
+        if currentSpecIndex and currentSpecIndex > 0 then
+            local _, localizedSpecName = GetSpecializationInfo(currentSpecIndex)
+            specName = localizedSpecName or specName
+        end
+    end
+    self.characterInfo:SetText(ns.L("current_character", key, className, specID, specName))
 
     if self.classIcon and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[classTag] then
         local coords = CLASS_ICON_TCOORDS[classTag]

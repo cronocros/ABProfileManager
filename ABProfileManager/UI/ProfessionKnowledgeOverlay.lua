@@ -11,8 +11,8 @@ local MIN_WIDTH = 240
 local MIN_HEIGHT = 56
 local MINI_WIDTH = 190
 local MINI_HEIGHT = 34
-local TOGGLE_BUTTON_WIDTH = 22
-local TOGGLE_BUTTON_HEIGHT = 18
+local TOGGLE_BUTTON_WIDTH = 18
+local TOGGLE_BUTTON_HEIGHT = 16
 local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
@@ -188,7 +188,7 @@ function ProfessionKnowledgeOverlay:Initialize()
     if frame.toggleButton.GetFontString then
         local fontString = frame.toggleButton:GetFontString()
         if fontString then
-            fontString:SetFont(FONT_PATH, 11, "OUTLINE")
+            fontString:SetFont(FONT_PATH, 10, "OUTLINE")
             fontString:SetJustifyH("CENTER")
             fontString:SetJustifyV("MIDDLE")
         end

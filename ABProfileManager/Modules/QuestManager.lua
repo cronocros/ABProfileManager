@@ -25,7 +25,7 @@ local function sortByTitle(left, right)
 end
 
 local function addBulletLine(lines, text)
-    lines[#lines + 1] = "- " .. tostring(text or "")
+    lines[#lines + 1] = "■ " .. tostring(text or "")
 end
 
 local function shouldTrackInfo(info)
@@ -89,7 +89,11 @@ function QuestManager:HasProgress(questID)
         return false
     end
 
-    local objectives = C_QuestLog.GetQuestObjectives(questID)
+    local ok, objectives = pcall(C_QuestLog.GetQuestObjectives, questID)
+    if not ok then
+        return false
+    end
+
     if type(objectives) ~= "table" then
         return false
     end
@@ -105,6 +109,50 @@ function QuestManager:HasProgress(questID)
     return false
 end
 
+function QuestManager:BuildObjectiveProgress(questID)
+    if not questID or not C_QuestLog or type(C_QuestLog.GetQuestObjectives) ~= "function" then
+        return nil, {}
+    end
+
+    local ok, objectives = pcall(C_QuestLog.GetQuestObjectives, questID)
+    if not ok then
+        return nil, {}
+    end
+
+    if type(objectives) ~= "table" then
+        return nil, {}
+    end
+
+    local objectiveLines = {}
+    for _, objective in ipairs(objectives) do
+        local description = objective.text or objective.description or objective.objectiveText
+        if description and description ~= "" then
+            local fulfilled = tonumber(objective.numFulfilled) or 0
+            local required = tonumber(objective.numRequired) or 0
+            local lineText = description
+
+            if required > 0 then
+                lineText = string.format("%s %d/%d", description, fulfilled, required)
+            elseif objective.finished then
+                lineText = string.format("%s 1/1", description)
+            end
+
+            objectiveLines[#objectiveLines + 1] = lineText
+        end
+    end
+
+    if #objectiveLines == 0 then
+        return nil, {}
+    end
+
+    local preview = {}
+    for index = 1, math.min(2, #objectiveLines) do
+        preview[#preview + 1] = objectiveLines[index]
+    end
+
+    return table.concat(preview, " / "), objectiveLines
+end
+
 function QuestManager:BuildQuestEntry(info, logIndex)
     if not shouldTrackInfo(info) then
         return nil
@@ -116,6 +164,7 @@ function QuestManager:BuildQuestEntry(info, logIndex)
     local isComplete = callQuestFlag(C_QuestLog.IsComplete, questID, logIndex)
     local readyForTurnIn = callQuestFlag(C_QuestLog.ReadyForTurnIn, questID, logIndex)
     local hasProgress = self:HasProgress(questID)
+    local objectiveSummary, objectiveLines = self:BuildObjectiveProgress(questID)
 
     local keepReason = nil
     if not abandonable then
@@ -135,6 +184,8 @@ function QuestManager:BuildQuestEntry(info, logIndex)
         isComplete = isComplete,
         readyForTurnIn = readyForTurnIn,
         hasProgress = hasProgress,
+        objectiveSummary = objectiveSummary,
+        objectiveLines = objectiveLines,
         keepReason = keepReason,
         safeCandidate = abandonable and not readyForTurnIn and not isComplete and not hasProgress,
     }
@@ -217,22 +268,28 @@ function QuestManager:BuildCandidateListText(scan)
     end
 
     lines[#lines + 1] = ""
-    lines[#lines + 1] = ns.L("quest_list_all_header", #scan.allCandidates)
-    if #scan.allCandidates == 0 then
-        addBulletLine(lines, ns.L("quest_list_none"))
-    else
-        for _, entry in ipairs(scan.allCandidates) do
-            addBulletLine(lines, ns.L("quest_list_all_row", entry.title, entry.questID))
-        end
-    end
-
-    lines[#lines + 1] = ""
     lines[#lines + 1] = ns.L("quest_list_keep_header", #scan.keptQuests)
     if #scan.keptQuests == 0 then
         addBulletLine(lines, ns.L("quest_list_none"))
     else
         for _, entry in ipairs(scan.keptQuests) do
             addBulletLine(lines, ns.L("quest_list_keep_row", entry.title, entry.keepReason or ns.L("quest_keep_unknown")))
+            if entry.objectiveSummary and entry.objectiveSummary ~= "" then
+                lines[#lines + 1] = "  □ " .. ns.L("quest_list_progress", entry.objectiveSummary)
+            end
+        end
+    end
+
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = ns.L("quest_list_all_header", #scan.allCandidates)
+    if #scan.allCandidates == 0 then
+        addBulletLine(lines, ns.L("quest_list_none"))
+    else
+        for _, entry in ipairs(scan.allCandidates) do
+            addBulletLine(lines, ns.L("quest_list_all_row", entry.title, entry.questID))
+            if entry.objectiveSummary and entry.objectiveSummary ~= "" then
+                lines[#lines + 1] = "  □ " .. ns.L("quest_list_progress", entry.objectiveSummary)
+            end
         end
     end
 

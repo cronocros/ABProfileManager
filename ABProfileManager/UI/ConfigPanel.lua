@@ -3,9 +3,11 @@ local _, ns = ...
 local ConfigPanel = {}
 ns.UI.ConfigPanel = ConfigPanel
 local STATS_OVERLAY_SCALE_OPTIONS = {
-    { value = 0.9, labelKey = "overlay_size_small" },
-    { value = 1.0, labelKey = "overlay_size_default" },
-    { value = 1.15, labelKey = "overlay_size_large" },
+    { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
+    { value = 0.90, labelKey = "overlay_size_small", buttonText = "S" },
+    { value = 1.00, labelKey = "overlay_size_default", buttonText = "M" },
+    { value = 1.15, labelKey = "overlay_size_large", buttonText = "L" },
+    { value = 1.30, labelKey = "overlay_size_xlarge", buttonText = "XL" },
 }
 
 local function setStatus(target, message)
@@ -67,7 +69,7 @@ local function getStateLabel(enabled)
     return enabled and ns.L("state_enabled") or ns.L("state_disabled")
 end
 
-local function buildOverviewSummary()
+local function buildOverviewText()
     local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
     local lastScan = tracker and tracker.GetLastScanLabel and tracker:GetLastScanLabel() or ""
     if lastScan == "" then
@@ -85,15 +87,11 @@ local function buildOverviewSummary()
         ),
         ns.L("config_overview_profession_scan", lastScan),
         ns.L("config_overview_debug", getStateLabel(ns.DB:IsDebugEnabled())),
-    }, "\n")
-end
-
-local function buildOverviewDetails()
-    return table.concat({
         ns.L("config_overview_hint_window"),
         ns.L("config_overview_hint_drag"),
         ns.L("config_overview_hint_map"),
         ns.L("config_overview_hint_debug"),
+        ns.L("config_overview_author", ns.Constants.AUTHOR or "-", ns.Constants.CONTACT_EMAIL or "-"),
         ns.L("config_version_info", ns.Constants.VERSION or "?"),
     }, "\n")
 end
@@ -214,16 +212,25 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.statsOverlayLabel:SetText(ns.L("config_stats_overlay"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.statsScaleLabel:SetText(ns.L("overlay_size_label"))
+    local currentScale = ns.DB:GetStatsOverlayScale()
+    local selectedScaleIndex = 1
+    local selectedScaleDiff = nil
     for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
-        refs.statsScaleButtons[index]:SetText(ns.L(option.labelKey))
-        ns.UI.Widgets.SetButtonSelected(refs.statsScaleButtons[index], math.abs(ns.DB:GetStatsOverlayScale() - option.value) < 0.001)
+        local diff = math.abs(currentScale - option.value)
+        if not selectedScaleDiff or diff < selectedScaleDiff then
+            selectedScaleDiff = diff
+            selectedScaleIndex = index
+        end
+    end
+    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
+        refs.statsScaleButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
+        ns.UI.Widgets.SetButtonSelected(refs.statsScaleButtons[index], index == selectedScaleIndex)
     end
     refs.professionOverlayLabel:SetText(ns.L("config_profession_overlay"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.silvermoonMapLabel:SetText(ns.L("config_silvermoon_map"))
     refs.silvermoonMapCheck.Text:SetText(ns.L("config_silvermoon_map_show"))
-    refs.helpText:SetText(buildOverviewSummary())
-    refs.infoText:SetText(buildOverviewDetails())
+    refs.overviewText:SetText(buildOverviewText())
 
     if refs.openWindowButton then
         refs.openWindowButton:SetText(ns.L("config_open_window"))
@@ -251,7 +258,7 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local settingsBoxHeight = 360
+    local settingsBoxHeight = 376
 
     local languageBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
@@ -282,9 +289,9 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.statsScaleButtons = {}
     local previousScaleButton = nil
     for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
-        local button = widgets.CreateButton(overlayBox, "", 58, 20)
+        local button = widgets.CreateButton(overlayBox, "", 44, 20)
         if previousScaleButton then
-            button:SetPoint("LEFT", previousScaleButton, "RIGHT", 6, 0)
+            button:SetPoint("LEFT", previousScaleButton, "RIGHT", 4, 0)
         else
             button:SetPoint("TOPLEFT", refs.statsScaleLabel, "BOTTOMLEFT", 0, -8)
         end
@@ -311,14 +318,11 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.silvermoonMapCheck.Text:SetWidth(textWidth)
     refs.silvermoonMapCheck.Text:SetJustifyH("LEFT")
 
-    local helpBox = widgets.CreatePanelBox(parent, helpWidth, options.showOpenButton and 184 or 160, nil)
+    local helpBoxHeight = options.showOpenButton and 208 or 180
+    local helpBox = widgets.CreatePanelBox(parent, helpWidth, helpBoxHeight, nil)
     helpBox:SetPoint("TOPLEFT", languageBox, "BOTTOMLEFT", 0, -20)
-    refs.helpText = widgets.CreateLabel(helpBox, "", nil, 12, -14)
-    refs.helpText:SetWidth(helpWidth - 32)
-    refs.helpText:SetJustifyH("LEFT")
-    refs.infoText = widgets.CreateLabel(helpBox, "", refs.helpText, 0, -14)
-    refs.infoText:SetWidth(helpWidth - 32)
-    refs.infoText:SetJustifyH("LEFT")
+    refs.overviewText = widgets.CreateScrollTextBox(helpBox, helpWidth - 28, options.showOpenButton and 136 or 144)
+    refs.overviewText:SetPoint("TOPLEFT", 12, -14)
 
     if options.showOpenButton then
         refs.openWindowButton = widgets.CreateButton(helpBox, "", 150, 28)
