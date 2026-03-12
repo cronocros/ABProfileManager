@@ -220,7 +220,10 @@ function ProfessionKnowledgeOverlay:Initialize()
     frame:SetPoint(config.point or "CENTER", UIParent, config.relativePoint or "CENTER", config.x or 0, config.y or 0)
     frame:SetSize(MIN_WIDTH, MIN_HEIGHT)
     frame:SetScale(getOverlayScale())
-    frame:SetFrameStrata("HIGH")
+    frame:SetFrameStrata("MEDIUM")
+    if frame.SetToplevel then
+        frame:SetToplevel(false)
+    end
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)

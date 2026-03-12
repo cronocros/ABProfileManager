@@ -64,6 +64,14 @@ local function getMapCanvasParent()
         or WorldMapFrame.ScrollContainer
 end
 
+local function isValidCanvasParent(parent)
+    return parent
+        and parent.IsShown
+        and parent:IsShown()
+        and (parent.GetWidth and (parent:GetWidth() or 0) > 0)
+        and (parent.GetHeight and (parent:GetHeight() or 0) > 0)
+end
+
 local function clamp(value, minValue, maxValue)
     return math.max(minValue, math.min(maxValue, value))
 end
@@ -765,6 +773,7 @@ end
 
 function SilvermoonMapOverlay:HideAll()
     self:SetDriverActive(false)
+    self.lastLayoutKey = nil
 
     if not self.overlayFrame then
         return
@@ -777,6 +786,11 @@ function SilvermoonMapOverlay:HideAll()
 end
 
 function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
+    if not isValidCanvasParent(parent) or not self.overlayFrame then
+        self:HideAll()
+        return
+    end
+
     local width = parent:GetWidth() or 0
     local height = parent:GetHeight() or 0
     if width <= 0 or height <= 0 or not mapData then
@@ -865,7 +879,7 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
     self.lastCanvasBucket = canvasBucket
 end
 
-function SilvermoonMapOverlay:Refresh()
+function SilvermoonMapOverlay:RefreshInternal()
     self:EnsureHooks()
 
     if not ns.DB or not ns.DB:IsSilvermoonMapOverlayEnabled() then
@@ -887,7 +901,7 @@ function SilvermoonMapOverlay:Refresh()
 
     local frame = self:EnsureOverlayFrame()
     local parent = getMapCanvasParent()
-    if not frame or not parent then
+    if not frame or not isValidCanvasParent(parent) then
         self:HideAll()
         return
     end
@@ -926,4 +940,23 @@ function SilvermoonMapOverlay:Refresh()
     end
 
     frame:Show()
+end
+
+function SilvermoonMapOverlay:Refresh()
+    if self.isRefreshing then
+        return
+    end
+
+    self.isRefreshing = true
+    local ok, err = pcall(function()
+        self:RefreshInternal()
+    end)
+    self.isRefreshing = false
+
+    if not ok then
+        self:HideAll()
+        if ns.Utils and ns.Utils.Debug then
+            ns.Utils.Debug("SilvermoonMapOverlay refresh failed: " .. tostring(err))
+        end
+    end
 end

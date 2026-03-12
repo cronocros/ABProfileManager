@@ -2,7 +2,7 @@ ABProfileManager
 
 특성 전환 뒤 엉킨 액션바 복구, 매주 챙겨야 하는 전문기술 포인트 확인, 한밤(Midnight) 지역 길찾기를 한 번에 줄여주는 WoW Retail용 관리 애드온입니다.
 
-버전: v1.3.8
+버전: v1.3.9
 제작: 밍밍이와코코
 연락처: crono1232@gmail.com
 
@@ -22,6 +22,7 @@ ABProfileManager
 - 주간 / 1회성 획득원 자동 추적
 - profession 아이콘, 완료 강조, 포인트 합계, 재스캔 지원
 - 상세 / 요약 / 최소 3단 보기와 5단계 크기 조절 지원
+- 오버레이는 기본 WoW 창을 가리지 않도록 HUD 레벨로 유지
 
 3. 한밤(Midnight) 지도 오버레이
 - 실버문과 외부 지역 주요 시설, 포탈, 평판 상인, 던전 / 구렁 / 공격대 입구 표시
@@ -29,6 +30,7 @@ ABProfileManager
 - Midnight 공식 던전 / 구렁 / 공격대 분류를 다시 검증해 지도 데이터 정합성을 보강
 - `던전` / `구렁` / `공격대` 접두어 줄과 이름 줄을 분리하고, 수동 줄바꿈 예외를 반영해 더 읽기 쉽게 표시
 - 지도 확대 / 축소에 맞춰 라벨 크기를 자동 보정
+- 지도 전환, 맵 열기/닫기, refresh 중 예외를 줄이는 안전장치 보강
 
 4. 추가 편의 기능
 - 퀘스트 후보 새로고침 / 안전 정리 / 전체 포기
@@ -45,4 +47,4 @@ ABProfileManager
 [다운로드]
 - 저장소: https://github.com/cronocros/ABProfileManager
 - 최신 릴리스: https://github.com/cronocros/ABProfileManager/releases/latest
-- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.8/ABProfileManager-v1.3.8.zip
+- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.9/ABProfileManager-v1.3.9.zip

@@ -245,7 +245,7 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.statsOverlayLabel:SetText(ns.L("config_stats_overlay"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
-    refs.statsScaleLabel:SetText(ns.L("overlay_size_label"))
+    refs.statsScaleLabel:SetText(ns.L("config_stats_overlay_size_label"))
     local currentScale = ns.DB:GetStatsOverlayScale()
     local selectedScaleIndex = 1
     local selectedScaleDiff = nil

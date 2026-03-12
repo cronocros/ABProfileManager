@@ -3,7 +3,7 @@
 ## 현재 상태
 
 프로젝트는 직접 적용 가능한 WoW Retail 애드온 구조를 갖추고 있다.  
-현재 기준 버전은 `v1.3.8`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
+현재 기준 버전은 `v1.3.9`이며, 핵심 기능 구현과 최신 유지보수 반영, 문서 정리, 배포 준비까지 끝난 상태다.
 
 ## 현재 구현 범위
 
@@ -153,9 +153,9 @@
 ## 릴리스 자산
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
-- 배포 ZIP: `dist/ABProfileManager-v1.3.8.zip`
-- 릴리스 노트: `RELEASE_NOTES_v1.3.8.md`
-- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.8-<timestamp>.zip`
+- 배포 ZIP: `dist/ABProfileManager-v1.3.9.zip`
+- 릴리스 노트: `RELEASE_NOTES_v1.3.9.md`
+- 소스 백업 ZIP: `backups/source/ABProfileManager-source-v1.3.9-<timestamp>.zip`
 - 변경 이력: `CHANGELOG.md`
 
 ## 다음 LLM용 요약 프롬프트
@@ -165,7 +165,7 @@
 현재 구현 범위는 액션바 템플릿 저장/적용/비교/동기화/문자열 import-export/특성 전환/비행 바 지원/전투 중 대기열/퀘스트 정리/스탯 오버레이/전문기술 자동 추적/한밤(Midnight) 지도 오버레이/와우 설정 하위 카테고리까지 포함한다.
 
 최신 기준 문서는 README.md, ABPM_FINAL_DESIGN.md, ABPM_HANDOFF.md, SECURITY_REVIEW.md 이다.
-문서 버전은 v1.3.8 기준으로 맞춰져 있다.
+문서 버전은 v1.3.9 기준으로 맞춰져 있다.
 
 사용자가 민감하게 보는 지점:
 - 메인 UI 레이아웃은 건드리지 않고 유지할 것
