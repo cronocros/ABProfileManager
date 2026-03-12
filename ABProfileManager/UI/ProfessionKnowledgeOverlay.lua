@@ -17,6 +17,8 @@ local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
 local ICON_SIZE = 18
+local DETAIL_PREFIX_WIDTH = 46
+local DETAIL_DIVIDER_WIDTH = 10
 local OVERLAY_MODE_EXPANDED = "expanded"
 local OVERLAY_MODE_COMPACT = "compact"
 local OVERLAY_MODE_MINI = "mini"
@@ -150,10 +152,18 @@ local function appendTooltipSection(lines, title, rows)
     lines[#lines + 1] = ""
     lines[#lines + 1] = title
     for _, row in ipairs(rows or {}) do
-        lines[#lines + 1] = string.format("→ %s %d/%d | %d/%d", row.title or "", row.current or 0, row.max or 0, row.earned or 0, row.maxPoints or 0)
+        lines[#lines + 1] = string.format("• %s %d/%d · %d/%d", row.title or "", row.current or 0, row.max or 0, row.earned or 0, row.maxPoints or 0)
         for _, objective in ipairs(row.objectiveRows or {}) do
-            local marker = objective.complete and "•" or "○"
-            lines[#lines + 1] = string.format("  %s %s", marker, objective.name or "")
+            local stateColor = objective.complete and "ff7fd46f" or "ffffd06b"
+            local nameColor = objective.complete and "ff8f9aa4" or "ffece9d8"
+            local stateLabel = objective.complete and ns.L("professions_overlay_tooltip_done") or ns.L("professions_overlay_tooltip_pending")
+            lines[#lines + 1] = string.format(
+                "  |cff%s%s|r |cff%s%s|r",
+                stateColor,
+                stateLabel,
+                nameColor,
+                objective.name or ""
+            )
         end
     end
 end
@@ -296,12 +306,36 @@ function ProfessionKnowledgeOverlay:CreateRow()
     row.summary:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -2)
     applyTextStyle(row.summary, SUMMARY_SIZE, 0.90, 0.96, 1.00)
 
+    row.weeklyPrefix = row:CreateFontString(nil, "OVERLAY")
+    row.weeklyPrefix:SetPoint("TOPLEFT", row.summary, "BOTTOMLEFT", 0, -4)
+    row.weeklyPrefix:SetWidth(DETAIL_PREFIX_WIDTH)
+    applyTextStyle(row.weeklyPrefix, DETAIL_SIZE, 0.98, 0.88, 0.52)
+    row.weeklyPrefix:SetJustifyH("RIGHT")
+
+    row.weeklyDivider = row:CreateFontString(nil, "OVERLAY")
+    row.weeklyDivider:SetPoint("TOPLEFT", row.weeklyPrefix, "TOPRIGHT", 2, 0)
+    row.weeklyDivider:SetWidth(DETAIL_DIVIDER_WIDTH)
+    applyTextStyle(row.weeklyDivider, DETAIL_SIZE, 0.92, 0.84, 0.56)
+    row.weeklyDivider:SetJustifyH("CENTER")
+
     row.weeklyDetails = row:CreateFontString(nil, "OVERLAY")
-    row.weeklyDetails:SetPoint("TOPLEFT", row.summary, "BOTTOMLEFT", 0, -3)
+    row.weeklyDetails:SetPoint("TOPLEFT", row.weeklyDivider, "TOPRIGHT", 4, 0)
     applyTextStyle(row.weeklyDetails, DETAIL_SIZE, 0.70, 0.92, 1.00)
 
+    row.oneTimePrefix = row:CreateFontString(nil, "OVERLAY")
+    row.oneTimePrefix:SetPoint("TOPLEFT", row.weeklyPrefix, "BOTTOMLEFT", 0, -3)
+    row.oneTimePrefix:SetWidth(DETAIL_PREFIX_WIDTH)
+    applyTextStyle(row.oneTimePrefix, DETAIL_SIZE, 0.98, 0.88, 0.52)
+    row.oneTimePrefix:SetJustifyH("RIGHT")
+
+    row.oneTimeDivider = row:CreateFontString(nil, "OVERLAY")
+    row.oneTimeDivider:SetPoint("TOPLEFT", row.oneTimePrefix, "TOPRIGHT", 2, 0)
+    row.oneTimeDivider:SetWidth(DETAIL_DIVIDER_WIDTH)
+    applyTextStyle(row.oneTimeDivider, DETAIL_SIZE, 0.92, 0.84, 0.56)
+    row.oneTimeDivider:SetJustifyH("CENTER")
+
     row.oneTimeDetails = row:CreateFontString(nil, "OVERLAY")
-    row.oneTimeDetails:SetPoint("TOPLEFT", row.weeklyDetails, "BOTTOMLEFT", 0, -2)
+    row.oneTimeDetails:SetPoint("TOPLEFT", row.oneTimeDivider, "TOPRIGHT", 4, 0)
     applyTextStyle(row.oneTimeDetails, DETAIL_SIZE, 0.74, 0.96, 0.80)
 
     row.lineBreak = row:CreateTexture(nil, "ARTWORK")
@@ -369,13 +403,22 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
         row.summary:SetTextColor(0.90, 0.96, 1.00, 1)
     end
 
-    row.weeklyDetails:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
-    row.oneTimeDetails:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
-    row.weeklyDetails:SetText(ns.L("professions_overlay_detail_weekly", weeklyLine ~= "" and weeklyLine or ns.L("no_items")))
-    row.oneTimeDetails:SetText(ns.L("professions_overlay_detail_onetime", oneTimeLine ~= "" and oneTimeLine or ns.L("no_items")))
+    local detailWidth = math.max(contentWidth - ICON_SIZE - 8 - DETAIL_PREFIX_WIDTH - DETAIL_DIVIDER_WIDTH - 6, 120)
+    row.weeklyPrefix:SetText(ns.L("professions_weekly"))
+    row.weeklyDivider:SetText("|")
+    row.weeklyDetails:SetWidth(detailWidth)
+    row.weeklyDetails:SetText(weeklyLine ~= "" and weeklyLine or ns.L("no_items"))
+    row.oneTimePrefix:SetText(ns.L("professions_one_time"))
+    row.oneTimeDivider:SetText("|")
+    row.oneTimeDetails:SetWidth(detailWidth)
+    row.oneTimeDetails:SetText(oneTimeLine ~= "" and oneTimeLine or ns.L("no_items"))
     row.tooltipLines = buildOverlayTooltipLines(professionEntry)
 
+    row.weeklyPrefix:SetShown(expanded)
+    row.weeklyDivider:SetShown(expanded)
     row.weeklyDetails:SetShown(expanded)
+    row.oneTimePrefix:SetShown(expanded)
+    row.oneTimeDivider:SetShown(expanded)
     row.oneTimeDetails:SetShown(expanded)
     row.lineBreak:SetShown(expanded)
 
@@ -453,8 +496,8 @@ function ProfessionKnowledgeOverlay:Refresh()
         if displayMode == OVERLAY_MODE_EXPANDED then
             widest = math.max(
                 widest,
-                math.ceil(row.weeklyDetails:GetStringWidth() or 0) + ICON_SIZE + 8,
-                math.ceil(row.oneTimeDetails:GetStringWidth() or 0) + ICON_SIZE + 8
+                DETAIL_PREFIX_WIDTH + DETAIL_DIVIDER_WIDTH + math.ceil(row.weeklyDetails:GetStringWidth() or 0) + ICON_SIZE + 12,
+                DETAIL_PREFIX_WIDTH + DETAIL_DIVIDER_WIDTH + math.ceil(row.oneTimeDetails:GetStringWidth() or 0) + ICON_SIZE + 12
             )
         end
 

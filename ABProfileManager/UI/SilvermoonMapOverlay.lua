@@ -472,6 +472,10 @@ local function resolveDisplayText(point)
     return labelName
 end
 
+local function hasLineBreak(text)
+    return string.find(text or "", "\n", 1, true) ~= nil
+end
+
 local function getDensityScale(mapData)
     return MAP_DENSITY_SCALE[mapData and mapData.density or "normal"] or 1
 end
@@ -535,15 +539,17 @@ local function measureLabel(label, point, text, fontSize)
     label:SetText(text)
 
     local naturalWidth = math.ceil(label:GetStringWidth() or 0)
-    local wrap = not point.noWrap and (
+    local multiLine = hasLineBreak(text)
+    local wrap = not point.noWrap and not multiLine and (
         point.width
-        or string.find(text, "\n", 1, true) ~= nil
         or string.find(text, " ", 1, true) ~= nil
     )
 
     local targetWidth = point.width
     if not targetWidth then
-        if wrap then
+        if multiLine then
+            targetWidth = math.max(naturalWidth + 18, point.minWidth or 74)
+        elseif wrap then
             targetWidth = clamp(
                 math.floor((naturalWidth + 18) * (point.widthScale or 0.72)),
                 point.minWidth or 74,
@@ -552,6 +558,10 @@ local function measureLabel(label, point, text, fontSize)
         else
             targetWidth = clamp(naturalWidth + 18, point.minWidth or 68, point.maxWidth or 168)
         end
+    end
+
+    if multiLine then
+        targetWidth = math.max(targetWidth, naturalWidth + 12)
     end
 
     label:SetWidth(targetWidth)

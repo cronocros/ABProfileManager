@@ -83,6 +83,12 @@ local function buildOverviewText()
         lastScan = ns.L("config_overview_not_scanned")
     end
 
+    local authorLine = string.format(
+        "%s / %s",
+        ns.L("config_overview_author_header"),
+        ns.L("config_overview_author", ns.Constants.AUTHOR or "-", ns.Constants.CONTACT_EMAIL or "-")
+    )
+
     return table.concat({
         ns.L("config_overview_header"),
         ns.L("config_overview_character", getCharacterName(), getClassName(), getSpecName()),
@@ -102,8 +108,7 @@ local function buildOverviewText()
         ns.L("config_overview_hint_map"),
         ns.L("config_overview_hint_debug"),
         "",
-        ns.L("config_overview_author_header"),
-        ns.L("config_overview_author", ns.Constants.AUTHOR or "-", ns.Constants.CONTACT_EMAIL or "-"),
+        authorLine,
         "",
         ns.L("config_version_info", ns.Constants.VERSION or "?"),
     }, "\n")

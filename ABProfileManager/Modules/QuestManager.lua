@@ -28,6 +28,28 @@ local function addBulletLine(lines, text)
     lines[#lines + 1] = "• " .. tostring(text or "")
 end
 
+local function colorize(text, colorHex)
+    return string.format("|cff%s%s|r", tostring(colorHex or "ffffffff"), tostring(text or ""))
+end
+
+local QUEST_TITLE_COLOR = "fff4e2a0"
+local QUEST_INFO_COLOR = "ff8fcfff"
+local QUEST_REASON_COLOR = "ffa9d89e"
+local QUEST_PROGRESS_COLOR = "ff9ad9ff"
+
+local function buildQuestRowText(entry, reasonText)
+    local title = colorize(entry and entry.title or "", QUEST_TITLE_COLOR)
+    if reasonText then
+        return string.format("%s  [%s]", title, colorize(reasonText, QUEST_REASON_COLOR))
+    end
+
+    return string.format(
+        "%s  [%s]",
+        title,
+        colorize(ns.L("quest_list_id_format", entry and entry.questID or 0), QUEST_INFO_COLOR)
+    )
+end
+
 local function shouldTrackInfo(info)
     if type(info) ~= "table" then
         return false
@@ -263,7 +285,7 @@ function QuestManager:BuildCandidateListText(scan)
         addBulletLine(lines, ns.L("quest_list_none"))
     else
         for _, entry in ipairs(scan.safeCandidates) do
-            addBulletLine(lines, ns.L("quest_list_safe_row", entry.title, entry.questID))
+            addBulletLine(lines, buildQuestRowText(entry))
         end
     end
 
@@ -273,9 +295,9 @@ function QuestManager:BuildCandidateListText(scan)
         addBulletLine(lines, ns.L("quest_list_none"))
     else
         for _, entry in ipairs(scan.keptQuests) do
-            addBulletLine(lines, ns.L("quest_list_keep_row", entry.title, entry.keepReason or ns.L("quest_keep_unknown")))
+            addBulletLine(lines, buildQuestRowText(entry, entry.keepReason or ns.L("quest_keep_unknown")))
             if entry.objectiveSummary and entry.objectiveSummary ~= "" then
-                lines[#lines + 1] = "  → " .. ns.L("quest_list_progress", entry.objectiveSummary)
+                lines[#lines + 1] = "    " .. colorize(ns.L("quest_list_progress", entry.objectiveSummary), QUEST_PROGRESS_COLOR)
             end
         end
     end
@@ -286,9 +308,9 @@ function QuestManager:BuildCandidateListText(scan)
         addBulletLine(lines, ns.L("quest_list_none"))
     else
         for _, entry in ipairs(scan.allCandidates) do
-            addBulletLine(lines, ns.L("quest_list_all_row", entry.title, entry.questID))
+            addBulletLine(lines, buildQuestRowText(entry))
             if entry.objectiveSummary and entry.objectiveSummary ~= "" then
-                lines[#lines + 1] = "  → " .. ns.L("quest_list_progress", entry.objectiveSummary)
+                lines[#lines + 1] = "    " .. colorize(ns.L("quest_list_progress", entry.objectiveSummary), QUEST_PROGRESS_COLOR)
             end
         end
     end
@@ -305,13 +327,13 @@ function QuestManager:BuildSectionText(entries, rowLabelKey, includeProgress, re
 
     for index, entry in ipairs(entries or {}) do
         if reasonLabelKey then
-            addBulletLine(lines, ns.L(rowLabelKey, entry.title, entry.keepReason or ns.L(reasonLabelKey)))
+            addBulletLine(lines, buildQuestRowText(entry, entry.keepReason or ns.L(reasonLabelKey)))
         else
-            addBulletLine(lines, ns.L(rowLabelKey, entry.title, entry.questID))
+            addBulletLine(lines, buildQuestRowText(entry))
         end
 
         if includeProgress and entry.objectiveSummary and entry.objectiveSummary ~= "" then
-            lines[#lines + 1] = "  → " .. ns.L("quest_list_progress", entry.objectiveSummary)
+            lines[#lines + 1] = "    " .. colorize(ns.L("quest_list_progress", entry.objectiveSummary), QUEST_PROGRESS_COLOR)
         end
 
         if addBlankLineBetween and index < #(entries or {}) then

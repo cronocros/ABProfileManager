@@ -351,6 +351,7 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
     local maxPoints = 0
     local completedObjectives = 0
     local objectiveRows = {}
+    local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or nil
 
     for index, objective in ipairs(sourceDefinition.objectives or {}) do
         local isComplete = self:IsObjectiveComplete(objective)
@@ -361,9 +362,17 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
         end
         maxPoints = maxPoints + points
 
+        local objectiveName = self:GetObjectiveDisplayName(objective)
+        if language == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN) then
+            local rawName = objective and objective.name or ""
+            if rawName ~= "" and objectiveName == rawName then
+                objectiveName = string.format("%s %d", ns.L(sourceDefinition.labelKey), index)
+            end
+        end
+
         objectiveRows[#objectiveRows + 1] = {
             index = index,
-            name = self:GetObjectiveDisplayName(objective),
+            name = objectiveName,
             points = points,
             complete = isComplete,
         }

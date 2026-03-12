@@ -7,10 +7,10 @@ local HEADER_HINT_WIDTH = 540
 local CONTROL_FRAME_WIDTH = 252
 local CARD_WIDTH = 420
 local CARD_HEIGHT = 560
-local ROW_HEIGHT = 40
-local ROW_RIGHT_PADDING = 8
-local ROW_VALUE_WIDTH = 68
-local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 12
+local ROW_HEIGHT = 44
+local ROW_RIGHT_PADDING = 12
+local ROW_VALUE_WIDTH = 58
+local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 18
 local MAX_ROWS = 8
 local OVERLAY_SCALE_OPTIONS = {
     { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
@@ -102,7 +102,7 @@ function ProfessionPanel:CreateRow(parent, offsetY)
     row.title = row:CreateFontString(nil, "OVERLAY")
     row.title:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
     row.title:SetWidth(ROW_TEXT_WIDTH)
-    applyText(row.title, 12, 0.95, 0.95, 0.92, true)
+    applyText(row.title, 13, 0.95, 0.95, 0.92, true)
 
     row.note = row:CreateFontString(nil, "OVERLAY")
     row.note:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -1)
@@ -111,19 +111,23 @@ function ProfessionPanel:CreateRow(parent, offsetY)
 
     row.valueBlock = CreateFrame("Frame", nil, row)
     row.valueBlock:SetPoint("TOPRIGHT", row, "TOPRIGHT", -ROW_RIGHT_PADDING, 0)
-    row.valueBlock:SetSize(ROW_VALUE_WIDTH, ROW_HEIGHT)
+    row.valueBlock:SetSize(ROW_VALUE_WIDTH, ROW_HEIGHT - 2)
+
+    row.valueBackground = row.valueBlock:CreateTexture(nil, "BACKGROUND")
+    row.valueBackground:SetAllPoints()
+    row.valueBackground:SetColorTexture(0.12, 0.16, 0.22, 0.84)
 
     row.valueLabel = row.valueBlock:CreateFontString(nil, "OVERLAY")
-    row.valueLabel:SetPoint("TOPRIGHT", row.valueBlock, "TOPRIGHT", 0, 0)
+    row.valueLabel:SetPoint("TOP", row.valueBlock, "TOP", 0, -1)
     row.valueLabel:SetWidth(ROW_VALUE_WIDTH)
     applyText(row.valueLabel, 10, 0.88, 0.86, 0.72, false)
-    row.valueLabel:SetJustifyH("RIGHT")
+    row.valueLabel:SetJustifyH("CENTER")
 
     row.valueAmount = row.valueBlock:CreateFontString(nil, "OVERLAY")
-    row.valueAmount:SetPoint("TOPRIGHT", row.valueLabel, "BOTTOMRIGHT", 0, -1)
+    row.valueAmount:SetPoint("TOP", row.valueLabel, "BOTTOM", 0, -1)
     row.valueAmount:SetWidth(ROW_VALUE_WIDTH)
-    applyText(row.valueAmount, 11, 1.00, 0.86, 0.42, false)
-    row.valueAmount:SetJustifyH("RIGHT")
+    applyText(row.valueAmount, 12, 1.00, 0.86, 0.42, false)
+    row.valueAmount:SetJustifyH("CENTER")
 
     row:SetScript("OnEnter", function(currentRow)
         if currentRow.rowData then
@@ -145,15 +149,15 @@ function ProfessionPanel:CreateCard(parent, point, relativeTo)
 
     card.icon = card:CreateTexture(nil, "OVERLAY")
     card.icon:SetSize(22, 22)
-    card.icon:SetPoint("TOPLEFT", 14, -10)
+    card.icon:SetPoint("TOPRIGHT", -14, -10)
 
     card.title = card:CreateFontString(nil, "OVERLAY")
-    card.title:SetPoint("LEFT", card.icon, "RIGHT", 8, 0)
-    card.title:SetPoint("RIGHT", card, "RIGHT", -14, 0)
+    card.title:SetPoint("TOPLEFT", card, "TOPLEFT", 14, -11)
+    card.title:SetPoint("RIGHT", card.icon, "LEFT", -8, 0)
     applyText(card.title, 14, 1, 0.86, 0.42)
 
     card.summary = card:CreateFontString(nil, "OVERLAY")
-    card.summary:SetPoint("TOPLEFT", card.title, "BOTTOMLEFT", 0, -8)
+    card.summary:SetPoint("TOPLEFT", card, "TOPLEFT", 14, -40)
     card.summary:SetWidth(CARD_WIDTH - 28)
     applyText(card.summary, 12, 0.92, 0.95, 1.00, true)
     if card.summary.SetSpacing then
@@ -304,11 +308,13 @@ function ProfessionPanel:BindCardRow(row, rowData)
         row.note:SetTextColor(0.62, 0.95, 0.74, 1)
         row.valueLabel:SetTextColor(0.62, 0.95, 0.74, 1)
         row.valueAmount:SetTextColor(0.55, 1.00, 0.70, 1)
+        row.valueBackground:SetColorTexture(0.10, 0.24, 0.16, 0.90)
     else
         row.title:SetTextColor(0.95, 0.95, 0.92, 1)
         row.note:SetTextColor(0.68, 0.80, 0.92, 1)
         row.valueLabel:SetTextColor(0.88, 0.86, 0.72, 1)
         row.valueAmount:SetTextColor(1.00, 0.86, 0.42, 1)
+        row.valueBackground:SetColorTexture(0.12, 0.16, 0.22, 0.84)
     end
 
     row:Show()
