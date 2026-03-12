@@ -296,14 +296,14 @@ function QuestManager:BuildCandidateListText(scan)
     return table.concat(lines, "\n")
 end
 
-function QuestManager:BuildSectionText(entries, rowLabelKey, includeProgress, reasonLabelKey)
+function QuestManager:BuildSectionText(entries, rowLabelKey, includeProgress, reasonLabelKey, addBlankLineBetween)
     local lines = {}
     if #(entries or {}) == 0 then
         addBulletLine(lines, ns.L("quest_list_none"))
         return table.concat(lines, "\n")
     end
 
-    for _, entry in ipairs(entries or {}) do
+    for index, entry in ipairs(entries or {}) do
         if reasonLabelKey then
             addBulletLine(lines, ns.L(rowLabelKey, entry.title, entry.keepReason or ns.L(reasonLabelKey)))
         else
@@ -312,6 +312,10 @@ function QuestManager:BuildSectionText(entries, rowLabelKey, includeProgress, re
 
         if includeProgress and entry.objectiveSummary and entry.objectiveSummary ~= "" then
             lines[#lines + 1] = "  → " .. ns.L("quest_list_progress", entry.objectiveSummary)
+        end
+
+        if addBlankLineBetween and index < #(entries or {}) then
+            lines[#lines + 1] = ""
         end
     end
 
@@ -325,12 +329,12 @@ end
 
 function QuestManager:BuildKeepSectionText(scan)
     scan = scan or self:Scan(false)
-    return self:BuildSectionText(scan.keptQuests or {}, "quest_list_keep_row", true, "quest_keep_unknown")
+    return self:BuildSectionText(scan.keptQuests or {}, "quest_list_keep_row", true, "quest_keep_unknown", true)
 end
 
 function QuestManager:BuildAllSectionText(scan)
     scan = scan or self:Scan(false)
-    return self:BuildSectionText(scan.allCandidates or {}, "quest_list_all_row", true)
+    return self:BuildSectionText(scan.allCandidates or {}, "quest_list_all_row", true, nil, true)
 end
 
 function QuestManager:GetSafeCandidates()

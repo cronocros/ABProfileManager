@@ -16,14 +16,14 @@ local CATEGORY_COLORS = {
     renown = { 1.00, 0.78, 0.54 },
 }
 local CATEGORY_SIZE_SCALE = {
-    service = 1.08,
-    travel = 1.08,
-    profession = 1.24,
-    pvp = 1.10,
-    dungeon = 1.18,
-    delve = 1.16,
-    raid = 1.22,
-    renown = 1.08,
+    service = 1.10,
+    travel = 1.10,
+    profession = 1.28,
+    pvp = 1.12,
+    dungeon = 1.20,
+    delve = 1.18,
+    raid = 1.24,
+    renown = 1.10,
 }
 local CATEGORY_PRIORITY = {
     raid = 10,
@@ -46,8 +46,8 @@ local CATEGORY_MARKER_RADIUS = {
     renown = 10,
 }
 local MAP_DENSITY_SCALE = {
-    dense = 0.98,
-    normal = 1.04,
+    dense = 1.00,
+    normal = 1.06,
 }
 local LAYOUT_PADDING = 8
 local ZOOM_BUCKET_STEP = 0.02
@@ -194,33 +194,8 @@ local function getMapInfo(mapID)
     return nil
 end
 
-local function collectMapLineage(mapID)
-    local lineage = {}
-    local names = {}
-    local visited = {}
-
-    while mapID and not visited[mapID] do
-        visited[mapID] = true
-        lineage[#lineage + 1] = mapID
-
-        local info = getMapInfo(mapID)
-        if not info then
-            break
-        end
-
-        if info.name and info.name ~= "" then
-            names[#names + 1] = info.name
-        end
-
-        mapID = info.parentMapID
-    end
-
-    return lineage, names
-end
-
-local function resolveMapData(mapID)
-    local data = ns.Data and ns.Data.SilvermoonMapData
-    if not data or not data.maps then
+local function tryResolveMapID(data, mapID)
+    if not mapID or not data or not data.maps then
         return nil, nil
     end
 
@@ -232,22 +207,50 @@ local function resolveMapData(mapID)
         return data.maps[data.aliases[mapID]], data.aliases[mapID]
     end
 
-    local lineage, names = collectMapLineage(mapID)
-    for _, lineageID in ipairs(lineage) do
-        if data.maps[lineageID] then
-            return data.maps[lineageID], lineageID
-        end
+    return nil, nil
+end
 
-        if data.aliases and data.aliases[lineageID] and data.maps[data.aliases[lineageID]] then
-            return data.maps[data.aliases[lineageID]], data.aliases[lineageID]
-        end
+local function tryResolveMapName(data, mapName)
+    if not mapName or mapName == "" or not data or not data.nameAliases then
+        return nil, nil
     end
 
-    if data.nameAliases then
-        for _, name in ipairs(names) do
-            local aliasMapID = data.nameAliases[name]
-            if aliasMapID and data.maps[aliasMapID] then
-                return data.maps[aliasMapID], aliasMapID
+    local aliasMapID = data.nameAliases[mapName]
+    if aliasMapID and data.maps and data.maps[aliasMapID] then
+        return data.maps[aliasMapID], aliasMapID
+    end
+
+    return nil, nil
+end
+
+local function resolveMapData(mapID)
+    local data = ns.Data and ns.Data.SilvermoonMapData
+    if not data or not data.maps then
+        return nil, nil
+    end
+
+    local resolvedData, resolvedMapID = tryResolveMapID(data, mapID)
+    if resolvedData then
+        return resolvedData, resolvedMapID
+    end
+
+    local info = getMapInfo(mapID)
+    if info then
+        resolvedData, resolvedMapID = tryResolveMapName(data, info.name)
+        if resolvedData then
+            return resolvedData, resolvedMapID
+        end
+
+        resolvedData, resolvedMapID = tryResolveMapID(data, info.parentMapID)
+        if resolvedData then
+            return resolvedData, resolvedMapID
+        end
+
+        local parentInfo = getMapInfo(info.parentMapID)
+        if parentInfo then
+            resolvedData, resolvedMapID = tryResolveMapName(data, parentInfo.name)
+            if resolvedData then
+                return resolvedData, resolvedMapID
             end
         end
     end
@@ -326,6 +329,106 @@ local function wrapByChars(text, charsPerLine)
     return table.concat(lines, "\n")
 end
 
+local function wrapByGroupSizes(text, groupSizes)
+    local characters = utf8Chars(text)
+    if #characters == 0 then
+        return ""
+    end
+
+    local lines = {}
+    local cursor = 1
+    for _, size in ipairs(groupSizes or {}) do
+        if cursor > #characters then
+            break
+        end
+
+        local chunk = {}
+        for index = cursor, math.min(#characters, cursor + size - 1) do
+            chunk[#chunk + 1] = characters[index]
+        end
+
+        if #chunk > 0 then
+            lines[#lines + 1] = table.concat(chunk, "")
+        end
+        cursor = cursor + size
+    end
+
+    if cursor <= #characters then
+        local chunk = {}
+        for index = cursor, #characters do
+            chunk[#chunk + 1] = characters[index]
+        end
+        lines[#lines + 1] = table.concat(chunk, "")
+    end
+
+    return table.concat(lines, "\n")
+end
+
+local function buildKoreanWrapGroups(characterCount, preferredFirstChunk)
+    if characterCount <= 3 then
+        return { characterCount }
+    end
+
+    if characterCount == 4 then
+        return { 2, 2 }
+    end
+
+    if characterCount == 5 then
+        if preferredFirstChunk == 3 then
+            return { 3, 2 }
+        end
+        return { 2, 3 }
+    end
+
+    local groups = {}
+    local remaining = characterCount
+    while remaining > 0 do
+        if remaining <= 3 then
+            groups[#groups + 1] = remaining
+            break
+        end
+
+        if remaining == 4 then
+            groups[#groups + 1] = 2
+            groups[#groups + 1] = 2
+            break
+        end
+
+        if remaining == 5 then
+            if preferredFirstChunk == 3 or #groups > 0 then
+                groups[#groups + 1] = 3
+                groups[#groups + 1] = 2
+            else
+                groups[#groups + 1] = 2
+                groups[#groups + 1] = 3
+            end
+            break
+        end
+
+        if (remaining - 3) == 1 then
+            groups[#groups + 1] = 2
+            remaining = remaining - 2
+        else
+            groups[#groups + 1] = 3
+            remaining = remaining - 3
+        end
+    end
+
+    return groups
+end
+
+local function wrapKoreanSmart(text, point)
+    local characters = utf8Chars(text)
+    local characterCount = #characters
+    if characterCount <= 3 then
+        return text
+    end
+
+    local preferredFirstChunk = tonumber(point and point.preferredFirstChunk) or 2
+    local groups = buildKoreanWrapGroups(characterCount, preferredFirstChunk)
+    return wrapByGroupSizes(text, groups)
+end
+
 local function isKoreanLocale()
     return ns.DB and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
 end
@@ -349,7 +452,11 @@ local function resolveLabelName(point)
     end
 
     if isKoreanLocale() and (point.maxCharsPerLine or point.category == "dungeon" or point.category == "delve" or point.category == "raid") then
-        return wrapByChars(text, point.maxCharsPerLine or 3)
+        if point.maxCharsPerLine then
+            return wrapByChars(text, point.maxCharsPerLine)
+        end
+
+        return wrapKoreanSmart(text, point)
     end
 
     return text
@@ -359,7 +466,7 @@ local function resolveDisplayText(point)
     local labelName = resolveLabelName(point)
     if point.category == "dungeon" or point.category == "delve" or point.category == "raid" then
         local prefix = ns.L("map_prefix_" .. point.category)
-        return string.format("%s:\n%s", prefix, labelName)
+        return string.format("%s\n%s", prefix, labelName)
     end
 
     return labelName

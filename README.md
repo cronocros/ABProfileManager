@@ -6,7 +6,7 @@
 연락처: `crono1232@gmail.com`
 
 현재 상태:
-- `v1.3.5`
+- `v1.3.6`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
 - `전문기술 자동 추적` / `한밤(Midnight) 지도 오버레이` 개선 반영 완료
@@ -16,6 +16,7 @@
 - `전문기술 / 스탯 오버레이 5단계 스케일` 반영 완료
 - `퀘스트 진행도 표기` / `설정 세션 요약 스크롤화` 반영 완료
 - `지도 라벨 카테고리 필터` / `퀘스트 3분할 후보 목록` 반영 완료
+- `지도 라벨 map 정합성 보강` / `전문기술 오버레이 툴팁` 반영 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
@@ -23,10 +24,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.3.5`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.5/ABProfileManager-v1.3.5.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.3.5.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.5.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.5.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.5.md)
+- 릴리스 버전: `v1.3.6`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.6/ABProfileManager-v1.3.6.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.3.6.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.6.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.6.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.6.md)
 
 ## 한눈에 보기
 
@@ -98,7 +99,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 포탈 이름, 정복 상인, 전문기술 허브, 교역소, 형상변환, 암시장 표시
   - 던전 / 구렁 입구 이름을 한국어로 표시
   - 각 진영 평판 상인과 풍요 상인 위치 표시
-  - 지도 확대 / 축소에 따라 글자 크기를 보정하고, `던전:` / `구렁:` / `공격대:` 접두어와 줄바꿈 규칙을 함께 적용
+  - 지도 확대 / 축소에 따라 글자 크기를 보정하고, `던전` / `구렁` / `공격대` 접두어 줄과 이름 줄을 분리해 표시
   - 설정 탭에서 `주요 시설 / 포탈 / 전문기술 / 던전·공격대 / 구렁` 라벨을 각각 켜고 끌 수 있음
 - 전투 중 작업 대기열 처리
 - 없는 주문/아이템/매크로는 고스트 오버레이 표시
@@ -128,7 +129,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.5`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.6`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -161,7 +162,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 전문기술 체크 오버레이 표시 여부
   - 한밤(Midnight) 지도 오버레이 표시 여부
   - 지도 라벨 카테고리 체크박스
-  - 현재 세션 요약 / 빠른 안내 / 제작자 연락처를 스크롤 박스로 표시
+  - 현재 세션 요약 / 저장 범위 / 빠른 안내 / 제작자 연락처를 스크롤 박스로 표시
   - 와우 `설정 > 애드온` 하위 카테고리 연결
 - `퀘스트` 탭:
   - 정리 기준 요약
@@ -223,7 +224,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.5.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.5.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.6.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.6.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

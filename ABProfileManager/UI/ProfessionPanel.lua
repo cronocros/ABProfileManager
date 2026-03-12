@@ -8,8 +8,9 @@ local CONTROL_FRAME_WIDTH = 252
 local CARD_WIDTH = 420
 local CARD_HEIGHT = 560
 local ROW_HEIGHT = 36
-local ROW_VALUE_WIDTH = 72
-local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - 4
+local ROW_RIGHT_PADDING = 10
+local ROW_VALUE_WIDTH = 54
+local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 6
 local MAX_ROWS = 8
 local OVERLAY_SCALE_OPTIONS = {
     { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
@@ -109,9 +110,9 @@ function ProfessionPanel:CreateRow(parent, offsetY)
     applyText(row.note, 10, 0.68, 0.80, 0.92, true)
 
     row.value = row:CreateFontString(nil, "OVERLAY")
-    row.value:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
+    row.value:SetPoint("TOPRIGHT", row, "TOPRIGHT", -ROW_RIGHT_PADDING, 0)
     row.value:SetWidth(ROW_VALUE_WIDTH)
-    applyText(row.value, 10, 1.00, 0.86, 0.42)
+    applyText(row.value, 9, 1.00, 0.86, 0.42)
     row.value:SetJustifyH("RIGHT")
 
     row:SetScript("OnEnter", function(currentRow)

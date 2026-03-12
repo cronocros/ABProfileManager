@@ -135,17 +135,20 @@ function QuestPanel:Create(parent)
 
     local sectionWidth = 254
     local sectionGap = 13
-    local safeListTitle = widgets.CreateLabel(listBox, "", nil, 14, -18, "GameFontHighlightLarge")
-    local safeListText = widgets.CreateScrollTextBox(listBox, sectionWidth, 324)
-    safeListText:SetPoint("TOPLEFT", 14, -52)
+    local sectionTitleY = -34
+    local sectionTextY = -66
+    local sectionTextHeight = 310
+    local safeListTitle = widgets.CreateLabel(listBox, "", nil, 14, sectionTitleY, "GameFontHighlightLarge")
+    local safeListText = widgets.CreateScrollTextBox(listBox, sectionWidth, sectionTextHeight)
+    safeListText:SetPoint("TOPLEFT", 14, sectionTextY)
 
-    local keepListTitle = widgets.CreateLabel(listBox, "", nil, 14 + sectionWidth + sectionGap, -18, "GameFontHighlightLarge")
-    local keepListText = widgets.CreateScrollTextBox(listBox, sectionWidth, 324)
-    keepListText:SetPoint("TOPLEFT", 14 + sectionWidth + sectionGap, -52)
+    local keepListTitle = widgets.CreateLabel(listBox, "", nil, 14 + sectionWidth + sectionGap, sectionTitleY, "GameFontHighlightLarge")
+    local keepListText = widgets.CreateScrollTextBox(listBox, sectionWidth, sectionTextHeight)
+    keepListText:SetPoint("TOPLEFT", 14 + sectionWidth + sectionGap, sectionTextY)
 
-    local allListTitle = widgets.CreateLabel(listBox, "", nil, 14 + ((sectionWidth + sectionGap) * 2), -18, "GameFontHighlightLarge")
-    local allListText = widgets.CreateScrollTextBox(listBox, sectionWidth, 324)
-    allListText:SetPoint("TOPLEFT", 14 + ((sectionWidth + sectionGap) * 2), -52)
+    local allListTitle = widgets.CreateLabel(listBox, "", nil, 14 + ((sectionWidth + sectionGap) * 2), sectionTitleY, "GameFontHighlightLarge")
+    local allListText = widgets.CreateScrollTextBox(listBox, sectionWidth, sectionTextHeight)
+    allListText:SetPoint("TOPLEFT", 14 + ((sectionWidth + sectionGap) * 2), sectionTextY)
 
     refreshButton:SetScript("OnClick", function()
         queueRefresh(self)

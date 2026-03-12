@@ -94,6 +94,7 @@ local function buildOverviewText()
         ),
         ns.L("config_overview_profession_scan", lastScan),
         ns.L("config_overview_debug", getStateLabel(ns.DB:IsDebugEnabled())),
+        ns.L("config_overview_storage"),
         "",
         ns.L("config_overview_guide_header"),
         ns.L("config_overview_hint_window"),
@@ -334,22 +335,27 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.professionOverlayLabel, "BOTTOMLEFT", -4, -10)
     refs.silvermoonMapLabel = widgets.CreateLabel(overlayBox, "", refs.professionOverlayCheck, 4, -16, "GameFontHighlight")
     refs.silvermoonMapCheck = widgets.CreateCheckButton(overlayBox, "")
-    refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -10)
-    refs.mapFiltersLabel = widgets.CreateLabel(overlayBox, "", refs.silvermoonMapCheck, 4, -16, "GameFontHighlight")
+    refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -8)
+    refs.mapFiltersLabel = widgets.CreateLabel(overlayBox, "", refs.silvermoonMapCheck, 4, -12, "GameFontHighlight")
     refs.mapFilterChecks = {}
+    local mapFilterTextWidth = math.floor((columnWidth - 68) / 2)
+    local mapFilterColumnOffset = math.floor(columnWidth / 2) - 6
     local lastLeftCheck = nil
     local lastRightCheck = nil
     for index, option in ipairs(MAP_FILTER_OPTIONS) do
         local check = widgets.CreateCheckButton(overlayBox, "")
         local column = ((index - 1) % 2)
         if index <= 2 then
-            check:SetPoint("TOPLEFT", refs.mapFiltersLabel, "BOTTOMLEFT", (column * 176) - 4, -8)
+            check:SetPoint("TOPLEFT", refs.mapFiltersLabel, "BOTTOMLEFT", (column * mapFilterColumnOffset) - 4, -6)
         else
             local anchor = column == 0 and lastLeftCheck or lastRightCheck
-            check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -8)
+            check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
         end
-        check.Text:SetWidth(148)
+        check.Text:SetWidth(mapFilterTextWidth)
         check.Text:SetJustifyH("LEFT")
+        if check.Text.SetWordWrap then
+            check.Text:SetWordWrap(true)
+        end
         refs.mapFilterChecks[index] = check
         if column == 0 then
             lastLeftCheck = check

@@ -1,7 +1,7 @@
 # ABPM Final Design
 
 현재 제품 상태:
-- `v1.3.5`
+- `v1.3.6`
 - 구현 완료
 - 1차 출시 완료
 - 최신 배포 기준 문서
@@ -164,6 +164,7 @@
   - 한밤(Midnight) 지도 텍스트 오버레이
   - 시설 / profession / 평판 상인 / 던전 / 구렁 라벨 표시
   - 카테고리별 필터 on/off 반영
+  - 보수적인 map 해석과 길이 기반 한국어 줄바꿈 규칙 적용
 - `Widgets.lua`
   - 공용 위젯 및 스크롤/패널 스타일
 
@@ -367,10 +368,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 기본 브랜치: `main`
-- 현재 배포 버전: `v1.3.5`
-- 현재 배포 산출물: `dist/ABProfileManager-v1.3.5.zip`
-- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.5.md`
-- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.5-<timestamp>.zip`
+- 현재 배포 버전: `v1.3.6`
+- 현재 배포 산출물: `dist/ABProfileManager-v1.3.6.zip`
+- GitHub 릴리스 본문 기준 문서: `RELEASE_NOTES_v1.3.6.md`
+- 소스 백업 산출물: `backups/source/ABProfileManager-source-v1.3.6-<timestamp>.zip`
 - 버전 기록 기준 문서: `CHANGELOG.md`
 
 ## 알려진 제한

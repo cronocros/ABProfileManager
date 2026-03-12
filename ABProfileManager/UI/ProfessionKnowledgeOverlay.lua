@@ -5,8 +5,8 @@ ns.UI.ProfessionKnowledgeOverlay = ProfessionKnowledgeOverlay
 
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local TITLE_SIZE = 15
-local SUMMARY_SIZE = 13
-local DETAIL_SIZE = 12
+local SUMMARY_SIZE = 12
+local DETAIL_SIZE = 11
 local MIN_WIDTH = 240
 local MIN_HEIGHT = 56
 local MINI_WIDTH = 190
@@ -133,7 +133,65 @@ local function buildRowFragments(rows, limit)
         fragments[#fragments + 1] = string.format("%s %d/%d", getSourceShortLabel(row), row.earned or 0, row.maxPoints or 0)
     end
 
-    return table.concat(fragments, "  |  ")
+    return table.concat(fragments, " | ")
+end
+
+local function appendTooltipSection(lines, title, rows)
+    if #(rows or {}) == 0 then
+        return
+    end
+
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = title
+    for _, row in ipairs(rows or {}) do
+        lines[#lines + 1] = string.format("→ %s %d/%d | %d/%d", row.title or "", row.current or 0, row.max or 0, row.earned or 0, row.maxPoints or 0)
+        for _, objective in ipairs(row.objectiveRows or {}) do
+            local marker = objective.complete and "•" or "○"
+            lines[#lines + 1] = string.format("  %s %s", marker, objective.name or "")
+        end
+    end
+end
+
+local function buildOverlayTooltipLines(professionEntry)
+    local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
+    if not tracker or not professionEntry then
+        return nil
+    end
+
+    local summary = tracker:GetProfessionSummary(professionEntry.key)
+    local sections = tracker:GetProfessionSections(professionEntry.key)
+    local lines = {
+        tracker:GetProfessionDisplayName(professionEntry),
+        ns.L(
+            "professions_overlay_row",
+            summary and summary.weeklyEarned or 0,
+            summary and summary.weeklyMax or 0,
+            summary and summary.oneTimeEarned or 0,
+            summary and summary.oneTimeMax or 0
+        ),
+    }
+
+    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_weekly"), sections[1] and sections[1].rows or {})
+    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_onetime"), sections[2] and sections[2].rows or {})
+    return lines
+end
+
+local function showRowTooltip(owner, lines)
+    if not GameTooltip or type(lines) ~= "table" or #lines == 0 then
+        return
+    end
+
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    GameTooltip:SetText(lines[1], 1, 0.86, 0.40)
+    for index = 2, #lines do
+        local line = lines[index]
+        if line == "" then
+            GameTooltip:AddLine(" ")
+        else
+            GameTooltip:AddLine(line, 0.92, 0.92, 0.88, true)
+        end
+    end
+    GameTooltip:Show()
 end
 
 function ProfessionKnowledgeOverlay:Initialize()
@@ -202,6 +260,23 @@ end
 function ProfessionKnowledgeOverlay:CreateRow()
     local row = CreateFrame("Frame", nil, self.frame)
     row:SetSize(MIN_WIDTH - (PADDING_X * 2), 24)
+    row:EnableMouse(true)
+    row:RegisterForDrag("LeftButton")
+    row:SetScript("OnDragStart", function()
+        self.frame:StartMoving()
+    end)
+    row:SetScript("OnDragStop", function()
+        self.frame:StopMovingOrSizing()
+        if ns.DB then
+            ns.DB:SaveProfessionKnowledgeOverlayPosition(self.frame)
+        end
+    end)
+    row:SetScript("OnEnter", function(currentRow)
+        if currentRow.tooltipLines then
+            showRowTooltip(currentRow, currentRow.tooltipLines)
+        end
+    end)
+    row:SetScript("OnLeave", GameTooltip_Hide)
 
     row.icon = row:CreateTexture(nil, "OVERLAY")
     row.icon:SetSize(ICON_SIZE, ICON_SIZE)
@@ -209,7 +284,7 @@ function ProfessionKnowledgeOverlay:CreateRow()
 
     row.title = row:CreateFontString(nil, "OVERLAY")
     row.title:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 6, 0)
-    applyTextStyle(row.title, SUMMARY_SIZE, 1.00, 0.86, 0.42)
+    applyTextStyle(row.title, 13, 1.00, 0.86, 0.42)
 
     row.summary = row:CreateFontString(nil, "OVERLAY")
     row.summary:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -2)
@@ -271,7 +346,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
             parts[#parts + 1] = oneTimeCompact
         end
 
-        compactLine = table.concat(parts, "  |  ")
+        compactLine = table.concat(parts, " | ")
     end
 
     row.summary:SetText(displayMode == OVERLAY_MODE_COMPACT and compactLine ~= "" and compactLine or totalSummary)
@@ -280,6 +355,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     row.oneTimeDetails:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
     row.weeklyDetails:SetText(ns.L("professions_overlay_detail_weekly", weeklyLine ~= "" and weeklyLine or ns.L("no_items")))
     row.oneTimeDetails:SetText(ns.L("professions_overlay_detail_onetime", oneTimeLine ~= "" and oneTimeLine or ns.L("no_items")))
+    row.tooltipLines = buildOverlayTooltipLines(professionEntry)
 
     row.weeklyDetails:SetShown(expanded)
     row.oneTimeDetails:SetShown(expanded)
