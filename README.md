@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.3.11`
+- `v1.3.12`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.11/ABProfileManager-v1.3.11.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.3.11.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.11.md](./RELEASE_NOTES_v1.3.11.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.12/ABProfileManager-v1.3.12.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.3.12.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.12.md](./RELEASE_NOTES_v1.3.12.md)
 
 ## 왜 쓰는가
 
@@ -84,7 +84,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - profession 카드와 오버레이는 캐릭터별 진행도를 자동 계산합니다.
 - 한국어 클라이언트에서는 퀘스트 제목을 우선 사용하고, 일부 1회성 보물은 고유 영어명을 fallback으로 사용합니다.
 - TomTom 연동은 선택 기능입니다.
-- 현재 TomTom 1회성 waypoint panel은 일부 항목에서 첫 클릭만 안정적으로 동작하는 사례가 있어 후속 보강 대상입니다.
+- 현재 하란다르와 공허폭풍의 일부 1회성 보물 waypoint는 해당 지역 안에 있을 때만 TomTom이 안정적으로 찍는 것으로 확인되어, 안내 문구와 제한 메시지를 반영했습니다.
 
 ## 한밤(Midnight) 지도 메모
 

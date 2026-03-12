@@ -2,7 +2,7 @@ ABProfileManager
 
 액션바가 꼬일 때는 빠르게 복구하고, 전문기술 포인트는 놓치지 않고, 한밤(Midnight) 지역 길찾기는 지도에서 바로 끝내고 싶은 플레이어를 위한 WoW Retail 애드온입니다.
 
-버전: v1.3.11
+버전: v1.3.12
 제작: 밍밍이와코코
 연락처: crono1232@gmail.com
 
@@ -42,4 +42,4 @@ ABProfileManager
 [다운로드]
 - 저장소: https://github.com/cronocros/ABProfileManager
 - 최신 릴리스: https://github.com/cronocros/ABProfileManager/releases/latest
-- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.11/ABProfileManager-v1.3.11.zip
+- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.12/ABProfileManager-v1.3.12.zip

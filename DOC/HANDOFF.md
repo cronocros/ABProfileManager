@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.3.11`
+버전 기준: `v1.3.12`
 
 ## 현재 상태
 
@@ -35,17 +35,17 @@
 
 ## 현재 남은 이슈
 
-### 1. TomTom waypoint panel
+### 1. TomTom waypoint region restriction
 
 - profession 오버레이 `1회성` 우클릭 panel은 UI는 뜨지만
-- 일부 환경에서 첫 항목 외에는 waypoint 전환이 안정적으로 되지 않는 사례가 있다
-- 메인 기능은 아니므로 현재는 `선택 기능 / 후속 보강 대상`으로 기록
+- 하란다르와 공허폭풍 일부 보물은 현재 그 지역 안에 있을 때만 waypoint가 안정적으로 생성되는 것으로 확인됐다
+- 메인 기능은 아니므로 현재는 `선택 기능 / 지역 제한 안내 반영 완료` 상태로 기록
 
 권장 접근:
 
 - 기존 UI를 크게 바꾸지 말고
 - `Modules/TomTomBridge.lua`와 `UI/ProfessionKnowledgeOverlay.lua`를 같이 본다
-- 클릭 이벤트와 TomTom uid 재사용 경로를 단계별로 로그 찍어 확인한다
+- mapID 제한과 현재 플레이어 지도 lineage를 먼저 확인한다
 
 ### 2. 지도 좌표 보정
 

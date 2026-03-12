@@ -6,13 +6,13 @@
 2. 전문기술 포인트를 매주 체크하기
 3. 한밤(Midnight) 지역에서 필요한 위치를 바로 찾기
 
-버전: `v1.3.11`
+버전: `v1.3.12`
 제작: `밍밍이와코코`
 연락처: `crono1232@gmail.com`
 
 다운로드:
 - 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.11/ABProfileManager-v1.3.11.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.12/ABProfileManager-v1.3.12.zip`
 
 ## 핵심 기능
 
@@ -45,7 +45,8 @@
 - 오버레이는 `상세 / 요약 / 최소` 3단 보기와 `XS / S / M / L / XL` 5단 크기를 지원합니다.
 - 1회성 보물은 한국어명이 모호하면 고유 영어명 fallback을 사용합니다.
 - TomTom 연동은 선택 기능입니다.
-  - 현재 1회성 waypoint panel은 일부 항목에서 첫 선택만 안정적으로 동작하는 사례가 있어 후속 점검 대상입니다.
+  - 하란다르와 공허폭풍의 일부 1회성 보물 waypoint는 현재 해당 지역 안에 있을 때만 안정적으로 찍히는 것으로 확인되었습니다.
+  - profession 오버레이 panel과 상태 메시지에는 이 제한 안내가 함께 표시됩니다.
 
 ## 한밤(Midnight) 지도 오버레이
 

@@ -703,7 +703,17 @@ function ProfessionKnowledgeOverlay:ShowHoverPanel(row)
         return
     end
 
-    panel.hint:SetText(ns.L("professions_overlay_panel_hint"))
+    local hintText = ns.L("professions_overlay_panel_hint")
+    if tomTom then
+        for _, waypoint in ipairs(pendingWaypoints) do
+            local restrictionMessage = tomTom:GetRestrictionMessage(waypoint.mapID)
+            if restrictionMessage then
+                hintText = hintText .. "\n" .. ns.L("professions_overlay_panel_region_note")
+                break
+            end
+        end
+    end
+    panel.hint:SetText(hintText)
     panel.empty:SetText("")
 
     self:EnsureHoverButtonCount(#pendingWaypoints)

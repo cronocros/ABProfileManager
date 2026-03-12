@@ -4,7 +4,7 @@
 
 ## 현재 문서
 
-- [../RELEASE_NOTES_v1.3.11.md](../RELEASE_NOTES_v1.3.11.md)
+- [../RELEASE_NOTES_v1.3.12.md](../RELEASE_NOTES_v1.3.12.md)
   - 최신 릴리스 노트
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 최신 구조, 모듈 책임, 데이터 흐름
