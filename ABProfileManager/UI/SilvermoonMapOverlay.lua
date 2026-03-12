@@ -53,6 +53,7 @@ local LAYOUT_PADDING = 8
 local ZOOM_BUCKET_STEP = 0.02
 local CANVAS_BUCKET_STEP = 0.02
 local CROWD_RADIUS_PERCENT = 7
+local MAP_TYPE_DUNGEON = (Enum and Enum.UIMapType and Enum.UIMapType.Dungeon) or 4
 
 local function getMapCanvasParent()
     if not WorldMapFrame or not WorldMapFrame.ScrollContainer then
@@ -237,29 +238,21 @@ local function resolveMapData(mapID)
         return nil, nil
     end
 
+    local info = getMapInfo(mapID)
+    local mapType = info and tonumber(info.mapType) or nil
+    if mapType and mapType >= MAP_TYPE_DUNGEON then
+        return nil, nil
+    end
+
     local resolvedData, resolvedMapID = tryResolveMapID(data, mapID)
     if resolvedData then
         return resolvedData, resolvedMapID
     end
 
-    local info = getMapInfo(mapID)
     if info then
         resolvedData, resolvedMapID = tryResolveMapName(data, info.name)
         if resolvedData then
             return resolvedData, resolvedMapID
-        end
-
-        resolvedData, resolvedMapID = tryResolveMapID(data, info.parentMapID)
-        if resolvedData then
-            return resolvedData, resolvedMapID
-        end
-
-        local parentInfo = getMapInfo(info.parentMapID)
-        if parentInfo then
-            resolvedData, resolvedMapID = tryResolveMapName(data, parentInfo.name)
-            if resolvedData then
-                return resolvedData, resolvedMapID
-            end
         end
     end
 
@@ -451,7 +444,7 @@ local function resolveLabelName(point)
         text = string.gsub(text, "%s+", "")
     end
 
-    if point.noWrap or string.find(text, "\n", 1, true) then
+    if point.noWrap or point.manualWrap or string.find(text, "\n", 1, true) then
         return text
     end
 
@@ -544,9 +537,17 @@ end
 
 local function measureLabel(label, point, text, fontSize)
     label:SetFont(FONT_PATH, fontSize, point.outline or "THICKOUTLINE")
+    label:SetWidth(0)
+    if label.SetWordWrap then
+        label:SetWordWrap(false)
+    end
+    if label.SetNonSpaceWrap then
+        label:SetNonSpaceWrap(false)
+    end
     label:SetText(text)
 
     local naturalWidth = math.ceil(label:GetStringWidth() or 0)
+    local naturalHeight = math.ceil(label:GetStringHeight() or 0)
     local multiLine = hasLineBreak(text)
     local wrap = not point.noWrap and not multiLine and (
         point.width
@@ -556,7 +557,7 @@ local function measureLabel(label, point, text, fontSize)
     local targetWidth = point.width
     if not targetWidth then
         if multiLine then
-            targetWidth = math.max(naturalWidth + 18, point.minWidth or 74)
+            targetWidth = math.max(naturalWidth + 10, point.minWidth or 74)
         elseif wrap then
             targetWidth = clamp(
                 math.floor((naturalWidth + 18) * (point.widthScale or 0.72)),
@@ -569,17 +570,20 @@ local function measureLabel(label, point, text, fontSize)
     end
 
     if multiLine then
-        targetWidth = math.max(targetWidth, naturalWidth + 12)
+        targetWidth = math.max(targetWidth, naturalWidth + 10)
     end
 
     label:SetWidth(targetWidth)
     if label.SetWordWrap then
         label:SetWordWrap(wrap and true or false)
     end
+    if label.SetNonSpaceWrap then
+        label:SetNonSpaceWrap(wrap and true or false)
+    end
     label:SetText(text)
 
     local labelWidth = targetWidth
-    local labelHeight = math.max(fontSize + 4, math.ceil(label:GetStringHeight() or 0))
+    local labelHeight = math.max(fontSize + 4, naturalHeight, math.ceil(label:GetStringHeight() or 0))
     return labelWidth, labelHeight
 end
 

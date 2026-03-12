@@ -29,7 +29,14 @@ local function addBulletLine(lines, text)
 end
 
 local function colorize(text, colorHex)
-    return string.format("|cff%s%s|r", tostring(colorHex or "ffffffff"), tostring(text or ""))
+    local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
+    if #hex == 6 then
+        hex = "ff" .. hex
+    end
+    if #hex ~= 8 then
+        hex = "ffffffff"
+    end
+    return string.format("|c%s%s|r", hex, tostring(text or ""))
 end
 
 local QUEST_TITLE_COLOR = "fff4e2a0"

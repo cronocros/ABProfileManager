@@ -6,7 +6,7 @@
 연락처: `crono1232@gmail.com`
 
 현재 상태:
-- `v1.3.9`
+- `v1.3.10`
 - 1차 출시 완료
 - 기존 핵심 기능 인게임 동작 확인 완료
 - `전문기술 자동 추적` / `한밤(Midnight) 지도 오버레이` 개선 반영 완료
@@ -20,6 +20,7 @@
 - `Midnight 공식 던전 / 구렁 / 공격대 분류 재검증` / `지도 라벨 수동 줄바꿈 보호` 반영 완료
 - `전문기술 카드 포인트 블록 재배치` / `퀘스트 후보 목록 색상 계층화` 반영 완료
 - `메인 UI / 오버레이 z-order 정책 분리` / `지도 refresh 안전장치 보강` 반영 완료
+- `지도 내부맵 오버레이 차단` / `전문기술 TomTom waypoint` 반영 완료
 - GitHub 원격 업로드 완료
 - 보안 점검 및 입력 검증 보강 완료
 
@@ -27,10 +28,10 @@
 
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 릴리스 버전: `v1.3.9`
-- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.9/ABProfileManager-v1.3.9.zip`
-- 로컬 배포 패키지: [ABProfileManager-v1.3.9.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.9.zip)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.9.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.9.md)
+- 릴리스 버전: `v1.3.10`
+- GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.10/ABProfileManager-v1.3.10.zip`
+- 로컬 배포 패키지: [ABProfileManager-v1.3.10.zip](E:\Dev_ai\wowadon\dist\ABProfileManager-v1.3.10.zip)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.10.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.10.md)
 
 ## 한눈에 보기
 
@@ -97,6 +98,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - 상세 / 요약 / 최소 3단 표시 모드
   - `XS / S / M / L / XL` 5단계 크기 조절
   - 드래그 이동 / 위치 저장
+  - TomTom 설치 시 row 우클릭으로 다음 미완료 1회성 보물 waypoint 설정
 - 한밤(Midnight) 지도 오버레이
   - 실버문 도심 주요 시설 가독성 중심 글자 표시
   - 포탈 이름, 정복 상인, 전문기술 허브, 교역소, 형상변환, 암시장 표시
@@ -132,7 +134,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## UI 구성
 
 - 메인 창 상단 제목:
-  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.9`
+  - `액션바매니저 (ABProfileManager) 제작자 : 밍밍이와코코  v1.3.10`
 - `현재 접속 캐릭터` 탭:
   - 현재 캐릭터 정보
   - 직업 / 특성 아이콘
@@ -211,7 +213,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - profession별 수치는 최신 가이드 기준으로 내장했지만, 향후 핫픽스로 달라질 수 있습니다.
 - 한밤(Midnight) 지도 오버레이는 `한밤(Midnight)` 주요 지도와 쿠엘다나스 섬 기준의 정적 좌표와 안내 라벨을 사용합니다.
 - 한밤(Midnight) 지도 오버레이 글자 크기는 지도 확대 / 축소 상태에 따라 완만하게 조정됩니다.
-- profession 툴팁 이름은 한국어 클라이언트에서 퀘스트명을 우선 읽고, 나머지는 내장 번역 규칙으로 보정합니다.
+- profession 툴팁 이름은 한국어 클라이언트에서 퀘스트명을 우선 읽고, 1회성 보물은 필요 시 고유 영어명 fallback을 사용합니다.
+- TomTom waypoint 기능은 TomTom 설치가 필요합니다.
 - 하단 요약창의 오른쪽 끝 정렬은 사용자 요청으로 후순위 보류 상태입니다.
 - 이 작업 환경에는 `lua`/`luac`가 없지만, 이번 버전은 `luaparser` 기반 정적 문법 파싱을 실행했습니다.
 - 메인 타이틀과 설정의 버전 표시는 `.toc` 메타데이터를 기준으로 동적으로 읽습니다.
@@ -227,7 +230,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 참고 문서
 
 - 변경 이력: [CHANGELOG.md](E:\Dev_ai\wowadon\CHANGELOG.md)
-- 릴리스 노트: [RELEASE_NOTES_v1.3.9.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.9.md)
+- 릴리스 노트: [RELEASE_NOTES_v1.3.10.md](E:\Dev_ai\wowadon\RELEASE_NOTES_v1.3.10.md)
 - 보안 점검: [SECURITY_REVIEW.md](E:\Dev_ai\wowadon\SECURITY_REVIEW.md)
 - 최종 설계: [ABPM_FINAL_DESIGN.md](E:\Dev_ai\wowadon\ABPM_FINAL_DESIGN.md)
 - 인수인계 문서: [ABPM_HANDOFF.md](E:\Dev_ai\wowadon\ABPM_HANDOFF.md)

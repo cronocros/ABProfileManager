@@ -259,6 +259,53 @@ function Tracker:GetObjectiveDisplayName(objective)
     return translateObjectiveName(objective.name or "")
 end
 
+function Tracker:GetTreasureWaypoint(professionKey, objectiveRow)
+    local waypointData = ns.Data and ns.Data.ProfessionKnowledgeWaypoints and ns.Data.ProfessionKnowledgeWaypoints.treasures
+    local professionWaypoints = waypointData and waypointData[professionKey]
+    if not professionWaypoints or not objectiveRow then
+        return nil
+    end
+
+    for _, questID in ipairs(objectiveRow.questIDs or {}) do
+        local waypoint = professionWaypoints[tonumber(questID) or 0]
+        if waypoint then
+            return waypoint
+        end
+    end
+
+    local rawName = objectiveRow.rawName
+    if rawName and professionWaypoints[rawName] then
+        return professionWaypoints[rawName]
+    end
+
+    return nil
+end
+
+function Tracker:GetNextTreasureWaypoint(professionKey)
+    local treasureRow = self:EvaluateSource(professionKey, "treasures")
+    if not treasureRow then
+        return nil
+    end
+
+    for _, objectiveRow in ipairs(treasureRow.objectiveRows or {}) do
+        if not objectiveRow.complete then
+            local waypoint = self:GetTreasureWaypoint(professionKey, objectiveRow)
+            if waypoint then
+                return {
+                    professionKey = professionKey,
+                    objective = objectiveRow,
+                    mapID = waypoint.mapID,
+                    x = waypoint.x,
+                    y = waypoint.y,
+                    title = waypoint.title or objectiveRow.name or "",
+                }
+            end
+        end
+    end
+
+    return nil
+end
+
 function Tracker:IsQuestComplete(questID)
     questID = tonumber(questID)
     if not questID or questID <= 0 then
@@ -362,19 +409,26 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
         end
         maxPoints = maxPoints + points
 
+        local rawName = objective and objective.name or ""
         local objectiveName = self:GetObjectiveDisplayName(objective)
         if language == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN) then
             local rawName = objective and objective.name or ""
             if rawName ~= "" and objectiveName == rawName then
-                objectiveName = string.format("%s %d", ns.L(sourceDefinition.labelKey), index)
+                if sectionKey == "oneTime" and sourceDefinition.key == "treasures" then
+                    objectiveName = rawName
+                else
+                    objectiveName = string.format("%s %d", ns.L(sourceDefinition.labelKey), index)
+                end
             end
         end
 
         objectiveRows[#objectiveRows + 1] = {
             index = index,
             name = objectiveName,
+            rawName = rawName,
             points = points,
             complete = isComplete,
+            questIDs = ns.Utils.DeepCopy(objective.questIDs or {}),
         }
     end
 

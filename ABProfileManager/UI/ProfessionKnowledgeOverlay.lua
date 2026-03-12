@@ -17,8 +17,8 @@ local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
 local ICON_SIZE = 18
-local DETAIL_PREFIX_WIDTH = 46
-local DETAIL_DIVIDER_WIDTH = 10
+local DETAIL_PREFIX_WIDTH = 56
+local DETAIL_DIVIDER_WIDTH = 12
 local OVERLAY_MODE_EXPANDED = "expanded"
 local OVERLAY_MODE_COMPACT = "compact"
 local OVERLAY_MODE_MINI = "mini"
@@ -48,6 +48,17 @@ local function applyTextStyle(fontString, size, r, g, b)
         fontString:SetShadowOffset(1, -1)
         fontString:SetShadowColor(0, 0, 0, 0.85)
     end
+end
+
+local function wrapColor(text, colorHex)
+    local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
+    if #hex == 6 then
+        hex = "ff" .. hex
+    end
+    if #hex ~= 8 then
+        hex = "ffffffff"
+    end
+    return string.format("|c%s%s|r", hex, tostring(text or ""))
 end
 
 local function getOverlayConfig()
@@ -141,7 +152,7 @@ local function buildRowFragments(rows, limit)
         end
     end
 
-    return table.concat(fragments, " | ")
+    return table.concat(fragments, " · ")
 end
 
 local function appendTooltipSection(lines, title, rows)
@@ -158,11 +169,9 @@ local function appendTooltipSection(lines, title, rows)
             local nameColor = objective.complete and "ff8f9aa4" or "ffece9d8"
             local stateLabel = objective.complete and ns.L("professions_overlay_tooltip_done") or ns.L("professions_overlay_tooltip_pending")
             lines[#lines + 1] = string.format(
-                "  |cff%s%s|r |cff%s%s|r",
-                stateColor,
-                stateLabel,
-                nameColor,
-                objective.name or ""
+                "  %s %s",
+                wrapColor(stateLabel, stateColor),
+                wrapColor(objective.name or "", nameColor)
             )
         end
     end
@@ -189,6 +198,26 @@ local function buildOverlayTooltipLines(professionEntry)
 
     appendTooltipSection(lines, ns.L("professions_overlay_tooltip_weekly"), sections[1] and sections[1].rows or {})
     appendTooltipSection(lines, ns.L("professions_overlay_tooltip_onetime"), sections[2] and sections[2].rows or {})
+
+    local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
+    local tomTom = ns.Modules and ns.Modules.TomTomBridge
+    if tracker then
+        local waypoint = tracker:GetNextTreasureWaypoint(professionEntry.key)
+        if waypoint and tomTom and tomTom:IsAvailable() then
+            lines[#lines + 1] = ""
+            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_header")
+            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_ready", waypoint.objective and waypoint.objective.name or "")
+        elseif tomTom and tomTom:IsAvailable() then
+            lines[#lines + 1] = ""
+            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_header")
+            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_none")
+        else
+            lines[#lines + 1] = ""
+            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_header")
+            lines[#lines + 1] = ns.L("professions_overlay_tooltip_tomtom_missing")
+        end
+    end
+
     return lines
 end
 
@@ -296,6 +325,42 @@ function ProfessionKnowledgeOverlay:CreateRow()
         end
     end)
     row:SetScript("OnLeave", GameTooltip_Hide)
+    row:RegisterForClicks("RightButtonUp")
+    row:SetScript("OnClick", function(currentRow, button)
+        if button ~= "RightButton" then
+            return
+        end
+
+        local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
+        local tomTom = ns.Modules and ns.Modules.TomTomBridge
+        local professionKey = currentRow.professionKey
+        if not tracker or not professionKey then
+            return
+        end
+
+        if not tomTom or not tomTom:IsAvailable() then
+            ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("tomtom_missing"))
+            return
+        end
+
+        local waypoint = tracker:GetNextTreasureWaypoint(professionKey)
+        if not waypoint then
+            ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("tomtom_no_pending_treasure"))
+            return
+        end
+
+        local _, err = tomTom:AddWaypoint(waypoint.mapID, waypoint.x, waypoint.y, waypoint.title)
+        if err then
+            ns:SafeCall(ns.UI.MainWindow, "SetStatus", err)
+            return
+        end
+
+        ns:SafeCall(
+            ns.UI.MainWindow,
+            "SetStatus",
+            ns.L("tomtom_waypoint_set", waypoint.objective and waypoint.objective.name or waypoint.title or "")
+        )
+    end)
 
     row.icon = row:CreateTexture(nil, "OVERLAY")
     row.icon:SetSize(ICON_SIZE, ICON_SIZE)
@@ -313,7 +378,7 @@ function ProfessionKnowledgeOverlay:CreateRow()
     row.weeklyPrefix:SetPoint("TOPLEFT", row.summary, "BOTTOMLEFT", 0, -4)
     row.weeklyPrefix:SetWidth(DETAIL_PREFIX_WIDTH)
     applyTextStyle(row.weeklyPrefix, DETAIL_SIZE, 0.98, 0.88, 0.52)
-    row.weeklyPrefix:SetJustifyH("RIGHT")
+    row.weeklyPrefix:SetJustifyH("LEFT")
 
     row.weeklyDivider = row:CreateFontString(nil, "OVERLAY")
     row.weeklyDivider:SetPoint("TOPLEFT", row.weeklyPrefix, "TOPRIGHT", 2, 0)
@@ -329,7 +394,7 @@ function ProfessionKnowledgeOverlay:CreateRow()
     row.oneTimePrefix:SetPoint("TOPLEFT", row.weeklyPrefix, "BOTTOMLEFT", 0, -3)
     row.oneTimePrefix:SetWidth(DETAIL_PREFIX_WIDTH)
     applyTextStyle(row.oneTimePrefix, DETAIL_SIZE, 0.98, 0.88, 0.52)
-    row.oneTimePrefix:SetJustifyH("RIGHT")
+    row.oneTimePrefix:SetJustifyH("LEFT")
 
     row.oneTimeDivider = row:CreateFontString(nil, "OVERLAY")
     row.oneTimeDivider:SetPoint("TOPLEFT", row.oneTimePrefix, "TOPRIGHT", 2, 0)
@@ -370,6 +435,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
         and summary.oneTimeEarned >= summary.oneTimeMax
 
     row.icon:SetTexture(professionEntry.icon or ns.Constants.DEFAULT_ICON)
+    row.professionKey = professionEntry.key
     row.title:SetText(tracker:GetProfessionDisplayName(professionEntry))
     row.summary:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
     local totalSummary = ns.L(

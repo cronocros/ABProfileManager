@@ -106,6 +106,7 @@ local function buildOverviewText()
         ns.L("config_overview_hint_window"),
         ns.L("config_overview_hint_drag"),
         ns.L("config_overview_hint_map"),
+        ns.L("config_overview_hint_tomtom"),
         ns.L("config_overview_hint_debug"),
         "",
         authorLine,

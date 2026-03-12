@@ -7,10 +7,10 @@ local HEADER_HINT_WIDTH = 540
 local CONTROL_FRAME_WIDTH = 252
 local CARD_WIDTH = 420
 local CARD_HEIGHT = 560
-local ROW_HEIGHT = 44
-local ROW_RIGHT_PADDING = 12
-local ROW_VALUE_WIDTH = 58
-local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 18
+local ROW_HEIGHT = 48
+local ROW_RIGHT_PADDING = 10
+local ROW_VALUE_WIDTH = 70
+local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 24
 local MAX_ROWS = 8
 local OVERLAY_SCALE_OPTIONS = {
     { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
@@ -126,7 +126,7 @@ function ProfessionPanel:CreateRow(parent, offsetY)
     row.valueAmount = row.valueBlock:CreateFontString(nil, "OVERLAY")
     row.valueAmount:SetPoint("TOP", row.valueLabel, "BOTTOM", 0, -1)
     row.valueAmount:SetWidth(ROW_VALUE_WIDTH)
-    applyText(row.valueAmount, 12, 1.00, 0.86, 0.42, false)
+    applyText(row.valueAmount, 13, 1.00, 0.86, 0.42, false)
     row.valueAmount:SetJustifyH("CENTER")
 
     row:SetScript("OnEnter", function(currentRow)

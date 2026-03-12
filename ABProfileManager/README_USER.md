@@ -6,7 +6,7 @@
 
 현재 캐릭터의 액션바를 템플릿으로 저장하고, 필요할 때 전체 또는 일부 범위만 다시 적용할 수 있습니다.
 
-버전: `v1.3.9`
+버전: `v1.3.10`
 상태: 1차 출시 완료
 
 제작: `밍밍이와코코`
@@ -17,7 +17,7 @@
 
 최신 다운로드:
 - 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.9/ABProfileManager-v1.3.9.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.10/ABProfileManager-v1.3.10.zip`
 
 ## 한눈에 보는 핵심
 
@@ -55,6 +55,7 @@
   - 상세 / 요약 / 최소 3단 표시 모드
   - `XS / S / M / L / XL` 5단계 크기 조절
   - 드래그 이동 / 위치 저장
+  - TomTom 설치 시 row 우클릭으로 다음 미완료 1회성 보물 waypoint 설정
 - 한밤(Midnight) 지도 오버레이
   - 실버문 도심 주요 시설, 포탈 이름, 던전 / 구렁 / 공격대 입구, 평판 상인 위치를 읽기 쉬운 글자로 표시
   - Midnight 공식 던전 / 구렁 / 공격대 분류를 다시 검증해 잘못된 라벨 섞임과 map 오배치를 줄이도록 정리
@@ -99,6 +100,7 @@
 - 각 profession 카드 하단의 `재스캔` 버튼으로 완료 플래그를 다시 읽을 수 있습니다.
 - 전문기술 오버레이 상세 모드에서는 마우스 오버로 주간/1회성 획득원과 objective 상태를 툴팁으로 확인할 수 있습니다.
 - 오버레이 요약은 한국어 기준으로 더 촘촘하게 압축해 작은 폭에서도 읽기 쉽게 정리했습니다.
+- TomTom이 설치되어 있으면 전문기술 오버레이 row를 우클릭해 다음 미완료 1회성 보물 waypoint를 바로 찍을 수 있습니다.
 
 ## 템플릿 탭
 
@@ -173,6 +175,8 @@
 - 제작 주문, catch-up 같은 일부 예외 획득원은 아직 별도 자동 집계하지 않습니다.
 - 한밤(Midnight) 지도 오버레이는 `한밤(Midnight)` 주요 지도와 쿠엘다나스 섬 기준의 정적 좌표를 사용합니다.
 - profession 툴팁 이름은 한국어 클라이언트에서 퀘스트명을 우선 사용하고, 일부는 내장 번역 규칙으로 보정합니다.
+- 1회성 보물은 한국어명이 모호하면 고유 영어명으로 표시될 수 있습니다.
+- TomTom waypoint 기능은 TomTom 설치가 필요합니다.
 
 ## 스탯 오버레이
 
