@@ -7,17 +7,18 @@
 
 ## 현재 버전
 
-- `v1.3.12`
+- `v1.3.13`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.12/ABProfileManager-v1.3.12.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.3.12.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.12.md](./RELEASE_NOTES_v1.3.12.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.13/ABProfileManager-v1.3.13.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.3.13.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.13.md](./RELEASE_NOTES_v1.3.13.md)
 
 ## 왜 쓰는가
 
 - 특성 전환이나 캐릭터 교체 뒤에 엉킨 액션바를 템플릿으로 빠르게 되돌릴 수 있습니다.
 - 매주 챙겨야 하는 전문기술 포인트를 자동 추적하고, 오버레이로 바로 확인할 수 있습니다.
+- TomTom 설치 시 미완료 1회성 전문기술 보물 waypoint를 바로 찍을 수 있습니다.
 - 한밤(Midnight) 지도에서 포탈, 주요 시설, 던전, 구렁, 공격대 입구를 글자로 바로 찾을 수 있습니다.
 - 퀘스트 정리, 스탯 오버레이, 미니맵 버튼까지 함께 제공해 반복 점검 시간을 줄입니다.
 
@@ -34,6 +35,7 @@
   - `상세 / 요약 / 최소` 3단 보기
   - `XS / S / M / L / XL` 5단계 크기
   - 드래그 이동과 위치 저장
+  - TomTom 설치 시 미완료 1회성 보물 waypoint 선택
 - 캐릭터 스탯 오버레이
   - `캐릭터 직업 - 특성(아이템레벨)` 헤더
   - 치명/가속/특화/유연과 특성 우선순위 표시
@@ -68,6 +70,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 3. `액션바` 탭에서 비교 또는 적용 범위 선택
 4. 필요한 경우 동기화 또는 되돌리기 실행
 5. `전문기술` 탭과 오버레이로 이번 주 포인트 진행 확인
+6. TomTom이 있으면 `1회성` 줄 우클릭으로 미완료 보물 waypoint 선택
 
 ## 현재 포함된 화면
 
@@ -84,7 +87,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - profession 카드와 오버레이는 캐릭터별 진행도를 자동 계산합니다.
 - 한국어 클라이언트에서는 퀘스트 제목을 우선 사용하고, 일부 1회성 보물은 고유 영어명을 fallback으로 사용합니다.
 - TomTom 연동은 선택 기능입니다.
-- 현재 하란다르와 공허폭풍의 일부 1회성 보물 waypoint는 해당 지역 안에 있을 때만 TomTom이 안정적으로 찍는 것으로 확인되어, 안내 문구와 제한 메시지를 반영했습니다.
+- 미완료 1회성 보물은 profession 오버레이의 `1회성` 줄 우클릭으로 TomTom waypoint를 찍을 수 있습니다.
+- 하란다르와 공허폭풍 일부 보물은 별도 지역 지도라서, 해당 지역에 들어가면 TomTom waypoint가 정상적으로 생성됩니다.
 
 ## 한밤(Midnight) 지도 메모
 
@@ -106,6 +110,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 사용자 안내: [ABProfileManager/README_USER.md](./ABProfileManager/README_USER.md)
 - 소개 문구: [ABProfileManager/ADDON_INTRO.txt](./ABProfileManager/ADDON_INTRO.txt)
 - 문서 색인: [DOC/README.md](./DOC/README.md)
+- 서브 에이전트 팀: [sub/README.md](./sub/README.md)
 - 아키텍처: [DOC/ARCHITECTURE.md](./DOC/ARCHITECTURE.md)
 - 인수인계: [DOC/HANDOFF.md](./DOC/HANDOFF.md)
 - 보안 검토: [DOC/SECURITY_REVIEW.md](./DOC/SECURITY_REVIEW.md)

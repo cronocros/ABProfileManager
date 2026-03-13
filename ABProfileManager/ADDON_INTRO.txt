@@ -2,13 +2,14 @@ ABProfileManager
 
 액션바가 꼬일 때는 빠르게 복구하고, 전문기술 포인트는 놓치지 않고, 한밤(Midnight) 지역 길찾기는 지도에서 바로 끝내고 싶은 플레이어를 위한 WoW Retail 애드온입니다.
 
-버전: v1.3.12
+버전: v1.3.13
 제작: 밍밍이와코코
 연락처: crono1232@gmail.com
 
 [왜 써야 하나]
 - 특성 전환 뒤 엉킨 액션바를 템플릿으로 바로 복구할 수 있습니다.
 - 전문기술 포인트를 캐릭터별로 자동 추적해 매주 체크 시간을 줄여줍니다.
+- TomTom 설치 시 미완료 1회성 전문기술 보물 waypoint를 바로 찍을 수 있습니다.
 - 한밤(Midnight) 지역의 포탈, 주요 시설, 던전, 구렁, 공격대 입구를 지도 위 글자로 바로 찾을 수 있습니다.
 - 퀘스트 정리, 스탯 오버레이, 미니맵 버튼까지 함께 제공해 반복 관리 시간을 줄여줍니다.
 
@@ -21,6 +22,7 @@ ABProfileManager
 2. 전문기술 포인트 자동 추적
 - 주간 / 1회성 획득원 자동 추적
 - profession 카드와 profession 오버레이 동시 제공
+- TomTom 설치 시 미완료 1회성 보물 waypoint 지원
 - 상세 / 요약 / 최소 3단 보기
 - 5단계 크기 조절 지원
 
@@ -42,4 +44,4 @@ ABProfileManager
 [다운로드]
 - 저장소: https://github.com/cronocros/ABProfileManager
 - 최신 릴리스: https://github.com/cronocros/ABProfileManager/releases/latest
-- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.12/ABProfileManager-v1.3.12.zip
+- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.13/ABProfileManager-v1.3.13.zip

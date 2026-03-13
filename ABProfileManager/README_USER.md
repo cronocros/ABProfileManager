@@ -6,18 +6,19 @@
 2. 전문기술 포인트를 매주 체크하기
 3. 한밤(Midnight) 지역에서 필요한 위치를 바로 찾기
 
-버전: `v1.3.12`
+버전: `v1.3.13`
 제작: `밍밍이와코코`
 연락처: `crono1232@gmail.com`
 
 다운로드:
 - 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.12/ABProfileManager-v1.3.12.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.13/ABProfileManager-v1.3.13.zip`
 
 ## 핵심 기능
 
 - 액션바 템플릿 저장, 복제, 비교, 부분 적용, 동기화, 최근 1회 되돌리기
 - 전문기술 포인트 자동 추적 카드와 오버레이
+- TomTom 설치 시 미완료 1회성 전문기술 보물 waypoint 지원
 - 한밤(Midnight) 지도 오버레이
 - 퀘스트 정리와 퀘스트 상세 바로 열기
 - 캐릭터 스탯 오버레이
@@ -35,7 +36,8 @@
 2. `현재 접속 캐릭터` 탭에서 템플릿 저장
 3. `액션바` 탭에서 비교 또는 적용 범위 선택
 4. `전문기술` 탭과 오버레이로 이번 주 포인트 확인
-5. 필요하면 `퀘스트` 탭에서 안전 정리 실행
+5. TomTom이 있으면 `1회성` 줄 우클릭으로 미완료 보물 waypoint 선택
+6. 필요하면 `퀘스트` 탭에서 안전 정리 실행
 
 ## 전문기술
 
@@ -45,8 +47,9 @@
 - 오버레이는 `상세 / 요약 / 최소` 3단 보기와 `XS / S / M / L / XL` 5단 크기를 지원합니다.
 - 1회성 보물은 한국어명이 모호하면 고유 영어명 fallback을 사용합니다.
 - TomTom 연동은 선택 기능입니다.
-  - 하란다르와 공허폭풍의 일부 1회성 보물 waypoint는 현재 해당 지역 안에 있을 때만 안정적으로 찍히는 것으로 확인되었습니다.
-  - profession 오버레이 panel과 상태 메시지에는 이 제한 안내가 함께 표시됩니다.
+  - 미완료 1회성 보물은 profession 오버레이의 `1회성` 줄 우클릭으로 waypoint를 찍을 수 있습니다.
+  - 하란다르와 공허폭풍 일부 보물은 별도 지역 지도라서, 해당 지역에 들어가면 TomTom waypoint가 정상적으로 생성됩니다.
+  - profession 오버레이 panel과 상태 메시지에는 이 동작 설명이 함께 표시됩니다.
 
 ## 한밤(Midnight) 지도 오버레이
 

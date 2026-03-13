@@ -4,8 +4,10 @@
 
 ## 현재 문서
 
-- [../RELEASE_NOTES_v1.3.12.md](../RELEASE_NOTES_v1.3.12.md)
+- [../RELEASE_NOTES_v1.3.13.md](../RELEASE_NOTES_v1.3.13.md)
   - 최신 릴리스 노트
+- [../sub/README.md](../sub/README.md)
+  - 문서 담당, 소스 검수 담당, 총괄 담당으로 나눈 서브 에이전트 운영 규칙
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 최신 구조, 모듈 책임, 데이터 흐름
 - [HANDOFF.md](./HANDOFF.md)
