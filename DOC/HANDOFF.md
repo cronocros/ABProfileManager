@@ -125,6 +125,7 @@
 ## 문서 위치
 
 - 루트 사용자 문서: `README.md`
+- 배포용 소개 텍스트: `ABProfileManager/ADDON_INTRO.txt`
 - 기술 문서 색인: `DOC/README.md`
 - 아키텍처: `DOC/ARCHITECTURE.md`
 - 보안 검토: `DOC/SECURITY_REVIEW.md`

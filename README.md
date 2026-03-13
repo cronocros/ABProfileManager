@@ -115,6 +115,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## 문서
 
 - 기본 사용자 안내: 이 문서
+- 배포용 소개 텍스트: [ABProfileManager/ADDON_INTRO.txt](./ABProfileManager/ADDON_INTRO.txt)
 - 문서 색인: [DOC/README.md](./DOC/README.md)
 - 서브 에이전트 팀: [sub/README.md](./sub/README.md)
 - 아키텍처: [DOC/ARCHITECTURE.md](./DOC/ARCHITECTURE.md)

@@ -7,6 +7,7 @@
 ## 담당 범위
 
 - `README.md`
+- `ABProfileManager/ADDON_INTRO.txt`
 - `CHANGELOG.md`
 - `RELEASE_NOTES_v*.md`
 - `DOC/*.md`
