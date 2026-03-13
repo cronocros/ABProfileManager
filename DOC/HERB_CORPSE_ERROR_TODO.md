@@ -1,6 +1,6 @@
 # Herb Corpse Error TODO
 
-기준 버전: `v1.3.13`
+기준 버전: `v1.3.15`
 
 ## 증상
 
@@ -18,7 +18,7 @@
 
 2. 채집 후 갱신 원인
    - 현재 애드온은 채집 후 자주 발생하는 `QUEST_LOG_UPDATE`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `SKILL_LINES_CHANGED`에서 profession/quest UI를 즉시 다시 그린다.
-   - 이 경로는 `pcall` 보호가 없어서 내부 nil 접근이나 포맷 문제 하나만 있어도 그대로 Lua 오류로 전파된다.
+   - `v1.3.14`부터 1차 보호 경로는 들어갔지만, 이벤트 원문과 실제 트리거 시점이 아직 확정되지 않아 추가 추적이 필요하다.
    - 따라서 `채집 성공 직후` 또는 `드랍이 가방에 들어간 직후` 오류가 뜬다면 현재 애드온이 원인일 가능성이 충분하다.
 
 ## 코드 근거
@@ -29,10 +29,10 @@
 - `ABProfileManager/Core.lua`
   - `ns:SafeCall()`은 이름과 달리 `pcall` 방어가 없다
 - `ABProfileManager/UI/ProfessionKnowledgeOverlay.lua`
-  - `Refresh()`와 `RefreshRow()`가 tracker/data/UI 값을 직접 신뢰하고 그림
+  - `Refresh()`와 `RefreshRow()`는 tracker/data/UI 값을 직접 소비하는 경로라 입력 상태 이상에 민감하다
 - 비교 기준
   - `ABProfileManager/UI/SilvermoonMapOverlay.lua`는 `Refresh()`에 `pcall` 방어가 이미 들어가 있음
-  - profession overlay와 quest panel에는 같은 안전장치가 없음
+  - profession overlay와 quest panel도 이제 1차 보호는 들어갔지만, 동일 수준의 공통 refresh 래퍼와 trace는 아직 없다
 
 ## 1차 결론
 
@@ -41,6 +41,12 @@
 - 그래서 현 시점 판단은 다음과 같다
   - 직접 트리거: 다른 애드온 가능성 높음
   - 후속 갱신 크래시: 현재 애드온 가능성 높음
+
+## 현재 반영 상태
+
+- `v1.3.14`에서 profession/quest refresh 보호와 `LOOT_CLOSED` 기반 재확인 경로를 추가했다.
+- `v1.3.15`에서는 profession 오버레이 tooltip 폭과 요약 표기를 정리했지만, 이 이슈의 직접 재현 여부는 아직 인게임 재확인이 필요하다.
+- 따라서 지금 상태는 `보호 코드 적용 완료, 실제 구렁/던전 시체 약초채집 재현 테스트 대기`다.
 
 ## TODO
 
@@ -63,11 +69,11 @@
    - 창을 연 뒤 재현
    - 차이가 나면 `QuestPanel` 또는 `ProfessionPanel` refresh 연쇄를 우선 본다
 
-5. 방어 코드 추가
+5. 방어 코드 추가 점검
    - `ProfessionKnowledgeOverlay:Refresh()`
    - `ProfessionPanel:Refresh()`
    - `QuestPanel:Refresh()`
-   - 위 세 경로에 `pcall` + 최소 로그를 추가
+   - 위 세 경로의 1차 보호가 실제 blank Lua 창을 멈추는지 재현으로 확인
 
 6. 공통 호출기 정리
    - `ns:SafeCall()`을 실제로 안전하게 바꾸거나
@@ -88,7 +94,7 @@
 
 - P1: `ABProfileManager` 단독 재현 여부 확인
 - P1: profession overlay 끈 상태 비교
-- P1: refresh 경로 `pcall` 방어 추가
+- P1: 구렁/던전 내부 실제 재현 재확인
 - P2: 이벤트별 debug trace 추가
 - P2: 다른 애드온과 충돌 조합 식별
 

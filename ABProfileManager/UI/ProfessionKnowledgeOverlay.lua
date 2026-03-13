@@ -19,6 +19,7 @@ local ROW_GAP = 8
 local ICON_SIZE = 18
 local DETAIL_PREFIX_WIDTH = 42
 local DETAIL_DIVIDER_WIDTH = 0
+local TOOLTIP_MIN_WIDTH = 420
 local HOVER_PANEL_WIDTH = 276
 local HOVER_PANEL_PADDING = 8
 local HOVER_PANEL_ROW_HEIGHT = 18
@@ -187,22 +188,21 @@ local function getDetailPrefixText(sectionKey)
     return ns.L("professions_overlay_prefix_onetime") .. ":"
 end
 
+local function formatPointProgress(currentValue, maxValue, withSuffix)
+    local pattern = withSuffix and "%d/%dP" or "%d/%d"
+    return string.format(pattern, currentValue or 0, maxValue or 0)
+end
+
 local function buildRowFragments(rows, limit)
     local fragments = {}
-    local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or nil
-    local isKorean = language == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN)
     local maxRows = math.min(#(rows or {}), limit or #(rows or {}))
     for index = 1, maxRows do
         local row = rows[index]
         local countText = colorize(
-            string.format("%d/%d", row.earned or 0, row.maxPoints or 0),
+            formatPointProgress(row.earned, row.maxPoints, false),
             row.complete and getCompleteColorHex() or getPendingColorHex()
         )
-        if isKorean then
-            fragments[#fragments + 1] = string.format("%s %s", getSourceShortLabel(row), countText)
-        else
-            fragments[#fragments + 1] = string.format("%s %s", getSourceShortLabel(row), countText)
-        end
+        fragments[#fragments + 1] = string.format("%s %s", getSourceShortLabel(row), countText)
     end
 
     return table.concat(fragments, "   ·   ")
@@ -380,7 +380,7 @@ local function showRowTooltip(owner, lines)
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     if GameTooltip.SetMinimumWidth then
-        GameTooltip:SetMinimumWidth(360)
+        GameTooltip:SetMinimumWidth(TOOLTIP_MIN_WIDTH)
     end
     GameTooltip:SetText(lines[1], 1, 0.86, 0.40)
     for index = 2, #lines do
@@ -873,48 +873,26 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     row.professionKey = professionEntry.key
     row.title:SetText(tracker:GetProfessionDisplayName(professionEntry))
     row.summary:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
-    local totalSummary = ns.L(
-        "professions_overlay_row",
-        summary and summary.weeklyEarned or 0,
-        summary and summary.weeklyMax or 0,
-        summary and summary.oneTimeEarned or 0,
-        summary and summary.oneTimeMax or 0
-    )
 
     local weeklyLine = buildRowFragments(weeklyRows, 4)
     local oneTimeLine = buildRowFragments(oneTimeRows, 4)
-    local compactLine = buildRowFragments(weeklyRows, 2)
-    if oneTimeRows[1] then
-        local parts = {}
-        if compactLine ~= "" then
-            parts[#parts + 1] = compactLine
-        end
-
-        local oneTimeCompact = buildRowFragments(oneTimeRows, 2)
-        if oneTimeCompact ~= "" then
-            parts[#parts + 1] = oneTimeCompact
-        end
-
-        compactLine = table.concat(parts, "   ")
-    end
-
     local weeklySummaryComplete = summary and summary.weeklyMax > 0 and summary.weeklyEarned >= summary.weeklyMax
     local oneTimeSummaryComplete = summary and summary.oneTimeMax > 0 and summary.oneTimeEarned >= summary.oneTimeMax
     local coloredSummary = string.format(
         "◆ %s %s       ◆ %s %s",
         ns.L("professions_overlay_prefix_weekly"),
         colorize(
-            string.format("%d/%d", summary and summary.weeklyEarned or 0, summary and summary.weeklyMax or 0),
+            formatPointProgress(summary and summary.weeklyEarned or 0, summary and summary.weeklyMax or 0, true),
             weeklySummaryComplete and getCompleteColorHex() or getPendingColorHex()
         ),
         ns.L("professions_overlay_prefix_onetime"),
         colorize(
-            string.format("%d/%d", summary and summary.oneTimeEarned or 0, summary and summary.oneTimeMax or 0),
+            formatPointProgress(summary and summary.oneTimeEarned or 0, summary and summary.oneTimeMax or 0, true),
             oneTimeSummaryComplete and getCompleteColorHex() or getPendingColorHex()
         )
     )
 
-    row.summary:SetText(displayMode == OVERLAY_MODE_COMPACT and compactLine ~= "" and compactLine or coloredSummary)
+    row.summary:SetText(coloredSummary)
     if fullyComplete then
         row.title:SetTextColor(0.72, 1.00, 0.78, 1)
         row.summary:SetTextColor(0.70, 0.98, 0.80, 1)
@@ -924,21 +902,6 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     end
 
     local detailWidth = math.max(contentWidth - ICON_SIZE - 8 - DETAIL_PREFIX_WIDTH - 4, 120)
-    local weeklyComplete = #weeklyRows > 0
-    for _, weeklyRow in ipairs(weeklyRows) do
-        if not weeklyRow.complete then
-            weeklyComplete = false
-            break
-        end
-    end
-    local oneTimeComplete = #oneTimeRows > 0
-    for _, oneTimeRow in ipairs(oneTimeRows) do
-        if not oneTimeRow.complete then
-            oneTimeComplete = false
-            break
-        end
-    end
-
     row.weeklyPrefix:SetText(getDetailPrefixText("weekly"))
     row.weeklyDivider:SetText("")
     row.weeklyDetails:SetWidth(detailWidth)

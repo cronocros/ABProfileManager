@@ -1,6 +1,6 @@
 # Project Review TODO
 
-기준 버전: `v1.3.13`
+기준 버전: `v1.3.15`
 
 프로젝트 전체를 다시 훑어본 기준으로, 지금 우선순위는 아래 4개 축으로 정리된다.
 
@@ -8,7 +8,8 @@
 
 1. profession / quest refresh 보호
    - `Events.lua`에서 `QUEST_LOG_UPDATE`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `SKILL_LINES_CHANGED`가 profession/quest UI refresh를 바로 호출한다.
-   - `ProfessionKnowledgeOverlay`, `ProfessionPanel`, `QuestPanel`은 현재 `pcall` 보호가 없다.
+   - `ProfessionKnowledgeOverlay`, `ProfessionPanel`, `QuestPanel`에는 1차 보호가 반영됐지만, 공통 래퍼와 이벤트 trace는 아직 정리되지 않았다.
+   - 상태: 1차 보호 반영 완료. 남은 일은 실제 구렁/던전 시체 약초채집 재현 재확인이다.
 
 2. refresh 디버그 추적 추가
    - 빈 Lua 오류창은 현재 코드만으로는 원문 추적이 어렵다.
@@ -26,7 +27,7 @@
 
 1. profession 오버레이 툴팁 표기 통일
    - 완료/전체 항목과 포인트 표기를 한글 기준으로 더 읽기 쉽게 유지
-   - 이번 요청인 `1/1개 . 3/3P` 반영
+   - 상태: `1/1개 . 3/3P`, 상단 `주간 0/0P`, `1회성 0/0P`, tooltip 폭 확대 반영 완료
 
 2. profession 오버레이 힌트 강화
    - `1회성` 우클릭 TomTom panel은 기능은 있으나 발견성이 낮다.

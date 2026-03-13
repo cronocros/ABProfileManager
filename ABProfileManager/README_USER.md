@@ -6,13 +6,13 @@
 2. 전문기술 포인트를 매주 체크하기
 3. 한밤(Midnight) 지역에서 필요한 위치를 바로 찾기
 
-버전: `v1.3.14`
+버전: `v1.3.15`
 제작: `밍밍이와코코`
 연락처: `crono1232@gmail.com`
 
 다운로드:
 - 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.14/ABProfileManager-v1.3.14.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.15/ABProfileManager-v1.3.15.zip`
 
 ## 핵심 기능
 
@@ -45,6 +45,8 @@
 - 주간 획득원과 1회성 획득원을 숨은 퀘스트/완료 플래그 기준으로 자동 계산합니다.
 - profession 카드 하단의 `재스캔`으로 다시 읽을 수 있습니다.
 - 오버레이는 `상세 / 요약 / 최소` 3단 보기와 `XS / S / M / L / XL` 5단 크기를 지원합니다.
+- 오버레이 상단 요약은 `주간 0/0P`, `1회성 0/0P` 형식으로 맞췄고, 상세 하위 줄은 기존 `0/0` 포맷을 유지합니다.
+- 오버레이 tooltip은 긴 획득원 이름과 TomTom 안내를 덜 답답하게 읽을 수 있도록 가로폭을 넓혔습니다.
 - 1회성 보물은 한국어명이 모호하면 고유 영어명 fallback을 사용합니다.
 - TomTom 연동은 선택 기능입니다.
   - 미완료 1회성 보물은 profession 오버레이의 `1회성` 줄 우클릭으로 waypoint를 찍을 수 있습니다.

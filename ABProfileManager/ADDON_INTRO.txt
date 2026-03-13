@@ -2,7 +2,7 @@ ABProfileManager
 
 액션바가 꼬일 때는 빠르게 복구하고, 전문기술 포인트는 놓치지 않고, 한밤(Midnight) 지역 길찾기는 지도에서 바로 끝내고 싶은 플레이어를 위한 WoW Retail 애드온입니다.
 
-버전: v1.3.14
+버전: v1.3.15
 제작: 밍밍이와코코
 연락처: crono1232@gmail.com
 
@@ -25,6 +25,7 @@ ABProfileManager
 - TomTom 설치 시 미완료 1회성 보물 waypoint 지원
 - 상세 / 요약 / 최소 3단 보기
 - 5단계 크기 조절 지원
+- 오버레이 상단 요약 포인트 표기 통일과 tooltip 가독성 보강
 
 3. 한밤(Midnight) 지도 오버레이
 - 실버문과 외부 지역 주요 위치를 읽기 쉬운 글자로 표시
@@ -44,4 +45,4 @@ ABProfileManager
 [다운로드]
 - 저장소: https://github.com/cronocros/ABProfileManager
 - 최신 릴리스: https://github.com/cronocros/ABProfileManager/releases/latest
-- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.14/ABProfileManager-v1.3.14.zip
+- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.15/ABProfileManager-v1.3.15.zip

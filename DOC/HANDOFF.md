@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.3.14`
+버전 기준: `v1.3.15`
 
 ## 현재 상태
 
@@ -17,6 +17,8 @@
 - profession/quest refresh는 내부 예외를 보호하도록 보강
 - loot 종료 후 profession refresh를 다시 확인하도록 연결
 - profession 오버레이 tooltip 진행 표기를 `1/1개 . 3/3P` 형식으로 정리
+- profession 오버레이 상단 요약을 `주간 0/0P`, `1회성 0/0P` 형식으로 통일
+- profession 오버레이 tooltip 최소 폭을 넓혀 긴 이름과 안내 문구 가독성을 보강
 
 ## 현재 핵심 기능
 
@@ -57,6 +59,7 @@
 - profession/quest refresh는 이제 보호 경로를 거친다
 - 채집/루팅 직후 연속 이벤트는 짧게 합쳐 처리한다
 - `LOOT_CLOSED` 이후에도 profession refresh를 다시 확인해 1회성 완료 반영 누락 가능성을 줄였다
+- 구렁 내부 시체 약초채집의 실제 오류 재현 여부는 아직 인게임 재확인 대기 상태다
 
 운영 메모:
 
