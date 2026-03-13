@@ -14,13 +14,12 @@
 - 로컬 패키지: `dist/ABProfileManager-v1.3.16.zip`
 - 최신 릴리스 노트: [RELEASE_NOTES_v1.3.16.md](./RELEASE_NOTES_v1.3.16.md)
 
-## 왜 쓰는가
+## 요약
 
-- 특성 전환이나 캐릭터 교체 뒤에 엉킨 액션바를 템플릿으로 빠르게 되돌릴 수 있습니다.
-- 매주 챙겨야 하는 전문기술 포인트를 자동 추적하고, 오버레이로 바로 확인할 수 있습니다.
-- TomTom 설치 시 미완료 1회성 전문기술 보물 waypoint를 바로 찍을 수 있습니다.
-- 한밤(Midnight) 지도에서 포탈, 주요 시설, 던전, 구렁, 공격대 입구를 글자로 바로 찾을 수 있습니다.
-- 퀘스트 정리, 스탯 오버레이, 미니맵 버튼까지 함께 제공해 반복 점검 시간을 줄입니다.
+- 특성 전환이나 캐릭터 변경 뒤 엉킨 액션바를 템플릿으로 복구
+- 전문기술 포인트와 1회성 보물을 자동 추적
+- 한밤(Midnight) 지도에서 포탈, 시설, 던전, 구렁 위치를 텍스트 오버레이로 확인
+- 설정 탭에서 전투메시지 CVar를 직접 제어
 
 ## 핵심 기능
 
@@ -69,7 +68,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\
 World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.toc
 ```
 
-## 빠른 사용 흐름
+## 빠른 시작
 
 1. `/abpm` 입력
 2. `현재 접속 캐릭터` 탭에서 템플릿 저장
@@ -77,6 +76,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 4. 필요한 경우 동기화 또는 되돌리기 실행
 5. `전문기술` 탭과 오버레이로 이번 주 포인트 진행 확인
 6. TomTom이 있으면 `1회성` 줄 우클릭으로 미완료 보물 waypoint 선택
+7. `설정` 탭에서 전투메시지 모드와 표시 여부 조정
 
 ## 현재 포함된 화면
 
@@ -88,7 +88,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 
 설정은 와우 `설정 > 애드온 > ABProfileManager` 아래에서도 경량 하위 페이지로 접근할 수 있습니다.
 
-## 전문기술 기능 메모
+## 전문기술 메모
 
 - profession 카드와 오버레이는 캐릭터별 진행도를 자동 계산합니다.
 - 한국어 클라이언트에서는 퀘스트 제목을 우선 사용하고, 일부 1회성 보물은 고유 영어명을 fallback으로 사용합니다.
@@ -96,7 +96,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 미완료 1회성 보물은 profession 오버레이의 `1회성` 줄 우클릭으로 TomTom waypoint를 찍을 수 있습니다.
 - 하란다르와 공허폭풍 일부 보물은 별도 지역 지도라서, 해당 지역에 들어가면 TomTom waypoint가 정상적으로 생성됩니다.
 
-## 한밤(Midnight) 지도 메모
+## 지도 메모
 
 - 지도 오버레이는 외부 월드맵 기준으로만 보이도록 보수적으로 제한했습니다.
 - 라벨은 길이 규칙, 수동 줄바꿈 예외, 겹침 완화, 줌 보정을 함께 적용합니다.
@@ -110,11 +110,11 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `10~12번` 특수 바는 현재 별도 매핑하지 않습니다.
 - 전체 퀘스트 포기는 포기 가능한 퀘스트만 대상으로 합니다.
 - 제작 주문, catch-up 같은 일부 profession 예외 획득원은 아직 별도 자동 집계하지 않습니다.
+- 전투메시지 설정은 최신 Midnight CVar 기준으로 동작하며, 다른 전투메시지 애드온이 값을 다시 덮어쓰면 우선순위에 따라 달라질 수 있습니다.
 
 ## 문서
 
-- 사용자 안내: [ABProfileManager/README_USER.md](./ABProfileManager/README_USER.md)
-- 소개 문구: [ABProfileManager/ADDON_INTRO.txt](./ABProfileManager/ADDON_INTRO.txt)
+- 기본 사용자 안내: 이 문서
 - 문서 색인: [DOC/README.md](./DOC/README.md)
 - 서브 에이전트 팀: [sub/README.md](./sub/README.md)
 - 아키텍처: [DOC/ARCHITECTURE.md](./DOC/ARCHITECTURE.md)
@@ -122,13 +122,3 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 보안 검토: [DOC/SECURITY_REVIEW.md](./DOC/SECURITY_REVIEW.md)
 - 배포 절차: [DOC/RELEASE_PROCESS.md](./DOC/RELEASE_PROCESS.md)
 - 이전 릴리스 노트: [DOC/archive/release-notes](./DOC/archive/release-notes)
-
-## 이미지 경로 준비
-
-스크린샷과 릴리스 이미지는 `DOC/assets/images/` 아래에 두면 됩니다.
-
-예시:
-
-```md
-![메인 창](DOC/assets/images/main-window.png)
-```

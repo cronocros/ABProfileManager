@@ -10,8 +10,6 @@
 - `CHANGELOG.md`
 - `RELEASE_NOTES_v*.md`
 - `DOC/*.md`
-- `ABProfileManager/README_USER.md`
-- `ABProfileManager/ADDON_INTRO.txt`
 
 ## 핵심 책임
 
