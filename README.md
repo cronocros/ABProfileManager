@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.3.15`
+- `v1.3.16`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.15/ABProfileManager-v1.3.15.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.3.15.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.15.md](./RELEASE_NOTES_v1.3.15.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.16/ABProfileManager-v1.3.16.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.3.16.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.16.md](./RELEASE_NOTES_v1.3.16.md)
 
 ## 왜 쓰는가
 
@@ -37,6 +37,11 @@
   - 드래그 이동과 위치 저장
   - 상단 요약은 `주간 0/0P`, `1회성 0/0P` 형식으로 통일
   - TomTom 설치 시 미완료 1회성 보물 waypoint 선택
+- 전투메시지 설정
+  - 게임 옵션에 안 보이는 Midnight 전투메시지 CVar를 설정 탭에서 직접 제어
+  - `위로 / 아래로 / 부채꼴` 모드 선택
+  - 전투메시지, 피해 숫자, 치유 숫자, 방향성 피해 분산 on/off
+  - 로그인/월드 진입 시 선택한 프리셋 재적용
 - 캐릭터 스탯 오버레이
   - `캐릭터 직업 - 특성(아이템레벨)` 헤더
   - 치명/가속/특화/유연과 특성 우선순위 표시

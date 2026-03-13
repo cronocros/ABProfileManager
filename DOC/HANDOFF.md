@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.3.15`
+버전 기준: `v1.3.16`
 
 ## 현재 상태
 
@@ -19,6 +19,8 @@
 - profession 오버레이 tooltip 진행 표기를 `1/1개 . 3/3P` 형식으로 정리
 - profession 오버레이 상단 요약을 `주간 0/0P`, `1회성 0/0P` 형식으로 통일
 - profession 오버레이 tooltip 최소 폭을 넓혀 긴 이름과 안내 문구 가독성을 보강
+- Midnight 전투메시지 CVar를 설정 탭에서 직접 제어하는 섹션을 추가
+- 선택한 전투메시지 프리셋은 로그인과 월드 진입 때 다시 적용된다
 
 ## 현재 핵심 기능
 
@@ -59,14 +61,27 @@
 - profession/quest refresh는 이제 보호 경로를 거친다
 - 채집/루팅 직후 연속 이벤트는 짧게 합쳐 처리한다
 - `LOOT_CLOSED` 이후에도 profession refresh를 다시 확인해 1회성 완료 반영 누락 가능성을 줄였다
-- 구렁 내부 시체 약초채집의 실제 오류 재현 여부는 아직 인게임 재확인 대기 상태다
+- 최신 사용자 피드백 기준으로 구렁/던전 시체 약초채집 blank Lua 오류는 재현되지 않았다
+- 다만 다른 애드온 조합과 장기 운용까지 완전 종결된 것은 아니므로 관찰 메모는 유지한다
 
 운영 메모:
 
 - 시체 채집/보물 채집 관련 제보가 오면 `Events.lua`, `UI/ProfessionKnowledgeOverlay.lua`, `UI/ProfessionPanel.lua`, `UI/QuestPanel.lua`를 먼저 본다
 - 오류 원문이 필요하면 `/abpm debug on`과 기본 Lua 오류 표시를 같이 켜고 본다
 
-### 3. 지도 좌표 보정
+### 3. 전투메시지 CVar 직접 제어
+
+- Midnight 최신 클라이언트는 일부 전투메시지 옵션이 기본 UI에서 잘 보이지 않는다
+- 현재는 `CombatTextManager`가 `_v2` CVar를 우선 사용하고, 없으면 구형 이름으로 fallback 한다
+- 사용자가 설정 탭에서 항목을 건드리면 해당 프리셋을 저장하고 바로 적용한다
+- `전투메시지 직접 제어`를 끄면 이후 로그인/월드 진입 때 강제 재적용하지 않는다
+
+운영 메모:
+
+- 전투메시지 모드 관련 제보가 오면 `Modules/CombatTextManager.lua`, `UI/ConfigPanel.lua`, `DB.lua`, `Events.lua`를 같이 본다
+- 모드 값은 `1=위로`, `2=아래로`, `3=부채꼴` 기준으로 저장한다
+
+### 4. 지도 좌표 보정
 
 - 정적 좌표 기반이라 패치 후 drift가 생길 수 있다
 - 보정은 `Data/SilvermoonMapData.lua`와 `UI/SilvermoonMapOverlay.lua`를 같이 수정한다
@@ -95,6 +110,7 @@
 
 - `ABProfileManager/Modules/ProfessionKnowledgeTracker.lua`
 - `ABProfileManager/Modules/TomTomBridge.lua`
+- `ABProfileManager/Modules/CombatTextManager.lua`
 - `ABProfileManager/Data/ProfessionKnowledge.lua`
 - `ABProfileManager/Data/ProfessionKnowledgeWaypoints.lua`
 - `ABProfileManager/Data/SilvermoonMapData.lua`
@@ -121,6 +137,7 @@
 
 - profession 카드 폭과 체크박스 레이아웃
 - profession overlay 상세/요약/최소
+- 전투메시지 설정 체크박스와 `위로 / 아래로 / 부채꼴` 버튼 선택 상태
 - 지도 오버레이 외부 월드맵만 표시되는지
 - 퀘스트 ID 링크 클릭
 - 스탯 overlay drag/hitbox

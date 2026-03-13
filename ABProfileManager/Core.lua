@@ -51,6 +51,7 @@ function ns:InitializeStartupModules()
         self.Modules.QuestManager,
         self.Modules.ProfessionKnowledgeTracker,
         self.Modules.TomTomBridge,
+        self.Modules.CombatTextManager,
         self.Commands,
         self.UI.ConfirmDialogs,
         self.UI.MinimapButton,

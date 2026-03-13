@@ -1,6 +1,6 @@
 # Release Process
 
-버전 기준: `v1.3.15`
+버전 기준: `v1.3.16`
 
 ## 패키징
 
@@ -11,8 +11,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package_release.ps1
 생성 결과:
 
 ```text
-dist\ABProfileManager-v1.3.15.zip
-backups\source\ABProfileManager-source-v1.3.15-<timestamp>.zip
+dist\ABProfileManager-v1.3.16.zip
+backups\source\ABProfileManager-source-v1.3.16-<timestamp>.zip
 ```
 
 ## 기본 검증
@@ -33,14 +33,14 @@ git diff --check
 
 ```powershell
 git add .
-git commit -m "Release v1.3.15"
+git commit -m "Release v1.3.16"
 git push origin main
 ```
 
 ## GitHub 릴리스
 
 ```powershell
-gh release create v1.3.15 "dist/ABProfileManager-v1.3.15.zip" --title "v1.3.15" --notes-file "RELEASE_NOTES_v1.3.15.md"
+gh release create v1.3.16 "dist/ABProfileManager-v1.3.16.zip" --title "v1.3.16" --notes-file "RELEASE_NOTES_v1.3.16.md"
 ```
 
 ## 문서 체크
@@ -52,7 +52,7 @@ gh release create v1.3.15 "dist/ABProfileManager-v1.3.15.zip" --title "v1.3.15" 
 - `DOC/HANDOFF.md`
 - `DOC/SECURITY_REVIEW.md`
 - `CHANGELOG.md`
-- `RELEASE_NOTES_v1.3.15.md`
+- `RELEASE_NOTES_v1.3.16.md`
 
 ## 보관 원칙
 

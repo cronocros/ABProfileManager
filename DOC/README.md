@@ -4,7 +4,7 @@
 
 ## 현재 문서
 
-- [../RELEASE_NOTES_v1.3.15.md](../RELEASE_NOTES_v1.3.15.md)
+- [../RELEASE_NOTES_v1.3.16.md](../RELEASE_NOTES_v1.3.16.md)
   - 최신 릴리스 노트
 - [../sub/README.md](../sub/README.md)
   - 문서 담당, 소스 검수 담당, 총괄 담당으로 나눈 서브 에이전트 운영 규칙

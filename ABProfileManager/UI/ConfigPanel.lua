@@ -16,6 +16,11 @@ local MAP_FILTER_OPTIONS = {
     { key = "dungeons", labelKey = "config_silvermoon_filter_dungeons" },
     { key = "delves", labelKey = "config_silvermoon_filter_delves" },
 }
+local COMBAT_TEXT_MODE_OPTIONS = {
+    { value = 1, labelKey = "config_combat_text_mode_up" },
+    { value = 2, labelKey = "config_combat_text_mode_down" },
+    { value = 3, labelKey = "config_combat_text_mode_arc" },
+}
 
 local function setStatus(target, message)
     local formatted = ns.Utils.FormatStatusMessage(message)
@@ -76,6 +81,18 @@ local function getStateLabel(enabled)
     return enabled and ns.L("state_enabled") or ns.L("state_disabled")
 end
 
+local function getCombatTextModeLabelKey(mode)
+    local numeric = tonumber(mode)
+    if numeric == 1 then
+        return "config_combat_text_mode_up"
+    end
+    if numeric == 2 then
+        return "config_combat_text_mode_down"
+    end
+
+    return "config_combat_text_mode_arc"
+end
+
 local function buildOverviewText()
     local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
     local lastScan = tracker and tracker.GetLastScanLabel and tracker:GetLastScanLabel() or ""
@@ -97,6 +114,11 @@ local function buildOverviewText()
             getStateLabel(ns.DB:IsStatsOverlayEnabled()),
             getStateLabel(ns.DB:IsProfessionKnowledgeOverlayEnabled()),
             getStateLabel(ns.DB:IsSilvermoonMapOverlayEnabled())
+        ),
+        ns.L(
+            "config_overview_combat_text",
+            getStateLabel(ns.DB:IsCombatTextManaged()),
+            ns.L(getCombatTextModeLabelKey(ns.DB:GetCombatTextFloatMode()))
         ),
         ns.L("config_overview_profession_scan", lastScan),
         ns.L("config_overview_debug", getStateLabel(ns.DB:IsDebugEnabled())),
@@ -181,6 +203,59 @@ function ConfigPanel:ApplyMouseMoveRestore(enabled, refs)
     setStatus(refs, ns.L("config_saved_mouse_move_restore", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplyCombatTextManaged(enabled, refs)
+    ns.DB:SetCombatTextManaged(enabled)
+    if enabled then
+        local manager = ns.Modules and ns.Modules.CombatTextManager
+        if not manager or manager:ApplyConfiguredSettings() == false then
+            ns:RefreshUI()
+            setStatus(refs, ns.L("config_saved_combat_text_apply_failed"))
+            return
+        end
+    end
+
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_combat_text_managed", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplyCombatTextField(refs, statusMessage)
+    local manager = ns.Modules and ns.Modules.CombatTextManager
+    ns.DB:SetCombatTextManaged(true)
+    if not manager or manager:ApplyConfiguredSettings() == false then
+        ns:RefreshUI()
+        setStatus(refs, ns.L("config_saved_combat_text_apply_failed"))
+        return
+    end
+
+    ns:RefreshUI()
+    setStatus(refs, statusMessage)
+end
+
+function ConfigPanel:ApplyCombatTextEnabled(enabled, refs)
+    ns.DB:SetCombatTextEnabled(enabled)
+    self:ApplyCombatTextField(refs, ns.L("config_saved_combat_text_enabled", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplyCombatTextDamage(enabled, refs)
+    ns.DB:SetCombatTextDamageEnabled(enabled)
+    self:ApplyCombatTextField(refs, ns.L("config_saved_combat_text_damage", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplyCombatTextHealing(enabled, refs)
+    ns.DB:SetCombatTextHealingEnabled(enabled)
+    self:ApplyCombatTextField(refs, ns.L("config_saved_combat_text_healing", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplyCombatTextDirectionalDamage(enabled, refs)
+    ns.DB:SetCombatTextDirectionalDamageEnabled(enabled)
+    self:ApplyCombatTextField(refs, ns.L("config_saved_combat_text_directional", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplyCombatTextMode(mode, refs, labelKey)
+    ns.DB:SetCombatTextFloatMode(mode)
+    self:ApplyCombatTextField(refs, ns.L("config_saved_combat_text_mode", ns.L(labelKey)))
+end
+
 function ConfigPanel:BindControlSet(refs)
     refs.koreanButton:SetScript("OnClick", function()
         self:ApplyLanguage(ns.Constants.LANGUAGE.KOREAN, refs)
@@ -234,6 +309,34 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyMouseMoveRestore(currentCheck:GetChecked(), refs)
     end)
 
+    refs.combatTextManageCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyCombatTextManaged(currentCheck:GetChecked(), refs)
+    end)
+
+    refs.combatTextEnabledCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyCombatTextEnabled(currentCheck:GetChecked(), refs)
+    end)
+
+    refs.combatTextDamageCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyCombatTextDamage(currentCheck:GetChecked(), refs)
+    end)
+
+    refs.combatTextHealingCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyCombatTextHealing(currentCheck:GetChecked(), refs)
+    end)
+
+    refs.combatTextDirectionalCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyCombatTextDirectionalDamage(currentCheck:GetChecked(), refs)
+    end)
+
+    for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
+        local optionValue = option.value
+        local optionLabelKey = option.labelKey
+        refs.combatTextModeButtons[index]:SetScript("OnClick", function()
+            self:ApplyCombatTextMode(optionValue, refs, optionLabelKey)
+        end)
+    end
+
     if refs.openWindowButton then
         refs.openWindowButton:SetScript("OnClick", showMainWindow)
     end
@@ -257,6 +360,14 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
     refs.professionOverlayLabel:SetText(ns.L("config_profession_overlay"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
+    refs.combatTextLabel:SetText(ns.L("config_combat_text"))
+    refs.combatTextManageCheck.Text:SetText(ns.L("config_combat_text_managed"))
+    refs.combatTextEnabledCheck.Text:SetText(ns.L("config_combat_text_enabled"))
+    refs.combatTextDamageCheck.Text:SetText(ns.L("config_combat_text_damage"))
+    refs.combatTextHealingCheck.Text:SetText(ns.L("config_combat_text_healing"))
+    refs.combatTextDirectionalLabel:SetText(ns.L("config_combat_text_directional_label"))
+    refs.combatTextDirectionalCheck.Text:SetText(ns.L("config_combat_text_directional"))
+    refs.combatTextModeLabel:SetText(ns.L("config_combat_text_mode"))
     refs.statsOverlayLabel:SetText(ns.L("config_stats_overlay"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.statsScaleLabel:SetText(ns.L("config_stats_overlay_size_label"))
@@ -273,6 +384,11 @@ function ConfigPanel:RefreshControlSet(refs)
     for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
         refs.statsScaleButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
         ns.UI.Widgets.SetButtonSelected(refs.statsScaleButtons[index], index == selectedScaleIndex)
+    end
+    local currentCombatTextMode = ns.DB:GetCombatTextFloatMode()
+    for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
+        refs.combatTextModeButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
+        ns.UI.Widgets.SetButtonSelected(refs.combatTextModeButtons[index], option.value == currentCombatTextMode)
     end
     refs.silvermoonMapLabel:SetText(ns.L("config_silvermoon_map"))
     refs.silvermoonMapCheck.Text:SetText(ns.L("config_silvermoon_map_show"))
@@ -294,6 +410,11 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.debugCheck:SetChecked(ns.DB:IsDebugEnabled())
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
+    refs.combatTextManageCheck:SetChecked(ns.DB:IsCombatTextManaged())
+    refs.combatTextEnabledCheck:SetChecked(ns.DB:IsCombatTextEnabled())
+    refs.combatTextDamageCheck:SetChecked(ns.DB:IsCombatTextDamageEnabled())
+    refs.combatTextHealingCheck:SetChecked(ns.DB:IsCombatTextHealingEnabled())
+    refs.combatTextDirectionalCheck:SetChecked(ns.DB:IsCombatTextDirectionalDamageEnabled())
     refs.silvermoonMapCheck:SetChecked(ns.DB:IsSilvermoonMapOverlayEnabled())
     refs.mouseMoveRestoreCheck:SetChecked(ns.DB:IsMouseMoveRestoreEnabled())
     ns.UI.Widgets.SetButtonSelected(refs.koreanButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN)
@@ -314,7 +435,7 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local settingsBoxHeight = options.settingsBoxHeight or 382
+    local settingsBoxHeight = options.settingsBoxHeight or 438
 
     local languageBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
@@ -338,6 +459,32 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.professionOverlayLabel = widgets.CreateLabel(languageBox, "", refs.debugCheck, 4, -12, "GameFontHighlight")
     refs.professionOverlayCheck = widgets.CreateCheckButton(languageBox, "")
     refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.professionOverlayLabel, "BOTTOMLEFT", -4, -6)
+    refs.combatTextLabel = widgets.CreateLabel(languageBox, "", refs.professionOverlayCheck, 4, -12, "GameFontHighlight")
+    refs.combatTextManageCheck = widgets.CreateCheckButton(languageBox, "")
+    refs.combatTextManageCheck:SetPoint("TOPLEFT", refs.combatTextLabel, "BOTTOMLEFT", -4, -6)
+    refs.combatTextEnabledCheck = widgets.CreateCheckButton(languageBox, "")
+    refs.combatTextEnabledCheck:SetPoint("TOPLEFT", refs.combatTextManageCheck, "BOTTOMLEFT", 0, -2)
+    refs.combatTextDamageCheck = widgets.CreateCheckButton(languageBox, "")
+    refs.combatTextDamageCheck:SetPoint("TOPLEFT", refs.combatTextEnabledCheck, "BOTTOMLEFT", 0, -2)
+    refs.combatTextHealingCheck = widgets.CreateCheckButton(languageBox, "")
+    refs.combatTextHealingCheck:SetPoint("TOPLEFT", refs.combatTextDamageCheck, "BOTTOMLEFT", 0, -2)
+    refs.combatTextDirectionalLabel = widgets.CreateLabel(languageBox, "", refs.combatTextHealingCheck, 4, -8, "GameFontHighlight")
+    refs.combatTextDirectionalCheck = widgets.CreateCheckButton(languageBox, "")
+    refs.combatTextDirectionalCheck:SetPoint("TOPLEFT", refs.combatTextDirectionalLabel, "BOTTOMLEFT", -4, -6)
+    refs.combatTextModeLabel = widgets.CreateLabel(languageBox, "", refs.combatTextDirectionalCheck, 4, -8, "GameFontHighlight")
+    refs.combatTextModeButtons = {}
+    local previousCombatModeButton = nil
+    local combatModeButtonWidth = math.max(54, math.floor((textWidth - 8) / 3))
+    for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
+        local button = widgets.CreateButton(languageBox, "", combatModeButtonWidth, 20)
+        if previousCombatModeButton then
+            button:SetPoint("LEFT", previousCombatModeButton, "RIGHT", 4, 0)
+        else
+            button:SetPoint("TOPLEFT", refs.combatTextModeLabel, "BOTTOMLEFT", 0, -6)
+        end
+        refs.combatTextModeButtons[index] = button
+        previousCombatModeButton = button
+    end
 
     local overlayBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
     overlayBox:SetPoint("LEFT", languageBox, "RIGHT", columnGap, 0)
@@ -400,6 +547,16 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.debugCheck.Text:SetJustifyH("LEFT")
     refs.professionOverlayCheck.Text:SetWidth(textWidth)
     refs.professionOverlayCheck.Text:SetJustifyH("LEFT")
+    refs.combatTextManageCheck.Text:SetWidth(textWidth)
+    refs.combatTextManageCheck.Text:SetJustifyH("LEFT")
+    refs.combatTextEnabledCheck.Text:SetWidth(textWidth)
+    refs.combatTextEnabledCheck.Text:SetJustifyH("LEFT")
+    refs.combatTextDamageCheck.Text:SetWidth(textWidth)
+    refs.combatTextDamageCheck.Text:SetJustifyH("LEFT")
+    refs.combatTextHealingCheck.Text:SetWidth(textWidth)
+    refs.combatTextHealingCheck.Text:SetJustifyH("LEFT")
+    refs.combatTextDirectionalCheck.Text:SetWidth(textWidth)
+    refs.combatTextDirectionalCheck.Text:SetJustifyH("LEFT")
     refs.statsOverlayCheck.Text:SetWidth(textWidth)
     refs.statsOverlayCheck.Text:SetJustifyH("LEFT")
     refs.silvermoonMapCheck.Text:SetWidth(textWidth)
@@ -434,7 +591,7 @@ function ConfigPanel:RegisterSettingsCategory()
     if not panel then
         panel = CreateFrame("Frame", "ABPMSettingsCategoryPanel", UIParent)
         panel.name = ns.Constants.TITLE
-        panel:SetSize(660, 620)
+        panel:SetSize(660, 700)
 
         self.settingsFrame = panel
         self.settingsRefs = self:BuildControlSet(panel, {
@@ -445,7 +602,7 @@ function ConfigPanel:RegisterSettingsCategory()
             textWidth = 264,
             helpWidth = 612,
             statusWidth = 612,
-            settingsBoxHeight = 352,
+            settingsBoxHeight = 438,
             helpBoxHeight = 172,
             overviewHeight = 102,
         })
@@ -504,6 +661,7 @@ function ConfigPanel:Create(parent)
         titleY = -20,
         showOpenButton = false,
         statusWidth = 852,
+        settingsBoxHeight = 438,
     })
 
     self.title = self.mainRefs.title

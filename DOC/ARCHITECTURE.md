@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.3.15`
+버전 기준: `v1.3.16`
 
 ## 목적
 
@@ -76,6 +76,12 @@
   - 상단 요약은 모드와 무관하게 `주간 x/xP`, `1회성 x/xP` 형식을 사용
   - 상세 하위 행은 source별 `x/x` 포인트 표기를 유지
   - tooltip은 넓은 최소 폭으로 긴 이름과 TomTom 안내 줄바꿈을 완화
+- `Modules/CombatTextManager.lua`
+  - Midnight 최신 전투메시지 `_v2` CVar와 구형 이름 fallback을 함께 관리
+  - 현재 클라이언트 값을 읽어 초기 스냅샷을 만들고, 사용자가 켠 프리셋만 다시 적용
+- `UI/ConfigPanel.lua`
+  - 전투메시지 직접 제어 섹션 추가
+  - `기본 전투메시지 / 피해 / 치유 / 방향성 피해 분산 / 표시 모드`를 설정
 - `Modules/TomTomBridge.lua`
   - TomTom 선택적 연동
   - 하란다르/공허폭풍 일부 1회성 보물은 해당 지역 진입 후 waypoint 생성 안내를 포함

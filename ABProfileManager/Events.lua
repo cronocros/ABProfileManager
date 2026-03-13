@@ -88,6 +88,21 @@ local function ensureMouseMoveSetting()
     end
 end
 
+local function ensureCombatTextSettings()
+    local manager = ns.Modules and ns.Modules.CombatTextManager
+    if manager and manager.ApplyConfiguredSettings then
+        local ok, applied = pcall(function()
+            return manager:ApplyConfiguredSettings()
+        end)
+        if not ok or applied == false then
+            if ns.Utils and ns.Utils.Debug then
+                ns.Utils.Debug(string.format("Combat text CVar apply failed: %s", tostring(applied)))
+            end
+            ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("config_saved_combat_text_apply_failed"))
+        end
+    end
+end
+
 function Events:Initialize()
     frame:SetScript("OnEvent", function(_, event, ...)
         if type(self[event]) == "function" then
@@ -140,6 +155,7 @@ function Events:PLAYER_LOGIN()
     ns:SafeCall(ns.DB, "SetDebugEnabled", false)
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ensureMouseMoveSetting()
+    ensureCombatTextSettings()
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
     refreshStatsOverlay()
     runProfessionKnowledgeRefresh(true, "PLAYER_LOGIN")
@@ -153,6 +169,7 @@ end
 function Events:PLAYER_ENTERING_WORLD()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ensureMouseMoveSetting()
+    ensureCombatTextSettings()
     refreshGhostsAndRetries()
     runProfessionKnowledgeRefresh(true, "PLAYER_ENTERING_WORLD")
     ns:RefreshUI()

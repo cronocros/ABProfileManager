@@ -6,13 +6,13 @@
 2. 전문기술 포인트를 매주 체크하기
 3. 한밤(Midnight) 지역에서 필요한 위치를 바로 찾기
 
-버전: `v1.3.15`
+버전: `v1.3.16`
 제작: `밍밍이와코코`
 연락처: `crono1232@gmail.com`
 
 다운로드:
 - 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.15/ABProfileManager-v1.3.15.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.16/ABProfileManager-v1.3.16.zip`
 
 ## 핵심 기능
 
@@ -52,6 +52,13 @@
   - 미완료 1회성 보물은 profession 오버레이의 `1회성` 줄 우클릭으로 waypoint를 찍을 수 있습니다.
   - 하란다르와 공허폭풍 일부 보물은 별도 지역 지도라서, 해당 지역에 들어가면 TomTom waypoint가 정상적으로 생성됩니다.
   - profession 오버레이 panel과 상태 메시지에는 이 동작 설명이 함께 표시됩니다.
+
+## 전투메시지 설정
+
+- Midnight 최신 클라이언트에서 기본 옵션에 잘 보이지 않는 전투메시지 관련 CVar를 `설정` 탭에서 직접 제어할 수 있습니다.
+- `전투메시지 직접 제어`를 켜면 로그인과 월드 진입 때 선택한 값을 다시 적용합니다.
+- `기본 전투메시지`, `피해 숫자`, `치유 숫자`, `방향성 피해 숫자 분산`을 따로 켜고 끌 수 있습니다.
+- 표시 모드는 `위로 / 아래로 / 부채꼴` 세 가지로 제공합니다.
 
 ## 한밤(Midnight) 지도 오버레이
 

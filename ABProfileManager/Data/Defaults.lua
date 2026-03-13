@@ -30,6 +30,15 @@ ns.Data.Defaults = {
             mouseMoveRestore = {
                 enabled = false,
             },
+            combatText = {
+                managed = false,
+                enabled = true,
+                damage = true,
+                healing = true,
+                floatMode = 3,
+                directionalDamage = true,
+                initialized = false,
+            },
         },
     },
     characters = {},

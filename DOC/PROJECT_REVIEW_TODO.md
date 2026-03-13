@@ -1,6 +1,6 @@
 # Project Review TODO
 
-기준 버전: `v1.3.15`
+기준 버전: `v1.3.16`
 
 프로젝트 전체를 다시 훑어본 기준으로, 지금 우선순위는 아래 4개 축으로 정리된다.
 
@@ -9,7 +9,7 @@
 1. profession / quest refresh 보호
    - `Events.lua`에서 `QUEST_LOG_UPDATE`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `SKILL_LINES_CHANGED`가 profession/quest UI refresh를 바로 호출한다.
    - `ProfessionKnowledgeOverlay`, `ProfessionPanel`, `QuestPanel`에는 1차 보호가 반영됐지만, 공통 래퍼와 이벤트 trace는 아직 정리되지 않았다.
-   - 상태: 1차 보호 반영 완료. 남은 일은 실제 구렁/던전 시체 약초채집 재현 재확인이다.
+   - 상태: 1차 보호 반영 완료. 최신 사용자 피드백 기준 no-repro이며, 남은 일은 장기 관찰과 trace 정리다.
 
 2. refresh 디버그 추적 추가
    - 빈 Lua 오류창은 현재 코드만으로는 원문 추적이 어렵다.
@@ -36,6 +36,10 @@
 3. 오류 발생 시 사용자 피드백 보강
    - refresh 실패 시 조용히 깨지거나 빈 오류창만 뜨는 대신
    - 상태창에 `profession refresh 실패` 같은 최소 안내를 남기는 편이 낫다.
+
+4. 전투메시지 세부 조절 확장
+   - 현재는 `기본 전투메시지 / 피해 / 치유 / 방향성 분산 / 위로·아래로·부채꼴`까지만 제공한다.
+   - 세부 scale/offset, 주기피해, 펫 숫자 같은 고급 옵션은 필요하면 다음 단계에서 확장한다.
 
 ## P2 구조 정리
 

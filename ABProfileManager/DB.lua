@@ -277,6 +277,109 @@ function DB:SetMouseMoveRestoreEnabled(enabled)
     return self:IsMouseMoveRestoreEnabled()
 end
 
+function DB:GetCombatTextSettings()
+    local settings = self:GetGlobalSettings()
+    settings.combatText = settings.combatText or {
+        managed = false,
+        enabled = true,
+        damage = true,
+        healing = true,
+        floatMode = 3,
+        directionalDamage = true,
+        initialized = false,
+    }
+
+    local combatText = settings.combatText
+    if combatText.initialized ~= true then
+        local manager = ns.Modules and ns.Modules.CombatTextManager
+        local current = manager and manager.ReadCurrentSettings and manager:ReadCurrentSettings() or nil
+        if current then
+            combatText.enabled = current.enabled ~= false
+            combatText.damage = current.damage ~= false
+            combatText.healing = current.healing ~= false
+            combatText.floatMode = current.floatMode or combatText.floatMode or 3
+            combatText.directionalDamage = current.directionalDamage ~= false
+        else
+            combatText.enabled = combatText.enabled ~= false
+            combatText.damage = combatText.damage ~= false
+            combatText.healing = combatText.healing ~= false
+            combatText.floatMode = combatText.floatMode or 3
+            combatText.directionalDamage = combatText.directionalDamage ~= false
+        end
+        combatText.managed = combatText.managed and true or false
+        combatText.initialized = true
+    end
+
+    return combatText
+end
+
+function DB:IsCombatTextManaged()
+    return self:GetCombatTextSettings().managed and true or false
+end
+
+function DB:SetCombatTextManaged(enabled)
+    self:GetCombatTextSettings().managed = enabled and true or false
+    return self:IsCombatTextManaged()
+end
+
+function DB:IsCombatTextEnabled()
+    return self:GetCombatTextSettings().enabled ~= false
+end
+
+function DB:SetCombatTextEnabled(enabled)
+    self:GetCombatTextSettings().enabled = enabled and true or false
+    return self:IsCombatTextEnabled()
+end
+
+function DB:IsCombatTextDamageEnabled()
+    return self:GetCombatTextSettings().damage ~= false
+end
+
+function DB:SetCombatTextDamageEnabled(enabled)
+    self:GetCombatTextSettings().damage = enabled and true or false
+    return self:IsCombatTextDamageEnabled()
+end
+
+function DB:IsCombatTextHealingEnabled()
+    return self:GetCombatTextSettings().healing ~= false
+end
+
+function DB:SetCombatTextHealingEnabled(enabled)
+    self:GetCombatTextSettings().healing = enabled and true or false
+    return self:IsCombatTextHealingEnabled()
+end
+
+function DB:GetCombatTextFloatMode()
+    local manager = ns.Modules and ns.Modules.CombatTextManager
+    local value = self:GetCombatTextSettings().floatMode
+    if manager and manager.NormalizeFloatMode then
+        value = manager:NormalizeFloatMode(value)
+        self:GetCombatTextSettings().floatMode = value
+    end
+
+    return value or 3
+end
+
+function DB:SetCombatTextFloatMode(mode)
+    local manager = ns.Modules and ns.Modules.CombatTextManager
+    local value = mode
+    if manager and manager.NormalizeFloatMode then
+        value = manager:NormalizeFloatMode(mode)
+    end
+
+    self:GetCombatTextSettings().floatMode = value or 3
+    return self:GetCombatTextFloatMode()
+end
+
+function DB:IsCombatTextDirectionalDamageEnabled()
+    return self:GetCombatTextSettings().directionalDamage ~= false
+end
+
+function DB:SetCombatTextDirectionalDamageEnabled(enabled)
+    self:GetCombatTextSettings().directionalDamage = enabled and true or false
+    return self:IsCombatTextDirectionalDamageEnabled()
+end
+
 function DB:GetTemplate(templateName)
     templateName = ns.Utils.SanitizeSingleLine(templateName or "")
     if not templateName or templateName == "" then
