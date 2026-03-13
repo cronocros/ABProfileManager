@@ -5,6 +5,10 @@ ns.Events = Events
 
 local frame = CreateFrame("Frame")
 Events.frame = frame
+local PROFESSION_REFRESH_DELAY = 0.05
+local professionRefreshPending = false
+local professionRefreshForceScan = false
+local professionRefreshReason = nil
 
 local function refreshGhostsAndRetries()
     ns.Utils.Debug("Refreshing ghost overlays and retry queue")
@@ -17,15 +21,47 @@ local function refreshStatsOverlay()
     ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
 end
 
-local function refreshProfessionKnowledgeViews(forceScan)
-    if forceScan then
-        ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "RefreshQuestCache", true)
-    else
-        ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "MarkDirty")
+local function runProfessionKnowledgeRefresh(forceScan, reason)
+    local ok, err = pcall(function()
+        if forceScan then
+            ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "RefreshQuestCache", true)
+        else
+            ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "MarkDirty")
+        end
+
+        ns:SafeCall(ns.UI.ProfessionPanel, "Refresh")
+        ns:SafeCall(ns.UI.ProfessionKnowledgeOverlay, "Refresh")
+    end)
+
+    if not ok then
+        if ns.Utils and ns.Utils.Debug then
+            ns.Utils.Debug(string.format("Profession refresh failed (%s): %s", tostring(reason or "unknown"), tostring(err)))
+        end
+        ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("status_profession_refresh_failed"))
+    end
+end
+
+local function refreshProfessionKnowledgeViews(forceScan, reason)
+    if not C_Timer or type(C_Timer.After) ~= "function" then
+        runProfessionKnowledgeRefresh(forceScan, reason)
+        return
     end
 
-    ns:SafeCall(ns.UI.ProfessionPanel, "Refresh")
-    ns:SafeCall(ns.UI.ProfessionKnowledgeOverlay, "Refresh")
+    professionRefreshForceScan = professionRefreshForceScan or (forceScan and true or false)
+    professionRefreshReason = reason or professionRefreshReason
+    if professionRefreshPending then
+        return
+    end
+
+    professionRefreshPending = true
+    C_Timer.After(PROFESSION_REFRESH_DELAY, function()
+        professionRefreshPending = false
+        local pendingForceScan = professionRefreshForceScan
+        local pendingReason = professionRefreshReason
+        professionRefreshForceScan = false
+        professionRefreshReason = nil
+        runProfessionKnowledgeRefresh(pendingForceScan, pendingReason)
+    end)
 end
 
 local function ensureMouseMoveSetting()
@@ -96,6 +132,7 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("QUEST_TURNED_IN")
     frame:RegisterEvent("BAG_UPDATE_DELAYED")
     frame:RegisterEvent("BAG_NEW_ITEMS_UPDATED")
+    frame:RegisterEvent("LOOT_CLOSED")
 end
 
 function Events:PLAYER_LOGIN()
@@ -105,7 +142,7 @@ function Events:PLAYER_LOGIN()
     ensureMouseMoveSetting()
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
     refreshStatsOverlay()
-    refreshProfessionKnowledgeViews(true)
+    runProfessionKnowledgeRefresh(true, "PLAYER_LOGIN")
     ns.Utils.Print(ns.L("loaded_window_hint"))
 end
 
@@ -117,7 +154,7 @@ function Events:PLAYER_ENTERING_WORLD()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ensureMouseMoveSetting()
     refreshGhostsAndRetries()
-    refreshProfessionKnowledgeViews(true)
+    runProfessionKnowledgeRefresh(true, "PLAYER_ENTERING_WORLD")
     ns:RefreshUI()
 end
 
@@ -149,12 +186,12 @@ end
 
 function Events:PLAYER_SPECIALIZATION_CHANGED()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
-    refreshProfessionKnowledgeViews(true)
+    refreshProfessionKnowledgeViews(true, "PLAYER_SPECIALIZATION_CHANGED")
     ns:RefreshUI()
 end
 
 function Events:SKILL_LINES_CHANGED()
-    refreshProfessionKnowledgeViews(true)
+    refreshProfessionKnowledgeViews(true, "SKILL_LINES_CHANGED")
     ns:RefreshUI()
 end
 
@@ -205,19 +242,23 @@ end
 function Events:QUEST_LOG_UPDATE()
     ns:SafeCall(ns.Modules.QuestManager, "Invalidate")
     ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
-    refreshProfessionKnowledgeViews(false)
+    refreshProfessionKnowledgeViews(false, "QUEST_LOG_UPDATE")
 end
 
 function Events:QUEST_TURNED_IN()
-    refreshProfessionKnowledgeViews(true)
+    refreshProfessionKnowledgeViews(true, "QUEST_TURNED_IN")
 end
 
 function Events:BAG_UPDATE_DELAYED()
-    refreshProfessionKnowledgeViews(false)
+    refreshProfessionKnowledgeViews(false, "BAG_UPDATE_DELAYED")
 end
 
 function Events:BAG_NEW_ITEMS_UPDATED()
-    refreshProfessionKnowledgeViews(false)
+    refreshProfessionKnowledgeViews(false, "BAG_NEW_ITEMS_UPDATED")
+end
+
+function Events:LOOT_CLOSED()
+    refreshProfessionKnowledgeViews(false, "LOOT_CLOSED")
 end
 
 Events:Initialize()

@@ -6,13 +6,13 @@
 2. 전문기술 포인트를 매주 체크하기
 3. 한밤(Midnight) 지역에서 필요한 위치를 바로 찾기
 
-버전: `v1.3.13`
+버전: `v1.3.14`
 제작: `밍밍이와코코`
 연락처: `crono1232@gmail.com`
 
 다운로드:
 - 릴리스 페이지: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.13/ABProfileManager-v1.3.13.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.14/ABProfileManager-v1.3.14.zip`
 
 ## 핵심 기능
 

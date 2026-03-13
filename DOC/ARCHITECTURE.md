@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.3.13`
+버전 기준: `v1.3.14`
 
 ## 목적
 
@@ -164,6 +164,7 @@
 3. source별 objective 완료 상태 계산
 4. weekly/one-time section 합계 계산
 5. 카드/오버레이/툴팁용 파생 데이터 생성
+6. loot/quest/bag 계열 이벤트 후 refresh를 다시 합쳐 반영
 
 ### 지도 오버레이
 
@@ -176,6 +177,7 @@
 ## 안정성 메모
 
 - profession/TomTom 연동은 메인 기능에 영향을 주지 않도록 선택 기능으로 유지한다.
+- profession/quest refresh는 내부 예외가 나도 전체 UI를 깨뜨리지 않도록 보수적으로 처리한다.
 - 지도 오버레이는 refresh 중 예외가 나도 메인 UI를 깨뜨리지 않게 방어한다.
 - 와우 `설정 > 애드온`은 메인 창 재사용이 아니라 경량 패널만 사용한다.
 - 대규모 UI 리디자인보다 현재 배치 유지와 overflow 방지 보정을 우선한다.

@@ -421,7 +421,7 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
     end)
 end
 
-function ProfessionPanel:Refresh()
+function ProfessionPanel:RefreshInternal()
     if not self.frame then
         return
     end
@@ -449,4 +449,23 @@ function ProfessionPanel:Refresh()
 
     self:RefreshCard(self.cards[1], professions[1])
     self:RefreshCard(self.cards[2], professions[2])
+end
+
+function ProfessionPanel:Refresh()
+    if self.isRefreshing then
+        return
+    end
+
+    self.isRefreshing = true
+    local ok, err = pcall(function()
+        self:RefreshInternal()
+    end)
+    self.isRefreshing = false
+
+    if not ok then
+        if ns.Utils and ns.Utils.Debug then
+            ns.Utils.Debug("ProfessionPanel refresh failed: " .. tostring(err))
+        end
+        ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("status_profession_refresh_failed"))
+    end
 end

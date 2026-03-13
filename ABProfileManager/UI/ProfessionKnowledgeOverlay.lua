@@ -219,6 +219,16 @@ local function joinObjectiveNames(objectiveRows, complete)
     return table.concat(names, ", ")
 end
 
+local function formatTooltipCounts(row)
+    return ns.L(
+        "professions_overlay_tooltip_counts",
+        row and row.current or 0,
+        row and row.max or 0,
+        row and row.earned or 0,
+        row and row.maxPoints or 0
+    )
+end
+
 local function appendTooltipSection(lines, title, rows, showObjectives)
     if #(rows or {}) == 0 then
         return
@@ -227,7 +237,7 @@ local function appendTooltipSection(lines, title, rows, showObjectives)
     lines[#lines + 1] = string.format("● %s", title)
     for _, row in ipairs(rows or {}) do
         local countsText = colorize(
-            string.format("%d/%d · %d/%dP", row.current or 0, row.max or 0, row.earned or 0, row.maxPoints or 0),
+            formatTooltipCounts(row),
             row.complete and getCompleteColorHex() or getPendingColorHex()
         )
         lines[#lines + 1] = string.format(
@@ -971,7 +981,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     row:Show()
 end
 
-function ProfessionKnowledgeOverlay:Refresh()
+function ProfessionKnowledgeOverlay:RefreshInternal()
     if not self.frame then
         self:Initialize()
     end
@@ -1050,4 +1060,27 @@ function ProfessionKnowledgeOverlay:Refresh()
     )
     self.frame:SetSize(width, math.max(MIN_HEIGHT, totalHeight))
     self.frame:Show()
+end
+
+function ProfessionKnowledgeOverlay:Refresh()
+    if self.isRefreshing then
+        return
+    end
+
+    self.isRefreshing = true
+    local ok, err = pcall(function()
+        self:RefreshInternal()
+    end)
+    self.isRefreshing = false
+
+    if not ok then
+        self:HideHoverPanel()
+        if self.frame then
+            self.frame:Hide()
+        end
+        if ns.Utils and ns.Utils.Debug then
+            ns.Utils.Debug("ProfessionKnowledgeOverlay refresh failed: " .. tostring(err))
+        end
+        ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("status_profession_refresh_failed"))
+    end
 end

@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.3.13`
+- `v1.3.14`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.13/ABProfileManager-v1.3.13.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.3.13.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.13.md](./RELEASE_NOTES_v1.3.13.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.3.14/ABProfileManager-v1.3.14.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.3.14.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.3.14.md](./RELEASE_NOTES_v1.3.14.md)
 
 ## 왜 쓰는가
 

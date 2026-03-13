@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.3.13`
+버전 기준: `v1.3.14`
 
 ## 현재 상태
 
@@ -14,6 +14,9 @@
 - README, 사용자 문서, 인트로, 아키텍처, 인수인계, 보안, 배포 절차를 최신화
 - TomTom waypoint는 정상 동작이며 하란다르/공허폭풍은 해당 지역 진입 후 생성된다는 설명으로 정리
 - 인트로와 사용자 문서에 TomTom waypoint 기능 소개를 추가
+- profession/quest refresh는 내부 예외를 보호하도록 보강
+- loot 종료 후 profession refresh를 다시 확인하도록 연결
+- profession 오버레이 tooltip 진행 표기를 `1/1개 . 3/3P` 형식으로 정리
 
 ## 현재 핵심 기능
 
@@ -49,7 +52,18 @@
 - 추가 수정이 필요하면 `Modules/TomTomBridge.lua`와 `UI/ProfessionKnowledgeOverlay.lua`를 같이 본다
 - mapID 제한과 현재 플레이어 지도 lineage를 먼저 확인한다
 
-### 2. 지도 좌표 보정
+### 2. profession refresh 안정화
+
+- profession/quest refresh는 이제 보호 경로를 거친다
+- 채집/루팅 직후 연속 이벤트는 짧게 합쳐 처리한다
+- `LOOT_CLOSED` 이후에도 profession refresh를 다시 확인해 1회성 완료 반영 누락 가능성을 줄였다
+
+운영 메모:
+
+- 시체 채집/보물 채집 관련 제보가 오면 `Events.lua`, `UI/ProfessionKnowledgeOverlay.lua`, `UI/ProfessionPanel.lua`, `UI/QuestPanel.lua`를 먼저 본다
+- 오류 원문이 필요하면 `/abpm debug on`과 기본 Lua 오류 표시를 같이 켜고 본다
+
+### 3. 지도 좌표 보정
 
 - 정적 좌표 기반이라 패치 후 drift가 생길 수 있다
 - 보정은 `Data/SilvermoonMapData.lua`와 `UI/SilvermoonMapOverlay.lua`를 같이 수정한다

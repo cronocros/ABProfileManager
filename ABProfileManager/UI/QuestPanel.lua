@@ -132,7 +132,7 @@ function QuestPanel:RefreshLocale()
     self.abandonAllButton:SetText(ns.L("quest_abandon_all"))
 end
 
-function QuestPanel:Refresh(forceScan)
+function QuestPanel:RefreshInternal(forceScan)
     if not self.frame or not ns.Modules.QuestManager then
         return
     end
@@ -157,6 +157,25 @@ function QuestPanel:Refresh(forceScan)
     self.abandonAllButton:SetEnabled(supported and allCount > 0)
     self.safeCleanupButton:SetAlpha((supported and safeCount > 0) and 1 or 0.45)
     self.abandonAllButton:SetAlpha((supported and allCount > 0) and 1 or 0.45)
+end
+
+function QuestPanel:Refresh(forceScan)
+    if self.isRefreshing then
+        return
+    end
+
+    self.isRefreshing = true
+    local ok, err = pcall(function()
+        self:RefreshInternal(forceScan)
+    end)
+    self.isRefreshing = false
+
+    if not ok then
+        if ns.Utils and ns.Utils.Debug then
+            ns.Utils.Debug("QuestPanel refresh failed: " .. tostring(err))
+        end
+        ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("status_quest_refresh_failed"))
+    end
 end
 
 function QuestPanel:Create(parent)
