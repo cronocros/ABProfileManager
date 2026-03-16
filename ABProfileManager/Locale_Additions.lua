@@ -319,6 +319,8 @@ if enUS then
     enUS.quest_list_keep_row = "%s  [%s]"
     enUS.quest_list_id_format = "Quest ID: %d"
     enUS.quest_list_progress = "Objective: %s"
+    enUS.config_auction_house_filter_show = "Auto-select the current expansion tab when the Auction House opens"
+    enUS.config_saved_auction_house_filter = "Auction House expansion filter set to %s."
 end
 
 if koKR then
@@ -637,4 +639,6 @@ if koKR then
     koKR.quest_list_keep_row = "%s  [%s]"
     koKR.quest_list_id_format = "퀘스트 ID: %d"
     koKR.quest_list_progress = "진행: %s"
+    koKR.config_auction_house_filter_show = "경매장 열 때 현재 확장팩 탭 자동 선택"
+    koKR.config_saved_auction_house_filter = "경매장 확장팩 필터를 %s 상태로 변경했습니다."
 end

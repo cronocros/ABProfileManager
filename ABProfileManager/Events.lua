@@ -84,6 +84,48 @@ local function scheduleProfessionFollowUpRefresh(reason)
     end
 end
 
+local function applyAuctionHouseExpansionFilter()
+    if not AuctionHouseFrame or not AuctionHouseFrame:IsVisible() then
+        return
+    end
+
+    local expLevel = GetExpansionLevel and GetExpansionLevel() or 0
+
+    local sidebar = AuctionHouseFrame.BrowseSidebar
+        or (AuctionHouseFrame.BrowseResultsFrame and AuctionHouseFrame.BrowseResultsFrame.Sidebar)
+    if not sidebar then
+        return
+    end
+
+    local scrollBox = sidebar.ScrollBox
+    if not scrollBox or type(scrollBox.ForEachFrame) ~= "function" then
+        return
+    end
+
+    scrollBox:ForEachFrame(function(elementFrame)
+        local data = elementFrame and elementFrame.GetElementData and elementFrame:GetElementData()
+        if data and data.expansionLevel == expLevel then
+            if type(elementFrame.Click) == "function" then
+                elementFrame:Click()
+            end
+        end
+    end)
+end
+
+local function ensureAuctionHouseFilter()
+    if not ns.DB or not ns.DB:IsAuctionHouseFilterEnabled() then
+        return
+    end
+
+    if not C_Timer or type(C_Timer.After) ~= "function" then
+        return
+    end
+
+    C_Timer.After(0.2, function()
+        pcall(applyAuctionHouseExpansionFilter)
+    end)
+end
+
 local function ensureMouseMoveSetting()
     if not ns.DB or not ns.DB:IsMouseMoveRestoreEnabled() then
         return
@@ -170,6 +212,7 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("BAG_UPDATE_DELAYED")
     frame:RegisterEvent("BAG_NEW_ITEMS_UPDATED")
     frame:RegisterEvent("LOOT_CLOSED")
+    frame:RegisterEvent("AUCTION_HOUSE_SHOW")
 end
 
 function Events:PLAYER_LOGIN()
@@ -302,6 +345,10 @@ end
 function Events:LOOT_CLOSED()
     refreshProfessionKnowledgeViews(true, "LOOT_CLOSED")
     scheduleProfessionFollowUpRefresh("LOOT_CLOSED")
+end
+
+function Events:AUCTION_HOUSE_SHOW()
+    ensureAuctionHouseFilter()
 end
 
 Events:Initialize()

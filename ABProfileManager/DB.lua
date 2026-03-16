@@ -359,6 +359,24 @@ function DB:SetMouseMoveRestoreEnabled(enabled)
     return self:IsMouseMoveRestoreEnabled()
 end
 
+function DB:GetAuctionHouseFilterSettings()
+    local settings = self:GetGlobalSettings()
+    settings.auctionHouseFilter = settings.auctionHouseFilter or {
+        enabled = false,
+    }
+
+    return settings.auctionHouseFilter
+end
+
+function DB:IsAuctionHouseFilterEnabled()
+    return self:GetAuctionHouseFilterSettings().enabled and true or false
+end
+
+function DB:SetAuctionHouseFilterEnabled(enabled)
+    self:GetAuctionHouseFilterSettings().enabled = enabled and true or false
+    return self:IsAuctionHouseFilterEnabled()
+end
+
 function DB:GetCombatTextSettings()
     local settings = self:GetGlobalSettings()
     settings.combatText = settings.combatText or {

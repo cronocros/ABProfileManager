@@ -73,62 +73,25 @@ ns.Data.StatPriorities = {
     },
 }
 
--- M+ priorities. Tanks generally favor Versatility first (damage reduction from affixes).
--- Many DPS specs favor Haste more (shorter fights, AoE windows).
--- Specs identical to PvE are omitted; BuildSnapshot falls back to StatPriorities when nil.
+-- M+ priorities. Tanks favor Versatility first for affix damage reduction.
+-- Non-tank specs use the same ordering as PvE (omitted = falls back to StatPriorities).
 ns.Data.StatPrioritiesMythicPlus = {
     WARRIOR = {
-        -- [1] Arms: same as PvE
-        -- [2] Fury: same as PvE
-        [3] = { { "versatility" }, { "haste" }, { "crit", "mastery" } }, -- Protection M+: vers first
+        [3] = { { "versatility" }, { "haste" }, { "crit", "mastery" } }, -- Protection M+
     },
     PALADIN = {
-        -- [1] Holy: same
-        [2] = { { "versatility" }, { "haste" }, { "mastery" }, { "crit" } }, -- Protection M+: vers first
-        [3] = { { "haste" }, { "mastery", "crit" }, { "versatility" } }, -- Retribution M+: haste up
-    },
-    HUNTER = {
-        -- all same as PvE
-    },
-    ROGUE = {
-        -- all same as PvE
-    },
-    PRIEST = {
-        -- all same as PvE
+        [2] = { { "versatility" }, { "haste" }, { "mastery" }, { "crit" } }, -- Protection M+
     },
     DEATHKNIGHT = {
-        [1] = { { "versatility" }, { "haste" }, { "mastery" }, { "crit" } }, -- Blood M+: vers first
-        -- [2] Frost: same
-        -- [3] Unholy: same
-    },
-    SHAMAN = {
-        [1] = { { "haste" }, { "mastery", "crit" }, { "versatility" } }, -- Elemental M+: haste first
-        -- [2] Enhancement: same
-        -- [3] Restoration: same
-    },
-    MAGE = {
-        -- all same as PvE
-    },
-    WARLOCK = {
-        -- all same as PvE
+        [1] = { { "versatility" }, { "haste" }, { "mastery" }, { "crit" } }, -- Blood M+
     },
     MONK = {
-        [1] = { { "versatility" }, { "mastery", "crit", "haste" } }, -- Brewmaster M+: vers first
-        -- [2] Mistweaver: same
-        -- [3] Windwalker: same
+        [1] = { { "versatility" }, { "mastery", "crit", "haste" } }, -- Brewmaster M+
     },
     DRUID = {
-        [1] = { { "haste" }, { "mastery" }, { "versatility" }, { "crit" } }, -- Balance M+: haste first
-        -- [2] Feral: same
-        [3] = { { "versatility" }, { "haste" }, { "mastery" }, { "crit" } }, -- Guardian M+: vers first
-        -- [4] Restoration: same
+        [3] = { { "versatility" }, { "haste" }, { "mastery" }, { "crit" } }, -- Guardian M+
     },
     DEMONHUNTER = {
-        -- [1] Havoc: same
-        [2] = { { "versatility" }, { "haste" }, { "crit", "mastery" } }, -- Vengeance M+: vers first
-        -- [3] Devourer: same
-    },
-    EVOKER = {
-        -- all same as PvE
+        [2] = { { "versatility" }, { "haste" }, { "crit", "mastery" } }, -- Vengeance M+
     },
 }

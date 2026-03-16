@@ -211,6 +211,12 @@ function ConfigPanel:ApplyMouseMoveRestore(enabled, refs)
     setStatus(refs, ns.L("config_saved_mouse_move_restore", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplyAuctionHouseFilter(enabled, refs)
+    ns.DB:SetAuctionHouseFilterEnabled(enabled)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_auction_house_filter", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
 function ConfigPanel:ApplyTypographyOffset(domain, value, refs)
     value = ns.DB:SetTypographyOffset(domain, value)
     ns:RefreshUI()
@@ -301,6 +307,10 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyMouseMoveRestore(currentCheck:GetChecked(), refs)
     end)
 
+    refs.auctionHouseFilterCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyAuctionHouseFilter(currentCheck:GetChecked(), refs)
+    end)
+
     refs.statsOverlayCheck:SetScript("OnClick", function(currentCheck)
         self:ApplyStatsOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
@@ -360,6 +370,7 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.confirmCheck.Text:SetText(ns.L("config_confirm_show"))
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
     refs.mouseMoveRestoreCheck.Text:SetText(ns.L("config_mouse_move_restore_show"))
+    refs.auctionHouseFilterCheck.Text:SetText(ns.L("config_auction_house_filter_show"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.tankStatsCheck.Text:SetText(ns.L("config_stats_tank_stats_show"))
@@ -394,6 +405,7 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.confirmCheck:SetChecked(ns.DB:ShouldConfirmActions())
     refs.debugCheck:SetChecked(ns.DB:IsDebugEnabled())
     refs.mouseMoveRestoreCheck:SetChecked(ns.DB:IsMouseMoveRestoreEnabled())
+    refs.auctionHouseFilterCheck:SetChecked(ns.DB:IsAuctionHouseFilterEnabled())
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
     refs.tankStatsCheck:SetChecked(ns.DB:IsStatsOverlayTankStatsEnabled())
@@ -443,8 +455,11 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.debugCheck, "BOTTOMLEFT", 0, -8)
 
+    refs.auctionHouseFilterCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.auctionHouseFilterCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
+
     refs.statsOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
-    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
+    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.auctionHouseFilterCheck, "BOTTOMLEFT", 0, -8)
 
     refs.professionOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayCheck, "BOTTOMLEFT", 0, -8)
@@ -524,6 +539,7 @@ function ConfigPanel:BuildControlSet(parent, options)
         refs.confirmCheck,
         refs.debugCheck,
         refs.mouseMoveRestoreCheck,
+        refs.auctionHouseFilterCheck,
         refs.statsOverlayCheck,
         refs.professionOverlayCheck,
         refs.tankStatsCheck,
@@ -562,7 +578,7 @@ function ConfigPanel:RegisterSettingsCategory()
             columnWidth = 300,
             columnGap = 12,
             helpWidth = 612,
-            generalHeight = 420,
+            generalHeight = 452,
             overlayHeight = 372,
             overviewHeight = 174,
             overviewTextHeight = 100,

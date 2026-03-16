@@ -564,8 +564,14 @@ function StatsOverlay:ShowRowTooltip(row)
         end
     end
 
+    local tooltipTitle = self:GetTooltipTitle(row.entry) or row.entry.label or ""
+    if row.entry.key == "priority" then
+        local modeLabel = row.entry.isMplus and ns.L("stats_priority_mode_mplus") or ns.L("stats_priority_mode_pve")
+        tooltipTitle = tooltipTitle .. "  [" .. modeLabel .. "]"
+    end
+
     GameTooltip:SetOwner(row.tooltipRegion or row, "ANCHOR_RIGHT")
-    GameTooltip:SetText(self:GetTooltipTitle(row.entry) or row.entry.label or "", 0.96, 0.82, 0.30)
+    GameTooltip:SetText(tooltipTitle, 0.96, 0.82, 0.30)
 
     local body = self:GetTooltipBody(row.entry)
     if body then
@@ -579,11 +585,6 @@ function StatsOverlay:ShowRowTooltip(row)
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine(ns.L("stats_overlay_tooltip_dr_line", drText, formatPercent(row.entry.ratingPercent or 0)), 0.84, 0.92, 1, true)
         end
-    end
-
-    if row.entry.key == "priority" then
-        local modeLabel = row.entry.isMplus and ns.L("stats_priority_mode_mplus") or ns.L("stats_priority_mode_pve")
-        GameTooltip:AddLine(modeLabel, 0.60, 0.92, 1.00, true)
     end
 
     ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)

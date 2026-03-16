@@ -40,6 +40,9 @@ ns.Data.Defaults = {
             mouseMoveRestore = {
                 enabled = false,
             },
+            auctionHouseFilter = {
+                enabled = false,
+            },
             combatText = {
                 managed = false,
                 enabled = true,
