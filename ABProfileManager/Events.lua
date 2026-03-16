@@ -84,32 +84,58 @@ local function scheduleProfessionFollowUpRefresh(reason)
     end
 end
 
+-- Target checkbox labels for "current expansion only" filter (koKR / enUS)
+local AH_EXPANSION_FILTER_LABELS = {
+    ["현행 확장팩 전용"] = true,
+    ["Current Expansion Only"] = true,
+    ["Current expansion only"] = true,
+}
+
+local function getFrameText(frame)
+    if type(frame.GetText) == "function" then
+        local t = frame:GetText()
+        if t and t ~= "" then return t end
+    end
+    if frame.Text and type(frame.Text.GetText) == "function" then
+        local t = frame.Text:GetText()
+        if t and t ~= "" then return t end
+    end
+    return nil
+end
+
+local function findAndActivateExpansionCheckbox(frame, depth)
+    if depth > 8 or not frame then return false end
+
+    if type(frame.GetChecked) == "function" and type(frame.SetChecked) == "function" then
+        local label = getFrameText(frame)
+        if label and AH_EXPANSION_FILTER_LABELS[label] then
+            if not frame:GetChecked() then
+                frame:SetChecked(true)
+                local onClick = frame:GetScript("OnClick")
+                if type(onClick) == "function" then
+                    onClick(frame)
+                end
+            end
+            return true
+        end
+    end
+
+    local ok, children = pcall(frame.GetChildren, frame)
+    if not ok or not children then return false end
+    for i = 1, select("#", children) do
+        local child = select(i, children)
+        if findAndActivateExpansionCheckbox(child, depth + 1) then
+            return true
+        end
+    end
+    return false
+end
+
 local function applyAuctionHouseExpansionFilter()
     if not AuctionHouseFrame or not AuctionHouseFrame:IsVisible() then
         return
     end
-
-    local expLevel = GetExpansionLevel and GetExpansionLevel() or 0
-
-    local sidebar = AuctionHouseFrame.BrowseSidebar
-        or (AuctionHouseFrame.BrowseResultsFrame and AuctionHouseFrame.BrowseResultsFrame.Sidebar)
-    if not sidebar then
-        return
-    end
-
-    local scrollBox = sidebar.ScrollBox
-    if not scrollBox or type(scrollBox.ForEachFrame) ~= "function" then
-        return
-    end
-
-    scrollBox:ForEachFrame(function(elementFrame)
-        local data = elementFrame and elementFrame.GetElementData and elementFrame:GetElementData()
-        if data and data.expansionLevel == expLevel then
-            if type(elementFrame.Click) == "function" then
-                elementFrame:Click()
-            end
-        end
-    end)
+    findAndActivateExpansionCheckbox(AuctionHouseFrame, 0)
 end
 
 local function ensureAuctionHouseFilter()
@@ -121,7 +147,7 @@ local function ensureAuctionHouseFilter()
         return
     end
 
-    C_Timer.After(0.2, function()
+    C_Timer.After(0.3, function()
         pcall(applyAuctionHouseExpansionFilter)
     end)
 end

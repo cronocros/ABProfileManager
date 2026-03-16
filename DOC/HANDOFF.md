@@ -140,6 +140,21 @@
 - 보안 검토: `DOC/SECURITY_REVIEW.md`
 - 배포 절차: `DOC/RELEASE_PROCESS.md`
 
+## 미완성 기능 — 추후 작업 예정
+
+### 스탯 오버레이 쐐기(M+) 우선순위 모드
+
+- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.5). 기능 자체는 DB/Locale/ConfigPanel에 구현이 남아 있음.
+- **이유**: 인게임 테스트에서 동작 불안정 확인. 탱커 6종 M+ 데이터는 정상이나 UI 토글이 일관되게 반응하지 않는 경우 발생.
+- **재개 시 작업 위치**: `UI/ConfigPanel.lua` (`mythicPlusCheck:Hide()` 제거 후 다시 노출), `UI/StatsOverlay.lua` (`BuildSnapshot`의 `isMplus` 분기), `DB.lua` (`IsStatsOverlayMythicPlusMode`), `Data/StatPriorities.lua` (`ns.Data.StatPrioritiesMythicPlus`).
+- **체크리스트**: 쐐기 모드 on/off 전환 후 overlay 즉시 갱신 여부, 특성 변경 시 isMplus 상태 유지 여부, 툴팁 타이틀 `[쐐기]`/`[레이드]` 정상 교체 여부.
+
+### 경매장 현행 확장팩 필터 자동 선택
+
+- **상태**: 구현 있음 (v1.4.5), 인게임 동작 미확인.
+- **방식**: `AUCTION_HOUSE_SHOW` → 0.3초 딜레이 → `AuctionHouseFrame` 프레임 계층 재귀 탐색(depth 8) → "현행 확장팩 전용" / "Current Expansion Only" 텍스트를 가진 체크박스를 찾아 `SetChecked(true)` + `OnClick` 실행.
+- **재개 시 작업 위치**: `Events.lua` (`findAndActivateExpansionCheckbox` 함수). 체크박스를 못 찾는 경우 WoW AH 프레임 계층에서 실제 체크박스 경로를 `/dump` 명령으로 확인 후 직접 경로 지정 방식으로 전환 필요.
+
 ## 다음 작업자에게
 
 - TomTom waypoint는 현재 동작 설명까지 정리된 상태이므로, 회귀 제보가 오면 먼저 지역 진입 여부와 map lineage부터 확인하는 것이 맞다.

@@ -469,6 +469,7 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.mythicPlusCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.mythicPlusCheck:SetPoint("TOPLEFT", refs.tankStatsCheck, "BOTTOMLEFT", 0, -8)
+    refs.mythicPlusCheck:Hide()
 
     refs.overlayBox = widgets.CreatePanelBox(parent, columnWidth, options.overlayHeight or 360, "")
     refs.overlayBox:SetPoint("TOPLEFT", refs.generalBox, "TOPRIGHT", columnGap, 0)
@@ -578,7 +579,7 @@ function ConfigPanel:RegisterSettingsCategory()
             columnWidth = 300,
             columnGap = 12,
             helpWidth = 612,
-            generalHeight = 452,
+            generalHeight = 420,
             overlayHeight = 372,
             overviewHeight = 174,
             overviewTextHeight = 100,
