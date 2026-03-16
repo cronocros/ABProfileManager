@@ -17,7 +17,7 @@ local TYPOGRAPHY_BOUNDS = {
     tooltip = { min = -2, max = 6, default = 0 },
     statsOverlay = { min = -2, max = 6, default = 0 },
     professionOverlay = { min = -3, max = 6, default = 0 },
-    mapOverlay = { min = -6, max = 12, default = 0 },
+    mapOverlay = { min = -6, max = 20, default = 0 },
 }
 
 local function clampTypographyOffset(domain, value)
@@ -226,11 +226,12 @@ end
 
 function DB:GetStatsOverlaySettings()
     local settings = self:GetGlobalSettings()
-    settings.statsOverlay = settings.statsOverlay or {
-        enabled = false,
-    }
-
-    return settings.statsOverlay
+    settings.statsOverlay = settings.statsOverlay or {}
+    local s = settings.statsOverlay
+    if s.enabled == nil then s.enabled = false end
+    if s.showTankStats == nil then s.showTankStats = true end
+    if s.mythicPlusMode == nil then s.mythicPlusMode = false end
+    return s
 end
 
 function DB:IsStatsOverlayEnabled()
@@ -240,6 +241,24 @@ end
 function DB:SetStatsOverlayEnabled(enabled)
     self:GetStatsOverlaySettings().enabled = enabled and true or false
     return self:IsStatsOverlayEnabled()
+end
+
+function DB:IsStatsOverlayTankStatsEnabled()
+    return self:GetStatsOverlaySettings().showTankStats and true or false
+end
+
+function DB:SetStatsOverlayTankStatsEnabled(enabled)
+    self:GetStatsOverlaySettings().showTankStats = enabled and true or false
+    return self:IsStatsOverlayTankStatsEnabled()
+end
+
+function DB:IsStatsOverlayMythicPlusMode()
+    return self:GetStatsOverlaySettings().mythicPlusMode and true or false
+end
+
+function DB:SetStatsOverlayMythicPlusMode(enabled)
+    self:GetStatsOverlaySettings().mythicPlusMode = enabled and true or false
+    return self:IsStatsOverlayMythicPlusMode()
 end
 
 function DB:GetProfessionKnowledgeOverlaySettings()

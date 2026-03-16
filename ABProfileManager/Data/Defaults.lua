@@ -19,6 +19,8 @@ ns.Data.Defaults = {
             },
             statsOverlay = {
                 enabled = false,
+                showTankStats = true,
+                mythicPlusMode = false,
             },
             professionKnowledgeOverlay = {
                 enabled = false,

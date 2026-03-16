@@ -4,13 +4,24 @@
 
 ## 요약
 
-인게임 테스트에서 발견된 UI 버그 5건을 수정한 패치 릴리스입니다.
+인게임 테스트 기반 UI 버그 수정 + 스탯 오버레이 기능 확장 릴리스입니다.
 
+**버그 수정 (5건):**
 - 전문기술 오버레이 prefix 간격 완전 해소 (고정 너비 → 자동 크기)
 - 전문기술 오버레이 히트박스·드래그·툴팁 범위가 시각 영역과 일치하도록 수정
 - 퀘스트 후보 목록 스크롤이 아래로 내려가다 위로 튕기던 버그 수정
 - 설정 탭 전투메시지 섹션 오버플로우 해소
 - WoW 기본 설정 > 애드온 패널 전투메시지 섹션 오버플로우 해소
+
+**설정 탭 개선 (4건):**
+- 일반 설정 설명 텍스트와 타이틀 겹침 수정
+- 확인 체크박스 설명에 "템플릿 적용 또는 비우기 전에" 문구 명시
+- 스탯 오버레이 탱커 방어스탯 표시 여부 체크박스 추가
+- 스탯 오버레이 PvE/쐐기 우선순위 모드 체크박스 추가
+
+**기타:**
+- 지도 오버레이 글자 크기 슬라이더 최대값 상향 (12 → 20)
+- Icy Veins 기반 쐐기(M+) 전용 스탯 우선순위 테이블 추가 (탱크 버서틸리티 우선, 일부 딜러 헤이스트 우선)
 
 ## 상세 변경
 
@@ -53,6 +64,36 @@
 **원인:** `RegisterSettingsCategory()` 의 `columnWidth = 300`(좁은 컬럼)에서 힌트 텍스트가 3줄로 늘어나고 체크박스 텍스트도 2줄로 늘어나 필요 높이 약 234px인데, `combatTextBox` 높이가 174px.
 
 **수정:** `RegisterSettingsCategory()` 호출 시 `combatTextHeight = 244`, 패널 총 높이 700 → 720px 확대.
+
+### 6. 설정 탭 — 일반 설정 설명 텍스트 위치 (UI/ConfigPanel.lua)
+
+**증상:** 일반 설정 아웃박스 안의 언어 안내 텍스트가 박스 타이틀과 겹쳐 보임.
+
+**수정:** `languageHint` anchor를 박스 TOPLEFT 기준 y=-18에서 `generalBox.title` BOTTOMLEFT 기준 y=-10으로 변경.
+
+### 7. 확인 체크박스 설명 문구 개선 (Locale_Additions.lua)
+
+**변경:** "최종 확인 창 표시" → "템플릿 적용 또는 비우기 전에 최종 확인 창 표시"로 동작을 명확히 기술.
+
+### 8. 탱커 방어스탯 표시 체크박스 (UI/ConfigPanel.lua, UI/StatsOverlay.lua, DB.lua)
+
+스탯 오버레이에서 탱커 특성일 때 회피/반격/막기 수치 표시 여부를 설정 탭 체크박스로 제어할 수 있게 추가. 기본값: 표시.
+
+- `DB:IsStatsOverlayTankStatsEnabled()` / `DB:SetStatsOverlayTankStatsEnabled()` 추가
+- `shouldShowTankDefensiveStats()` 에서 DB 설정을 참조하도록 변경
+
+### 9. 쐐기(M+) 스탯 우선순위 모드 (UI/ConfigPanel.lua, UI/StatsOverlay.lua, Data/StatPriorities.lua, DB.lua)
+
+스탯 오버레이에서 PvE(레이드)와 쐐기(M+) 우선순위를 전환하는 체크박스 추가. Icy Veins 기반 M+ 전용 테이블(`ns.Data.StatPrioritiesMythicPlus`) 추가. 기본값: PvE 모드.
+
+M+ 주요 변경점:
+- 탱크 특성(Blood DK, Protection Warrior/Paladin, Brewmaster, Guardian, Vengeance): 버서틸리티 우선
+- Elemental Shaman, Balance Druid: 헤이스트 우선
+- PvE와 동일한 스펙은 nil(fallback)으로 처리
+
+### 10. 지도 오버레이 글자 크기 슬라이더 최대값 상향 (DB.lua)
+
+`mapOverlay` typography 범위를 max=12 → max=20으로 확대.
 
 ## 참고
 

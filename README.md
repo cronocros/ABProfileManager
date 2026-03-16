@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.4.1.1`
+- `v1.4.2`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.4.1.1/ABProfileManager-v1.4.1.1.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.4.1.1.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.4.1.1.md](./RELEASE_NOTES_v1.4.1.1.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.4.2/ABProfileManager-v1.4.2.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.4.2.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.4.2.md](./RELEASE_NOTES_v1.4.2.md)
 
 ## 요약
 
@@ -59,6 +59,8 @@
 - 캐릭터 스탯 오버레이
   - `캐릭터 직업 - 특성(아이템레벨)` 헤더
   - 치명/가속/특화/유연과 특성 우선순위 표시
+  - 탱커 방어스탯(회피/반격/막기) 표시 여부 설정
+  - PvE(레이드) / 쐐기(M+) 우선순위 모드 전환
 - 액션바 안전장치
   - 템플릿 저장/복제/적용/동기화/되돌리기/가져오기/내보내기 모두 확인 모달 강제
 - 퀘스트 정리

@@ -263,7 +263,8 @@ local function getBlockPercent()
 end
 
 local function shouldShowTankDefensiveStats(specIndex)
-    return getCurrentSpecRole(specIndex) == "TANK"
+    local tankStatsEnabled = not ns.DB or ns.DB:IsStatsOverlayTankStatsEnabled()
+    return tankStatsEnabled and getCurrentSpecRole(specIndex) == "TANK"
 end
 
 local function getSecondaryStatDRTier(percentFromRating)
@@ -681,9 +682,12 @@ function StatsOverlay:BuildSnapshot()
         addPercentStat(snapshot, "block", ns.L("stats_overlay_block"), getBlockPercent())
     end
 
+    local isMplus = ns.DB and ns.DB:IsStatsOverlayMythicPlusMode()
+    local mplusBucket = isMplus and classTag and ns.Data and ns.Data.StatPrioritiesMythicPlus and ns.Data.StatPrioritiesMythicPlus[classTag]
     local classBucket = classTag and ns.Data and ns.Data.StatPriorities and ns.Data.StatPriorities[classTag]
-    local orderGroups = classBucket and specIndex and classBucket[specIndex] or nil
-    local priorityLabel, priorityText = getPriorityDisplay(specName, orderGroups)
+    local orderGroups = (mplusBucket and mplusBucket[specIndex]) or (classBucket and classBucket[specIndex]) or nil
+    local modePrefix = isMplus and ("[" .. ns.L("stats_priority_mode_mplus") .. "] ") or ""
+    local priorityLabel, priorityText = getPriorityDisplay(modePrefix .. (specName or ns.L("stats_overlay_unknown_spec")), orderGroups)
 
     snapshot[#snapshot + 1] = {
         label = priorityLabel,

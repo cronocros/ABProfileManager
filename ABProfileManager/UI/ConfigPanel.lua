@@ -125,6 +125,11 @@ local function buildOverviewText()
             getStateLabel(ns.DB:IsSilvermoonMapOverlayEnabled())
         ),
         ns.L(
+            "config_overview_stats_options",
+            getStateLabel(ns.DB:IsStatsOverlayTankStatsEnabled()),
+            getStateLabel(ns.DB:IsStatsOverlayMythicPlusMode())
+        ),
+        ns.L(
             "config_overview_combat_text",
             getStateLabel(ns.DB:IsCombatTextManaged()),
             ns.L(getCombatTextModeLabelKey(ns.DB:GetCombatTextFloatMode()))
@@ -177,6 +182,18 @@ function ConfigPanel:ApplyStatsOverlayEnabled(enabled, refs)
     ns.DB:SetStatsOverlayEnabled(enabled)
     ns:RefreshUI()
     setStatus(refs, ns.L("config_saved_stats_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplyStatsOverlayTankStats(enabled, refs)
+    ns.DB:SetStatsOverlayTankStatsEnabled(enabled)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_tank_stats", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
+end
+
+function ConfigPanel:ApplyStatsOverlayMythicPlus(enabled, refs)
+    ns.DB:SetStatsOverlayMythicPlusMode(enabled)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_mythic_plus", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
 function ConfigPanel:ApplyProfessionOverlayEnabled(enabled, refs)
@@ -292,6 +309,14 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyProfessionOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
 
+    refs.tankStatsCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyStatsOverlayTankStats(currentCheck:GetChecked(), refs)
+    end)
+
+    refs.mythicPlusCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyStatsOverlayMythicPlus(currentCheck:GetChecked(), refs)
+    end)
+
     for _, entry in ipairs(refs.typographySliders or {}) do
         entry.slider.slider:SetScript("OnValueChanged", function(currentSlider, value)
             entry.slider:SetValueText(value)
@@ -337,6 +362,8 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.mouseMoveRestoreCheck.Text:SetText(ns.L("config_mouse_move_restore_show"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
+    refs.tankStatsCheck.Text:SetText(ns.L("config_stats_tank_stats_show"))
+    refs.mythicPlusCheck.Text:SetText(ns.L("config_stats_mythic_plus_show"))
 
     refs.overlayBox.title:SetText(ns.L("config_typography_title"))
     for _, entry in ipairs(refs.typographySliders or {}) do
@@ -369,6 +396,8 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.mouseMoveRestoreCheck:SetChecked(ns.DB:IsMouseMoveRestoreEnabled())
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
+    refs.tankStatsCheck:SetChecked(ns.DB:IsStatsOverlayTankStatsEnabled())
+    refs.mythicPlusCheck:SetChecked(ns.DB:IsStatsOverlayMythicPlusMode())
     refs.combatTextManageCheck:SetChecked(ns.DB:IsCombatTextManaged())
     refs.combatTextDirectionalCheck:SetChecked(ns.DB:IsCombatTextDirectionalDamageEnabled())
     ns.UI.Widgets.SetButtonSelected(refs.koreanButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN)
@@ -389,7 +418,7 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.generalBox = widgets.CreatePanelBox(parent, columnWidth, options.generalHeight or 360, "")
     refs.generalBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
 
-    refs.languageHint = widgets.CreateLabel(refs.generalBox, "", nil, 12, -18)
+    refs.languageHint = widgets.CreateLabel(refs.generalBox, "", refs.generalBox.title, 0, -10)
     refs.languageHint:SetWidth(contentWidth)
     refs.languageHint:SetJustifyH("LEFT")
     if refs.languageHint.SetWordWrap then
@@ -419,6 +448,12 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.professionOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayCheck, "BOTTOMLEFT", 0, -8)
+
+    refs.tankStatsCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.tankStatsCheck:SetPoint("TOPLEFT", refs.professionOverlayCheck, "BOTTOMLEFT", 0, -8)
+
+    refs.mythicPlusCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.mythicPlusCheck:SetPoint("TOPLEFT", refs.tankStatsCheck, "BOTTOMLEFT", 0, -8)
 
     refs.overlayBox = widgets.CreatePanelBox(parent, columnWidth, options.overlayHeight or 360, "")
     refs.overlayBox:SetPoint("TOPLEFT", refs.generalBox, "TOPRIGHT", columnGap, 0)
@@ -495,6 +530,8 @@ function ConfigPanel:BuildControlSet(parent, options)
         refs.mouseMoveRestoreCheck,
         refs.statsOverlayCheck,
         refs.professionOverlayCheck,
+        refs.tankStatsCheck,
+        refs.mythicPlusCheck,
         refs.combatTextManageCheck,
         refs.combatTextDirectionalCheck,
     }) do
@@ -530,7 +567,7 @@ function ConfigPanel:RegisterSettingsCategory()
             columnGap = 12,
             helpWidth = 612,
             statusWidth = 612,
-            generalHeight = 372,
+            generalHeight = 420,
             overlayHeight = 372,
             overviewHeight = 174,
             overviewTextHeight = 100,
@@ -591,7 +628,7 @@ function ConfigPanel:Create(parent)
         titleY = -20,
         showOpenButton = false,
         statusWidth = 852,
-        generalHeight = 372,
+        generalHeight = 420,
         overlayHeight = 372,
         overviewHeight = 194,
         overviewTextHeight = 128,
