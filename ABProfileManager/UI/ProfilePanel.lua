@@ -203,9 +203,26 @@ function ProfilePanel:RefreshSpecButtons()
     end
 end
 
+function ProfilePanel:ScrollListByDelta(delta)
+    local totalCount = #(self.templateNames or {})
+    if totalCount <= ROW_COUNT then
+        return
+    end
+
+    local maxOffset = math.max(0, totalCount - ROW_COUNT)
+    local newOffset = math.max(0, math.min(maxOffset, self:GetListOffset() - delta))
+    self:SetListOffset(newOffset)
+    self:PopulateRows()
+end
+
 function ProfilePanel:CreateRows(parent)
     local rows = {}
     local previous = nil
+
+    parent:EnableMouseWheel(true)
+    parent:SetScript("OnMouseWheel", function(_, delta)
+        self:ScrollListByDelta(delta)
+    end)
 
     for rowIndex = 1, ROW_COUNT do
         local row = ns.UI.Widgets.CreateListButton(parent, 284, 24)
@@ -219,6 +236,11 @@ function ProfilePanel:CreateRows(parent)
             if currentRow.templateName then
                 self:SelectTemplate(currentRow.templateName)
             end
+        end)
+
+        row:EnableMouseWheel(true)
+        row:SetScript("OnMouseWheel", function(_, delta)
+            self:ScrollListByDelta(delta)
         end)
 
         rows[#rows + 1] = row

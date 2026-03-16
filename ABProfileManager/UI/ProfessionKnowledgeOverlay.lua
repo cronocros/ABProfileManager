@@ -33,6 +33,7 @@ local TOOLTIP_COLORS = {
     complete = { 0.50, 0.88, 0.50, 1 },
     pending = { 0.47, 0.84, 1.00, 1 },
     tomtom = { 0.84, 0.90, 1.00, 1 },
+    reset = { 0.72, 0.92, 1.00, 1 },
 }
 
 local OVERLAY_LABEL_KEYS = {
@@ -348,7 +349,7 @@ local function buildOverlayTooltipLines(professionEntry)
         tracker:GetProfessionDisplayName(professionEntry),
         buildTooltipLine(ns.L("professions_overlay_tooltip_summary_weekly", summary and summary.weeklyMax or 0, summary and summary.weeklyEarned or 0), "body"),
         buildTooltipLine(ns.L("professions_overlay_tooltip_summary_onetime", summary and summary.oneTimeMax or 0, summary and summary.oneTimeEarned or 0), "body"),
-        buildTooltipLine(ns.L("professions_overlay_tooltip_reset_precise", resetDays, resetHours, resetMinutes), "body"),
+        buildTooltipLine(ns.L("professions_overlay_tooltip_reset_precise", resetDays, resetHours, resetMinutes), "reset"),
         "",
         buildTooltipLegendLine(),
         "",

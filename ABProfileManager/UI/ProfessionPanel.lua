@@ -412,11 +412,11 @@ function ProfessionPanel:RefreshCard(card, professionEntry)
 
     card.rescanButton:SetScript("OnClick", function()
         ns.Modules.ProfessionKnowledgeTracker:RefreshQuestCache(true)
-        setStatus(ns.L(
-            "professions_status_rescanned",
-            ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry)
-        ))
+        local profName = ns.Modules.ProfessionKnowledgeTracker:GetProfessionDisplayName(professionEntry)
+        local statusMsg = ns.L("professions_status_rescanned", profName)
+        setStatus(statusMsg)
         ns:RefreshUI()
+        ns.UI.ConfirmDialogs:ShowInfo(statusMsg)
     end)
 end
 

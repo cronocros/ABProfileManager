@@ -581,6 +581,11 @@ function StatsOverlay:ShowRowTooltip(row)
         end
     end
 
+    if row.entry.key == "priority" then
+        local modeLabel = row.entry.isMplus and ns.L("stats_priority_mode_mplus") or ns.L("stats_priority_mode_pve")
+        GameTooltip:AddLine(modeLabel, 0.60, 0.92, 1.00, true)
+    end
+
     ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
@@ -686,8 +691,7 @@ function StatsOverlay:BuildSnapshot()
     local mplusBucket = isMplus and classTag and ns.Data and ns.Data.StatPrioritiesMythicPlus and ns.Data.StatPrioritiesMythicPlus[classTag]
     local classBucket = classTag and ns.Data and ns.Data.StatPriorities and ns.Data.StatPriorities[classTag]
     local orderGroups = (mplusBucket and mplusBucket[specIndex]) or (classBucket and classBucket[specIndex]) or nil
-    local modePrefix = isMplus and ("[" .. ns.L("stats_priority_mode_mplus") .. "] ") or ""
-    local priorityLabel, priorityText = getPriorityDisplay(modePrefix .. (specName or ns.L("stats_overlay_unknown_spec")), orderGroups)
+    local priorityLabel, priorityText = getPriorityDisplay(specName or ns.L("stats_overlay_unknown_spec"), orderGroups)
 
     snapshot[#snapshot + 1] = {
         label = priorityLabel,
@@ -695,6 +699,7 @@ function StatsOverlay:BuildSnapshot()
         value = priorityText,
         style = "priority",
         spacingBefore = PRIORITY_ROW_GAP,
+        isMplus = isMplus and true or false,
     }
 
     for index = 2, #snapshot do

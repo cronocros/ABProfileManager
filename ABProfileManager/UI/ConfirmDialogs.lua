@@ -31,6 +31,15 @@ function ConfirmDialogs:Initialize()
         preferredIndex = 3,
     }
 
+    StaticPopupDialogs["ABPM_INFO_MESSAGE"] = {
+        text = "%s",
+        button1 = OKAY,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+
     StaticPopupDialogs["ABPM_CONFIRM_DELETE_SOURCE"] = {
         text = "%s",
         button1 = DELETE,
@@ -60,6 +69,14 @@ function ConfirmDialogs:ShowConfirm(text, onAccept)
     StaticPopup_Show("ABPM_CONFIRM_ACTION", text, nil, {
         onAccept = onAccept,
     })
+end
+
+function ConfirmDialogs:ShowInfo(text)
+    if not StaticPopup_Show then
+        return
+    end
+
+    StaticPopup_Show("ABPM_INFO_MESSAGE", text)
 end
 
 function ConfirmDialogs:ShowDeleteConfirm(text, onAccept)

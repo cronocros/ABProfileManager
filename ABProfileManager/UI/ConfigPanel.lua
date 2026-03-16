@@ -518,10 +518,6 @@ function ConfigPanel:BuildControlSet(parent, options)
         previousModeButton = button
     end
 
-    refs.statusText = widgets.CreateLabel(parent, "", refs.overviewBox, 0, -18)
-    refs.statusText:SetWidth(options.statusWidth or ((columnWidth * 2) + columnGap))
-    refs.statusText:SetJustifyH("LEFT")
-
     local checkboxWidth = contentWidth
     for _, check in ipairs({
         refs.minimapCheck,
@@ -566,7 +562,6 @@ function ConfigPanel:RegisterSettingsCategory()
             columnWidth = 300,
             columnGap = 12,
             helpWidth = 612,
-            statusWidth = 612,
             generalHeight = 420,
             overlayHeight = 372,
             overviewHeight = 174,
@@ -627,7 +622,6 @@ function ConfigPanel:Create(parent)
     self.mainRefs = self:BuildControlSet(frame, {
         titleY = -20,
         showOpenButton = false,
-        statusWidth = 852,
         generalHeight = 420,
         overlayHeight = 372,
         overviewHeight = 194,
@@ -636,8 +630,6 @@ function ConfigPanel:Create(parent)
     })
 
     self.title = self.mainRefs.title
-    self.statusText = self.mainRefs.statusText
-
     self:Refresh()
     return frame
 end
