@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.4.1`
+- `v1.4.1.1`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.4.1/ABProfileManager-v1.4.1.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.4.1.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.4.1.md](./RELEASE_NOTES_v1.4.1.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.4.1.1/ABProfileManager-v1.4.1.1.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.4.1.1.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.4.1.1.md](./RELEASE_NOTES_v1.4.1.1.md)
 
 ## 요약
 
@@ -20,7 +20,7 @@
 - 전문기술 포인트와 1회성 보물을 자동 추적
 - 한밤(Midnight) 지도에서 포탈, 시설, 던전, 구렁 위치를 텍스트 오버레이로 확인
 - 지도 전용 탭과 전체 UI 글자 크기 슬라이더 제공
-- profession 오버레이 tooltip 범례/색상/정렬 복구
+- profession 오버레이 상세 간격, 범례 한 줄 표기, token 색상 정리
 - 설정 탭에서 전투메시지 표출 방식만 관리
 
 ## 핵심 기능
@@ -37,8 +37,9 @@
   - 슬라이더 기반 글자 크기 조절
   - 드래그 이동과 위치 저장
   - 상단 요약은 사용자 문장 중심 안내와 정확한 목요일 오전 8시 리셋 잔여 시간 표시
-  - 상세 보기의 `주  간:` / `1회성:` prefix 정렬 고정
-  - tooltip 범례와 완료/미완료 색상 복구
+  - 상세 보기의 `주  간:` / `1회성:` prefix 정렬 고정과 좁힌 간격
+  - tooltip 범례를 `범례: 완료 | 미완료` 한 줄로 정리
+  - tooltip은 `완료 / 미완료 / 00/00 / 00/00P` token만 색상 적용
   - 보물/처음발견보너스는 완료/미완료 목록 숨김, 평판/풍요 지식서는 목록 유지
   - TomTom 설치 시 미완료 1회성 보물 waypoint 선택
 - 전체 typography
@@ -65,7 +66,7 @@
   - 남겨둘 퀘스트
   - 전체 포기 대상
   - 퀘스트 ID 클릭으로 해당 퀘스트 상세 열기
-  - 후보 목록 기호 깨짐 제거와 스크롤 박스 휠 스크롤 보정
+  - 후보 목록 기호 깨짐 제거와 스크롤/퀘스트 ID 클릭 경로 보정
 
 ## 설치
 

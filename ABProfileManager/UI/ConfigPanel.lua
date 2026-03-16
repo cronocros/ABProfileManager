@@ -456,7 +456,7 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.combatTextBox = widgets.CreatePanelBox(parent, columnWidth, options.combatTextHeight or (options.overviewHeight or 194), "")
     refs.combatTextBox:SetPoint("TOPLEFT", refs.overlayBox, "BOTTOMLEFT", 0, -18)
 
-    refs.combatTextHint = widgets.CreateLabel(refs.combatTextBox, "", nil, 12, -18)
+    refs.combatTextHint = widgets.CreateLabel(refs.combatTextBox, "", refs.combatTextBox.title, 0, -10)
     refs.combatTextHint:SetWidth(contentWidth)
     refs.combatTextHint:SetJustifyH("LEFT")
     if refs.combatTextHint.SetWordWrap then

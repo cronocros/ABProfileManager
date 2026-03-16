@@ -2,7 +2,7 @@ ABProfileManager
 
 와우 Retail에서 액션바 복구, 전문기술 포인트 체크, 한밤(Midnight) 길찾기를 한 번에 정리해 주는 애드온입니다.
 
-버전: v1.4.1
+버전: v1.4.1.1
 제작: 밍밍이와코코
 연락처: crono1232@gmail.com
 
@@ -23,4 +23,4 @@ ABProfileManager
 [다운로드]
 - 저장소: https://github.com/cronocros/ABProfileManager
 - 최신 릴리스: https://github.com/cronocros/ABProfileManager/releases/latest
-- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.4.1/ABProfileManager-v1.4.1.zip
+- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.4.1.1/ABProfileManager-v1.4.1.1.zip

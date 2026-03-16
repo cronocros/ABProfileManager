@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.4.1`
+버전 기준: `v1.4.1.1`
 
 ## 현재 상태
 

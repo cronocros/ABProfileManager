@@ -83,15 +83,21 @@ local function configureQuestListBox(listBox)
             ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("quest_refresh_done"))
         end
     end)
-    editBox:SetScript("OnHyperlinkEnter", function(currentBox)
-        if currentBox and currentBox.SetCursorPosition then
-            currentBox:SetCursorPosition(0)
+    editBox:SetScript("OnHyperlinkEnter", function()
+        if type(SetCursor) == "function" then
+            SetCursor("INTERACT_CURSOR")
         end
     end)
-    editBox:SetScript("OnMouseDown", nil)
-    editBox:SetScript("OnEditFocusGained", function(currentBox)
-        currentBox:ClearFocus()
+    editBox:SetScript("OnHyperlinkLeave", function()
+        if type(ResetCursor) == "function" then
+            ResetCursor()
+        end
     end)
+    editBox:SetScript("OnMouseWheel", function(_, delta)
+        listBox:HandleMouseWheel(delta)
+    end)
+    editBox:SetScript("OnMouseDown", nil)
+    editBox:SetScript("OnEditFocusGained", nil)
 end
 
 local function queueRefresh(panel)
