@@ -878,7 +878,6 @@ function ProfessionKnowledgeOverlay:CreateRow()
 
     row.weeklyPrefix = row:CreateFontString(nil, "OVERLAY")
     row.weeklyPrefix:SetPoint("TOPLEFT", row.summary, "BOTTOMLEFT", 0, -4)
-    row.weeklyPrefix:SetWidth(DETAIL_PREFIX_WIDTH)
     applyTextStyle(row.weeklyPrefix, DETAIL_SIZE, 0.98, 0.88, 0.52)
     row.weeklyPrefix:SetJustifyH("LEFT")
 
@@ -888,7 +887,6 @@ function ProfessionKnowledgeOverlay:CreateRow()
 
     row.oneTimePrefix = row:CreateFontString(nil, "OVERLAY")
     row.oneTimePrefix:SetPoint("TOPLEFT", row.weeklyPrefix, "BOTTOMLEFT", 0, -3)
-    row.oneTimePrefix:SetWidth(DETAIL_PREFIX_WIDTH)
     applyTextStyle(row.oneTimePrefix, DETAIL_SIZE, 0.98, 0.88, 0.52)
     row.oneTimePrefix:SetJustifyH("LEFT")
 
@@ -959,8 +957,6 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
 
     local detailPrefixWidth = getDetailPrefixWidth()
     local detailWidth = math.max(contentWidth - ICON_SIZE - 8 - detailPrefixWidth - 6, 120)
-    row.weeklyPrefix:SetWidth(detailPrefixWidth)
-    row.oneTimePrefix:SetWidth(detailPrefixWidth)
     row.weeklyDetails:ClearAllPoints()
     row.weeklyDetails:SetPoint("TOPLEFT", row.weeklyPrefix, "TOPRIGHT", 4, 0)
     row.oneTimeDetails:ClearAllPoints()
@@ -1087,6 +1083,23 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
         math.min(maxWidth + (PADDING_X * 2) + 18, displayMode == OVERLAY_MODE_COMPACT and 760 or 920)
     )
     self.frame:SetSize(width, math.max(MIN_HEIGHT, totalHeight))
+
+    -- 프레임 실제 너비에 맞게 각 row와 내부 텍스트 너비를 재조정한다.
+    -- contentWidth를 크게 잡아 측정하는 방식이므로, 확정된 width 기준으로 두 번째 pass가 필요하다.
+    local finalContentWidth = width - (PADDING_X * 2) - 18
+    local finalDetailPrefixWidth = getDetailPrefixWidth()
+    local finalDetailWidth = math.max(finalContentWidth - ICON_SIZE - 8 - finalDetailPrefixWidth - 6, 120)
+    local finalSummaryWidth = math.max(finalContentWidth - ICON_SIZE - 8, 120)
+    for index = 1, #professions do
+        local row = self.rows[index]
+        if row:IsShown() then
+            row:SetWidth(math.max(finalContentWidth, MIN_WIDTH - (PADDING_X * 2)))
+            row.summary:SetWidth(finalSummaryWidth)
+            row.weeklyDetails:SetWidth(finalDetailWidth)
+            row.oneTimeDetails:SetWidth(finalDetailWidth)
+        end
+    end
+
     self.frame:Show()
 end
 

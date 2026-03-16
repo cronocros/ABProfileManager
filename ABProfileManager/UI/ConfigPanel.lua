@@ -520,7 +520,7 @@ function ConfigPanel:RegisterSettingsCategory()
     if not panel then
         panel = CreateFrame("Frame", "ABPMSettingsCategoryPanel", UIParent)
         panel.name = ns.Constants.TITLE
-        panel:SetSize(660, 700)
+        panel:SetSize(660, 720)
 
         self.settingsFrame = panel
         self.settingsRefs = self:BuildControlSet(panel, {
@@ -534,6 +534,7 @@ function ConfigPanel:RegisterSettingsCategory()
             overlayHeight = 372,
             overviewHeight = 174,
             overviewTextHeight = 100,
+            combatTextHeight = 244,
         })
 
         panel:SetScript("OnShow", function()
@@ -594,6 +595,7 @@ function ConfigPanel:Create(parent)
         overlayHeight = 372,
         overviewHeight = 194,
         overviewTextHeight = 128,
+        combatTextHeight = 214,
     })
 
     self.title = self.mainRefs.title
