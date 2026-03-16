@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.4.4`
+버전 기준: `v1.4.6`
 
 ## 현재 상태
 
@@ -151,9 +151,18 @@
 
 ### 경매장 현행 확장팩 필터 자동 선택
 
-- **상태**: 구현 있음 (v1.4.5), 인게임 동작 미확인.
-- **방식**: `AUCTION_HOUSE_SHOW` → 0.3초 딜레이 → `AuctionHouseFrame` 프레임 계층 재귀 탐색(depth 8) → "현행 확장팩 전용" / "Current Expansion Only" 텍스트를 가진 체크박스를 찾아 `SetChecked(true)` + `OnClick` 실행.
-- **재개 시 작업 위치**: `Events.lua` (`findAndActivateExpansionCheckbox` 함수). 체크박스를 못 찾는 경우 WoW AH 프레임 계층에서 실제 체크박스 경로를 `/dump` 명령으로 확인 후 직접 경로 지정 방식으로 전환 필요.
+- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.6). 기능 코드는 `Events.lua`에 유지. 동작 불가 확인.
+- **디버깅 결과 (v1.4.5~v1.4.6)**:
+  - 옥셔네이터(Auctionator) 애드온이 AH UI를 교체하고 있음. `AuctionHouseFrame` 아래 `AuctionatorAHFrame`이 실제 UI를 담당.
+  - "현행 확장팩 전용" 텍스트는 WoW 보안 시스템에 의해 차단됨: `GetText()` 반환값이 "secret string value tainted by ABProfileManager" 오류 발생 → 텍스트 기반 탐색 불가.
+  - `AuctionHouseFrame` 내 CheckButton을 `GetObjectType()` 기반으로 탐색하면 depth 2에 unnamed CheckButton 1개 존재 (필터 닫힌 상태에서는 [H] 숨김).
+  - `/abpm ahdebug` 임시 명령어 3종 추가: `names` (프레임 이름 스캔), `checks` (CheckButton 탐색), `find <keyword>` (키워드 탐색, depth 12).
+- **현재 구현 방식** (`Events.lua`):
+  1. 필터 버튼("필터"/"Filter" 텍스트)을 찾아 클릭
+  2. 0.35초 후 `AuctionHouseFrame` 하위에서 Auctionator 프레임을 제외한 visible CheckButton 탐색 → 클릭
+  3. 클릭 후 0.15초 뒤 필터 버튼 재클릭으로 패널 닫기
+- **미해결 문제**: 필터 버튼 클릭 후 해당 CheckButton이 실제로 IsVisible() = true가 되는지 확인 필요. 필터 패널이 열린 상태에서 `/abpm ahdebug checks`를 실행해 CheckButton이 [V] 상태가 되는지 검증하면 됨.
+- **재개 시 작업 위치**: `Events.lua` (`findExpansionCheckButton`, `applyAuctionHouseExpansionFilter`), `UI/ConfigPanel.lua` (`auctionHouseFilterCheck:Hide()` 제거 후 복구).
 
 ## 다음 작업자에게
 

@@ -227,6 +227,137 @@ function Commands:HandleSlash(message)
         return
     end
 
+    if command == "ahdebug" then
+        if not AuctionHouseFrame or not AuctionHouseFrame:IsVisible() then
+            ns.Utils.Print("[AH Debug] 경매장을 먼저 열어주세요.")
+            return
+        end
+        local mode = string.lower(args[2] or "ah")
+        local results = {}
+        local function getAnyText(f)
+            local ok, result = pcall(function()
+                if type(f.GetText) == "function" then
+                    local t = f:GetText()
+                    if t and t ~= "" then return t end
+                end
+                for _, r in ipairs({ f:GetRegions() }) do
+                    if r and type(r.GetText) == "function" then
+                        local t = r:GetText()
+                        if t and t ~= "" then return t end
+                    end
+                end
+                return nil
+            end)
+            return ok and result or nil
+        end
+        local function scanFrame(f, depth, maxDepth)
+            if depth > maxDepth or not f then return end
+            local text = getAnyText(f)
+            if text then
+                local ftype = f.GetObjectType and f:GetObjectType() or "?"
+                local vis = (type(f.IsVisible) == "function" and f:IsVisible()) and "V" or "H"
+                results[#results+1] = string.format("[d%d][%s][%s] %s", depth, ftype, vis, text)
+            end
+            for _, child in ipairs({ f:GetChildren() }) do
+                scanFrame(child, depth + 1, maxDepth)
+            end
+        end
+        if mode == "checks" then
+            -- scan AuctionHouseFrame for all CheckButtons (by type, bypass text taint)
+            ns.Utils.Print("[AH Debug] CheckButton 스캔 (d12):")
+            local function scanChecks(f, depth, parentName)
+                if depth > 12 or not f then return end
+                local okv, vis = pcall(function() return f:IsVisible() end)
+                local okn, name = pcall(function() return f:GetName() end)
+                local ftype = f.GetObjectType and f:GetObjectType() or "?"
+                if ftype == "CheckButton" then
+                    local okc, checked = pcall(function() return f:GetChecked() end)
+                    results[#results+1] = string.format("[d%d][%s][%s] name=%s parent=%s checked=%s",
+                        depth, ftype, (okv and vis) and "V" or "H",
+                        tostring(okn and name or "?"),
+                        tostring(parentName or "?"),
+                        tostring(okc and checked or "?"))
+                end
+                local okc2, children = pcall(function() return { f:GetChildren() } end)
+                if okc2 then
+                    local myName = (okn and name) or parentName
+                    for _, child in ipairs(children) do
+                        scanChecks(child, depth + 1, myName)
+                    end
+                end
+            end
+            scanChecks(AuctionHouseFrame, 0, "AuctionHouseFrame")
+        elseif mode == "names" then
+            -- scan AuctionHouseFrame for named frames (useful when text is tainted)
+            ns.Utils.Print("[AH Debug] AuctionHouseFrame 이름 스캔 (d12):")
+            local function scanNames(f, depth)
+                if depth > 12 or not f then return end
+                local ok, name = pcall(function() return f:GetName() end)
+                local okv, vis = pcall(function() return f:IsVisible() end)
+                if ok and name then
+                    local ftype = f.GetObjectType and f:GetObjectType() or "?"
+                    results[#results+1] = string.format("[d%d][%s][%s] %s", depth, ftype, (okv and vis) and "V" or "H", name)
+                end
+                local okc, children = pcall(function() return { f:GetChildren() } end)
+                if okc then
+                    for _, child in ipairs(children) do
+                        scanNames(child, depth + 1)
+                    end
+                end
+            end
+            scanNames(AuctionHouseFrame, 0)
+        elseif mode == "find" then
+            -- search UIParent visible children for frames whose text contains keyword (depth 12)
+            local keyword = ns.Utils.Trim(ns.Utils.JoinArgs(args, 3))
+            ns.Utils.Print("[AH Debug] 키워드 검색: '" .. (keyword or "") .. "' (d12)")
+            local function findByText(f, depth)
+                if depth > 12 or not f then return end
+                local text = getAnyText(f)
+                if text then
+                    local ok2, found = pcall(function()
+                        return keyword == "" or string.find(text, keyword, 1, true)
+                    end)
+                    if ok2 and found then
+                        local ftype = f.GetObjectType and f:GetObjectType() or "?"
+                        local okv, vis = pcall(function() return f:IsVisible() end)
+                        results[#results+1] = string.format("[d%d][%s][%s] %s", depth, ftype, (okv and vis) and "V" or "H", text)
+                    end
+                end
+                local okc, children = pcall(function() return { f:GetChildren() } end)
+                if okc then
+                    for _, child in ipairs(children) do
+                        findByText(child, depth + 1)
+                    end
+                end
+            end
+            for _, child in ipairs({ UIParent:GetChildren() }) do
+                local ok, visible = pcall(function() return child:IsVisible() end)
+                if ok and visible then
+                    findByText(child, 0)
+                end
+            end
+        elseif mode == "ui" then
+            -- scan UIParent top-level children (visible only, depth 6)
+            ns.Utils.Print("[AH Debug] UIParent 스캔 (visible, d6):")
+            for _, child in ipairs({ UIParent:GetChildren() }) do
+                local ok, visible = pcall(function() return child:IsVisible() end)
+                if ok and visible then
+                    scanFrame(child, 0, 6)
+                end
+            end
+        else
+            -- default: scan AuctionHouseFrame
+            local childCount = select("#", AuctionHouseFrame:GetChildren())
+            ns.Utils.Print("[AH Debug] AuctionHouseFrame 직계 자식 수: " .. childCount)
+            scanFrame(AuctionHouseFrame, 0, 10)
+        end
+        ns.Utils.Print("[AH Debug] 결과 " .. #results .. "개:")
+        for _, line in ipairs(results) do
+            ns.Utils.Print("  " .. line)
+        end
+        return
+    end
+
     if command == "debug" then
         local mode = string.lower(args[2] or "toggle")
         if mode == "status" then

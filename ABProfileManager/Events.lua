@@ -84,58 +84,116 @@ local function scheduleProfessionFollowUpRefresh(reason)
     end
 end
 
--- Target checkbox labels for "current expansion only" filter (koKR / enUS)
-local AH_EXPANSION_FILTER_LABELS = {
-    ["현행 확장팩 전용"] = true,
-    ["Current Expansion Only"] = true,
-    ["Current expansion only"] = true,
+-- Text labels for AH filter button and expansion-only option (koKR / enUS)
+local AH_FILTER_BUTTON_LABELS = {
+    ["필터"] = true,
+    ["Filter"] = true,
 }
 
-local function getFrameText(frame)
-    if type(frame.GetText) == "function" then
-        local t = frame:GetText()
-        if t and t ~= "" then return t end
+local function getAnyFrameText(f)
+    local ok, result = pcall(function()
+        if type(f.GetText) == "function" then
+            local t = f:GetText()
+            if t and t ~= "" then return t end
+        end
+        for _, r in ipairs({ f:GetRegions() }) do
+            if r and type(r.GetText) == "function" then
+                local t = r:GetText()
+                if t and t ~= "" then return t end
+            end
+        end
+        return nil
+    end)
+    return ok and result or nil
+end
+
+local function findFrameByLabel(root, labelTable, depth)
+    if depth > 8 or not root then return nil end
+    local text = getAnyFrameText(root)
+    if text then
+        local ok, matched = pcall(function() return labelTable[text] end)
+        if ok and matched then return root end
     end
-    if frame.Text and type(frame.Text.GetText) == "function" then
-        local t = frame.Text:GetText()
-        if t and t ~= "" then return t end
+    local ok, children = pcall(function() return { root:GetChildren() } end)
+    if not ok then return nil end
+    for _, child in ipairs(children) do
+        local found = findFrameByLabel(child, labelTable, depth + 1)
+        if found then return found end
     end
     return nil
 end
 
-local function findAndActivateExpansionCheckbox(frame, depth)
-    if depth > 8 or not frame then return false end
+-- Find a visible CheckButton in root that is NOT inside an Auctionator sub-frame
+local function findExpansionCheckButton(root, depth)
+    if depth > 8 or not root then return nil end
 
-    if type(frame.GetChecked) == "function" and type(frame.SetChecked) == "function" then
-        local label = getFrameText(frame)
-        if label and AH_EXPANSION_FILTER_LABELS[label] then
-            if not frame:GetChecked() then
-                frame:SetChecked(true)
-                local onClick = frame:GetScript("OnClick")
-                if type(onClick) == "function" then
-                    onClick(frame)
-                end
-            end
-            return true
+    -- Skip Auctionator child frames by name
+    local okn, name = pcall(function() return root:GetName() end)
+    if okn and name and depth > 0 then
+        if string.find(name, "Auctionator", 1, true) then
+            return nil
         end
     end
 
-    local ok, children = pcall(frame.GetChildren, frame)
-    if not ok or not children then return false end
-    for i = 1, select("#", children) do
-        local child = select(i, children)
-        if findAndActivateExpansionCheckbox(child, depth + 1) then
-            return true
+    local ftype = root.GetObjectType and root:GetObjectType() or ""
+    if ftype == "CheckButton" then
+        local okv, vis = pcall(function() return root:IsVisible() end)
+        if okv and vis then
+            return root
         end
     end
-    return false
+
+    local ok, children = pcall(function() return { root:GetChildren() } end)
+    if not ok then return nil end
+    for _, child in ipairs(children) do
+        local found = findExpansionCheckButton(child, depth + 1)
+        if found then return found end
+    end
+    return nil
+end
+
+local function clickFrame(f)
+    local ok, onClick = pcall(function() return f:GetScript("OnClick") end)
+    if ok and type(onClick) == "function" then
+        pcall(onClick, f, "LeftButton")
+    else
+        pcall(function() f:Click() end)
+    end
 end
 
 local function applyAuctionHouseExpansionFilter()
     if not AuctionHouseFrame or not AuctionHouseFrame:IsVisible() then
         return
     end
-    findAndActivateExpansionCheckbox(AuctionHouseFrame, 0)
+
+    -- Step 1: find and click the "필터" / "Filter" button (by text — not tainted)
+    local filterBtn = findFrameByLabel(AuctionHouseFrame, AH_FILTER_BUTTON_LABELS, 0)
+    if not filterBtn then
+        ns.Utils.Debug("[AH Filter] 필터 버튼을 찾지 못했습니다.")
+        return
+    end
+    pcall(clickFrame, filterBtn)
+
+    -- Step 2: after panel opens, find the visible non-Auctionator CheckButton
+    if not C_Timer or type(C_Timer.After) ~= "function" then return end
+    C_Timer.After(0.35, function()
+        local expansionCheck = findExpansionCheckButton(AuctionHouseFrame, 0)
+        if not expansionCheck then
+            ns.Utils.Debug("[AH Filter] 확장팩 체크박스를 찾지 못했습니다.")
+            return
+        end
+        -- If already checked, just close the panel
+        local okc, isChecked = pcall(function() return expansionCheck:GetChecked() end)
+        if okc and isChecked then
+            pcall(clickFrame, filterBtn)
+            return
+        end
+        pcall(clickFrame, expansionCheck)
+        -- Close the filter panel
+        C_Timer.After(0.15, function()
+            pcall(clickFrame, filterBtn)
+        end)
+    end)
 end
 
 local function ensureAuctionHouseFilter()
@@ -147,7 +205,7 @@ local function ensureAuctionHouseFilter()
         return
     end
 
-    C_Timer.After(0.3, function()
+    C_Timer.After(0.5, function()
         pcall(applyAuctionHouseExpansionFilter)
     end)
 end

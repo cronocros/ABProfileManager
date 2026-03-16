@@ -7,7 +7,7 @@ ABProfileManager
 
 ABProfileManager가 그 세 가지를 한 창에서 해결합니다.
 
-버전: v1.4.5
+버전: v1.4.6
 제작: 밍밍이와코코 (crono1232@gmail.com)
 
 ════════════════════════════════════════════════════
@@ -87,5 +87,5 @@ ABProfileManager가 그 세 가지를 한 창에서 해결합니다.
 
   저장소:       https://github.com/cronocros/ABProfileManager
   최신 릴리스:  https://github.com/cronocros/ABProfileManager/releases/latest
-  직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.4.3/ABProfileManager-v1.4.3.zip
+  직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.4.6/ABProfileManager-v1.4.6.zip
 

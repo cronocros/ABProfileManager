@@ -457,9 +457,10 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.auctionHouseFilterCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.auctionHouseFilterCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
+    refs.auctionHouseFilterCheck:Hide()
 
     refs.statsOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
-    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.auctionHouseFilterCheck, "BOTTOMLEFT", 0, -8)
+    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
 
     refs.professionOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayCheck, "BOTTOMLEFT", 0, -8)
