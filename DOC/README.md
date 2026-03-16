@@ -8,8 +8,12 @@
 
 - [../README.md](../README.md)
   - 기본 사용자 안내와 기능 요약
-- [../RELEASE_NOTES_v1.3.16.md](../RELEASE_NOTES_v1.3.16.md)
+- [../RELEASE_NOTES_v1.4.1.md](../RELEASE_NOTES_v1.4.1.md)
   - 최신 릴리스 노트
+- [NEXT_WORK_PLAN.md](./NEXT_WORK_PLAN.md)
+  - 다음 구현 묶음의 TODO와 설계 초안
+- [TEAM_EXECUTION_BRIEF.md](./TEAM_EXECUTION_BRIEF.md)
+  - 에이전트 팀 작업 분배와 승인 기준
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름
 - [HANDOFF.md](./HANDOFF.md)

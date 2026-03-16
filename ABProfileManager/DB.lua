@@ -12,6 +12,24 @@ local function clampOverlayScale(value)
     return math.max(0.75, math.min(1.35, numeric))
 end
 
+local TYPOGRAPHY_BOUNDS = {
+    ui = { min = -2, max = 6, default = 0 },
+    tooltip = { min = -2, max = 6, default = 0 },
+    statsOverlay = { min = -2, max = 6, default = 0 },
+    professionOverlay = { min = -3, max = 6, default = 0 },
+    mapOverlay = { min = -6, max = 12, default = 0 },
+}
+
+local function clampTypographyOffset(domain, value)
+    local bounds = TYPOGRAPHY_BOUNDS[domain] or TYPOGRAPHY_BOUNDS.ui
+    local numeric = tonumber(value)
+    if not numeric then
+        return bounds.default
+    end
+
+    return math.max(bounds.min, math.min(bounds.max, math.floor(numeric + 0.5)))
+end
+
 local function getSpecializationID()
     local specIndex = GetSpecialization and GetSpecialization()
     if not specIndex then
@@ -90,10 +108,17 @@ function DB:GetGlobalSettings()
 
     ns.db.global.settings = ns.db.global.settings or {
         language = ns.Constants.LANGUAGE.KOREAN,
-        confirmActions = true,
-        minimap = {
-            hide = false,
-            angle = 220,
+            confirmActions = true,
+            typography = {
+                ui = 0,
+                tooltip = 0,
+                statsOverlay = 0,
+                professionOverlay = 0,
+                mapOverlay = 0,
+            },
+            minimap = {
+                hide = false,
+                angle = 220,
         },
         statsOverlay = {
             enabled = false,
@@ -104,6 +129,14 @@ function DB:GetGlobalSettings()
         },
         silvermoonMapOverlay = {
             enabled = false,
+            filters = {
+                facilities = true,
+                portals = true,
+                professions = true,
+                renown = true,
+                dungeons = true,
+                delves = true,
+            },
         },
         mouseMoveRestore = {
             enabled = false,
@@ -151,6 +184,34 @@ function DB:GetMinimapConfig()
     }
 
     return settings.minimap
+end
+
+function DB:GetTypographySettings()
+    local settings = self:GetGlobalSettings()
+    settings.typography = settings.typography or {}
+
+    for domain, bounds in pairs(TYPOGRAPHY_BOUNDS) do
+        settings.typography[domain] = clampTypographyOffset(domain, settings.typography[domain] or bounds.default)
+    end
+
+    return settings.typography
+end
+
+function DB:GetTypographyOffset(domain)
+    local settings = self:GetTypographySettings()
+    domain = TYPOGRAPHY_BOUNDS[domain] and domain or "ui"
+    return settings[domain]
+end
+
+function DB:SetTypographyOffset(domain, value)
+    domain = TYPOGRAPHY_BOUNDS[domain] and domain or "ui"
+    self:GetTypographySettings()[domain] = clampTypographyOffset(domain, value)
+    return self:GetTypographyOffset(domain)
+end
+
+function DB:GetTypographyRange(domain)
+    local bounds = TYPOGRAPHY_BOUNDS[domain] or TYPOGRAPHY_BOUNDS.ui
+    return bounds.min, bounds.max, bounds.default
 end
 
 function DB:SetMinimapHidden(hidden)
@@ -220,6 +281,7 @@ function DB:GetSilvermoonMapOverlaySettings()
             facilities = true,
             portals = true,
             professions = true,
+            renown = true,
             dungeons = true,
             delves = true,
         },
@@ -228,6 +290,7 @@ function DB:GetSilvermoonMapOverlaySettings()
         facilities = true,
         portals = true,
         professions = true,
+        renown = true,
         dungeons = true,
         delves = true,
     }

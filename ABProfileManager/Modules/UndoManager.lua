@@ -102,5 +102,5 @@ function UndoManager:RequestUndo(callbacks)
             result.invalid
         )
         return result
-    end, callbacks)
+    end, callbacks, true)
 end

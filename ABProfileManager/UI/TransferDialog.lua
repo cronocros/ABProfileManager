@@ -49,6 +49,7 @@ local function buildFrame()
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     frame.title:SetPoint("TOPLEFT", 22, -18)
     frame.title:SetTextColor(1, 0.86, 0.42, 1)
+    ns.UI.Widgets.ApplyFont(frame.title, 15, { domain = "ui" })
 
     local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", -6, -6)
@@ -59,10 +60,12 @@ local function buildFrame()
     frame.helpText:SetJustifyH("LEFT")
     frame.helpText:SetJustifyV("TOP")
     frame.helpText:SetTextColor(0.92, 0.92, 0.9, 1)
+    ns.UI.Widgets.ApplyFont(frame.helpText, 12, { domain = "ui" })
 
     frame.nameLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     frame.nameLabel:SetPoint("TOPLEFT", frame.helpText, "BOTTOMLEFT", 0, -14)
     frame.nameLabel:SetTextColor(1, 0.83, 0.36, 1)
+    ns.UI.Widgets.ApplyFont(frame.nameLabel, 13, { domain = "ui" })
 
     frame.nameInput = ns.UI.Widgets.CreateEditBox(frame, 260, 24)
     frame.nameInput:SetPoint("TOPLEFT", frame.nameLabel, "BOTTOMLEFT", 0, -8)
@@ -75,6 +78,7 @@ local function buildFrame()
     frame.statusText:SetWidth(636)
     frame.statusText:SetJustifyH("LEFT")
     frame.statusText:SetTextColor(0.82, 0.88, 0.98, 1)
+    ns.UI.Widgets.ApplyFont(frame.statusText, 11, { domain = "ui" })
 
     frame.primaryButton = ns.UI.Widgets.CreateButton(frame, "", 140, 28)
 

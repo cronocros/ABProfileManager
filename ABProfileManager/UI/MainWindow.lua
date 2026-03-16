@@ -11,6 +11,7 @@ local function applyTabSelectionStyles(window)
     ns.UI.Widgets.SetButtonSelected(window.profilesTab, window.currentTab == "profiles")
     ns.UI.Widgets.SetButtonSelected(window.actionBarsTab, window.currentTab == "action_bars")
     ns.UI.Widgets.SetButtonSelected(window.professionsTab, window.currentTab == "professions")
+    ns.UI.Widgets.SetButtonSelected(window.mapTab, window.currentTab == "map")
     ns.UI.Widgets.SetButtonSelected(window.questsTab, window.currentTab == "quests")
     ns.UI.Widgets.SetButtonSelected(window.configTab, window.currentTab == "config")
 end
@@ -24,6 +25,7 @@ local function showTab(window, tabName)
     window.profilePanel:SetShown(tabName == "profiles")
     window.actionBarPanel:SetShown(tabName == "action_bars")
     window.professionPanel:SetShown(tabName == "professions")
+    window.mapPanel:SetShown(tabName == "map")
     window.questPanel:SetShown(tabName == "quests")
     window.configPanel:SetShown(tabName == "config")
     applyTabSelectionStyles(window)
@@ -35,10 +37,12 @@ function MainWindow:RefreshLocale()
     end
 
     self.frame.title:SetText(buildWindowTitle())
+    ns.UI.Widgets.ApplyFont(self.frame.title, 14, { domain = "ui" })
     self.frame.title:SetTextColor(1, 0.86, 0.42, 1)
     self.frame.profilesTab:SetText(ns.L("tab_profiles"))
     self.frame.actionBarsTab:SetText(ns.L("tab_action_bars"))
     self.frame.professionsTab:SetText(ns.L("tab_professions"))
+    self.frame.mapTab:SetText(ns.L("tab_map"))
     self.frame.questsTab:SetText(ns.L("tab_quests"))
     self.frame.configTab:SetText(ns.L("tab_config"))
 end
@@ -110,7 +114,7 @@ function MainWindow:Initialize()
     tabContainer:SetPoint("TOPRIGHT", -16, -42)
     tabContainer:SetHeight(28)
 
-    local tabWidth = 102
+    local tabWidth = 94
 
     local profilesTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
     profilesTab:SetPoint("TOPLEFT", 0, 0)
@@ -121,8 +125,11 @@ function MainWindow:Initialize()
     local professionsTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
     professionsTab:SetPoint("LEFT", actionBarsTab, "RIGHT", 8, 0)
 
+    local mapTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
+    mapTab:SetPoint("LEFT", professionsTab, "RIGHT", 8, 0)
+
     local questsTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
-    questsTab:SetPoint("LEFT", professionsTab, "RIGHT", 8, 0)
+    questsTab:SetPoint("LEFT", mapTab, "RIGHT", 8, 0)
 
     local configTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
     configTab:SetPoint("LEFT", questsTab, "RIGHT", 8, 0)
@@ -134,6 +141,7 @@ function MainWindow:Initialize()
     frame.profilePanel = ns.UI.ProfilePanel:Create(content)
     frame.actionBarPanel = ns.UI.ActionBarPanel:Create(content)
     frame.professionPanel = ns.UI.ProfessionPanel:Create(content)
+    frame.mapPanel = ns.UI.MapPanel:Create(content)
     frame.questPanel = ns.UI.QuestPanel:Create(content)
     frame.configPanel = ns.UI.ConfigPanel:Create(content)
 
@@ -144,7 +152,7 @@ function MainWindow:Initialize()
     local statusText = ns.UI.Widgets.CreateScrollTextBox(statusBox, windowWidth - 92, 90)
     statusText:SetPoint("TOPLEFT", 12, -14)
     if statusText.text then
-        statusText.text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 14, "")
+        ns.UI.Widgets.ApplyFont(statusText.text, 14, { domain = "ui" })
         if statusText.text.SetSpacing then
             statusText.text:SetSpacing(5)
         end
@@ -163,6 +171,10 @@ function MainWindow:Initialize()
         showTab(frame, "professions")
         ns:RefreshUI()
     end)
+    mapTab:SetScript("OnClick", function()
+        showTab(frame, "map")
+        ns:RefreshUI()
+    end)
     questsTab:SetScript("OnClick", function()
         showTab(frame, "quests")
         ns:RefreshUI()
@@ -178,6 +190,7 @@ function MainWindow:Initialize()
     frame.profilesTab = profilesTab
     frame.actionBarsTab = actionBarsTab
     frame.professionsTab = professionsTab
+    frame.mapTab = mapTab
     frame.questsTab = questsTab
     frame.configTab = configTab
 
@@ -256,6 +269,7 @@ function MainWindow:OpenToTab(tabName)
         profiles = true,
         action_bars = true,
         professions = true,
+        map = true,
         quests = true,
         config = true,
     }

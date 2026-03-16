@@ -2,7 +2,7 @@ ABProfileManager
 
 와우 Retail에서 액션바 복구, 전문기술 포인트 체크, 한밤(Midnight) 길찾기를 한 번에 정리해 주는 애드온입니다.
 
-버전: v1.3.16
+버전: v1.4.1
 제작: 밍밍이와코코
 연락처: crono1232@gmail.com
 
@@ -10,8 +10,10 @@ ABProfileManager
 - 엉킨 액션바를 저장한 템플릿으로 빠르게 복구
 - 전문기술 주간 포인트와 1회성 보물 진행도 자동 추적
 - TomTom 연동으로 미완료 보물 waypoint 표시
-- 한밤(Midnight) 지역 포탈, 허브, 던전, 구렁 위치 오버레이
-- 설정 탭에서 전투메시지 표시와 배치 직접 조정
+- 한밤(Midnight) 지도 전용 탭과 포탈/평판상인 필터
+- 메인 UI, tooltip, 오버레이 글자 크기 슬라이더
+- profession 오버레이 tooltip 범례/색상/정렬 복구
+- 설정 탭에서 전투메시지 표출 방식과 부채꼴 모드 조정
 
 [추천 대상]
 - 특성 전환이나 부캐 플레이가 잦은 플레이어
@@ -21,4 +23,4 @@ ABProfileManager
 [다운로드]
 - 저장소: https://github.com/cronocros/ABProfileManager
 - 최신 릴리스: https://github.com/cronocros/ABProfileManager/releases/latest
-- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.3.16/ABProfileManager-v1.3.16.zip
+- 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.4.1/ABProfileManager-v1.4.1.zip

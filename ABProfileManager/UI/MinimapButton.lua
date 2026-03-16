@@ -24,6 +24,7 @@ local function setTooltip(button)
     GameTooltip:AddLine(ns.L("minimap_tooltip_line1"), 1, 0.82, 0, true)
     GameTooltip:AddLine(ns.L("minimap_tooltip_line2"), 1, 0.82, 0, true)
     GameTooltip:AddLine(ns.L("minimap_tooltip_line3", ns.Constants.AUTHOR), 0.7, 0.9, 1, true)
+    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 
@@ -59,7 +60,7 @@ function MinimapButton:Initialize()
     button.label:SetPoint("CENTER", 0, -1)
     button.label:SetText("AB")
     button.label:SetTextColor(1, 0.84, 0.32, 1)
-    button.label:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 9, "")
+    ns.UI.Widgets.ApplyFont(button.label, 9, { domain = "ui" })
 
     button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
     button:SetHitRectInsets(-8, -8, -8, -8)

@@ -126,6 +126,20 @@ function AddonSettingsPages:CreatePanels()
                 return ns.L("settings_subpanel_quests_summary")
             end
         ),
+        map = self:CreatePanel(
+            "Map",
+            "map",
+            "settings_subpanel_map_title",
+            "settings_subpanel_map_body",
+            "settings_subpanel_button_map",
+            function()
+                return ns.L(
+                    "settings_subpanel_map_summary",
+                    ns.DB:IsSilvermoonMapOverlayEnabled() and ns.L("state_enabled") or ns.L("state_disabled"),
+                    ns.DB:GetTypographyOffset("mapOverlay")
+                )
+            end
+        ),
     }
 
     return self.panels
@@ -141,6 +155,7 @@ function AddonSettingsPages:Register(parentCategory)
         { key = "templates", label = ns.L("settings_category_templates") },
         { key = "actionBars", label = ns.L("settings_category_action_bars") },
         { key = "professions", label = ns.L("settings_category_professions") },
+        { key = "map", label = ns.L("settings_category_map") },
         { key = "quests", label = ns.L("settings_category_quests") },
     }
 

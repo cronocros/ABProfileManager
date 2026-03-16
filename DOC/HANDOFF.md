@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.3.16`
+버전 기준: `v1.4.1`
 
 ## 현재 상태
 
@@ -10,19 +10,21 @@
 
 - 액션바 템플릿 저장, 적용, 비교, 부분 적용, 동기화, 최근 1회 되돌리기
 - 전문기술 포인트 자동 추적 카드와 오버레이
-- Midnight 전투메시지 CVar 직접 제어
+- Midnight 전투메시지 표출 방식 관리
 - 퀘스트 정리와 퀘스트 ID 상세 열기
 - 캐릭터 스탯 오버레이
 - 한밤(Midnight) 지도 오버레이
+- 지도 전용 탭과 typography 슬라이더
 - 와우 `설정 > 애드온` 경량 하위 페이지
 
 ## 사용자가 민감하게 보는 지점
 
 1. 메인 UI 레이아웃은 크게 건드리지 말 것
 2. profession 카드와 overlay의 정렬, 여백, 폰트는 이미 여러 번 맞춘 상태라 큰 재배치는 피할 것
-3. 지도 오버레이는 가독성과 위치를 우선하며, 내부 지도에 뜨지 않게 유지할 것
-4. 설정 패널은 메인 UI와 별도 레이아웃을 유지할 것
-5. 고스트 드래그와 전투 중 대기열 상호작용은 항상 보수적으로 다룰 것
+3. typography 슬라이더는 전역 영향 범위가 넓으므로 font만 바꾸지 말고 overflow와 hitbox까지 같이 볼 것
+4. 지도 오버레이는 가독성과 위치를 우선하며, 내부 지도에 뜨지 않게 유지할 것
+5. 설정 패널과 지도 탭은 역할을 섞지 말 것
+6. 고스트 드래그와 전투 중 대기열 상호작용은 항상 보수적으로 다룰 것
 
 ## 운영 메모
 
@@ -42,6 +44,7 @@
 - profession/quest refresh는 이제 보호 경로를 거친다
 - 채집/루팅 직후 연속 이벤트는 짧게 합쳐 처리한다
 - `LOOT_CLOSED` 이후에도 profession refresh를 다시 확인해 1회성 완료 반영 누락 가능성을 줄였다
+- `QUEST_TURNED_IN`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `LOOT_CLOSED` 뒤 follow-up refresh를 추가로 태워 드랍/논문/1회성 누락 가능성을 더 줄였다
 - 최신 사용자 피드백 기준으로 구렁/던전 시체 약초채집 blank Lua 오류는 재현되지 않았다
 
 운영 메모:
@@ -49,12 +52,14 @@
 - 시체 채집/보물 채집 관련 제보가 오면 `Events.lua`, `UI/ProfessionKnowledgeOverlay.lua`, `UI/ProfessionPanel.lua`, `UI/QuestPanel.lua`를 먼저 본다
 - 오류 원문이 필요하면 `/abpm debug on`과 기본 Lua 오류 표시를 같이 켜고 본다
 
-### 3. 전투메시지 CVar 직접 제어
+### 3. 전투메시지 표출 방식 관리
 
 - Midnight 최신 클라이언트는 일부 전투메시지 옵션이 기본 UI에서 잘 보이지 않는다
 - 현재는 `CombatTextManager`가 `_v2` CVar를 우선 사용하고, 없으면 구형 이름으로 fallback 한다
-- 사용자가 설정 탭에서 항목을 건드리면 해당 프리셋을 저장하고 바로 적용한다
-- `전투메시지 직접 제어`를 끄면 이후 로그인/월드 진입 때 강제 재적용하지 않는다
+- 현재는 기본 WoW 전투메시지 on/off는 건드리지 않고, `위로 / 아래로 / 부채꼴` 표출 방식과 방향성 분산만 다시 적용한다
+- 사용자가 설정 탭에서 항목을 건드리면 해당 표출 방식을 저장하고 바로 적용한다
+- 로그인/월드 진입 직후에는 짧은 retry까지 함께 태워 적용 누락을 줄인다
+- `전투메시지 표출 방식 관리`를 끄면 이후 로그인/월드 진입 때 강제 재적용하지 않는다
 
 운영 메모:
 
@@ -65,6 +70,8 @@
 
 - 정적 좌표 기반이라 패치 후 drift가 생길 수 있다
 - 보정은 `Data/SilvermoonMapData.lua`와 `UI/SilvermoonMapOverlay.lua`를 같이 수정한다
+- 외부 지역 포탈 좌표는 실버문보다 검증 신뢰도가 낮으므로 사용자 제보가 들어오면 우선 재확인한다
+- 지원하지 않는 child/detail map은 부모 지도 라벨을 억지로 따라오지 않게 숨기는 것이 현재 기준이다
 
 ## 중요한 파일
 
@@ -97,6 +104,8 @@
 - `ABProfileManager/UI/ProfessionPanel.lua`
 - `ABProfileManager/UI/ProfessionKnowledgeOverlay.lua`
 - `ABProfileManager/UI/SilvermoonMapOverlay.lua`
+- `ABProfileManager/UI/MapPanel.lua`
+- `ABProfileManager/UI/Typography.lua`
 
 ### 퀘스트 / 스탯 / 설정
 

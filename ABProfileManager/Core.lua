@@ -59,6 +59,7 @@ function ns:InitializeStartupModules()
         self.UI.ProfessionKnowledgeOverlay,
         self.UI.TransferDialog,
         self.UI.ConfigPanel,
+        self.UI.MapPanel,
         self.UI.SilvermoonMapOverlay,
         self.UI.MainWindow,
     }
@@ -114,9 +115,11 @@ function ns:SetSelectedSource(kind, key)
 end
 
 function ns:RefreshUI()
+    self:SafeCall(self.UI.Typography, "RefreshRegistered")
     self:SafeCall(self.UI.ProfilePanel, "Refresh")
     self:SafeCall(self.UI.ActionBarPanel, "Refresh")
     self:SafeCall(self.UI.ProfessionPanel, "Refresh")
+    self:SafeCall(self.UI.MapPanel, "Refresh")
     self:SafeCall(self.UI.QuestPanel, "Refresh")
     self:SafeCall(self.UI.ConfigPanel, "Refresh")
     self:SafeCall(self.UI.MinimapButton, "Refresh")

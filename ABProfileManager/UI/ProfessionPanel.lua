@@ -12,13 +12,6 @@ local ROW_RIGHT_PADDING = 10
 local ROW_VALUE_WIDTH = 70
 local ROW_TEXT_WIDTH = CARD_WIDTH - 28 - ROW_VALUE_WIDTH - ROW_RIGHT_PADDING - 24
 local MAX_ROWS = 8
-local OVERLAY_SCALE_OPTIONS = {
-    { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
-    { value = 0.90, labelKey = "overlay_size_small", buttonText = "S" },
-    { value = 1.00, labelKey = "overlay_size_default", buttonText = "M" },
-    { value = 1.15, labelKey = "overlay_size_large", buttonText = "L" },
-    { value = 1.30, labelKey = "overlay_size_xlarge", buttonText = "XL" },
-}
 
 local function setStatus(message)
     ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
@@ -44,18 +37,23 @@ local function applyProfessionOverlayTooltipsEnabled(enabled)
     setStatus(ns.L("config_saved_profession_overlay_tooltips", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
-local function applyProfessionOverlayScale(scale, labelKey)
+local function applyProfessionOverlayTextSize(offset)
     if not ns.DB then
         return
     end
 
-    ns.DB:SetProfessionKnowledgeOverlayScale(scale)
+    offset = ns.DB:SetTypographyOffset("professionOverlay", offset)
     ns:RefreshUI()
-    setStatus(ns.L("config_saved_profession_overlay_scale", ns.L(labelKey)))
+    if offset > 0 then
+        setStatus(ns.L("config_saved_typography", ns.L("config_typography_profession_overlay"), string.format("+%dpt", offset)))
+        return
+    end
+
+    setStatus(ns.L("config_saved_typography", ns.L("config_typography_profession_overlay"), string.format("%dpt", offset)))
 end
 
 local function applyText(fontString, size, r, g, b, wrap)
-    fontString:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", size, "")
+    ns.UI.Widgets.ApplyFont(fontString, size, { domain = "ui" })
     fontString:SetTextColor(r, g, b, 1)
     fontString:SetJustifyH("LEFT")
     fontString:SetJustifyV("TOP")
@@ -85,6 +83,7 @@ local function setTooltip(owner, text)
     for index = 2, #lines do
         GameTooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
     end
+    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 
@@ -95,7 +94,7 @@ local function buildRowTooltip(rowData)
 
     for _, objective in ipairs(rowData.objectiveRows or {}) do
         lines[#lines + 1] = ns.L(
-            objective.complete and "pk_tooltip_complete_row" or "pk_tooltip_pending_row",
+            objective.complete and "pk_tooltip_complete_named_row" or "pk_tooltip_pending_named_row",
             objective.name or ("Objective " .. (objective.index or 0)),
             objective.points or 0
         )
@@ -221,39 +220,39 @@ function ProfessionPanel:Create(parent)
     end
 
     local controlsFrame = CreateFrame("Frame", nil, frame)
-    controlsFrame:SetSize(CONTROL_FRAME_WIDTH, 88)
+    controlsFrame:SetSize(CONTROL_FRAME_WIDTH, 120)
     controlsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -18, -18)
 
     local overlayCheck = ns.UI.Widgets.CreateCheckButton(controlsFrame, "")
     overlayCheck:SetPoint("TOPLEFT", controlsFrame, "TOPLEFT", 0, 0)
     overlayCheck.Text:SetWidth(58)
     overlayCheck.Text:SetJustifyH("LEFT")
-    overlayCheck.Text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
+    ns.UI.Widgets.ApplyFont(overlayCheck.Text, 10, { domain = "ui" })
 
     local overlayTooltipCheck = ns.UI.Widgets.CreateCheckButton(controlsFrame, "")
     overlayTooltipCheck:SetPoint("LEFT", overlayCheck.Text, "RIGHT", 16, 0)
     overlayTooltipCheck.Text:SetWidth(54)
     overlayTooltipCheck.Text:SetJustifyH("LEFT")
-    overlayTooltipCheck.Text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
+    ns.UI.Widgets.ApplyFont(overlayTooltipCheck.Text, 10, { domain = "ui" })
 
     local overlaySizeLabel = ns.UI.Widgets.CreateLabel(controlsFrame, "", overlayCheck, 4, -4, "GameFontHighlight")
-    local overlayScaleButtons = {}
-    local previousButton = nil
-    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
-        local optionValue = option.value
-        local optionLabelKey = option.labelKey
-        local button = ns.UI.Widgets.CreateButton(controlsFrame, "", 44, 20)
-        if previousButton then
-            button:SetPoint("LEFT", previousButton, "RIGHT", 6, 0)
-        else
-            button:SetPoint("TOPLEFT", overlaySizeLabel, "BOTTOMLEFT", 0, -6)
+    local minValue, maxValue = ns.DB:GetTypographyRange("professionOverlay")
+    local overlayFontSlider = ns.UI.Widgets.CreateValueSlider(controlsFrame, 228, minValue, maxValue, 1)
+    overlayFontSlider:SetPoint("TOPLEFT", overlaySizeLabel, "BOTTOMLEFT", 0, -6)
+    overlayFontSlider:SetValueFormatter(function(value)
+        value = math.floor((tonumber(value) or 0) + 0.5)
+        if value > 0 then
+            return string.format("+%dpt", value)
         end
-        button:SetScript("OnClick", function()
-            applyProfessionOverlayScale(optionValue, optionLabelKey)
-        end)
-        overlayScaleButtons[index] = button
-        previousButton = button
-    end
+        return string.format("%dpt", value)
+    end)
+    overlayFontSlider.slider:SetScript("OnValueChanged", function(_, value)
+        overlayFontSlider:SetValueText(value)
+        local rounded = math.floor((tonumber(value) or 0) + 0.5)
+        if ns.DB:GetTypographyOffset("professionOverlay") ~= rounded then
+            applyProfessionOverlayTextSize(rounded)
+        end
+    end)
 
     local leftCard = self:CreateCard(frame, "TOPLEFT", nil)
     leftCard:ClearAllPoints()
@@ -276,7 +275,7 @@ function ProfessionPanel:Create(parent)
     self.overlayCheck = overlayCheck
     self.overlayTooltipCheck = overlayTooltipCheck
     self.overlaySizeLabel = overlaySizeLabel
-    self.overlayScaleButtons = overlayScaleButtons
+    self.overlayFontSlider = overlayFontSlider
     self.cards = { leftCard, rightCard }
     self.emptyText = emptyText
 
@@ -299,9 +298,9 @@ function ProfessionPanel:RefreshLocale()
     self.hint:SetText(ns.L("professions_hint"))
     self.overlayCheck.Text:SetText(ns.L("professions_overlay_toggle_short"))
     self.overlayTooltipCheck.Text:SetText(ns.L("professions_overlay_tooltips_toggle_short"))
-    self.overlaySizeLabel:SetText(ns.L("overlay_size_label"))
-    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
-        self.overlayScaleButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
+    self.overlaySizeLabel:SetText(ns.L("config_typography_profession_overlay"))
+    if self.overlayFontSlider then
+        self.overlayFontSlider:SetLabel(ns.L("config_typography_profession_overlay"))
     end
     for _, card in ipairs(self.cards or {}) do
         card.weeklyTitle:SetText(ns.L("professions_weekly"))
@@ -313,7 +312,7 @@ end
 function ProfessionPanel:BindCardRow(row, rowData)
     row.rowData = rowData
     if rowData.complete then
-        row.title:SetText(string.format("✓ %s", rowData.title or ""))
+        row.title:SetText(ns.L("pk_row_complete_prefix", rowData.title or ""))
     else
         row.title:SetText(rowData.title or "")
     end
@@ -429,20 +428,12 @@ function ProfessionPanel:RefreshInternal()
     self:RefreshLocale()
 
     local professions = ns.Modules.ProfessionKnowledgeTracker:GetKnownProfessions()
-    local currentScale = ns.DB and ns.DB:GetProfessionKnowledgeOverlayScale() or 1
-    local selectedScaleIndex = 1
-    local selectedScaleDiff = nil
-    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
-        local diff = math.abs(currentScale - option.value)
-        if not selectedScaleDiff or diff < selectedScaleDiff then
-            selectedScaleDiff = diff
-            selectedScaleIndex = index
-        end
-    end
     self.overlayCheck:SetChecked(ns.DB and ns.DB:IsProfessionKnowledgeOverlayEnabled() or false)
     self.overlayTooltipCheck:SetChecked(ns.DB and ns.DB:IsProfessionKnowledgeOverlayTooltipEnabled() or false)
-    for index, option in ipairs(OVERLAY_SCALE_OPTIONS) do
-        ns.UI.Widgets.SetButtonSelected(self.overlayScaleButtons[index], index == selectedScaleIndex)
+    if self.overlayFontSlider then
+        local offset = ns.DB and ns.DB:GetTypographyOffset("professionOverlay") or 0
+        self.overlayFontSlider.slider:SetValue(offset)
+        self.overlayFontSlider:SetValueText(offset)
     end
     self.emptyText:SetShown(#professions == 0)
     self.emptyText:SetText(#professions == 0 and ns.L("professions_empty") or "")

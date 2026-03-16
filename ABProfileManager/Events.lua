@@ -6,9 +6,11 @@ ns.Events = Events
 local frame = CreateFrame("Frame")
 Events.frame = frame
 local PROFESSION_REFRESH_DELAY = 0.05
+local PROFESSION_FOLLOWUP_DELAYS = { 0.35, 1.10 }
 local professionRefreshPending = false
 local professionRefreshForceScan = false
 local professionRefreshReason = nil
+local professionFollowUpToken = 0
 
 local function refreshGhostsAndRetries()
     ns.Utils.Debug("Refreshing ghost overlays and retry queue")
@@ -64,6 +66,24 @@ local function refreshProfessionKnowledgeViews(forceScan, reason)
     end)
 end
 
+local function scheduleProfessionFollowUpRefresh(reason)
+    if not C_Timer or type(C_Timer.After) ~= "function" then
+        return
+    end
+
+    professionFollowUpToken = professionFollowUpToken + 1
+    local token = professionFollowUpToken
+    for _, delay in ipairs(PROFESSION_FOLLOWUP_DELAYS) do
+        C_Timer.After(delay, function()
+            if token ~= professionFollowUpToken then
+                return
+            end
+
+            runProfessionKnowledgeRefresh(true, string.format("%s:followup", tostring(reason or "unknown")))
+        end)
+    end
+end
+
 local function ensureMouseMoveSetting()
     if not ns.DB or not ns.DB:IsMouseMoveRestoreEnabled() then
         return
@@ -99,6 +119,8 @@ local function ensureCombatTextSettings()
                 ns.Utils.Debug(string.format("Combat text CVar apply failed: %s", tostring(applied)))
             end
             ns:SafeCall(ns.UI.MainWindow, "SetStatus", ns.L("config_saved_combat_text_apply_failed"))
+        elseif manager.QueueReapply and ns.DB and ns.DB:IsCombatTextManaged() then
+            manager:QueueReapply({ 0.35, 1.50 })
         end
     end
 end
@@ -264,18 +286,22 @@ end
 
 function Events:QUEST_TURNED_IN()
     refreshProfessionKnowledgeViews(true, "QUEST_TURNED_IN")
+    scheduleProfessionFollowUpRefresh("QUEST_TURNED_IN")
 end
 
 function Events:BAG_UPDATE_DELAYED()
-    refreshProfessionKnowledgeViews(false, "BAG_UPDATE_DELAYED")
+    refreshProfessionKnowledgeViews(true, "BAG_UPDATE_DELAYED")
+    scheduleProfessionFollowUpRefresh("BAG_UPDATE_DELAYED")
 end
 
 function Events:BAG_NEW_ITEMS_UPDATED()
-    refreshProfessionKnowledgeViews(false, "BAG_NEW_ITEMS_UPDATED")
+    refreshProfessionKnowledgeViews(true, "BAG_NEW_ITEMS_UPDATED")
+    scheduleProfessionFollowUpRefresh("BAG_NEW_ITEMS_UPDATED")
 end
 
 function Events:LOOT_CLOSED()
-    refreshProfessionKnowledgeViews(false, "LOOT_CLOSED")
+    refreshProfessionKnowledgeViews(true, "LOOT_CLOSED")
+    scheduleProfessionFollowUpRefresh("LOOT_CLOSED")
 end
 
 Events:Initialize()

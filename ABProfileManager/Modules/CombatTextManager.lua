@@ -40,12 +40,13 @@ local function setCVarValue(names, value)
         return false
     end
 
-    local _, preferredName = getCVarValue(names)
-    if not preferredName then
-        return false
+    local ok = false
+    for _, name in ipairs(names or {}) do
+        local success = pcall(SetCVar, name, tostring(value))
+        ok = success or ok
     end
 
-    return pcall(SetCVar, preferredName, tostring(value))
+    return ok
 end
 
 local function toBooleanString(value)
@@ -98,13 +99,45 @@ function CombatTextManager:ApplySettings(settings)
         return false
     end
 
+    local expected = {
+        floatMode = self:NormalizeFloatMode(settings.floatMode),
+        directionalDamage = settings.directionalDamage ~= false,
+    }
+
     local ok = true
-    ok = setCVarValue(CVAR_KEYS.enabled, toBooleanString(settings.enabled ~= false)) and ok
-    ok = setCVarValue(CVAR_KEYS.damage, toBooleanString(settings.damage ~= false)) and ok
-    ok = setCVarValue(CVAR_KEYS.healing, toBooleanString(settings.healing ~= false)) and ok
-    ok = setCVarValue(CVAR_KEYS.floatMode, tostring(self:NormalizeFloatMode(settings.floatMode))) and ok
-    ok = setCVarValue(CVAR_KEYS.directionalDamage, settings.directionalDamage == false and "0" or "1") and ok
+    ok = setCVarValue(CVAR_KEYS.floatMode, tostring(expected.floatMode)) and ok
+    ok = setCVarValue(CVAR_KEYS.directionalDamage, expected.directionalDamage and "1" or "0") and ok
+
+    local applied = self:ReadCurrentSettings()
+    if applied.floatMode ~= expected.floatMode
+        or applied.directionalDamage ~= expected.directionalDamage
+    then
+        ok = setCVarValue(CVAR_KEYS.floatMode, tostring(expected.floatMode)) and ok
+        ok = setCVarValue(CVAR_KEYS.directionalDamage, expected.directionalDamage and "1" or "0") and ok
+        applied = self:ReadCurrentSettings()
+    end
+
+    if applied.floatMode ~= expected.floatMode
+        or applied.directionalDamage ~= expected.directionalDamage
+    then
+        return false
+    end
+
     return ok
+end
+
+function CombatTextManager:QueueReapply(delays)
+    if not C_Timer or type(C_Timer.After) ~= "function" then
+        return
+    end
+
+    for _, delay in ipairs(delays or { 0.25, 1.25 }) do
+        C_Timer.After(delay, function()
+            if ns.DB and ns.DB:IsCombatTextManaged() then
+                self:ApplyConfiguredSettings()
+            end
+        end)
+    end
 end
 
 function CombatTextManager:ApplyConfiguredSettings()

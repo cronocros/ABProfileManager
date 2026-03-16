@@ -351,5 +351,5 @@ function TemplateSyncManager:RequestSyncAction(kind, key, selection, actionKey, 
     local confirmText = self:GetConfirmText(actionKey, comparison, plan)
     return ns.Modules.ProfileManager:RunConfirmedOperation(confirmText, function()
         return ns.Modules.ActionBarApplier:ApplyPlan(plan)
-    end, callbacks)
+    end, callbacks, true)
 end

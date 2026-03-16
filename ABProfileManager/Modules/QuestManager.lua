@@ -25,7 +25,7 @@ local function sortByTitle(left, right)
 end
 
 local function addBulletLine(lines, text)
-    lines[#lines + 1] = "• " .. tostring(text or "")
+    lines[#lines + 1] = "- " .. tostring(text or "")
 end
 
 local function colorize(text, colorHex)

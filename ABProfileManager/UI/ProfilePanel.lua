@@ -22,6 +22,7 @@ end
 local function setTooltip(owner, text)
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:SetText(text)
+    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 
@@ -461,20 +462,25 @@ function ProfilePanel:Create(parent)
             return
         end
 
-        local snapshot, err = ns.Modules.ProfileManager:DuplicateTemplate(selectedSource.key, templateInput:GetText())
-        if not snapshot then
-            setStatus(self, err)
-            ns.Utils.Print(err)
-            return
-        end
+        ns.Modules.ProfileManager:RequestDuplicateTemplate(selectedSource.key, templateInput:GetText(), {
+            onComplete = function(snapshot, err)
+                if not snapshot then
+                    setStatus(self, err)
+                    if err then
+                        ns.Utils.Print(err)
+                    end
+                    return
+                end
 
-        ns:SetSelectedSource(ns.Constants.SOURCE_KIND.TEMPLATE, snapshot.sourceKey)
-        templateInput:SetText(snapshot.sourceKey or "")
-        local statusMessage = ns.L("duplicated_template", snapshot.sourceKey)
-        setStatus(self, statusMessage)
-        ns.Utils.Print(statusMessage)
-        self:Refresh()
-        refreshOtherPanel()
+                ns:SetSelectedSource(ns.Constants.SOURCE_KIND.TEMPLATE, snapshot.sourceKey)
+                templateInput:SetText(snapshot.sourceKey or "")
+                local statusMessage = ns.L("duplicated_template", snapshot.sourceKey)
+                setStatus(self, statusMessage)
+                ns.Utils.Print(statusMessage)
+                self:Refresh()
+                refreshOtherPanel()
+            end,
+        })
     end)
 
     refreshButton:SetScript("OnClick", function()
@@ -552,11 +558,11 @@ function ProfilePanel:Create(parent)
             return
         end
 
-        ns.UI.TransferDialog:ShowExport(selectedSource.key)
+        ns.Modules.ProfileManager:RequestShowExport(selectedSource.key)
     end)
 
     importButton:SetScript("OnClick", function()
-        ns.UI.TransferDialog:ShowImport(function(snapshot)
+        ns.Modules.ProfileManager:RequestShowImport(function(snapshot)
             templateInput:SetText(snapshot.sourceKey or "")
             self:Refresh()
             refreshOtherPanel()

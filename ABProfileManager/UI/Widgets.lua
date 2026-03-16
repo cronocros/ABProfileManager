@@ -4,6 +4,11 @@ local Widgets = {}
 ns.UI.Widgets = Widgets
 
 local function applyLocalizedFont(target, size)
+    local typography = ns.UI and ns.UI.Typography
+    if typography then
+        return typography:ApplyFont(target, size or 12, { domain = "ui" })
+    end
+
     local fontPath = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
     if target and target.SetFont then
         target:SetFont(fontPath, size or 12, "")
@@ -133,6 +138,10 @@ local function createScrollHost(parent, width, height)
         scrollTo((slider:GetValue() or 0) - (delta * step))
     end
 
+    function host:HandleMouseWheel(delta)
+        handleWheel(self, delta)
+    end
+
     host:SetScript("OnMouseWheel", handleWheel)
     scrollFrame:SetScript("OnMouseWheel", handleWheel)
     scrollFrame:SetScript("OnSizeChanged", function()
@@ -158,6 +167,25 @@ function Widgets.CreateLabel(parent, text, anchorTo, offsetX, offsetY, fontObjec
     end
 
     return label
+end
+
+function Widgets.ApplyFont(target, baseSize, options)
+    local typography = ns.UI and ns.UI.Typography
+    if typography then
+        return typography:ApplyFont(target, baseSize, options)
+    end
+
+    if target and target.SetFont then
+        target:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", baseSize or 12, options and options.flags or "")
+    end
+    return baseSize
+end
+
+function Widgets.ApplyTooltip(tooltip, headerBaseSize, bodyBaseSize, options)
+    local typography = ns.UI and ns.UI.Typography
+    if typography then
+        typography:ApplyTooltip(tooltip, headerBaseSize, bodyBaseSize, options)
+    end
 end
 
 function Widgets.CreateButton(parent, text, width, height)
@@ -192,7 +220,7 @@ function Widgets.CreateEditBox(parent, width, height, numeric)
     box:SetAutoFocus(false)
     box:SetSize(width or 180, height or 24)
     box:SetTextInsets(6, 6, 2, 2)
-    box:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 12, "")
+    Widgets.ApplyFont(box, 12, { domain = "ui" })
     box:SetScript("OnEscapePressed", box.ClearFocus)
     box:SetScript("OnEnterPressed", box.ClearFocus)
     if numeric then
@@ -285,7 +313,7 @@ function Widgets.CreateScrollEditBox(parent, width, height, readOnly)
 
     box:SetMultiLine(true)
     box:SetAutoFocus(false)
-    box:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 12, "")
+    Widgets.ApplyFont(box, 12, { domain = "ui" })
     box:SetTextInsets(4, 4, 6, 6)
     box:SetWidth(textWidth)
     box:SetPoint("TOPLEFT", 0, 0)
@@ -297,8 +325,14 @@ function Widgets.CreateScrollEditBox(parent, width, height, readOnly)
     if box.SetCursorColor then
         box:SetCursorColor(1, 0.82, 0.25)
     end
+    if box.EnableMouseWheel then
+        box:EnableMouseWheel(true)
+        box:SetScript("OnMouseWheel", function(_, delta)
+            host:HandleMouseWheel(delta)
+        end)
+    end
 
-    measure:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 12, "")
+    Widgets.ApplyFont(measure, 12, { domain = "ui" })
     measure:SetWidth(textWidth)
     measure:SetJustifyH("LEFT")
     measure:SetJustifyV("TOP")
@@ -437,6 +471,91 @@ function Widgets.CreateOptionCard(parent, width, height, iconText, titleText)
 
     button:SetSelected(false)
     return button
+end
+
+function Widgets.CreateValueSlider(parent, width, minValue, maxValue, step)
+    local host = CreateFrame("Frame", nil, parent)
+    host:SetSize(width or 250, 46)
+
+    host.label = host:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    host.label:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
+    Widgets.ApplyFont(host.label, 12, {
+        domain = "ui",
+        color = { 1, 0.86, 0.42, 1 },
+        justifyH = "LEFT",
+        justifyV = "TOP",
+    })
+
+    host.valueText = host:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    host.valueText:SetPoint("TOPRIGHT", host, "TOPRIGHT", 0, 0)
+    Widgets.ApplyFont(host.valueText, 12, {
+        domain = "ui",
+        color = { 0.86, 0.92, 1, 1 },
+        justifyH = "RIGHT",
+        justifyV = "TOP",
+    })
+
+    local slider = CreateFrame("Slider", nil, host, "OptionsSliderTemplate")
+    slider:SetOrientation("HORIZONTAL")
+    slider:SetPoint("TOPLEFT", host.label, "BOTTOMLEFT", 0, -8)
+    slider:SetWidth(width or 250)
+    slider:SetMinMaxValues(minValue or 0, maxValue or 10)
+    slider:SetValueStep(step or 1)
+    slider:SetObeyStepOnDrag(true)
+    slider:SetValue(minValue or 0)
+
+    if slider.Text then
+        slider.Text:SetText("")
+    end
+    if slider.Low then
+        slider.Low:SetText(tostring(minValue or 0))
+        Widgets.ApplyFont(slider.Low, 11, { domain = "ui" })
+    end
+    if slider.High then
+        slider.High:SetText(tostring(maxValue or 10))
+        Widgets.ApplyFont(slider.High, 11, { domain = "ui" })
+    end
+
+    host.slider = slider
+    host.formatter = function(value)
+        value = tonumber(value) or 0
+        if value > 0 then
+            return string.format("+%d", value)
+        end
+        return tostring(value)
+    end
+
+    function host:SetLabel(text)
+        host.label:SetText(text or "")
+    end
+
+    function host:SetValueFormatter(formatter)
+        if type(formatter) == "function" then
+            host.formatter = formatter
+        end
+    end
+
+    function host:SetValueText(value)
+        host.valueText:SetText(host.formatter(value))
+    end
+
+    function host:SetRange(newMin, newMax, newStep)
+        slider:SetMinMaxValues(newMin or 0, newMax or 10)
+        slider:SetValueStep(newStep or 1)
+        if slider.Low then
+            slider.Low:SetText(tostring(newMin or 0))
+        end
+        if slider.High then
+            slider.High:SetText(tostring(newMax or 10))
+        end
+    end
+
+    slider:SetScript("OnValueChanged", function(_, value)
+        host:SetValueText(value)
+    end)
+
+    host:SetValueText(minValue or 0)
+    return host
 end
 
 function Widgets.SetButtonSelected(button, selected)

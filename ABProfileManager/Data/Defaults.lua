@@ -6,6 +6,13 @@ ns.Data.Defaults = {
         settings = {
             language = ns.Constants.LANGUAGE.KOREAN,
             confirmActions = true,
+            typography = {
+                ui = 0,
+                tooltip = 0,
+                statsOverlay = 0,
+                professionOverlay = 0,
+                mapOverlay = 0,
+            },
             minimap = {
                 hide = false,
                 angle = 220,
@@ -23,6 +30,7 @@ ns.Data.Defaults = {
                     facilities = true,
                     portals = true,
                     professions = true,
+                    renown = true,
                     dungeons = true,
                     delves = true,
                 },

@@ -61,6 +61,7 @@ local function setTooltip(owner, text)
     for index = 2, #lines do
         GameTooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
     end
+    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 
@@ -491,7 +492,7 @@ function ActionBarPanel:Create(parent)
     for _, button in ipairs(syncButtons) do
         local fontString = button:GetFontString()
         if fontString then
-            fontString:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 14, "")
+            ns.UI.Widgets.ApplyFont(fontString, 14, { domain = "ui" })
         end
     end
 

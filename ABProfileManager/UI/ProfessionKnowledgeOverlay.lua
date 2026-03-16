@@ -17,8 +17,8 @@ local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
 local ICON_SIZE = 18
-local DETAIL_PREFIX_WIDTH = 42
-local DETAIL_DIVIDER_WIDTH = 0
+local DETAIL_PREFIX_WIDTH = 82
+local DETAIL_DIVIDER_WIDTH = 12
 local TOOLTIP_MIN_WIDTH = 420
 local HOVER_PANEL_WIDTH = 276
 local HOVER_PANEL_PADDING = 8
@@ -27,6 +27,14 @@ local HOVER_HIDE_DELAY = 0.10
 local OVERLAY_MODE_EXPANDED = "expanded"
 local OVERLAY_MODE_COMPACT = "compact"
 local OVERLAY_MODE_MINI = "mini"
+local DETAIL_ROW_SEPARATOR = "  /  "
+local TOOLTIP_COLORS = {
+    body = { 0.92, 0.92, 0.88, 1 },
+    section = { 1.00, 0.86, 0.40, 1 },
+    complete = { 0.50, 0.88, 0.50, 1 },
+    pending = { 0.47, 0.84, 1.00, 1 },
+    tomtom = { 0.84, 0.90, 1.00, 1 },
+}
 
 local OVERLAY_LABEL_KEYS = {
     weekly_quest = "professions_overlay_short_weekly_quest",
@@ -42,16 +50,17 @@ local OVERLAY_LABEL_KEYS = {
 }
 
 local function applyTextStyle(fontString, size, r, g, b)
-    fontString:SetFont(FONT_PATH, size, "OUTLINE")
+    ns.UI.Typography:ApplyFont(fontString, size, {
+        domain = "professionOverlay",
+        flags = "OUTLINE",
+        shadowOffset = { 1, -1 },
+        shadowColor = { 0, 0, 0, 0.85 },
+    })
     fontString:SetTextColor(r, g, b, 1)
     fontString:SetJustifyH("LEFT")
     fontString:SetJustifyV("TOP")
     if fontString.SetWordWrap then
         fontString:SetWordWrap(false)
-    end
-    if fontString.SetShadowOffset then
-        fontString:SetShadowOffset(1, -1)
-        fontString:SetShadowColor(0, 0, 0, 0.85)
     end
 end
 
@@ -151,20 +160,38 @@ local function getPendingColorHex()
     return "ff78d7ff"
 end
 
-local function getWeeklyResetDaysRemaining()
+local function getWeeklyResetRemainingParts()
+    local totalSeconds = nil
     if C_DateAndTime and type(C_DateAndTime.GetSecondsUntilWeeklyReset) == "function" then
         local ok, seconds = pcall(C_DateAndTime.GetSecondsUntilWeeklyReset)
         if ok and type(seconds) == "number" and seconds >= 0 then
-            return math.floor((seconds + 86399) / 86400)
+            totalSeconds = seconds
         end
     end
 
-    local now = GetServerTime and GetServerTime() or time()
-    local t = date("*t", now)
-    local weekday = tonumber(t and t.wday) or 1
-    local targetWeekday = 5
-    local delta = (targetWeekday - weekday) % 7
-    return delta
+    if type(totalSeconds) ~= "number" then
+        local now = GetServerTime and GetServerTime() or time()
+        local t = date("*t", now)
+        local weekday = tonumber(t and t.wday) or 1
+        local currentHour = tonumber(t and t.hour) or 0
+        local currentMinute = tonumber(t and t.min) or 0
+        local currentSecond = tonumber(t and t.sec) or 0
+        local targetWeekday = 5
+        local deltaDays = (targetWeekday - weekday) % 7
+        if deltaDays == 0 and (currentHour > 8 or (currentHour == 8 and (currentMinute > 0 or currentSecond > 0))) then
+            deltaDays = 7
+        end
+        totalSeconds = (deltaDays * 86400) + ((8 - currentHour) * 3600) - (currentMinute * 60) - currentSecond
+        if totalSeconds < 0 then
+            totalSeconds = totalSeconds + (7 * 86400)
+        end
+    end
+
+    totalSeconds = math.max(0, math.floor(totalSeconds or 0))
+    local days = math.floor(totalSeconds / 86400)
+    local hours = math.floor((totalSeconds % 86400) / 3600)
+    local minutes = math.floor((totalSeconds % 3600) / 60)
+    return days, hours, minutes
 end
 
 local function isKoreanOverlay()
@@ -205,7 +232,15 @@ local function buildRowFragments(rows, limit)
         fragments[#fragments + 1] = string.format("%s %s", getSourceShortLabel(row), countText)
     end
 
-    return table.concat(fragments, "   ·   ")
+    return table.concat(fragments, DETAIL_ROW_SEPARATOR)
+end
+
+local function buildTooltipLine(text, colorKey, wrap)
+    return {
+        text = tostring(text or ""),
+        color = TOOLTIP_COLORS[colorKey] or TOOLTIP_COLORS.body,
+        wrap = wrap ~= false,
+    }
 end
 
 local function joinObjectiveNames(objectiveRows, complete)
@@ -220,63 +255,42 @@ local function joinObjectiveNames(objectiveRows, complete)
 end
 
 local function formatTooltipCounts(row)
-    return ns.L(
-        "professions_overlay_tooltip_counts",
-        row and row.current or 0,
-        row and row.max or 0,
-        row and row.earned or 0,
-        row and row.maxPoints or 0
-    )
+    return ns.L("professions_overlay_tooltip_counts", row and row.current or 0, row and row.max or 0, row and row.earned or 0, row and row.maxPoints or 0)
 end
 
-local function appendTooltipSection(lines, title, rows, showObjectives)
+local function appendTooltipSection(lines, title, rows, options)
+    options = options or {}
     if #(rows or {}) == 0 then
         return
     end
 
-    lines[#lines + 1] = string.format("● %s", title)
-    for _, row in ipairs(rows or {}) do
-        local countsText = colorize(
-            formatTooltipCounts(row),
-            row.complete and getCompleteColorHex() or getPendingColorHex()
-        )
-        lines[#lines + 1] = string.format(
-            "  - %s %s",
-            colorize(row.title or "", "ffffffff"),
-            countsText
-        )
+    lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_section_header", title), "section")
+    for index, row in ipairs(rows or {}) do
+        local rowColor = row and row.complete and "complete" or "pending"
+        lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_source_line", row.title or "", formatTooltipCounts(row)), rowColor)
 
-        if showObjectives then
+        local shouldListObjectives = options.showObjectives == true
+        if shouldListObjectives and options.onlyKeys then
+            shouldListObjectives = options.onlyKeys[row.key] and true or false
+        end
+
+        if shouldListObjectives then
             local doneNames = joinObjectiveNames(row.objectiveRows, true)
             local openNames = joinObjectiveNames(row.objectiveRows, false)
             if doneNames ~= "" then
-                lines[#lines + 1] = string.format(
-                    "      · %s %s",
-                    colorize(ns.L("professions_overlay_tooltip_done"), getCompleteColorHex()),
-                    doneNames
-                )
+                lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_done_named", doneNames), "complete")
             end
             if openNames ~= "" then
-                lines[#lines + 1] = string.format(
-                    "      · %s %s",
-                    colorize(ns.L("professions_overlay_tooltip_pending"), getPendingColorHex()),
-                    openNames
-                )
+                lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_pending_named", openNames), "pending")
             end
         end
 
-        lines[#lines + 1] = ""
+        if index < #(rows or {}) then
+            lines[#lines + 1] = ""
+        end
     end
-end
 
-local function buildTooltipSummaryLine(summary)
-    return ns.L(
-        "professions_overlay_tooltip_summary",
-        summary and summary.weeklyEarned or 0,
-        summary and summary.weeklyMax or 0,
-        summary and summary.oneTimeEarned or 0,
-        summary and summary.oneTimeMax or 0
-    )
+    lines[#lines + 1] = ""
 end
 
 local function buildOverlayTooltipLines(professionEntry)
@@ -287,41 +301,42 @@ local function buildOverlayTooltipLines(professionEntry)
 
     local summary = tracker:GetProfessionSummary(professionEntry.key)
     local sections = tracker:GetProfessionSections(professionEntry.key)
+    local resetDays, resetHours, resetMinutes = getWeeklyResetRemainingParts()
     local lines = {
         tracker:GetProfessionDisplayName(professionEntry),
-        buildTooltipSummaryLine(summary),
-        colorize(ns.L("professions_overlay_tooltip_reset", getWeeklyResetDaysRemaining()), "ffff72d2"),
+        buildTooltipLine(ns.L("professions_overlay_tooltip_summary_weekly", summary and summary.weeklyMax or 0, summary and summary.weeklyEarned or 0), "body"),
+        buildTooltipLine(ns.L("professions_overlay_tooltip_summary_onetime", summary and summary.oneTimeMax or 0, summary and summary.oneTimeEarned or 0), "body"),
+        buildTooltipLine(ns.L("professions_overlay_tooltip_reset_precise", resetDays, resetHours, resetMinutes), "body"),
         "",
-        string.format("● %s", ns.L("professions_overlay_tooltip_legend")),
-        string.format(
-            "%s %s · %s",
-            ns.L("professions_overlay_tooltip_colors"),
-            colorize(ns.L("professions_overlay_tooltip_done"), getCompleteColorHex()),
-            colorize(ns.L("professions_overlay_tooltip_pending"), getPendingColorHex())
-        ),
-        ns.L("professions_overlay_tooltip_metrics"),
+        buildTooltipLine(ns.L("professions_overlay_tooltip_legend"), "section"),
+        buildTooltipLine(ns.L("professions_overlay_tooltip_done"), "complete", false),
+        buildTooltipLine(ns.L("professions_overlay_tooltip_pending"), "pending", false),
         "",
     }
 
-    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_weekly"), sections[1] and sections[1].rows or {}, true)
-    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_onetime"), sections[2] and sections[2].rows or {}, false)
+    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_weekly"), sections[1] and sections[1].rows or {}, {
+        showObjectives = true,
+    })
+    appendTooltipSection(lines, ns.L("professions_overlay_tooltip_onetime"), sections[2] and sections[2].rows or {}, {
+        showObjectives = true,
+        onlyKeys = {
+            renown_reward = true,
+            abundance_reward = true,
+        },
+    })
 
     local tomTom = ns.Modules and ns.Modules.TomTomBridge
     if tracker then
         local waypoint = tracker:GetNextTreasureWaypoint(professionEntry.key)
-        lines[#lines + 1] = ""
         if waypoint and tomTom and tomTom:IsAvailable() then
-            lines[#lines + 1] = string.format("● %s", ns.L("professions_overlay_tooltip_tomtom_header"))
-            lines[#lines + 1] = colorize(
-                ns.L("professions_overlay_tooltip_tomtom_ready", waypoint.objective and waypoint.objective.name or ""),
-                "ffffd06b"
-            )
+            lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_tomtom_header_line"), "tomtom", false)
+            lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_tomtom_ready", waypoint.objective and waypoint.objective.name or ""), "body")
         elseif tomTom and tomTom:IsAvailable() then
-            lines[#lines + 1] = string.format("● %s", ns.L("professions_overlay_tooltip_tomtom_header"))
-            lines[#lines + 1] = colorize(ns.L("professions_overlay_tooltip_tomtom_none"), "ff87d76d")
+            lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_tomtom_header_line"), "tomtom", false)
+            lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_tomtom_none"), "body")
         else
-            lines[#lines + 1] = string.format("● %s", ns.L("professions_overlay_tooltip_tomtom_header"))
-            lines[#lines + 1] = colorize(ns.L("professions_overlay_tooltip_tomtom_missing"), "ffffc26a")
+            lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_tomtom_header_line"), "tomtom", false)
+            lines[#lines + 1] = buildTooltipLine(ns.L("professions_overlay_tooltip_tomtom_missing"), "body")
         end
     end
 
@@ -387,17 +402,29 @@ local function showRowTooltip(owner, lines)
         local line = lines[index]
         if line == "" then
             GameTooltip:AddLine(" ")
+        elseif type(line) == "table" then
+            local color = line.color or TOOLTIP_COLORS.body
+            GameTooltip:AddLine(line.text or "", color[1], color[2], color[3], line.wrap ~= false)
         else
             GameTooltip:AddLine(line, 0.92, 0.92, 0.88, true)
-            local fontString = _G["GameTooltipTextLeft" .. GameTooltip:NumLines()]
-            if fontString and fontString.SetFont then
-                local fontSize = 12
-                if type(line) == "string" and line:match("^● ") then
-                    fontSize = 13
-                elseif index == 3 then
-                    fontSize = 13
-                end
-                fontString:SetFont(FONT_PATH, fontSize, "OUTLINE")
+        end
+    end
+    local headerSize = 13
+    local bodySize = 12
+    if ns.UI and ns.UI.Typography and ns.UI.Typography.GetSize then
+        headerSize = ns.UI.Typography:GetSize(13, { domain = "tooltip", minSize = 9, maxSize = 28 })
+        bodySize = ns.UI.Typography:GetSize(12, { domain = "tooltip", minSize = 9, maxSize = 28 })
+    end
+    if GameTooltip.GetName then
+        local tooltipName = GameTooltip:GetName()
+        for index = 1, GameTooltip:NumLines() do
+            local left = _G[tooltipName .. "TextLeft" .. index]
+            local right = _G[tooltipName .. "TextRight" .. index]
+            if left and left.SetFont then
+                left:SetFont(FONT_PATH, index == 1 and headerSize or bodySize, "OUTLINE")
+            end
+            if right and right.SetFont then
+                right:SetFont(FONT_PATH, bodySize, "OUTLINE")
             end
         end
     end
@@ -497,7 +524,7 @@ function ProfessionKnowledgeOverlay:Initialize()
     if frame.toggleButton.GetFontString then
         local fontString = frame.toggleButton:GetFontString()
         if fontString then
-            fontString:SetFont(FONT_PATH, 10, "OUTLINE")
+            ns.UI.Typography:ApplyFont(fontString, 10, { domain = "professionOverlay", flags = "OUTLINE" })
             fontString:SetJustifyH("CENTER")
             fontString:SetJustifyV("MIDDLE")
         end
@@ -822,7 +849,7 @@ function ProfessionKnowledgeOverlay:CreateRow()
     row.weeklyDivider:SetJustifyH("CENTER")
 
     row.weeklyDetails = row:CreateFontString(nil, "OVERLAY")
-    row.weeklyDetails:SetPoint("TOPLEFT", row.weeklyPrefix, "TOPRIGHT", 2, 0)
+    row.weeklyDetails:SetPoint("TOPLEFT", row.weeklyDivider, "TOPRIGHT", 6, 0)
     applyTextStyle(row.weeklyDetails, DETAIL_SIZE, 0.70, 0.92, 1.00)
 
     row.oneTimePrefix = row:CreateFontString(nil, "OVERLAY")
@@ -838,14 +865,14 @@ function ProfessionKnowledgeOverlay:CreateRow()
     row.oneTimeDivider:SetJustifyH("CENTER")
 
     row.oneTimeDetails = row:CreateFontString(nil, "OVERLAY")
-    row.oneTimeDetails:SetPoint("TOPLEFT", row.oneTimePrefix, "TOPRIGHT", 2, 0)
+    row.oneTimeDetails:SetPoint("TOPLEFT", row.oneTimeDivider, "TOPRIGHT", 6, 0)
     applyTextStyle(row.oneTimeDetails, DETAIL_SIZE, 0.74, 0.96, 0.80)
 
     row.lineBreak = row:CreateTexture(nil, "ARTWORK")
     row.lineBreak:SetHeight(1)
     row.lineBreak:SetColorTexture(1, 0.82, 0.40, 0.22)
-    row.lineBreak:SetPoint("TOPLEFT", row.oneTimeDetails, "BOTTOMLEFT", 0, -5)
-    row.lineBreak:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, -5)
+    row.lineBreak:SetPoint("TOPLEFT", row.oneTimePrefix, "BOTTOMLEFT", 0, -5)
+    row.lineBreak:SetPoint("TOPRIGHT", row.oneTimeDetails, "BOTTOMRIGHT", 0, -5)
 
     return row
 end
@@ -871,6 +898,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
 
     row.icon:SetTexture(professionEntry.icon or ns.Constants.DEFAULT_ICON)
     row.professionKey = professionEntry.key
+    row:SetWidth(math.max(contentWidth, MIN_WIDTH - (PADDING_X * 2)))
     row.title:SetText(tracker:GetProfessionDisplayName(professionEntry))
     row.summary:SetWidth(math.max(contentWidth - ICON_SIZE - 8, 120))
 
@@ -879,7 +907,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     local weeklySummaryComplete = summary and summary.weeklyMax > 0 and summary.weeklyEarned >= summary.weeklyMax
     local oneTimeSummaryComplete = summary and summary.oneTimeMax > 0 and summary.oneTimeEarned >= summary.oneTimeMax
     local coloredSummary = string.format(
-        "◆ %s %s       ◆ %s %s",
+        "%s %s   |   %s %s",
         ns.L("professions_overlay_prefix_weekly"),
         colorize(
             formatPointProgress(summary and summary.weeklyEarned or 0, summary and summary.weeklyMax or 0, true),
@@ -901,13 +929,13 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
         row.summary:SetTextColor(0.90, 0.96, 1.00, 1)
     end
 
-    local detailWidth = math.max(contentWidth - ICON_SIZE - 8 - DETAIL_PREFIX_WIDTH - 4, 120)
+    local detailWidth = math.max(contentWidth - ICON_SIZE - 8 - DETAIL_PREFIX_WIDTH - DETAIL_DIVIDER_WIDTH - 10, 120)
     row.weeklyPrefix:SetText(getDetailPrefixText("weekly"))
-    row.weeklyDivider:SetText("")
+    row.weeklyDivider:SetText("|")
     row.weeklyDetails:SetWidth(detailWidth)
     row.weeklyDetails:SetText(weeklyLine ~= "" and weeklyLine or ns.L("no_items"))
     row.oneTimePrefix:SetText(getDetailPrefixText("oneTime"))
-    row.oneTimeDivider:SetText("")
+    row.oneTimeDivider:SetText("|")
     row.oneTimeDetails:SetWidth(detailWidth)
     row.oneTimeDetails:SetText(oneTimeLine ~= "" and oneTimeLine or ns.L("no_items"))
     row.tooltipLines = buildOverlayTooltipLines(professionEntry)

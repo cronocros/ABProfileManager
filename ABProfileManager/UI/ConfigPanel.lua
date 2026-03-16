@@ -2,24 +2,25 @@ local _, ns = ...
 
 local ConfigPanel = {}
 ns.UI.ConfigPanel = ConfigPanel
-local STATS_OVERLAY_SCALE_OPTIONS = {
-    { value = 0.80, labelKey = "overlay_size_xsmall", buttonText = "XS" },
-    { value = 0.90, labelKey = "overlay_size_small", buttonText = "S" },
-    { value = 1.00, labelKey = "overlay_size_default", buttonText = "M" },
-    { value = 1.15, labelKey = "overlay_size_large", buttonText = "L" },
-    { value = 1.30, labelKey = "overlay_size_xlarge", buttonText = "XL" },
-}
-local MAP_FILTER_OPTIONS = {
-    { key = "facilities", labelKey = "config_silvermoon_filter_facilities" },
-    { key = "portals", labelKey = "config_silvermoon_filter_portals" },
-    { key = "professions", labelKey = "config_silvermoon_filter_professions" },
-    { key = "dungeons", labelKey = "config_silvermoon_filter_dungeons" },
-    { key = "delves", labelKey = "config_silvermoon_filter_delves" },
-}
+
 local COMBAT_TEXT_MODE_OPTIONS = {
     { value = 1, labelKey = "config_combat_text_mode_up" },
     { value = 2, labelKey = "config_combat_text_mode_down" },
     { value = 3, labelKey = "config_combat_text_mode_arc" },
+}
+
+local TYPOGRAPHY_OPTIONS = {
+    { domain = "ui", labelKey = "config_typography_ui" },
+    { domain = "tooltip", labelKey = "config_typography_tooltip" },
+    { domain = "statsOverlay", labelKey = "config_typography_stats_overlay" },
+    { domain = "professionOverlay", labelKey = "config_typography_profession_overlay" },
+}
+
+local TYPOGRAPHY_LABEL_KEYS = {
+    ui = "config_typography_ui",
+    tooltip = "config_typography_tooltip",
+    statsOverlay = "config_typography_stats_overlay",
+    professionOverlay = "config_typography_profession_overlay",
 }
 
 local function setStatus(target, message)
@@ -91,6 +92,14 @@ local function getCombatTextModeLabelKey(mode)
     end
 
     return "config_combat_text_mode_arc"
+end
+
+local function formatOffsetValue(value)
+    value = math.floor((tonumber(value) or 0) + 0.5)
+    if value > 0 then
+        return string.format("+%dpt", value)
+    end
+    return string.format("%dpt", value)
 end
 
 local function buildOverviewText()
@@ -170,28 +179,10 @@ function ConfigPanel:ApplyStatsOverlayEnabled(enabled, refs)
     setStatus(refs, ns.L("config_saved_stats_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
-function ConfigPanel:ApplyStatsOverlayScale(scale, refs, labelKey)
-    ns.DB:SetStatsOverlayScale(scale)
-    ns:RefreshUI()
-    setStatus(refs, ns.L("config_saved_stats_overlay_scale", ns.L(labelKey)))
-end
-
 function ConfigPanel:ApplyProfessionOverlayEnabled(enabled, refs)
     ns.DB:SetProfessionKnowledgeOverlayEnabled(enabled)
     ns:RefreshUI()
     setStatus(refs, ns.L("config_saved_profession_overlay", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
-end
-
-function ConfigPanel:ApplySilvermoonMapEnabled(enabled, refs)
-    ns.DB:SetSilvermoonMapOverlayEnabled(enabled)
-    ns:RefreshUI()
-    setStatus(refs, ns.L("config_saved_silvermoon_map", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
-end
-
-function ConfigPanel:ApplySilvermoonMapFilter(filterKey, enabled, refs, labelKey)
-    ns.DB:SetSilvermoonMapCategoryEnabled(filterKey, enabled)
-    ns:RefreshUI()
-    setStatus(refs, ns.L("config_saved_silvermoon_filter", ns.L(labelKey), enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
 function ConfigPanel:ApplyMouseMoveRestore(enabled, refs)
@@ -203,6 +194,12 @@ function ConfigPanel:ApplyMouseMoveRestore(enabled, refs)
     setStatus(refs, ns.L("config_saved_mouse_move_restore", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
+function ConfigPanel:ApplyTypographyOffset(domain, value, refs)
+    value = ns.DB:SetTypographyOffset(domain, value)
+    ns:RefreshUI()
+    setStatus(refs, ns.L("config_saved_typography", ns.L(TYPOGRAPHY_LABEL_KEYS[domain] or "config_typography_ui"), formatOffsetValue(value)))
+end
+
 function ConfigPanel:ApplyCombatTextManaged(enabled, refs)
     ns.DB:SetCombatTextManaged(enabled)
     if enabled then
@@ -211,6 +208,9 @@ function ConfigPanel:ApplyCombatTextManaged(enabled, refs)
             ns:RefreshUI()
             setStatus(refs, ns.L("config_saved_combat_text_apply_failed"))
             return
+        end
+        if manager.QueueReapply then
+            manager:QueueReapply({ 0.25, 1.25 })
         end
     end
 
@@ -225,6 +225,9 @@ function ConfigPanel:ApplyCombatTextField(refs, statusMessage)
         ns:RefreshUI()
         setStatus(refs, ns.L("config_saved_combat_text_apply_failed"))
         return
+    end
+    if manager.QueueReapply then
+        manager:QueueReapply({ 0.25, 1.25 })
     end
 
     ns:RefreshUI()
@@ -277,52 +280,30 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyDebugEnabled(currentCheck:GetChecked(), refs)
     end)
 
+    refs.mouseMoveRestoreCheck:SetScript("OnClick", function(currentCheck)
+        self:ApplyMouseMoveRestore(currentCheck:GetChecked(), refs)
+    end)
+
     refs.statsOverlayCheck:SetScript("OnClick", function(currentCheck)
         self:ApplyStatsOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
-
-    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
-        local optionValue = option.value
-        local optionLabelKey = option.labelKey
-        refs.statsScaleButtons[index]:SetScript("OnClick", function()
-            self:ApplyStatsOverlayScale(optionValue, refs, optionLabelKey)
-        end)
-    end
 
     refs.professionOverlayCheck:SetScript("OnClick", function(currentCheck)
         self:ApplyProfessionOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
 
-    refs.silvermoonMapCheck:SetScript("OnClick", function(currentCheck)
-        self:ApplySilvermoonMapEnabled(currentCheck:GetChecked(), refs)
-    end)
-
-    for index, option in ipairs(MAP_FILTER_OPTIONS) do
-        local filterKey = option.key
-        local filterLabelKey = option.labelKey
-        refs.mapFilterChecks[index]:SetScript("OnClick", function(currentCheck)
-            self:ApplySilvermoonMapFilter(filterKey, currentCheck:GetChecked(), refs, filterLabelKey)
+    for _, entry in ipairs(refs.typographySliders or {}) do
+        entry.slider.slider:SetScript("OnValueChanged", function(currentSlider, value)
+            entry.slider:SetValueText(value)
+            local rounded = math.floor((tonumber(value) or 0) + 0.5)
+            if ns.DB:GetTypographyOffset(entry.domain) ~= rounded then
+                self:ApplyTypographyOffset(entry.domain, rounded, refs)
+            end
         end)
     end
 
-    refs.mouseMoveRestoreCheck:SetScript("OnClick", function(currentCheck)
-        self:ApplyMouseMoveRestore(currentCheck:GetChecked(), refs)
-    end)
-
     refs.combatTextManageCheck:SetScript("OnClick", function(currentCheck)
         self:ApplyCombatTextManaged(currentCheck:GetChecked(), refs)
-    end)
-
-    refs.combatTextEnabledCheck:SetScript("OnClick", function(currentCheck)
-        self:ApplyCombatTextEnabled(currentCheck:GetChecked(), refs)
-    end)
-
-    refs.combatTextDamageCheck:SetScript("OnClick", function(currentCheck)
-        self:ApplyCombatTextDamage(currentCheck:GetChecked(), refs)
-    end)
-
-    refs.combatTextHealingCheck:SetScript("OnClick", function(currentCheck)
-        self:ApplyCombatTextHealing(currentCheck:GetChecked(), refs)
     end)
 
     refs.combatTextDirectionalCheck:SetScript("OnClick", function(currentCheck)
@@ -330,10 +311,8 @@ function ConfigPanel:BindControlSet(refs)
     end)
 
     for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
-        local optionValue = option.value
-        local optionLabelKey = option.labelKey
         refs.combatTextModeButtons[index]:SetScript("OnClick", function()
-            self:ApplyCombatTextMode(optionValue, refs, optionLabelKey)
+            self:ApplyCombatTextMode(option.value, refs, option.labelKey)
         end)
     end
 
@@ -348,59 +327,38 @@ function ConfigPanel:RefreshControlSet(refs)
     end
 
     refs.title:SetText(ns.L("config_title"))
-    refs.languageLabel:SetText(ns.L("config_language"))
+    refs.generalBox.title:SetText(ns.L("config_general_title"))
     refs.languageHint:SetText(ns.L("config_language_hint"))
     refs.koreanButton:SetText(ns.L("config_language_korean"))
     refs.englishButton:SetText(ns.L("config_language_english"))
-    refs.minimapLabel:SetText(ns.L("config_minimap"))
     refs.minimapCheck.Text:SetText(ns.L("config_minimap_show"))
-    refs.confirmLabel:SetText(ns.L("config_confirm"))
     refs.confirmCheck.Text:SetText(ns.L("config_confirm_show"))
-    refs.debugLabel:SetText(ns.L("config_debug"))
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
-    refs.professionOverlayLabel:SetText(ns.L("config_profession_overlay"))
+    refs.mouseMoveRestoreCheck.Text:SetText(ns.L("config_mouse_move_restore_show"))
+    refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
-    refs.combatTextLabel:SetText(ns.L("config_combat_text"))
+
+    refs.overlayBox.title:SetText(ns.L("config_typography_title"))
+    for _, entry in ipairs(refs.typographySliders or {}) do
+        entry.slider:SetLabel(ns.L(entry.labelKey))
+        entry.slider.slider:SetValue(ns.DB:GetTypographyOffset(entry.domain))
+        entry.slider:SetValueText(ns.DB:GetTypographyOffset(entry.domain))
+    end
+
+    refs.combatTextBox.title:SetText(ns.L("config_combat_text"))
+    refs.combatTextHint:SetText(ns.L("config_combat_text_hint"))
     refs.combatTextManageCheck.Text:SetText(ns.L("config_combat_text_managed"))
-    refs.combatTextEnabledCheck.Text:SetText(ns.L("config_combat_text_enabled"))
-    refs.combatTextDamageCheck.Text:SetText(ns.L("config_combat_text_damage"))
-    refs.combatTextHealingCheck.Text:SetText(ns.L("config_combat_text_healing"))
-    refs.combatTextDirectionalLabel:SetText(ns.L("config_combat_text_directional_label"))
     refs.combatTextDirectionalCheck.Text:SetText(ns.L("config_combat_text_directional"))
     refs.combatTextModeLabel:SetText(ns.L("config_combat_text_mode"))
-    refs.statsOverlayLabel:SetText(ns.L("config_stats_overlay"))
-    refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
-    refs.statsScaleLabel:SetText(ns.L("config_stats_overlay_size_label"))
-    local currentScale = ns.DB:GetStatsOverlayScale()
-    local selectedScaleIndex = 1
-    local selectedScaleDiff = nil
-    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
-        local diff = math.abs(currentScale - option.value)
-        if not selectedScaleDiff or diff < selectedScaleDiff then
-            selectedScaleDiff = diff
-            selectedScaleIndex = index
-        end
-    end
-    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
-        refs.statsScaleButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
-        ns.UI.Widgets.SetButtonSelected(refs.statsScaleButtons[index], index == selectedScaleIndex)
-    end
+
     local currentCombatTextMode = ns.DB:GetCombatTextFloatMode()
     for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
-        refs.combatTextModeButtons[index]:SetText(option.buttonText or ns.L(option.labelKey))
+        refs.combatTextModeButtons[index]:SetText(ns.L(option.labelKey))
         ns.UI.Widgets.SetButtonSelected(refs.combatTextModeButtons[index], option.value == currentCombatTextMode)
     end
-    refs.silvermoonMapLabel:SetText(ns.L("config_silvermoon_map"))
-    refs.silvermoonMapCheck.Text:SetText(ns.L("config_silvermoon_map_show"))
-    refs.mapFiltersLabel:SetText(ns.L("config_silvermoon_filters"))
-    for index, option in ipairs(MAP_FILTER_OPTIONS) do
-        refs.mapFilterChecks[index].Text:SetText(ns.L(option.labelKey))
-        refs.mapFilterChecks[index]:SetChecked(ns.DB:IsSilvermoonMapCategoryEnabled(option.key))
-    end
-    refs.mouseMoveRestoreLabel:SetText(ns.L("config_mouse_move_restore"))
-    refs.mouseMoveRestoreCheck.Text:SetText(ns.L("config_mouse_move_restore_show"))
-    refs.overviewText:SetText(buildOverviewText())
 
+    refs.overviewBox.title:SetText(ns.L("config_overview_panel_title"))
+    refs.overviewText:SetText(buildOverviewText())
     if refs.openWindowButton then
         refs.openWindowButton:SetText(ns.L("config_open_window"))
     end
@@ -408,15 +366,11 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.minimapCheck:SetChecked(not ns.DB:GetMinimapConfig().hide)
     refs.confirmCheck:SetChecked(ns.DB:ShouldConfirmActions())
     refs.debugCheck:SetChecked(ns.DB:IsDebugEnabled())
+    refs.mouseMoveRestoreCheck:SetChecked(ns.DB:IsMouseMoveRestoreEnabled())
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
     refs.combatTextManageCheck:SetChecked(ns.DB:IsCombatTextManaged())
-    refs.combatTextEnabledCheck:SetChecked(ns.DB:IsCombatTextEnabled())
-    refs.combatTextDamageCheck:SetChecked(ns.DB:IsCombatTextDamageEnabled())
-    refs.combatTextHealingCheck:SetChecked(ns.DB:IsCombatTextHealingEnabled())
     refs.combatTextDirectionalCheck:SetChecked(ns.DB:IsCombatTextDirectionalDamageEnabled())
-    refs.silvermoonMapCheck:SetChecked(ns.DB:IsSilvermoonMapOverlayEnabled())
-    refs.mouseMoveRestoreCheck:SetChecked(ns.DB:IsMouseMoveRestoreEnabled())
     ns.UI.Widgets.SetButtonSelected(refs.koreanButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN)
     ns.UI.Widgets.SetButtonSelected(refs.englishButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.ENGLISH)
 end
@@ -428,155 +382,130 @@ function ConfigPanel:BuildControlSet(parent, options)
     local refs = {}
     local columnWidth = options.columnWidth or 420
     local columnGap = options.columnGap or 12
-    local textWidth = options.textWidth or (columnWidth - 36)
-    local helpWidth = options.helpWidth or ((columnWidth * 2) + columnGap)
-    local helpBoxHeight = options.helpBoxHeight or (options.showOpenButton and 208 or 180)
-    local overviewHeight = options.overviewHeight or (options.showOpenButton and 136 or 144)
+    local contentWidth = columnWidth - 28
 
     refs.title = widgets.CreateLabel(parent, "", nil, 16, options.titleY or -20, "GameFontHighlightLarge")
 
-    local settingsBoxHeight = options.settingsBoxHeight or 438
+    refs.generalBox = widgets.CreatePanelBox(parent, columnWidth, options.generalHeight or 360, "")
+    refs.generalBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
 
-    local languageBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
-    languageBox:SetPoint("TOPLEFT", refs.title, "BOTTOMLEFT", 0, -18)
-    refs.languageLabel = widgets.CreateLabel(languageBox, "", nil, 12, -14, "GameFontHighlight")
-    refs.languageHint = widgets.CreateLabel(languageBox, "", refs.languageLabel, 0, -12)
-    refs.languageHint:SetWidth(textWidth)
+    refs.languageHint = widgets.CreateLabel(refs.generalBox, "", nil, 12, -18)
+    refs.languageHint:SetWidth(contentWidth)
     refs.languageHint:SetJustifyH("LEFT")
-    refs.koreanButton = widgets.CreateButton(languageBox, "", 110, 26)
+    if refs.languageHint.SetWordWrap then
+        refs.languageHint:SetWordWrap(true)
+    end
+
+    refs.koreanButton = widgets.CreateButton(refs.generalBox, "", 110, 26)
     refs.koreanButton:SetPoint("TOPLEFT", refs.languageHint, "BOTTOMLEFT", 0, -12)
-    refs.englishButton = widgets.CreateButton(languageBox, "", 110, 26)
-    refs.englishButton:SetPoint("LEFT", refs.koreanButton, "RIGHT", 10, 0)
-    refs.minimapLabel = widgets.CreateLabel(languageBox, "", refs.koreanButton, 0, -14, "GameFontHighlight")
-    refs.minimapCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.minimapCheck:SetPoint("TOPLEFT", refs.minimapLabel, "BOTTOMLEFT", -4, -6)
-    refs.confirmLabel = widgets.CreateLabel(languageBox, "", refs.minimapCheck, 4, -12, "GameFontHighlight")
-    refs.confirmCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.confirmCheck:SetPoint("TOPLEFT", refs.confirmLabel, "BOTTOMLEFT", -4, -6)
-    refs.debugLabel = widgets.CreateLabel(languageBox, "", refs.confirmCheck, 4, -12, "GameFontHighlight")
-    refs.debugCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.debugCheck:SetPoint("TOPLEFT", refs.debugLabel, "BOTTOMLEFT", -4, -6)
-    refs.professionOverlayLabel = widgets.CreateLabel(languageBox, "", refs.debugCheck, 4, -12, "GameFontHighlight")
-    refs.professionOverlayCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.professionOverlayLabel, "BOTTOMLEFT", -4, -6)
-    refs.combatTextLabel = widgets.CreateLabel(languageBox, "", refs.professionOverlayCheck, 4, -12, "GameFontHighlight")
-    refs.combatTextManageCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.combatTextManageCheck:SetPoint("TOPLEFT", refs.combatTextLabel, "BOTTOMLEFT", -4, -6)
-    refs.combatTextEnabledCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.combatTextEnabledCheck:SetPoint("TOPLEFT", refs.combatTextManageCheck, "BOTTOMLEFT", 0, -2)
-    refs.combatTextDamageCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.combatTextDamageCheck:SetPoint("TOPLEFT", refs.combatTextEnabledCheck, "BOTTOMLEFT", 0, -2)
-    refs.combatTextHealingCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.combatTextHealingCheck:SetPoint("TOPLEFT", refs.combatTextDamageCheck, "BOTTOMLEFT", 0, -2)
-    refs.combatTextDirectionalLabel = widgets.CreateLabel(languageBox, "", refs.combatTextHealingCheck, 4, -8, "GameFontHighlight")
-    refs.combatTextDirectionalCheck = widgets.CreateCheckButton(languageBox, "")
-    refs.combatTextDirectionalCheck:SetPoint("TOPLEFT", refs.combatTextDirectionalLabel, "BOTTOMLEFT", -4, -6)
-    refs.combatTextModeLabel = widgets.CreateLabel(languageBox, "", refs.combatTextDirectionalCheck, 4, -8, "GameFontHighlight")
-    refs.combatTextModeButtons = {}
-    local previousCombatModeButton = nil
-    local combatModeButtonWidth = math.max(54, math.floor((textWidth - 8) / 3))
-    for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
-        local button = widgets.CreateButton(languageBox, "", combatModeButtonWidth, 20)
-        if previousCombatModeButton then
-            button:SetPoint("LEFT", previousCombatModeButton, "RIGHT", 4, 0)
+
+    refs.englishButton = widgets.CreateButton(refs.generalBox, "", 110, 26)
+    refs.englishButton:SetPoint("LEFT", refs.koreanButton, "RIGHT", 8, 0)
+
+    refs.minimapCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.minimapCheck:SetPoint("TOPLEFT", refs.koreanButton, "BOTTOMLEFT", -4, -18)
+
+    refs.confirmCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.confirmCheck:SetPoint("TOPLEFT", refs.minimapCheck, "BOTTOMLEFT", 0, -8)
+
+    refs.debugCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.debugCheck:SetPoint("TOPLEFT", refs.confirmCheck, "BOTTOMLEFT", 0, -8)
+
+    refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.debugCheck, "BOTTOMLEFT", 0, -8)
+
+    refs.statsOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
+
+    refs.professionOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
+    refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayCheck, "BOTTOMLEFT", 0, -8)
+
+    refs.overlayBox = widgets.CreatePanelBox(parent, columnWidth, options.overlayHeight or 360, "")
+    refs.overlayBox:SetPoint("TOPLEFT", refs.generalBox, "TOPRIGHT", columnGap, 0)
+
+    refs.typographySliders = {}
+    local previousSlider = nil
+    for index, entry in ipairs(TYPOGRAPHY_OPTIONS) do
+        local minValue, maxValue = ns.DB:GetTypographyRange(entry.domain)
+        local slider = widgets.CreateValueSlider(refs.overlayBox, contentWidth - 18, minValue, maxValue, 1)
+        if index == 1 then
+            slider:SetPoint("TOPLEFT", refs.overlayBox, "TOPLEFT", 12, -36)
         else
-            button:SetPoint("TOPLEFT", refs.combatTextModeLabel, "BOTTOMLEFT", 0, -6)
+            slider:SetPoint("TOPLEFT", previousSlider, "BOTTOMLEFT", 0, -16)
         end
-        refs.combatTextModeButtons[index] = button
-        previousCombatModeButton = button
+        slider:SetValueFormatter(formatOffsetValue)
+        refs.typographySliders[#refs.typographySliders + 1] = {
+            domain = entry.domain,
+            labelKey = entry.labelKey,
+            slider = slider,
+        }
+        previousSlider = slider
     end
 
-    local overlayBox = widgets.CreatePanelBox(parent, columnWidth, settingsBoxHeight, nil)
-    overlayBox:SetPoint("LEFT", languageBox, "RIGHT", columnGap, 0)
-    refs.statsOverlayLabel = widgets.CreateLabel(overlayBox, "", nil, 12, -14, "GameFontHighlight")
-    refs.statsOverlayCheck = widgets.CreateCheckButton(overlayBox, "")
-    refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayLabel, "BOTTOMLEFT", -4, -6)
-    refs.statsScaleLabel = widgets.CreateLabel(overlayBox, "", refs.statsOverlayCheck, 4, -8, "GameFontHighlight")
-    refs.statsScaleButtons = {}
-    local previousScaleButton = nil
-    for index, option in ipairs(STATS_OVERLAY_SCALE_OPTIONS) do
-        local button = widgets.CreateButton(overlayBox, "", 44, 20)
-        if previousScaleButton then
-            button:SetPoint("LEFT", previousScaleButton, "RIGHT", 4, 0)
-        else
-            button:SetPoint("TOPLEFT", refs.statsScaleLabel, "BOTTOMLEFT", 0, -6)
-        end
-        refs.statsScaleButtons[index] = button
-        previousScaleButton = button
-    end
-    refs.silvermoonMapLabel = widgets.CreateLabel(overlayBox, "", refs.statsScaleButtons[1], 0, -14, "GameFontHighlight")
-    refs.silvermoonMapCheck = widgets.CreateCheckButton(overlayBox, "")
-    refs.silvermoonMapCheck:SetPoint("TOPLEFT", refs.silvermoonMapLabel, "BOTTOMLEFT", -4, -6)
-    refs.mapFiltersLabel = widgets.CreateLabel(overlayBox, "", refs.silvermoonMapCheck, 4, -8, "GameFontHighlight")
-    refs.mapFilterChecks = {}
-    local mapFilterTextWidth = math.floor((columnWidth - 68) / 2)
-    local mapFilterColumnOffset = math.floor(columnWidth / 2) - 6
-    local lastLeftCheck = nil
-    local lastRightCheck = nil
-    for index, option in ipairs(MAP_FILTER_OPTIONS) do
-        local check = widgets.CreateCheckButton(overlayBox, "")
-        local column = ((index - 1) % 2)
-        if index <= 2 then
-            check:SetPoint("TOPLEFT", refs.mapFiltersLabel, "BOTTOMLEFT", (column * mapFilterColumnOffset) - 4, -4)
-        else
-            local anchor = column == 0 and lastLeftCheck or lastRightCheck
-            check:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
-        end
-        check.Text:SetWidth(mapFilterTextWidth)
-        check.Text:SetJustifyH("LEFT")
-        if check.Text.SetWordWrap then
-            check.Text:SetWordWrap(true)
-        end
-        refs.mapFilterChecks[index] = check
-        if column == 0 then
-            lastLeftCheck = check
-        else
-            lastRightCheck = check
-        end
-    end
+    refs.overviewBox = widgets.CreatePanelBox(parent, columnWidth, options.overviewHeight or 194, "")
+    refs.overviewBox:SetPoint("TOPLEFT", refs.generalBox, "BOTTOMLEFT", 0, -18)
 
-    refs.mouseMoveRestoreLabel = widgets.CreateLabel(overlayBox, "", lastLeftCheck or refs.mapFiltersLabel, 4, -10, "GameFontHighlight")
-    refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(overlayBox, "")
-    refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreLabel, "BOTTOMLEFT", -4, -6)
-
-    refs.minimapCheck.Text:SetWidth(textWidth)
-    refs.minimapCheck.Text:SetJustifyH("LEFT")
-    refs.confirmCheck.Text:SetWidth(textWidth)
-    refs.confirmCheck.Text:SetJustifyH("LEFT")
-    refs.debugCheck.Text:SetWidth(textWidth)
-    refs.debugCheck.Text:SetJustifyH("LEFT")
-    refs.professionOverlayCheck.Text:SetWidth(textWidth)
-    refs.professionOverlayCheck.Text:SetJustifyH("LEFT")
-    refs.combatTextManageCheck.Text:SetWidth(textWidth)
-    refs.combatTextManageCheck.Text:SetJustifyH("LEFT")
-    refs.combatTextEnabledCheck.Text:SetWidth(textWidth)
-    refs.combatTextEnabledCheck.Text:SetJustifyH("LEFT")
-    refs.combatTextDamageCheck.Text:SetWidth(textWidth)
-    refs.combatTextDamageCheck.Text:SetJustifyH("LEFT")
-    refs.combatTextHealingCheck.Text:SetWidth(textWidth)
-    refs.combatTextHealingCheck.Text:SetJustifyH("LEFT")
-    refs.combatTextDirectionalCheck.Text:SetWidth(textWidth)
-    refs.combatTextDirectionalCheck.Text:SetJustifyH("LEFT")
-    refs.statsOverlayCheck.Text:SetWidth(textWidth)
-    refs.statsOverlayCheck.Text:SetJustifyH("LEFT")
-    refs.silvermoonMapCheck.Text:SetWidth(textWidth)
-    refs.silvermoonMapCheck.Text:SetJustifyH("LEFT")
-    refs.mouseMoveRestoreCheck.Text:SetWidth(textWidth)
-    refs.mouseMoveRestoreCheck.Text:SetJustifyH("LEFT")
-
-    local helpBox = widgets.CreatePanelBox(parent, helpWidth, helpBoxHeight, nil)
-    helpBox:SetPoint("TOPLEFT", languageBox, "BOTTOMLEFT", 0, -20)
-    refs.overviewText = widgets.CreateScrollTextBox(helpBox, helpWidth - 28, overviewHeight)
-    refs.overviewText:SetPoint("TOPLEFT", 12, -14)
+    refs.overviewText = widgets.CreateScrollTextBox(refs.overviewBox, columnWidth - 28, options.overviewTextHeight or 128)
+    refs.overviewText:SetPoint("TOPLEFT", 12, -30)
 
     if options.showOpenButton then
-        refs.openWindowButton = widgets.CreateButton(helpBox, "", 150, 28)
-        refs.openWindowButton:SetPoint("BOTTOMLEFT", helpBox, "BOTTOMLEFT", 14, 14)
+        refs.openWindowButton = widgets.CreateButton(refs.overviewBox, "", 150, 28)
+        refs.openWindowButton:SetPoint("BOTTOMLEFT", refs.overviewBox, "BOTTOMLEFT", 14, 14)
     end
 
-    refs.statusText = widgets.CreateLabel(parent, "", helpBox, 0, -18)
-    refs.statusText:SetWidth(options.statusWidth or helpWidth)
+    refs.combatTextBox = widgets.CreatePanelBox(parent, columnWidth, options.combatTextHeight or (options.overviewHeight or 194), "")
+    refs.combatTextBox:SetPoint("TOPLEFT", refs.overlayBox, "BOTTOMLEFT", 0, -18)
+
+    refs.combatTextHint = widgets.CreateLabel(refs.combatTextBox, "", nil, 12, -18)
+    refs.combatTextHint:SetWidth(contentWidth)
+    refs.combatTextHint:SetJustifyH("LEFT")
+    if refs.combatTextHint.SetWordWrap then
+        refs.combatTextHint:SetWordWrap(true)
+    end
+
+    refs.combatTextManageCheck = widgets.CreateCheckButton(refs.combatTextBox, "")
+    refs.combatTextManageCheck:SetPoint("TOPLEFT", refs.combatTextHint, "BOTTOMLEFT", -4, -10)
+    refs.combatTextDirectionalCheck = widgets.CreateCheckButton(refs.combatTextBox, "")
+    refs.combatTextDirectionalCheck:SetPoint("TOPLEFT", refs.combatTextManageCheck, "BOTTOMLEFT", 0, -8)
+    refs.combatTextModeLabel = widgets.CreateLabel(refs.combatTextBox, "", refs.combatTextDirectionalCheck, 4, -12, "GameFontHighlight")
+
+    refs.combatTextModeButtons = {}
+    local previousModeButton = nil
+    local modeButtonWidth = math.max(72, math.floor((contentWidth - 12) / 3))
+    for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
+        local button = widgets.CreateButton(refs.combatTextBox, "", modeButtonWidth, 24)
+        if previousModeButton then
+            button:SetPoint("LEFT", previousModeButton, "RIGHT", 6, 0)
+        else
+            button:SetPoint("TOPLEFT", refs.combatTextModeLabel, "BOTTOMLEFT", 0, -8)
+        end
+        refs.combatTextModeButtons[index] = button
+        previousModeButton = button
+    end
+
+    refs.statusText = widgets.CreateLabel(parent, "", refs.overviewBox, 0, -18)
+    refs.statusText:SetWidth(options.statusWidth or ((columnWidth * 2) + columnGap))
     refs.statusText:SetJustifyH("LEFT")
+
+    local checkboxWidth = contentWidth
+    for _, check in ipairs({
+        refs.minimapCheck,
+        refs.confirmCheck,
+        refs.debugCheck,
+        refs.mouseMoveRestoreCheck,
+        refs.statsOverlayCheck,
+        refs.professionOverlayCheck,
+        refs.combatTextManageCheck,
+        refs.combatTextDirectionalCheck,
+    }) do
+        if check and check.Text then
+            check.Text:SetWidth(checkboxWidth)
+            check.Text:SetJustifyH("LEFT")
+            if check.Text.SetWordWrap then
+                check.Text:SetWordWrap(true)
+            end
+        end
+    end
 
     self:BindControlSet(refs)
     return refs
@@ -599,12 +528,12 @@ function ConfigPanel:RegisterSettingsCategory()
             showOpenButton = true,
             columnWidth = 300,
             columnGap = 12,
-            textWidth = 264,
             helpWidth = 612,
             statusWidth = 612,
-            settingsBoxHeight = 438,
-            helpBoxHeight = 172,
-            overviewHeight = 102,
+            generalHeight = 372,
+            overlayHeight = 372,
+            overviewHeight = 174,
+            overviewTextHeight = 100,
         })
 
         panel:SetScript("OnShow", function()
@@ -661,7 +590,10 @@ function ConfigPanel:Create(parent)
         titleY = -20,
         showOpenButton = false,
         statusWidth = 852,
-        settingsBoxHeight = 438,
+        generalHeight = 372,
+        overlayHeight = 372,
+        overviewHeight = 194,
+        overviewTextHeight = 128,
     })
 
     self.title = self.mainRefs.title

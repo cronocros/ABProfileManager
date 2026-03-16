@@ -129,16 +129,13 @@ function ProfileManager:RequestSaveTemplate(templateName, callbacks)
             ns.Utils.Print(err)
             ns:SafeCall(ns.UI.MainWindow, "SetStatus", err)
         end
-        complete(snapshot, err)
+        return snapshot, err
     end
 
-    if ns.DB and ns.DB:HasTemplate(templateName) then
-        ns.UI.ConfirmDialogs:ShowConfirm(ns.L("confirm_overwrite_template_text", templateName), execute)
-        return true
-    end
-
-    execute()
-    return true
+    local confirmText = ns.DB and ns.DB:HasTemplate(templateName)
+        and ns.L("confirm_overwrite_template_text", templateName)
+        or ns.L("confirm_save_template_text", templateName)
+    return self:RunConfirmedOperation(confirmText, execute, callbacks, true)
 end
 
 function ProfileManager:GetUniqueTemplateName(baseName)
@@ -257,7 +254,7 @@ function ProfileManager:ExecuteClearSelection(selection)
     return ns.Modules.ActionBarApplier:ApplyPlan(plan)
 end
 
-function ProfileManager:RunConfirmedOperation(confirmText, executor, callbacks)
+function ProfileManager:RunConfirmedOperation(confirmText, executor, callbacks, forceConfirm)
     callbacks = callbacks or {}
 
     local function complete(result, err)
@@ -277,13 +274,47 @@ function ProfileManager:RunConfirmedOperation(confirmText, executor, callbacks)
         complete(result, err)
     end
 
-    if ns.DB:ShouldConfirmActions() then
+    if forceConfirm or ns.DB:ShouldConfirmActions() then
         ns.UI.ConfirmDialogs:ShowConfirm(confirmText, execute)
         return true
     end
 
     execute()
     return true
+end
+
+function ProfileManager:RequestDuplicateTemplate(sourceName, targetName, callbacks)
+    callbacks = callbacks or {}
+    sourceName = ns.Utils.SanitizeSingleLine(sourceName or "")
+    if sourceName == "" then
+        if callbacks.onComplete then
+            callbacks.onComplete(nil, ns.L("error_duplicate_source_first"))
+        end
+        return nil, ns.L("error_duplicate_source_first")
+    end
+
+    return self:RunConfirmedOperation(ns.L("confirm_duplicate_template_text", sourceName), function()
+        return self:DuplicateTemplate(sourceName, targetName)
+    end, callbacks, true)
+end
+
+function ProfileManager:RequestShowExport(templateName)
+    templateName = ns.Utils.SanitizeSingleLine(templateName or "")
+    if templateName == "" then
+        return nil, ns.L("error_select_source_first")
+    end
+
+    return self:RunConfirmedOperation(ns.L("confirm_export_template_text", templateName), function()
+        ns.UI.TransferDialog:ShowExport(templateName)
+        return true
+    end, nil, true)
+end
+
+function ProfileManager:RequestShowImport(onImported)
+    return self:RunConfirmedOperation(ns.L("confirm_import_template_text"), function()
+        ns.UI.TransferDialog:ShowImport(onImported)
+        return true
+    end, nil, true)
 end
 
 function ProfileManager:RequestApplySource(kind, key, selection, callbacks)
@@ -312,7 +343,7 @@ function ProfileManager:RequestApplySource(kind, key, selection, callbacks)
 
     return self:RunConfirmedOperation(confirmText, function()
         return ns.Modules.ActionBarApplier:ApplyPlan(plan)
-    end, callbacks)
+    end, callbacks, true)
 end
 
 function ProfileManager:RequestClearSelection(selection, callbacks)
@@ -332,5 +363,5 @@ function ProfileManager:RequestClearSelection(selection, callbacks)
 
     return self:RunConfirmedOperation(confirmText, function()
         return ns.Modules.ActionBarApplier:ApplyPlan(plan)
-    end, callbacks)
+    end, callbacks, true)
 end

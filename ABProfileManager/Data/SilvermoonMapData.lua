@@ -35,7 +35,6 @@ local silvermoonPoints = {
     { key = "delve_hub", labelKey = "map_label_delve_hub", x = 52.40, y = 78.04, category = "service", size = 16, priority = 52 },
     { key = "murder_row", labelKey = "map_label_murder_row", x = 56.61, y = 61.10, category = "dungeon", size = 14, priority = 12, offsetX = 6, offsetY = -2 },
     { key = "the_darkway", labelKey = "map_label_the_darkway", x = 40.23, y = 31.68, category = "delve", size = 14, priority = 18, offsetY = -2 },
-    { key = "collegiate_calamity", labelKey = "map_label_collegiate_calamity", x = 41.00, y = 54.00, category = "delve", size = 14, priority = 18, offsetX = -8 },
 }
 
 ns.Data.SilvermoonMapData = {
@@ -76,7 +75,8 @@ ns.Data.SilvermoonMapData = {
         [2395] = {
             density = "normal",
             points = {
-                { key = "caeris_fairdawn", labelKey = "map_label_caeris_fairdawn", x = 43.40, y = 47.40, category = "renown", size = 15, priority = 42, preferBelow = true },
+                { key = "caeris_fairdawn", labelKey = "map_label_renown_vendor", x = 43.40, y = 47.40, category = "renown", size = 15, priority = 42, preferBelow = true },
+                { key = "collegiate_calamity", labelKey = "map_label_collegiate_calamity", x = 49.00, y = 22.00, category = "delve", size = 15, priority = 18, offsetY = -4 },
                 { key = "windrunner_spire", labelKey = "map_label_windrunner_spire", x = 35.63, y = 78.87, category = "dungeon", size = 15, priority = 12, offsetY = -6 },
                 { key = "shadow_enclave", labelKey = "map_label_shadow_enclave", x = 45.55, y = 86.31, category = "delve", size = 15, priority = 18, offsetY = -4 },
                 { key = "atal_aman_eversong", labelKey = "map_label_atal_aman", x = 63.00, y = 79.00, category = "delve", size = 15, priority = 18, offsetY = -4 },
@@ -85,20 +85,23 @@ ns.Data.SilvermoonMapData = {
         [2413] = {
             density = "normal",
             points = {
-                { key = "naynar", labelKey = "map_label_naynar", x = 51.00, y = 50.80, category = "renown", size = 15, priority = 42, preferBelow = true },
+                { key = "harandar_portal_silvermoon", labelKey = "map_label_portal_silvermoon", x = 50.10, y = 49.90, category = "travel", size = 14, priority = 54, offsetX = -26, offsetY = -10, wordsPerLine = 1, preferBelow = true },
+                { key = "harandar_portal_voidstorm", labelKey = "map_label_portal_voidstorm", x = 52.10, y = 49.90, category = "travel", size = 14, priority = 54, offsetX = 26, offsetY = -10, wordsPerLine = 1, preferBelow = true },
+                { key = "naynar", labelKey = "map_label_renown_vendor", x = 51.00, y = 50.80, category = "renown", size = 15, priority = 42, offsetY = 16, preferBelow = true },
                 { key = "blinding_vale", labelKey = "map_label_blinding_vale", x = 27.43, y = 77.98, category = "dungeon", size = 15, priority = 12, offsetY = -4 },
-                { key = "grudge_pit", labelKey = "map_label_grudge_pit", x = 70.30, y = 67.14, category = "delve", size = 15, priority = 18, offsetX = -6, offsetY = 12, preferBelow = true },
+                { key = "grudge_pit", labelKey = "map_label_grudge_pit", x = 70.00, y = 67.00, category = "delve", size = 15, priority = 18, offsetX = -6, offsetY = 12, preferBelow = true },
                 { key = "gulf_of_memory", labelKey = "map_label_gulf_of_memory", x = 36.70, y = 49.60, category = "delve", size = 15, priority = 18, offsetY = -6 },
-                { key = "dreamrift", labelKey = "map_label_dreamrift", x = 61.86, y = 67.50, category = "raid", size = 15, priority = 10, offsetY = -4, noWrap = true },
+                { key = "dreamrift", labelKey = "map_label_dreamrift", x = 61.00, y = 65.00, category = "raid", size = 15, priority = 10, offsetY = -4, noWrap = true },
             },
         },
         [2405] = {
             density = "normal",
             points = {
-                { key = "anomander", labelKey = "map_label_anomander", x = 52.60, y = 72.80, category = "renown", size = 15, priority = 42, preferBelow = true },
-                { key = "shadowguard_point", labelKey = "map_label_shadowguard_point", x = 37.38, y = 47.74, category = "delve", size = 15, priority = 18, offsetX = -6, offsetY = -4 },
+                { key = "voidstorm_portal_silvermoon", labelKey = "map_label_portal_silvermoon", x = 51.60, y = 68.00, category = "travel", size = 14, priority = 54, offsetX = -26, offsetY = -10, wordsPerLine = 1, preferBelow = true },
+                { key = "voidstorm_portal_harandar", labelKey = "map_label_portal_harandar", x = 52.40, y = 68.00, category = "travel", size = 14, priority = 54, offsetX = 26, offsetY = -10, wordsPerLine = 1, preferBelow = true },
+                { key = "anomander", labelKey = "map_label_renown_vendor", x = 53.10, y = 69.10, category = "renown", size = 15, priority = 42, offsetY = 18, preferBelow = true },
+                { key = "shadowguard_point", labelKey = "map_label_shadowguard_point", x = 37.00, y = 52.00, category = "delve", size = 15, priority = 18, offsetX = -6, offsetY = -4 },
                 { key = "sunkiller_sanctum", labelKey = "map_label_sunkiller_sanctum", x = 54.80, y = 47.10, category = "delve", size = 15, priority = 18, offsetX = 8, offsetY = -6 },
-                { key = "torments_rise", labelKey = "map_label_torments_rise", x = 37.70, y = 66.00, category = "delve", size = 15, priority = 18, offsetX = -4, offsetY = -6 },
                 { key = "nexus_point_xenas", labelKey = "map_label_nexus_point_xenas", x = 64.70, y = 61.77, category = "dungeon", size = 15, priority = 12, offsetY = -4 },
                 { key = "voidscar_arena", labelKey = "map_label_voidscar_arena", x = 51.00, y = 19.00, category = "dungeon", size = 15, priority = 12, offsetX = 2, offsetY = -4 },
                 { key = "voidspire", labelKey = "map_label_voidspire", x = 45.40, y = 64.00, category = "raid", size = 15, priority = 10, offsetY = -6 },
@@ -107,8 +110,7 @@ ns.Data.SilvermoonMapData = {
         [2437] = {
             density = "normal",
             points = {
-                { key = "magovu", labelKey = "map_label_magovu", x = 45.80, y = 65.80, category = "renown", size = 15, priority = 42, preferBelow = true },
-                { key = "chel_the_chip", labelKey = "map_label_chel_the_chip", x = 45.01, y = 67.62, category = "renown", size = 14, priority = 44, offsetX = 20, offsetY = 10, preferBelow = true },
+                { key = "magovu", labelKey = "map_label_renown_vendor", x = 45.80, y = 65.80, category = "renown", size = 15, priority = 42, preferBelow = true },
                 { key = "twilight_crypts", labelKey = "map_label_twilight_crypts", x = 25.44, y = 84.45, category = "delve", size = 15, priority = 18, offsetY = -6 },
                 { key = "den_of_nalorakk", labelKey = "map_label_den_of_nalorakk", x = 29.99, y = 84.45, category = "dungeon", size = 15, priority = 12, offsetX = 12, offsetY = -4 },
                 { key = "atal_aman", labelKey = "map_label_atal_aman", x = 25.00, y = 52.00, category = "delve", size = 15, priority = 18, offsetY = -4 },

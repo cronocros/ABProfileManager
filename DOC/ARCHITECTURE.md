@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.3.16`
+버전 기준: `v1.4.1`
 
 ## 목적
 
@@ -10,15 +10,17 @@
 - 최근 1회 되돌리기
 - 퀘스트 정리
 - 전문기술 포인트 자동 추적
-- 전투메시지 CVar 직접 제어
+- 전투메시지 표출 방식 관리
 - 캐릭터 스탯 오버레이
 - 한밤(Midnight) 지도 오버레이
+- 전체 typography 슬라이더
 
 핵심 원칙:
 
 - 기존 메인 UI 레이아웃은 쉽게 흔들지 않는다.
 - 액션바와 profession 로직은 데이터 중심으로 유지한다.
 - 지도 오버레이는 보수적인 맵 판정과 정적 좌표를 사용한다.
+- 글자 크기 변경은 도메인별 typography 계층으로 통합한다.
 - 파괴적 작업은 확인창과 입력 검증을 우선한다.
 
 ## 부트스트랩
@@ -74,15 +76,17 @@
   - 완료 퀘스트/숨은 퀘스트 기반 추적
   - 카드/오버레이/툴팁 데이터 제공
 - `UI/ProfessionKnowledgeOverlay.lua`
-  - 상단 요약은 모드와 무관하게 `주간 x/xP`, `1회성 x/xP` 형식을 사용
-  - 상세 하위 행은 source별 `x/x` 포인트 표기를 유지
-  - tooltip은 넓은 최소 폭으로 긴 이름과 TomTom 안내 줄바꿈을 완화
+  - 상단 요약은 문장형 안내와 정확한 주간 리셋 잔여 시간 표시를 사용
+  - tooltip은 범례, 완료/미완료 색상, source별 요약 규칙, TomTom 안내를 함께 노출
 - `Modules/CombatTextManager.lua`
   - Midnight 최신 전투메시지 `_v2` CVar와 구형 이름 fallback을 함께 관리
-  - 현재 클라이언트 값을 읽어 초기 스냅샷을 만들고, 사용자가 켠 프리셋만 다시 적용
+  - 현재 클라이언트 값을 읽어 초기 스냅샷을 만들고, 사용자가 켠 표출 방식만 다시 적용
+  - 적용 후 read-back 검증과 짧은 retry로 `부채꼴` 모드 실패를 더 보수적으로 감지
 - `UI/ConfigPanel.lua`
-  - 전투메시지 직접 제어 섹션 추가
-  - `기본 전투메시지 / 피해 / 치유 / 방향성 피해 분산 / 표시 모드`를 설정
+  - 일반 설정, typography 슬라이더, 개요, 전투메시지 표출 방식 설정을 담당
+- `UI/MapPanel.lua`
+  - 지도 오버레이 전용 탭
+  - 지도 글자 크기 슬라이더와 카테고리 필터 제공
 - `Modules/TomTomBridge.lua`
   - TomTom 선택적 연동
   - 하란다르/공허폭풍 일부 1회성 보물은 해당 지역 진입 후 waypoint 생성 안내를 포함
@@ -110,12 +114,16 @@
   - 범위 선택, 비교, 동기화
 - `UI/ProfessionPanel.lua`
   - profession 카드, 오버레이 설정, 재스캔
+- `UI/MapPanel.lua`
+  - 지도 탭, 포탈/평판상인 필터, 지도 글자 크기 조절
 - `UI/QuestPanel.lua`
   - 퀘스트 후보 목록, 안전 정리, 전체 포기
 - `UI/ConfigPanel.lua`
   - 메인 설정 탭
 - `UI/AddonSettingsPages.lua`
   - 와우 `설정 > 애드온` 하위 카테고리
+- `UI/Typography.lua`
+  - 도메인별 글자 크기 보정과 tooltip 폰트 재적용
 - `UI/StatsOverlay.lua`
   - 캐릭터 스탯 오버레이
 - `UI/ProfessionKnowledgeOverlay.lua`
@@ -140,7 +148,7 @@
   - 확인창
   - 디버그
   - 오버레이 표시 여부
-  - 오버레이 스케일
+  - typography 도메인별 오프셋
   - 지도 라벨 카테고리 필터
   - 마우스 이동 자동 복구
 
@@ -156,7 +164,7 @@
 - profession 진행 상태
 - 캐릭터 기본 정보
 - 템플릿 작성 시 원본 캐릭터 메타데이터
-- 사용자가 켠 전투메시지 프리셋 상태
+- 사용자가 켠 전투메시지 표출 방식 상태
 
 ## 동작 흐름
 
@@ -168,6 +176,7 @@
 4. `PLAYER_LOGIN`
 5. profession/stats UI refresh
 6. 필요 시 `autoInteract` 복구
+7. 필요 시 전투메시지 표출 방식 재적용
 
 ### profession 추적
 
@@ -177,13 +186,14 @@
 4. weekly/one-time section 합계 계산
 5. 카드/오버레이/툴팁용 파생 데이터 생성
 6. loot/quest/bag 계열 이벤트 후 refresh를 다시 합쳐 반영
+7. bag/loot 계열 이벤트 후 follow-up refresh를 한 번 더 실행
 
 ### 지도 오버레이
 
 1. 현재 지도 mapID 확인
 2. 내부 인스턴스/마이크로맵 차단
-3. exact map, alias, 제한된 fallback 순으로 데이터 조회
-4. 라벨 줄바꿈/오프셋/카테고리 필터 반영
+3. exact map과 제한된 alias만 조회하고, 지원하지 않는 child/detail map fallback은 차단
+4. 라벨 줄바꿈/오프셋/카테고리 필터/지도 글자 크기 반영
 5. WorldMap에 텍스트 오버레이 렌더
 
 ## 안정성 메모
@@ -191,6 +201,7 @@
 - profession/TomTom 연동은 메인 기능에 영향을 주지 않도록 선택 기능으로 유지한다.
 - profession/quest refresh는 내부 예외가 나도 전체 UI를 깨뜨리지 않도록 보수적으로 처리한다.
 - 지도 오버레이는 refresh 중 예외가 나도 메인 UI를 깨뜨리지 않게 방어한다.
+- 지도 오버레이는 지원하지 않는 child/detail map에서 부모 지도 라벨을 억지로 보여주지 않는다.
 - 와우 `설정 > 애드온`은 메인 창 재사용이 아니라 경량 패널만 사용한다.
 - 대규모 UI 리디자인보다 현재 배치 유지와 overflow 방지 보정을 우선한다.
 

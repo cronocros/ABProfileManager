@@ -304,16 +304,17 @@ local function addPercentStat(snapshot, key, label, percent)
 end
 
 local function applyTextStyle(fontString, size, r, g, b)
-    fontString:SetFont(FONT_PATH, size, FONT_FLAGS)
+    ns.UI.Typography:ApplyFont(fontString, size, {
+        domain = "statsOverlay",
+        flags = FONT_FLAGS,
+        shadowOffset = { 1, -1 },
+        shadowColor = { 0, 0, 0, 0.9 },
+    })
     fontString:SetTextColor(r, g, b, 1)
     fontString:SetJustifyH("LEFT")
     fontString:SetJustifyV("TOP")
     if fontString.SetWordWrap then
         fontString:SetWordWrap(false)
-    end
-    if fontString.SetShadowOffset then
-        fontString:SetShadowOffset(1, -1)
-        fontString:SetShadowColor(0, 0, 0, 0.9)
     end
 end
 
@@ -329,11 +330,8 @@ local function applyTooltipProxyFont(fontString, fontObject)
         return
     end
 
-    if fontString.SetFontObject and fontObject then
-        fontString:SetFontObject(fontObject)
-    else
-        fontString:SetFont(FONT_PATH, 12, "")
-    end
+    local baseSize = fontObject == GameFontHighlight and 13 or 12
+    ns.UI.Typography:ApplyFont(fontString, baseSize, { domain = "tooltip", transient = true })
 
     fontString:SetJustifyH("LEFT")
     fontString:SetJustifyV("TOP")
@@ -495,7 +493,11 @@ end
 
 function StatsOverlay:MeasureTextWidth(text, size)
     local measure = self:GetMeasurementFontString()
-    measure:SetFont(FONT_PATH, size or NORMAL_VALUE_SIZE, FONT_FLAGS)
+    ns.UI.Typography:ApplyFont(measure, size or NORMAL_VALUE_SIZE, {
+        domain = "statsOverlay",
+        flags = FONT_FLAGS,
+        transient = true,
+    })
     measure:SetText(text or "")
     return math.ceil(measure:GetStringWidth() or 0)
 end
@@ -578,6 +580,7 @@ function StatsOverlay:ShowRowTooltip(row)
         end
     end
 
+    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 

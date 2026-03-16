@@ -26,6 +26,7 @@ local function setTooltip(owner, text)
     for index = 2, #lines do
         GameTooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
     end
+    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 

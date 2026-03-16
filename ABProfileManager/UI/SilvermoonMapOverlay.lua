@@ -106,6 +106,9 @@ local function getFilterKey(point)
     if point.category == "profession" then
         return "professions"
     end
+    if point.category == "renown" then
+        return "renown"
+    end
     if point.category == "dungeon" or point.category == "raid" then
         return "dungeons"
     end
@@ -219,19 +222,6 @@ local function tryResolveMapID(data, mapID)
     return nil, nil
 end
 
-local function tryResolveMapName(data, mapName)
-    if not mapName or mapName == "" or not data or not data.nameAliases then
-        return nil, nil
-    end
-
-    local aliasMapID = data.nameAliases[mapName]
-    if aliasMapID and data.maps and data.maps[aliasMapID] then
-        return data.maps[aliasMapID], aliasMapID
-    end
-
-    return nil, nil
-end
-
 local function resolveMapData(mapID)
     local data = ns.Data and ns.Data.SilvermoonMapData
     if not data or not data.maps then
@@ -247,13 +237,6 @@ local function resolveMapData(mapID)
     local resolvedData, resolvedMapID = tryResolveMapID(data, mapID)
     if resolvedData then
         return resolvedData, resolvedMapID
-    end
-
-    if info then
-        resolvedData, resolvedMapID = tryResolveMapName(data, info.name)
-        if resolvedData then
-            return resolvedData, resolvedMapID
-        end
     end
 
     return nil, nil
@@ -602,24 +585,47 @@ local function buildCandidateOffsets(point, labelWidth, labelHeight, crowded)
     local horizontalPadding = crowded and 10 or 6
     local lateralShift = crowded and math.max(12, labelWidth * 0.12) or math.max(10, labelWidth * 0.08)
     local verticalDistance = markerRadius + (labelHeight / 2) + verticalPadding
+    local sideDistance = markerRadius + (labelWidth / 2) + horizontalPadding
+    local farVerticalDistance = verticalDistance + math.max(10, labelHeight * 0.72)
+    local farSideDistance = sideDistance + math.max(14, labelWidth * 0.20)
     local baseOffsetX = point.offsetX or 0
     local baseOffsetY = point.offsetY or 0
 
     local above = { x = baseOffsetX, y = baseOffsetY - verticalDistance }
     local below = { x = baseOffsetX, y = baseOffsetY + verticalDistance }
+    local right = { x = baseOffsetX + sideDistance, y = baseOffsetY }
+    local left = { x = baseOffsetX - sideDistance, y = baseOffsetY }
     local aboveRight = { x = baseOffsetX + lateralShift + horizontalPadding, y = baseOffsetY - verticalDistance }
     local aboveLeft = { x = baseOffsetX - lateralShift - horizontalPadding, y = baseOffsetY - verticalDistance }
     local belowRight = { x = baseOffsetX + lateralShift + horizontalPadding, y = baseOffsetY + verticalDistance }
     local belowLeft = { x = baseOffsetX - lateralShift - horizontalPadding, y = baseOffsetY + verticalDistance }
+    local farAbove = { x = baseOffsetX, y = baseOffsetY - farVerticalDistance }
+    local farBelow = { x = baseOffsetX, y = baseOffsetY + farVerticalDistance }
+    local farRight = { x = baseOffsetX + farSideDistance, y = baseOffsetY }
+    local farLeft = { x = baseOffsetX - farSideDistance, y = baseOffsetY }
+    local farAboveRight = { x = baseOffsetX + farSideDistance, y = baseOffsetY - farVerticalDistance }
+    local farAboveLeft = { x = baseOffsetX - farSideDistance, y = baseOffsetY - farVerticalDistance }
+    local farBelowRight = { x = baseOffsetX + farSideDistance, y = baseOffsetY + farVerticalDistance }
+    local farBelowLeft = { x = baseOffsetX - farSideDistance, y = baseOffsetY + farVerticalDistance }
 
     if point.preferBelow then
         return {
             below,
             belowRight,
             belowLeft,
+            right,
+            left,
+            farBelow,
+            farBelowRight,
+            farBelowLeft,
             above,
             aboveRight,
             aboveLeft,
+            farAbove,
+            farAboveRight,
+            farAboveLeft,
+            farRight,
+            farLeft,
         }
     end
 
@@ -627,9 +633,19 @@ local function buildCandidateOffsets(point, labelWidth, labelHeight, crowded)
         above,
         aboveRight,
         aboveLeft,
+        right,
+        left,
+        farAbove,
+        farAboveRight,
+        farAboveLeft,
         below,
         belowRight,
         belowLeft,
+        farBelow,
+        farBelowRight,
+        farBelowLeft,
+        farRight,
+        farLeft,
     }
 end
 
@@ -651,7 +667,7 @@ local function scoreCandidate(rect, baseX, baseY, placedRects, allPoints, curren
 
     for _, placed in ipairs(placedRects or {}) do
         if rectsOverlap(rect, placed.rect) then
-            score = score + 600
+            score = score + 1400
         end
     end
 
@@ -660,14 +676,14 @@ local function scoreCandidate(rect, baseX, baseY, placedRects, allPoints, curren
             local pointX = ((pointData.x or 0) / 100) * width
             local pointY = ((pointData.y or 0) / 100) * height
             if rectContainsPointRadius(rect, pointX, pointY, getMarkerRadius(pointData)) then
-                score = score + 220
+                score = score + 420
             end
         end
     end
 
     local rectCenterX = (rect.left + rect.right) / 2
     local rectCenterY = (rect.top + rect.bottom) / 2
-    score = score + (math.abs(rectCenterX - baseX) * 0.35) + (math.abs(rectCenterY - baseY) * 0.55)
+    score = score + (math.abs(rectCenterX - baseX) * 0.22) + (math.abs(rectCenterY - baseY) * 0.32)
 
     return score
 end
@@ -839,6 +855,7 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
     end)
 
     local placedRects = {}
+    local fontOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("mapOverlay") or 0
     for index, entry in ipairs(entries) do
         local point = entry.point
         local label = self:EnsureLabel(index)
@@ -846,7 +863,7 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         local red, green, blue = getPointColor(point.category)
         local crowdScale = getCrowdScale(entry.nearbyCount)
         local scale = (point.scale or getPointScale(point.category)) * densityScale * crowdScale * (zoomScale or 1)
-        local fontSize = math.max(point.minFontSize or 11, math.floor(((point.size or 14) * scale) + 0.5))
+        local fontSize = math.max(point.minFontSize or 11, math.floor(((point.size or 14) * scale) + 0.5) + fontOffset)
 
         label:ClearAllPoints()
         label:SetTextColor(red, green, blue, point.alpha or 1)
@@ -931,11 +948,13 @@ function SilvermoonMapOverlay:RefreshInternal()
             filters.facilities and "1" or "0",
             filters.portals and "1" or "0",
             filters.professions and "1" or "0",
+            filters.renown and "1" or "0",
             filters.dungeons and "1" or "0",
             filters.delves and "1" or "0",
         }, "")
     end
     local _, zoomBucket, canvasBucket = getZoomScaleMultiplier()
+    local mapFontOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("mapOverlay") or 0
     local layoutKey = table.concat({
         tostring(currentMapID or 0),
         tostring(resolvedMapID or 0),
@@ -943,6 +962,7 @@ function SilvermoonMapOverlay:RefreshInternal()
         tostring(height),
         tostring(language),
         filterSignature,
+        tostring(mapFontOffset),
         tostring(zoomBucket or 0),
         tostring(canvasBucket or 0),
     }, ":")
