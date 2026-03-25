@@ -2,7 +2,7 @@
 ## Title: ABProfileManager
 ## Notes: Action-bar template manager with compare, undo, import/export, and quest cleanup for Retail.
 ## Author: 밍밍이와코코
-## Version: 1.4.6
+## Version: 1.4.7
 ## IconTexture: Interface\Icons\INV_Inscription_ScrollOfWisdom_01
 ## SavedVariables: ABPM_DB
 
@@ -16,6 +16,8 @@ Data\StatPriorities.lua
 Data\ProfessionKnowledge.lua
 Data\ProfessionKnowledgeWaypoints.lua
 Data\SilvermoonMapData.lua
+Data\ItemLevelTable.lua
+Data\WorldEventSchedule.lua
 DB.lua
 Modules\SlotMapper.lua
 Modules\ActionBarScanner.lua
@@ -30,12 +32,17 @@ Modules\QuestManager.lua
 Modules\ProfessionKnowledgeTracker.lua
 Modules\TomTomBridge.lua
 Modules\CombatTextManager.lua
+Modules\BlizzardFrameManager.lua
+Modules\MerchantHelper.lua
+Modules\MailHistory.lua
 UI\Typography.lua
 UI\Widgets.lua
 UI\ConfirmDialogs.lua
 UI\MinimapButton.lua
 UI\StatsOverlay.lua
 UI\ProfessionKnowledgeOverlay.lua
+UI\ItemLevelOverlay.lua
+UI\WorldEventOverlay.lua
 UI\TransferDialog.lua
 UI\ProfilePanel.lua
 UI\ActionBarPanel.lua
@@ -44,6 +51,7 @@ UI\MapPanel.lua
 UI\QuestPanel.lua
 UI\AddonSettingsPages.lua
 UI\ConfigPanel.lua
+UI\UtilityPanel.lua
 UI\SilvermoonMapOverlay.lua
 UI\MainWindow.lua
 Commands.lua

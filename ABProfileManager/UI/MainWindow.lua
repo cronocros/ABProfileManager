@@ -14,6 +14,7 @@ local function applyTabSelectionStyles(window)
     ns.UI.Widgets.SetButtonSelected(window.mapTab, window.currentTab == "map")
     ns.UI.Widgets.SetButtonSelected(window.questsTab, window.currentTab == "quests")
     ns.UI.Widgets.SetButtonSelected(window.configTab, window.currentTab == "config")
+    ns.UI.Widgets.SetButtonSelected(window.utilityTab, window.currentTab == "utility")
 end
 
 local function showTab(window, tabName)
@@ -28,6 +29,7 @@ local function showTab(window, tabName)
     window.mapPanel:SetShown(tabName == "map")
     window.questPanel:SetShown(tabName == "quests")
     window.configPanel:SetShown(tabName == "config")
+    window.utilityPanel:SetShown(tabName == "utility")
     applyTabSelectionStyles(window)
 end
 
@@ -45,6 +47,7 @@ function MainWindow:RefreshLocale()
     self.frame.mapTab:SetText(ns.L("tab_map"))
     self.frame.questsTab:SetText(ns.L("tab_quests"))
     self.frame.configTab:SetText(ns.L("tab_config"))
+    self.frame.utilityTab:SetText(ns.L("tab_utility"))
 end
 
 function MainWindow:Initialize()
@@ -134,6 +137,9 @@ function MainWindow:Initialize()
     local configTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
     configTab:SetPoint("LEFT", questsTab, "RIGHT", 8, 0)
 
+    local utilityTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
+    utilityTab:SetPoint("LEFT", configTab, "RIGHT", 8, 0)
+
     local content = CreateFrame("Frame", nil, frame)
     content:SetPoint("TOPLEFT", 16, -76)
     content:SetPoint("BOTTOMRIGHT", -16, 144)
@@ -144,6 +150,7 @@ function MainWindow:Initialize()
     frame.mapPanel = ns.UI.MapPanel:Create(content)
     frame.questPanel = ns.UI.QuestPanel:Create(content)
     frame.configPanel = ns.UI.ConfigPanel:Create(content)
+    frame.utilityPanel = ns.UI.UtilityPanel:Create(content)
 
     local statusBox = ns.UI.Widgets.CreatePanelBox(frame, windowWidth - 64, 120, nil)
     statusBox:SetPoint("BOTTOMLEFT", 28, 18)
@@ -183,6 +190,10 @@ function MainWindow:Initialize()
         showTab(frame, "config")
         ns:RefreshUI()
     end)
+    utilityTab:SetScript("OnClick", function()
+        showTab(frame, "utility")
+        ns:RefreshUI()
+    end)
 
     frame.title = title
     frame.statusBox = statusBox
@@ -193,6 +204,7 @@ function MainWindow:Initialize()
     frame.mapTab = mapTab
     frame.questsTab = questsTab
     frame.configTab = configTab
+    frame.utilityTab = utilityTab
 
     showTab(frame, "profiles")
 
@@ -272,6 +284,7 @@ function MainWindow:OpenToTab(tabName)
         map = true,
         quests = true,
         config = true,
+        utility = true,
     }
 
     showTab(self.frame, validTabs[tabName] and tabName or "profiles")

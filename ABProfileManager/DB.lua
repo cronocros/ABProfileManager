@@ -141,6 +141,23 @@ function DB:GetGlobalSettings()
         mouseMoveRestore = {
             enabled = false,
         },
+        blizzardFrames = {
+            enabled = false,
+            movable = {},
+            positions = {},
+        },
+        merchantHelper = {
+            enabled = false,
+        },
+        mailHistory = {
+            enabled = true,
+        },
+        itemLevelOverlay = {
+            enabled = false,
+        },
+        worldEventOverlay = {
+            enabled = false,
+        },
     }
     return ns.db.global.settings
 end
@@ -357,24 +374,6 @@ end
 function DB:SetMouseMoveRestoreEnabled(enabled)
     self:GetMouseMoveRestoreSettings().enabled = enabled and true or false
     return self:IsMouseMoveRestoreEnabled()
-end
-
-function DB:GetAuctionHouseFilterSettings()
-    local settings = self:GetGlobalSettings()
-    settings.auctionHouseFilter = settings.auctionHouseFilter or {
-        enabled = false,
-    }
-
-    return settings.auctionHouseFilter
-end
-
-function DB:IsAuctionHouseFilterEnabled()
-    return self:GetAuctionHouseFilterSettings().enabled and true or false
-end
-
-function DB:SetAuctionHouseFilterEnabled(enabled)
-    self:GetAuctionHouseFilterSettings().enabled = enabled and true or false
-    return self:IsAuctionHouseFilterEnabled()
 end
 
 function DB:GetCombatTextSettings()
@@ -599,4 +598,224 @@ function DB:SaveProfessionKnowledgeOverlayPosition(frame)
     config.relativePoint = relativePoint or config.relativePoint
     config.x = x or 0
     config.y = y or 0
+end
+
+-- ============================================================
+-- BlizzardFrameManager
+-- ============================================================
+
+function DB:GetBlizzardFrameSettings()
+    local settings = self:GetGlobalSettings()
+    settings.blizzardFrames = settings.blizzardFrames or {
+        enabled = false,
+        movable = {},
+        positions = {},
+    }
+    settings.blizzardFrames.movable = settings.blizzardFrames.movable or {}
+    settings.blizzardFrames.positions = settings.blizzardFrames.positions or {}
+    return settings.blizzardFrames
+end
+
+function DB:IsBlizzardFrameManagerEnabled()
+    return self:GetBlizzardFrameSettings().enabled and true or false
+end
+
+function DB:SetBlizzardFrameManagerEnabled(enabled)
+    self:GetBlizzardFrameSettings().enabled = enabled and true or false
+    return self:IsBlizzardFrameManagerEnabled()
+end
+
+function DB:IsBlizzardFrameMovable(key)
+    local bfs = self:GetBlizzardFrameSettings()
+    if not bfs.enabled then
+        return false
+    end
+
+    local movable = bfs.movable or {}
+    if movable[key] == nil then
+        return true  -- 기본적으로 모두 이동 가능
+    end
+
+    return movable[key] and true or false
+end
+
+function DB:SetBlizzardFrameMovable(key, enabled)
+    self:GetBlizzardFrameSettings().movable[key] = enabled and true or false
+end
+
+function DB:GetBlizzardFramePosition(key)
+    return self:GetBlizzardFrameSettings().positions[key]
+end
+
+function DB:SaveBlizzardFramePosition(key, frame)
+    if not frame or not frame.GetPoint then
+        return
+    end
+
+    local ok, point, _, relativePoint, x, y = pcall(function()
+        return frame:GetPoint(1)
+    end)
+
+    if not ok then
+        return
+    end
+
+    self:GetBlizzardFrameSettings().positions[key] = {
+        point = point or "CENTER",
+        relativePoint = relativePoint or "CENTER",
+        x = x or 0,
+        y = y or 0,
+    }
+end
+
+function DB:ResetBlizzardFramePosition(key)
+    local positions = self:GetBlizzardFrameSettings().positions
+    positions[key] = nil
+end
+
+function DB:ResetAllBlizzardFramePositions()
+    self:GetBlizzardFrameSettings().positions = {}
+end
+
+-- ============================================================
+-- MerchantHelper
+-- ============================================================
+
+function DB:GetMerchantHelperSettings()
+    local settings = self:GetGlobalSettings()
+    settings.merchantHelper = settings.merchantHelper or { enabled = false }
+    return settings.merchantHelper
+end
+
+function DB:IsMerchantHelperEnabled()
+    return self:GetMerchantHelperSettings().enabled and true or false
+end
+
+function DB:SetMerchantHelperEnabled(enabled)
+    self:GetMerchantHelperSettings().enabled = enabled and true or false
+    return self:IsMerchantHelperEnabled()
+end
+
+-- ============================================================
+-- MailHistory
+-- ============================================================
+
+function DB:GetMailHistorySettings()
+    local settings = self:GetGlobalSettings()
+    settings.mailHistory = settings.mailHistory or { enabled = true }
+    return settings.mailHistory
+end
+
+function DB:IsMailHistoryEnabled()
+    return self:GetMailHistorySettings().enabled ~= false
+end
+
+function DB:SetMailHistoryEnabled(enabled)
+    self:GetMailHistorySettings().enabled = enabled and true or false
+    return self:IsMailHistoryEnabled()
+end
+
+-- ============================================================
+-- ItemLevelOverlay
+-- ============================================================
+
+function DB:GetItemLevelOverlaySettings()
+    local settings = self:GetGlobalSettings()
+    settings.itemLevelOverlay = settings.itemLevelOverlay or { enabled = false }
+    return settings.itemLevelOverlay
+end
+
+function DB:IsItemLevelOverlayEnabled()
+    return self:GetItemLevelOverlaySettings().enabled and true or false
+end
+
+function DB:SetItemLevelOverlayEnabled(enabled)
+    self:GetItemLevelOverlaySettings().enabled = enabled and true or false
+    return self:IsItemLevelOverlayEnabled()
+end
+
+function DB:GetItemLevelOverlayConfig()
+    if not ns.db then
+        return ns.Data.Defaults.ui.itemLevelOverlay
+    end
+
+    ns.db.ui = ns.db.ui or {}
+    ns.db.ui.itemLevelOverlay = ns.db.ui.itemLevelOverlay
+        or ns.Utils.DeepCopy(ns.Data.Defaults.ui.itemLevelOverlay)
+    return ns.db.ui.itemLevelOverlay
+end
+
+function DB:SaveItemLevelOverlayPosition(frame)
+    if not frame or not frame.GetPoint then
+        return
+    end
+
+    local point, _, relativePoint, x, y = frame:GetPoint(1)
+    local config = self:GetItemLevelOverlayConfig()
+    config.point = point or config.point
+    config.relativePoint = relativePoint or config.relativePoint
+    config.x = x or 0
+    config.y = y or 0
+end
+
+-- ============================================================
+-- WorldEventOverlay
+-- ============================================================
+
+function DB:GetWorldEventOverlaySettings()
+    local settings = self:GetGlobalSettings()
+    settings.worldEventOverlay = settings.worldEventOverlay or { enabled = false }
+    return settings.worldEventOverlay
+end
+
+function DB:IsWorldEventOverlayEnabled()
+    return self:GetWorldEventOverlaySettings().enabled and true or false
+end
+
+function DB:SetWorldEventOverlayEnabled(enabled)
+    self:GetWorldEventOverlaySettings().enabled = enabled and true or false
+    return self:IsWorldEventOverlayEnabled()
+end
+
+function DB:GetWorldEventOverlayConfig()
+    if not ns.db then
+        return ns.Data.Defaults.ui.worldEventOverlay
+    end
+
+    ns.db.ui = ns.db.ui or {}
+    ns.db.ui.worldEventOverlay = ns.db.ui.worldEventOverlay
+        or ns.Utils.DeepCopy(ns.Data.Defaults.ui.worldEventOverlay)
+    return ns.db.ui.worldEventOverlay
+end
+
+function DB:SaveWorldEventOverlayPosition(frame)
+    if not frame or not frame.GetPoint then
+        return
+    end
+
+    local point, _, relativePoint, x, y = frame:GetPoint(1)
+    local config = self:GetWorldEventOverlayConfig()
+    config.point = point or config.point
+    config.relativePoint = relativePoint or config.relativePoint
+    config.x = x or 0
+    config.y = y or 0
+end
+
+function DB:GetWorldEventCompletions()
+    local settings = self:GetGlobalSettings()
+    settings.worldEventCompletions = settings.worldEventCompletions or {}
+    return settings.worldEventCompletions
+end
+
+function DB:IsWorldEventCompleted(eventKey)
+    if not eventKey then return false end
+    local dateStr = date and date("%Y-%m-%d") or "unknown"
+    return self:GetWorldEventCompletions()[eventKey.."_"..dateStr] == true
+end
+
+function DB:SetWorldEventCompleted(eventKey, completed)
+    if not eventKey then return end
+    local dateStr = date and date("%Y-%m-%d") or "unknown"
+    local key = eventKey.."_"..dateStr
+    self:GetWorldEventCompletions()[key] = completed or nil
 end

@@ -546,7 +546,10 @@ function ActionBarApplier:RetryPendingGhosts()
         return
     end
 
-    ns.Utils.Debug(string.format("Retrying %d ghost slots", ns.Utils.TableCount(self.pendingGhosts)))
+    local ghostCount = ns.Utils.TableCount(self.pendingGhosts)
+    if ghostCount > 0 then
+        ns.Utils.Debug(string.format("Retrying %d ghost slots", ghostCount))
+    end
     for logicalSlot, ghostEntry in pairs(self.pendingGhosts) do
         local currentRecord = ns.Modules.ActionBarScanner and ns.Modules.ActionBarScanner:ScanLogicalSlot(logicalSlot)
         if currentRecord and not isEmptyRecord(currentRecord) then

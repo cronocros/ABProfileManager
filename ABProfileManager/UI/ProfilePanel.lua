@@ -663,6 +663,24 @@ function ProfilePanel:Refresh()
     end
 
     self.templateNames = ns.Modules.ProfileManager:ListTemplates()
+
+    -- 선택된 템플릿이 없으면 현재 캐릭터+특성 이름으로 일치하는 템플릿 자동 참조
+    if not selectedSource then
+        local charName = (UnitName and UnitName("player") or ""):lower()
+        local specLower = specName and specName:lower() or ""
+        for _, tName in ipairs(self.templateNames) do
+            local tLower = tName:lower()
+            if charName ~= "" and tLower:find(charName, 1, true)
+                and (specLower == "" or specLower == "-" or tLower:find(specLower, 1, true)) then
+                ns:SetSelectedSource(ns.Constants.SOURCE_KIND.TEMPLATE, tName)
+                if self.templateInput then self.templateInput:SetText(tName) end
+                selectedSource = { kind = ns.Constants.SOURCE_KIND.TEMPLATE, key = tName }
+                self.selectedTemplateText:SetText(ns.L("selected_source", tName))
+                break
+            end
+        end
+    end
+
     if selectedSource and selectedSource.kind == ns.Constants.SOURCE_KIND.TEMPLATE then
         for index, templateName in ipairs(self.templateNames) do
             if templateName == selectedSource.key then

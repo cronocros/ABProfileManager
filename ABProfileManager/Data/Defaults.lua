@@ -40,9 +40,6 @@ ns.Data.Defaults = {
             mouseMoveRestore = {
                 enabled = false,
             },
-            auctionHouseFilter = {
-                enabled = false,
-            },
             combatText = {
                 managed = false,
                 enabled = true,
@@ -51,6 +48,23 @@ ns.Data.Defaults = {
                 floatMode = 3,
                 directionalDamage = true,
                 initialized = false,
+            },
+            blizzardFrames = {
+                enabled = false,
+                movable = {},
+                positions = {},
+            },
+            merchantHelper = {
+                enabled = false,
+            },
+            mailHistory = {
+                enabled = true,
+            },
+            itemLevelOverlay = {
+                enabled = false,
+            },
+            worldEventOverlay = {
+                enabled = false,
             },
         },
     },
@@ -78,6 +92,24 @@ ns.Data.Defaults = {
             y = 70,
             collapsed = false,
             displayMode = "expanded",
+            scale = 1,
+        },
+        itemLevelOverlay = {
+            point = "CENTER",
+            relativePoint = "CENTER",
+            x = 350,
+            y = -100,
+            collapsed = false,
+            currentTab = "overview",
+            scale = 1,
+            anchorMode = "mythicplus",
+        },
+        worldEventOverlay = {
+            point = "CENTER",
+            relativePoint = "CENTER",
+            x = -350,
+            y = 200,
+            collapsed = false,
             scale = 1,
         },
     },

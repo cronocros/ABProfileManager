@@ -52,13 +52,19 @@ function ns:InitializeStartupModules()
         self.Modules.ProfessionKnowledgeTracker,
         self.Modules.TomTomBridge,
         self.Modules.CombatTextManager,
+        self.Modules.BlizzardFrameManager,
+        -- [비활성] self.Modules.MerchantHelper,  -- 도안 감지 미동작
+        -- [비활성] self.Modules.MailHistory,     -- 우편 자동완성 미구현
         self.Commands,
         self.UI.ConfirmDialogs,
         self.UI.MinimapButton,
         self.UI.StatsOverlay,
         self.UI.ProfessionKnowledgeOverlay,
+        self.UI.ItemLevelOverlay,
+        -- [비활성] self.UI.WorldEventOverlay,  -- 월드이벤트 자동감지 미동작
         self.UI.TransferDialog,
         self.UI.ConfigPanel,
+        self.UI.UtilityPanel,
         self.UI.MapPanel,
         self.UI.SilvermoonMapOverlay,
         self.UI.MainWindow,
@@ -122,9 +128,12 @@ function ns:RefreshUI()
     self:SafeCall(self.UI.MapPanel, "Refresh")
     self:SafeCall(self.UI.QuestPanel, "Refresh")
     self:SafeCall(self.UI.ConfigPanel, "Refresh")
+    self:SafeCall(self.UI.UtilityPanel, "Refresh")
     self:SafeCall(self.UI.MinimapButton, "Refresh")
     self:SafeCall(self.UI.StatsOverlay, "Refresh")
     self:SafeCall(self.UI.ProfessionKnowledgeOverlay, "Refresh")
+    self:SafeCall(self.UI.ItemLevelOverlay, "Refresh")
+    -- [비활성] self:SafeCall(self.UI.WorldEventOverlay, "Refresh")
     self:SafeCall(self.UI.SilvermoonMapOverlay, "Refresh")
     self:SafeCall(self.UI.MainWindow, "RefreshStatus")
 end

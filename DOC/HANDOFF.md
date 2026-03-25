@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.4.6`
+버전 기준: `v1.4.7`
 
 ## 현재 상태
 
@@ -16,6 +16,12 @@
 - 한밤(Midnight) 지도 오버레이
 - 지도 전용 탭과 typography 슬라이더
 - 와우 `설정 > 애드온` 경량 하위 페이지
+- **[신규]** 드랍템 레벨정보 오버레이 (쐐기/레이드/구렁 탭, 파티찾기창 연동)
+- **[신규]** 블리자드 기본 UI 창 이동 자유화 (BlizzardFrameManager)
+- **[신규]** 편의기능 탭 (UtilityPanel) 통합
+- **[비활성]** 월드이벤트 오버레이 — Midnight 이벤트 스케줄 미확정, 자동감지 미동작
+- **[비활성]** 상점 도안/장난감 음영처리 (MerchantHelper) — Midnight spellID API 불일치
+- **[비활성]** 우편 수신자 히스토리 (MailHistory) — WoW taint 문제로 자동완성 미동작
 
 ## 사용자가 민감하게 보는 지점
 
@@ -107,13 +113,27 @@
 - `ABProfileManager/UI/MapPanel.lua`
 - `ABProfileManager/UI/Typography.lua`
 
-### 퀘스트 / 스탯 / 설정
+### 퀘스트 / 스탯 / 설정 / 편의기능
 
 - `ABProfileManager/Modules/QuestManager.lua`
 - `ABProfileManager/UI/QuestPanel.lua`
 - `ABProfileManager/UI/StatsOverlay.lua`
 - `ABProfileManager/UI/ConfigPanel.lua`
 - `ABProfileManager/UI/AddonSettingsPages.lua`
+- `ABProfileManager/UI/UtilityPanel.lua`
+
+### 신규 모듈 (v1.4.7)
+
+- `ABProfileManager/Modules/BlizzardFrameManager.lua` — 블리자드 UI 창 이동/복원
+- `ABProfileManager/UI/ItemLevelOverlay.lua` — 드랍템 레벨 참조 오버레이 (파티찾기창 연동)
+- `ABProfileManager/Data/ItemLevelTable.lua` — 쐐기/레이드/구렁 ilvl 데이터
+
+### 비활성 모듈 (코드 유지, 초기화 비활성)
+
+- `ABProfileManager/Modules/MerchantHelper.lua` — 상점 도안/장난감 음영 (Midnight API 불일치)
+- `ABProfileManager/Modules/MailHistory.lua` — 우편 수신자 히스토리 (WoW taint)
+- `ABProfileManager/UI/WorldEventOverlay.lua` — 월드이벤트 오버레이 (스케줄 미확정)
+- `ABProfileManager/Data/WorldEventSchedule.lua` — Midnight 이벤트 스케줄 데이터
 
 ## 검증 습관
 
@@ -139,6 +159,25 @@
 - 아키텍처: `DOC/ARCHITECTURE.md`
 - 보안 검토: `DOC/SECURITY_REVIEW.md`
 - 배포 절차: `DOC/RELEASE_PROCESS.md`
+
+### 5. BlizzardFrameManager (블리자드 창 이동)
+
+- `Modules/BlizzardFrameManager.lua` — MANAGED_FRAMES 목록의 각 프레임에 SetMovable + OnDragStop 저장 + OnShow 복원
+- `UpdateUIPanelPositions` hooksecurefunc로 탭 전환 시 깜박임 없이 복원
+- `lazyAddon` 패턴: ADDON_LOADED 이벤트 → 지연 로드 프레임(전문기술, 탤런트 등)에 적용
+- **주의**: `QuestFrame`(NPC 퀘스트 대화창)은 MANAGED_FRAMES에 넣지 말 것 — 퀘스트 목록창 소실 원인
+
+### 6. MerchantHelper / MailHistory / WorldEventOverlay (비활성)
+
+- 세 모듈 모두 `Core.lua` 초기화 목록과 `Events.lua` 이벤트 등록에서 주석 처리
+- 파일은 유지 (미래 재활성화 대비)
+- 백그라운드 활동 없음: 이벤트 미등록, 프레임 미생성, OnUpdate 미실행
+- **재활성화 시**: `Core.lua` 주석 해제 + `Events.lua` 주석 해제
+
+### 7. 디버그 로그 버퍼 & `/abpm log` 명령
+
+- `Utils.lua` — `debugLogBuffer` (최대 200줄), `Utils.GetDebugLog()`, `Utils.ClearDebugLog()`
+- `/abpm log` 명령 → 팝업 EditBox에 로그 출력, 복사 가능
 
 ## 미완성 기능 — 추후 작업 예정
 

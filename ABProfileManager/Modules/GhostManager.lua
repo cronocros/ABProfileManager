@@ -140,7 +140,10 @@ end
 function GhostManager:RefreshGhosts()
     local pendingGhosts = ns.Modules.ActionBarApplier and ns.Modules.ActionBarApplier:GetPendingGhosts() or {}
     local buttonIndex = self:GetButtonIndex()
-    ns.Utils.Debug(string.format("Refreshing ghost overlays: %d tracked", ns.Utils.TableCount(pendingGhosts)))
+    local ghostCount = ns.Utils.TableCount(pendingGhosts)
+    if ghostCount > 0 then
+        ns.Utils.Debug(string.format("Refreshing ghost overlays: %d tracked", ghostCount))
+    end
 
     for logicalSlot, overlay in pairs(self.ghostsBySlot) do
         if not pendingGhosts[logicalSlot] then

@@ -27,6 +27,52 @@ local function printHelp()
     ns.Utils.Print(ns.L("help_apply_template"))
     ns.Utils.Print(ns.L("help_clear"))
     ns.Utils.Print(ns.L("help_quote"))
+    ns.Utils.Print(ns.L("help_verifywp"))
+end
+
+local PROFESSION_NAME_MAP = {
+    alchemy = true, blacksmithing = true, enchanting = true, engineering = true,
+    herbalism = true, inscription = true, jewelcrafting = true, leatherworking = true,
+    mining = true, skinning = true, tailoring = true, cooking = true, fishing = true,
+}
+
+local function runVerifyWaypoints(filterProfession)
+    local waypoints = ns.Data and ns.Data.ProfessionKnowledgeWaypoints
+    if not waypoints or not waypoints.treasures then
+        ns.Utils.Print(ns.L("verifywp_no_data"))
+        return
+    end
+
+    local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
+    local tomtom = ns.Modules and ns.Modules.TomTomBridge
+    local count = 0
+    local addedCount = 0
+
+    for profession, items in pairs(waypoints.treasures) do
+        if not filterProfession or string.lower(filterProfession) == profession then
+            for questID, data in pairs(items) do
+                count = count + 1
+                local completed = C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted
+                    and C_QuestLog.IsQuestFlaggedCompleted(questID)
+                if not completed then
+                    if tomtom and tomtom.AddWaypoint then
+                        ns:SafeCall(tomtom, "AddWaypoint", data.mapID, data.x / 100, data.y / 100, data.title or tostring(questID))
+                        addedCount = addedCount + 1
+                    else
+                        ns.Utils.Print(string.format("  [%s] %s - mapID:%d (%.2f, %.2f)",
+                            profession, data.title or "?", data.mapID or 0, data.x or 0, data.y or 0))
+                        addedCount = addedCount + 1
+                    end
+                end
+            end
+        end
+    end
+
+    if tomtom and tomtom.AddWaypoint then
+        ns.Utils.Print(ns.L("verifywp_added", addedCount, count))
+    else
+        ns.Utils.Print(ns.L("verifywp_listed", addedCount, count))
+    end
 end
 
 local function setStatus(message)
@@ -358,6 +404,63 @@ function Commands:HandleSlash(message)
         return
     end
 
+    if command == "log" then
+        -- 디버그 로그를 팝업 EditBox에 출력 (복사 가능)
+        local log = ns.Utils.GetDebugLog and ns.Utils.GetDebugLog() or {}
+        if #log == 0 then
+            ns.Utils.Print("디버그 로그가 없습니다. /abpm debug on 으로 활성화 후 재시도하세요.")
+            return
+        end
+        local text = table.concat(log, "\n")
+        -- 기존 팝업 재사용
+        if ABPMLogPopup then ABPMLogPopup:Hide() end
+        local popup = CreateFrame("Frame", "ABPMLogPopup", UIParent, "BackdropTemplate")
+        popup:SetSize(580, 380)
+        popup:SetPoint("CENTER")
+        popup:SetFrameStrata("DIALOG")
+        popup:SetClampedToScreen(true)
+        if popup.SetBackdrop then
+            popup:SetBackdrop({ bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",
+                edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",
+                tile=true, tileSize=32, edgeSize=32,
+                insets={left=8,right=8,top=8,bottom=8} })
+        end
+        popup:EnableMouse(true)
+        popup:SetMovable(true)
+        popup:RegisterForDrag("LeftButton")
+        popup:SetScript("OnDragStart", function(f) f:StartMoving() end)
+        popup:SetScript("OnDragStop", function(f) f:StopMovingOrSizing() end)
+
+        local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
+        close:SetPoint("TOPRIGHT", -4, -4)
+        close:SetScript("OnClick", function() popup:Hide() end)
+
+        -- 스크롤 프레임
+        local sf = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
+        sf:SetPoint("TOPLEFT", popup, "TOPLEFT", 12, -28)
+        sf:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -30, 38)
+
+        local eb = CreateFrame("EditBox", nil, sf)
+        eb:SetMultiLine(true)
+        eb:SetWidth(510)
+        eb:SetAutoFocus(false)
+        eb:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
+        eb:SetText(text)
+        eb:HighlightText()
+        sf:SetScrollChild(eb)
+
+        local clrBtn = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
+        clrBtn:SetSize(90, 22)
+        clrBtn:SetPoint("BOTTOMLEFT", 14, 10)
+        clrBtn:SetText("로그 지우기")
+        clrBtn:SetScript("OnClick", function()
+            if ns.Utils.ClearDebugLog then ns.Utils.ClearDebugLog() end
+            eb:SetText("(로그 지움)")
+        end)
+        popup:Show()
+        return
+    end
+
     if command == "debug" then
         local mode = string.lower(args[2] or "toggle")
         if mode == "status" then
@@ -444,6 +547,16 @@ function Commands:HandleSlash(message)
                 setStatus(result.message)
             end,
         })
+        return
+    end
+
+    if command == "verifywp" then
+        local filterProfession = ns.Utils.Trim(ns.Utils.JoinArgs(args, 2))
+        if filterProfession == "" then
+            filterProfession = nil
+        end
+
+        runVerifyWaypoints(filterProfession)
         return
     end
 

@@ -13,13 +13,16 @@ local professionRefreshReason = nil
 local professionFollowUpToken = 0
 
 local function refreshGhostsAndRetries()
-    ns.Utils.Debug("Refreshing ghost overlays and retry queue")
     ns:SafeCall(ns.Modules.ActionBarApplier, "ReconcilePendingGhosts")
     ns:SafeCall(ns.Modules.ActionBarApplier, "RetryPendingGhosts")
     ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
 end
 
 local function refreshStatsOverlay()
+    if not ns.DB or not ns.DB:IsStatsOverlayEnabled() then
+        return
+    end
+
     ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
 end
 
@@ -82,132 +85,6 @@ local function scheduleProfessionFollowUpRefresh(reason)
             runProfessionKnowledgeRefresh(true, string.format("%s:followup", tostring(reason or "unknown")))
         end)
     end
-end
-
--- Text labels for AH filter button and expansion-only option (koKR / enUS)
-local AH_FILTER_BUTTON_LABELS = {
-    ["필터"] = true,
-    ["Filter"] = true,
-}
-
-local function getAnyFrameText(f)
-    local ok, result = pcall(function()
-        if type(f.GetText) == "function" then
-            local t = f:GetText()
-            if t and t ~= "" then return t end
-        end
-        for _, r in ipairs({ f:GetRegions() }) do
-            if r and type(r.GetText) == "function" then
-                local t = r:GetText()
-                if t and t ~= "" then return t end
-            end
-        end
-        return nil
-    end)
-    return ok and result or nil
-end
-
-local function findFrameByLabel(root, labelTable, depth)
-    if depth > 8 or not root then return nil end
-    local text = getAnyFrameText(root)
-    if text then
-        local ok, matched = pcall(function() return labelTable[text] end)
-        if ok and matched then return root end
-    end
-    local ok, children = pcall(function() return { root:GetChildren() } end)
-    if not ok then return nil end
-    for _, child in ipairs(children) do
-        local found = findFrameByLabel(child, labelTable, depth + 1)
-        if found then return found end
-    end
-    return nil
-end
-
--- Find a visible CheckButton in root that is NOT inside an Auctionator sub-frame
-local function findExpansionCheckButton(root, depth)
-    if depth > 8 or not root then return nil end
-
-    -- Skip Auctionator child frames by name
-    local okn, name = pcall(function() return root:GetName() end)
-    if okn and name and depth > 0 then
-        if string.find(name, "Auctionator", 1, true) then
-            return nil
-        end
-    end
-
-    local ftype = root.GetObjectType and root:GetObjectType() or ""
-    if ftype == "CheckButton" then
-        local okv, vis = pcall(function() return root:IsVisible() end)
-        if okv and vis then
-            return root
-        end
-    end
-
-    local ok, children = pcall(function() return { root:GetChildren() } end)
-    if not ok then return nil end
-    for _, child in ipairs(children) do
-        local found = findExpansionCheckButton(child, depth + 1)
-        if found then return found end
-    end
-    return nil
-end
-
-local function clickFrame(f)
-    local ok, onClick = pcall(function() return f:GetScript("OnClick") end)
-    if ok and type(onClick) == "function" then
-        pcall(onClick, f, "LeftButton")
-    else
-        pcall(function() f:Click() end)
-    end
-end
-
-local function applyAuctionHouseExpansionFilter()
-    if not AuctionHouseFrame or not AuctionHouseFrame:IsVisible() then
-        return
-    end
-
-    -- Step 1: find and click the "필터" / "Filter" button (by text — not tainted)
-    local filterBtn = findFrameByLabel(AuctionHouseFrame, AH_FILTER_BUTTON_LABELS, 0)
-    if not filterBtn then
-        ns.Utils.Debug("[AH Filter] 필터 버튼을 찾지 못했습니다.")
-        return
-    end
-    pcall(clickFrame, filterBtn)
-
-    -- Step 2: after panel opens, find the visible non-Auctionator CheckButton
-    if not C_Timer or type(C_Timer.After) ~= "function" then return end
-    C_Timer.After(0.35, function()
-        local expansionCheck = findExpansionCheckButton(AuctionHouseFrame, 0)
-        if not expansionCheck then
-            ns.Utils.Debug("[AH Filter] 확장팩 체크박스를 찾지 못했습니다.")
-            return
-        end
-        -- If already checked, just close the panel
-        local okc, isChecked = pcall(function() return expansionCheck:GetChecked() end)
-        if okc and isChecked then
-            pcall(clickFrame, filterBtn)
-            return
-        end
-        pcall(clickFrame, expansionCheck)
-        -- Close the filter panel
-        C_Timer.After(0.15, function()
-            pcall(clickFrame, filterBtn)
-        end)
-    end)
-end
-
-local function ensureAuctionHouseFilter()
-    if not ns.DB or not ns.DB:IsAuctionHouseFilterEnabled() then
-        return
-    end
-
-    if not C_Timer or type(C_Timer.After) ~= "function" then
-        return
-    end
-
-    C_Timer.After(0.5, function()
-        pcall(applyAuctionHouseExpansionFilter)
-    end)
 end
 
 local function ensureMouseMoveSetting()
@@ -296,7 +173,11 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("BAG_UPDATE_DELAYED")
     frame:RegisterEvent("BAG_NEW_ITEMS_UPDATED")
     frame:RegisterEvent("LOOT_CLOSED")
-    frame:RegisterEvent("AUCTION_HOUSE_SHOW")
+    -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight API 미확인)
+    -- frame:RegisterEvent("MERCHANT_SHOW")
+    -- frame:RegisterEvent("MERCHANT_UPDATE")
+    -- [비활성] MailHistory: 우편 자동완성 미구현
+    -- frame:RegisterEvent("MAIL_SEND_SUCCESS")
 end
 
 function Events:PLAYER_LOGIN()
@@ -308,6 +189,7 @@ function Events:PLAYER_LOGIN()
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
     refreshStatsOverlay()
     runProfessionKnowledgeRefresh(true, "PLAYER_LOGIN")
+    ns:SafeCall(ns.Modules.BlizzardFrameManager, "Apply")
     ns.Utils.Print(ns.L("loaded_window_hint"))
 end
 
@@ -414,6 +296,8 @@ end
 function Events:QUEST_TURNED_IN()
     refreshProfessionKnowledgeViews(true, "QUEST_TURNED_IN")
     scheduleProfessionFollowUpRefresh("QUEST_TURNED_IN")
+    -- [비활성] WorldEventOverlay 자동감지: 퀘스트 기반 완료 감지 미동작
+    -- ns:SafeCall(ns.UI.WorldEventOverlay, "OnQuestTurnedIn")
 end
 
 function Events:BAG_UPDATE_DELAYED()
@@ -431,8 +315,32 @@ function Events:LOOT_CLOSED()
     scheduleProfessionFollowUpRefresh("LOOT_CLOSED")
 end
 
-function Events:AUCTION_HOUSE_SHOW()
-    ensureAuctionHouseFilter()
-end
+-- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight spellID API 부정확)
+-- function Events:MERCHANT_SHOW()
+--     ns:SafeCall(ns.Modules.MerchantHelper, "ScanAndMark")
+-- end
+--
+-- function Events:MERCHANT_UPDATE()
+--     ns:SafeCall(ns.Modules.MerchantHelper, "ScanAndMark")
+-- end
+
+-- [비활성] MailHistory: 우편 자동완성 미구현
+-- function Events:MAIL_SEND_SUCCESS()
+--     if not ns.DB or not ns.DB:IsMailHistoryEnabled() then
+--         return
+--     end
+--
+--     local recipientName = nil
+--     if SendMailNameEditBox then
+--         local ok, name = pcall(function() return SendMailNameEditBox:GetText() end)
+--         if ok then
+--             recipientName = name
+--         end
+--     end
+--
+--     if recipientName and recipientName ~= "" then
+--         ns:SafeCall(ns.Modules.MailHistory, "RecordSend", recipientName)
+--     end
+-- end
 
 Events:Initialize()

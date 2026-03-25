@@ -7,10 +7,28 @@ function Utils.Print(message)
     print(string.format("|cff69ccf0%s|r: %s", ns.Constants.ADDON_PREFIX, message))
 end
 
+local DEBUG_LOG_MAX = 200
+local debugLogBuffer = {}
+
 function Utils.Debug(message)
     if ns.DB and ns.DB.IsDebugEnabled and ns.DB:IsDebugEnabled() then
-        Utils.Print("[debug] " .. tostring(message))
+        local line = "[debug] " .. tostring(message)
+        Utils.Print(line)
+        -- 버퍼에 타임스탬프와 함께 저장
+        local ts = (GetTime and string.format("%.1f", GetTime())) or "?"
+        debugLogBuffer[#debugLogBuffer + 1] = ts .. "  " .. tostring(message)
+        if #debugLogBuffer > DEBUG_LOG_MAX then
+            table.remove(debugLogBuffer, 1)
+        end
     end
+end
+
+function Utils.GetDebugLog()
+    return debugLogBuffer
+end
+
+function Utils.ClearDebugLog()
+    debugLogBuffer = {}
 end
 
 function Utils.DeepCopy(value)

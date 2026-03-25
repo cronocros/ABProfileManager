@@ -211,12 +211,6 @@ function ConfigPanel:ApplyMouseMoveRestore(enabled, refs)
     setStatus(refs, ns.L("config_saved_mouse_move_restore", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
-function ConfigPanel:ApplyAuctionHouseFilter(enabled, refs)
-    ns.DB:SetAuctionHouseFilterEnabled(enabled)
-    ns:RefreshUI()
-    setStatus(refs, ns.L("config_saved_auction_house_filter", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
-end
-
 function ConfigPanel:ApplyTypographyOffset(domain, value, refs)
     value = ns.DB:SetTypographyOffset(domain, value)
     ns:RefreshUI()
@@ -307,10 +301,6 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyMouseMoveRestore(currentCheck:GetChecked(), refs)
     end)
 
-    refs.auctionHouseFilterCheck:SetScript("OnClick", function(currentCheck)
-        self:ApplyAuctionHouseFilter(currentCheck:GetChecked(), refs)
-    end)
-
     refs.statsOverlayCheck:SetScript("OnClick", function(currentCheck)
         self:ApplyStatsOverlayEnabled(currentCheck:GetChecked(), refs)
     end)
@@ -369,8 +359,8 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.minimapCheck.Text:SetText(ns.L("config_minimap_show"))
     refs.confirmCheck.Text:SetText(ns.L("config_confirm_show"))
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
+    if refs.logViewBtn then refs.logViewBtn:SetText(ns.L("config_log_view_btn") or "로그 보기") end
     refs.mouseMoveRestoreCheck.Text:SetText(ns.L("config_mouse_move_restore_show"))
-    refs.auctionHouseFilterCheck.Text:SetText(ns.L("config_auction_house_filter_show"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.tankStatsCheck.Text:SetText(ns.L("config_stats_tank_stats_show"))
@@ -405,7 +395,6 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.confirmCheck:SetChecked(ns.DB:ShouldConfirmActions())
     refs.debugCheck:SetChecked(ns.DB:IsDebugEnabled())
     refs.mouseMoveRestoreCheck:SetChecked(ns.DB:IsMouseMoveRestoreEnabled())
-    refs.auctionHouseFilterCheck:SetChecked(ns.DB:IsAuctionHouseFilterEnabled())
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
     refs.tankStatsCheck:SetChecked(ns.DB:IsStatsOverlayTankStatsEnabled())
@@ -452,24 +441,31 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.debugCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.debugCheck:SetPoint("TOPLEFT", refs.confirmCheck, "BOTTOMLEFT", 0, -8)
 
+    refs.logViewBtn = CreateFrame("Button", nil, refs.generalBox, "UIPanelButtonTemplate")
+    refs.logViewBtn:SetSize(72, 20)
+    refs.logViewBtn:SetPoint("LEFT", refs.debugCheck, "RIGHT", 8, 1)
+    refs.logViewBtn:SetScript("OnClick", function()
+        ns.Commands:HandleSlash("log")
+    end)
+
     refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.debugCheck, "BOTTOMLEFT", 0, -8)
 
-    refs.auctionHouseFilterCheck = widgets.CreateCheckButton(refs.generalBox, "")
-    refs.auctionHouseFilterCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
-    refs.auctionHouseFilterCheck:Hide()
-
+    -- 스탯/전문기술 오버레이 체크박스는 편의기능 탭으로 이전 (숨김 처리)
     refs.statsOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
+    refs.statsOverlayCheck:Hide()
 
     refs.professionOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.professionOverlayCheck:SetPoint("TOPLEFT", refs.statsOverlayCheck, "BOTTOMLEFT", 0, -8)
+    refs.professionOverlayCheck:Hide()
 
     refs.tankStatsCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.tankStatsCheck:SetPoint("TOPLEFT", refs.professionOverlayCheck, "BOTTOMLEFT", 0, -8)
+    refs.tankStatsCheck:Hide()
 
     refs.mythicPlusCheck = widgets.CreateCheckButton(refs.generalBox, "")
-    refs.mythicPlusCheck:SetPoint("TOPLEFT", refs.tankStatsCheck, "BOTTOMLEFT", 0, -8)
+    refs.mythicPlusCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
     refs.mythicPlusCheck:Hide()
 
     refs.overlayBox = widgets.CreatePanelBox(parent, columnWidth, options.overlayHeight or 360, "")
@@ -541,7 +537,6 @@ function ConfigPanel:BuildControlSet(parent, options)
         refs.confirmCheck,
         refs.debugCheck,
         refs.mouseMoveRestoreCheck,
-        refs.auctionHouseFilterCheck,
         refs.statsOverlayCheck,
         refs.professionOverlayCheck,
         refs.tankStatsCheck,
@@ -580,7 +575,7 @@ function ConfigPanel:RegisterSettingsCategory()
             columnWidth = 300,
             columnGap = 12,
             helpWidth = 612,
-            generalHeight = 420,
+            generalHeight = 296,
             overlayHeight = 372,
             overviewHeight = 174,
             overviewTextHeight = 100,
@@ -640,7 +635,7 @@ function ConfigPanel:Create(parent)
     self.mainRefs = self:BuildControlSet(frame, {
         titleY = -20,
         showOpenButton = false,
-        generalHeight = 420,
+        generalHeight = 296,
         overlayHeight = 372,
         overviewHeight = 194,
         overviewTextHeight = 128,

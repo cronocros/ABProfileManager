@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.4.6`
+- `v1.4.7`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.4.6/ABProfileManager-v1.4.6.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.4.6.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.4.6.md](./RELEASE_NOTES_v1.4.6.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.4.7/ABProfileManager-v1.4.7.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.4.7.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.4.7.md](./RELEASE_NOTES_v1.4.7.md)
 
 ## 요약
 
@@ -144,4 +144,4 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 인수인계: [DOC/HANDOFF.md](./DOC/HANDOFF.md)
 - 보안 검토: [DOC/SECURITY_REVIEW.md](./DOC/SECURITY_REVIEW.md)
 - 배포 절차: [DOC/RELEASE_PROCESS.md](./DOC/RELEASE_PROCESS.md)
-- 이전 릴리스 노트: [DOC/archive/release-notes](./DOC/archive/release-notes)
+- 이전 릴리스 노트: [DOC/archive/release-notes/](./DOC/archive/release-notes/)
