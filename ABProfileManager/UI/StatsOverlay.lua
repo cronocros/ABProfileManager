@@ -18,6 +18,9 @@ local MIN_LABEL_WIDTH = 38
 local MIN_FRAME_WIDTH = 96
 local MIN_FRAME_HEIGHT = 28
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+
+-- BuildSnapshotSignature 재사용 버퍼: 매 호출마다 table 생성 방지
+local _snapshotParts = {}
 local HEADER_VALUE_SIZE = 15
 local NORMAL_LABEL_SIZE = 16
 local NORMAL_VALUE_SIZE = 16
@@ -714,21 +717,19 @@ function StatsOverlay:BuildSnapshot()
 end
 
 function StatsOverlay:BuildSnapshotSignature(snapshot)
-    local parts = {}
+    wipe(_snapshotParts)
 
     for _, entry in ipairs(snapshot or {}) do
-        parts[#parts + 1] = table.concat({
-            tostring(entry.style or ""),
-            tostring(entry.key or ""),
-            tostring(entry.label or ""),
-            tostring(entry.primaryText or ""),
-            tostring(entry.secondaryText or entry.value or ""),
-            tostring(entry.percentTailText or ""),
-            tostring(entry.drTier or ""),
-        }, "\030")
+        _snapshotParts[#_snapshotParts + 1] = tostring(entry.style or "") .. "\030"
+            .. tostring(entry.key or "") .. "\030"
+            .. tostring(entry.label or "") .. "\030"
+            .. tostring(entry.primaryText or "") .. "\030"
+            .. tostring(entry.secondaryText or entry.value or "") .. "\030"
+            .. tostring(entry.percentTailText or "") .. "\030"
+            .. tostring(entry.drTier or "")
     end
 
-    return table.concat(parts, "\031")
+    return table.concat(_snapshotParts, "\031")
 end
 
 function StatsOverlay:UpdateFrameSize(snapshot)

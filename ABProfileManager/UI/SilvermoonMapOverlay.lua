@@ -5,6 +5,19 @@ ns.UI.SilvermoonMapOverlay = SilvermoonMapOverlay
 
 local FONT_PATH = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local REFRESH_INTERVAL = 0.5
+
+-- LayoutPoints 핫패스 재사용 버퍼 — GC 스파이크 방지
+-- 레이아웃 실행 시마다 테이블을 새로 만들지 않고 이 버퍼를 wipe 후 재사용
+local _layoutPoints      = {}   -- 필터 통과 포인트 목록
+local _layoutEntries     = {}   -- {point, nearbyCount} 엔트리 목록 (객체 풀)
+local _layoutPlaced      = {}   -- 배치 완료 rect 목록 (직접 rect 저장)
+local _layoutPlacedPool  = {}   -- placed rect 객체 풀
+local _scoreRect         = { left=0, right=0, top=0, bottom=0 }  -- 후보 평가용 임시 rect
+local _bestRect          = { left=0, right=0, top=0, bottom=0 }  -- best 후보 캡처용 임시 rect
+-- 후보 오프셋 버퍼: 포인트당 16개 {x,y}를 매번 새로 만드는 것을 방지
+local _candidateBuf = {}
+for _ci = 1, 16 do _candidateBuf[_ci] = { x=0, y=0 } end
+
 local CATEGORY_COLORS = {
     service = { 1.00, 0.87, 0.42 },
     travel = { 0.48, 0.92, 1.00 },
@@ -579,7 +592,8 @@ local function measureLabel(label, point, text, fontSize)
     return labelWidth, labelHeight
 end
 
-local function buildCandidateOffsets(point, labelWidth, labelHeight, crowded)
+-- 후보 오프셋을 _candidateBuf에 직접 채움 (테이블 생성 없음)
+local function fillCandidateOffsets(point, labelWidth, labelHeight, crowded)
     local markerRadius = getMarkerRadius(point)
     local verticalPadding = crowded and 7 or 5
     local horizontalPadding = crowded and 10 or 6
@@ -588,65 +602,46 @@ local function buildCandidateOffsets(point, labelWidth, labelHeight, crowded)
     local sideDistance = markerRadius + (labelWidth / 2) + horizontalPadding
     local farVerticalDistance = verticalDistance + math.max(10, labelHeight * 0.72)
     local farSideDistance = sideDistance + math.max(14, labelWidth * 0.20)
-    local baseOffsetX = point.offsetX or 0
-    local baseOffsetY = point.offsetY or 0
-
-    local above = { x = baseOffsetX, y = baseOffsetY - verticalDistance }
-    local below = { x = baseOffsetX, y = baseOffsetY + verticalDistance }
-    local right = { x = baseOffsetX + sideDistance, y = baseOffsetY }
-    local left = { x = baseOffsetX - sideDistance, y = baseOffsetY }
-    local aboveRight = { x = baseOffsetX + lateralShift + horizontalPadding, y = baseOffsetY - verticalDistance }
-    local aboveLeft = { x = baseOffsetX - lateralShift - horizontalPadding, y = baseOffsetY - verticalDistance }
-    local belowRight = { x = baseOffsetX + lateralShift + horizontalPadding, y = baseOffsetY + verticalDistance }
-    local belowLeft = { x = baseOffsetX - lateralShift - horizontalPadding, y = baseOffsetY + verticalDistance }
-    local farAbove = { x = baseOffsetX, y = baseOffsetY - farVerticalDistance }
-    local farBelow = { x = baseOffsetX, y = baseOffsetY + farVerticalDistance }
-    local farRight = { x = baseOffsetX + farSideDistance, y = baseOffsetY }
-    local farLeft = { x = baseOffsetX - farSideDistance, y = baseOffsetY }
-    local farAboveRight = { x = baseOffsetX + farSideDistance, y = baseOffsetY - farVerticalDistance }
-    local farAboveLeft = { x = baseOffsetX - farSideDistance, y = baseOffsetY - farVerticalDistance }
-    local farBelowRight = { x = baseOffsetX + farSideDistance, y = baseOffsetY + farVerticalDistance }
-    local farBelowLeft = { x = baseOffsetX - farSideDistance, y = baseOffsetY + farVerticalDistance }
+    local bx = point.offsetX or 0
+    local by = point.offsetY or 0
+    local c = _candidateBuf
 
     if point.preferBelow then
-        return {
-            below,
-            belowRight,
-            belowLeft,
-            right,
-            left,
-            farBelow,
-            farBelowRight,
-            farBelowLeft,
-            above,
-            aboveRight,
-            aboveLeft,
-            farAbove,
-            farAboveRight,
-            farAboveLeft,
-            farRight,
-            farLeft,
-        }
+        c[1].x=bx;                          c[1].y=by+verticalDistance
+        c[2].x=bx+lateralShift+horizontalPadding; c[2].y=by+verticalDistance
+        c[3].x=bx-lateralShift-horizontalPadding; c[3].y=by+verticalDistance
+        c[4].x=bx+sideDistance;             c[4].y=by
+        c[5].x=bx-sideDistance;             c[5].y=by
+        c[6].x=bx;                          c[6].y=by+farVerticalDistance
+        c[7].x=bx+farSideDistance;          c[7].y=by+farVerticalDistance
+        c[8].x=bx-farSideDistance;          c[8].y=by+farVerticalDistance
+        c[9].x=bx;                          c[9].y=by-verticalDistance
+        c[10].x=bx+lateralShift+horizontalPadding; c[10].y=by-verticalDistance
+        c[11].x=bx-lateralShift-horizontalPadding; c[11].y=by-verticalDistance
+        c[12].x=bx;                         c[12].y=by-farVerticalDistance
+        c[13].x=bx+farSideDistance;         c[13].y=by-farVerticalDistance
+        c[14].x=bx-farSideDistance;         c[14].y=by-farVerticalDistance
+        c[15].x=bx+farSideDistance;         c[15].y=by
+        c[16].x=bx-farSideDistance;         c[16].y=by
+    else
+        c[1].x=bx;                          c[1].y=by-verticalDistance
+        c[2].x=bx+lateralShift+horizontalPadding; c[2].y=by-verticalDistance
+        c[3].x=bx-lateralShift-horizontalPadding; c[3].y=by-verticalDistance
+        c[4].x=bx+sideDistance;             c[4].y=by
+        c[5].x=bx-sideDistance;             c[5].y=by
+        c[6].x=bx;                          c[6].y=by-farVerticalDistance
+        c[7].x=bx+farSideDistance;          c[7].y=by-farVerticalDistance
+        c[8].x=bx-farSideDistance;          c[8].y=by-farVerticalDistance
+        c[9].x=bx;                          c[9].y=by+verticalDistance
+        c[10].x=bx+lateralShift+horizontalPadding; c[10].y=by+verticalDistance
+        c[11].x=bx-lateralShift-horizontalPadding; c[11].y=by+verticalDistance
+        c[12].x=bx;                         c[12].y=by+farVerticalDistance
+        c[13].x=bx+farSideDistance;         c[13].y=by+farVerticalDistance
+        c[14].x=bx-farSideDistance;         c[14].y=by+farVerticalDistance
+        c[15].x=bx+farSideDistance;         c[15].y=by
+        c[16].x=bx-farSideDistance;         c[16].y=by
     end
-
-    return {
-        above,
-        aboveRight,
-        aboveLeft,
-        right,
-        left,
-        farAbove,
-        farAboveRight,
-        farAboveLeft,
-        below,
-        belowRight,
-        belowLeft,
-        farBelow,
-        farBelowRight,
-        farBelowLeft,
-        farRight,
-        farLeft,
-    }
+    return c  -- 항상 16개, _candidateBuf 참조 반환
 end
 
 local function scoreCandidate(rect, baseX, baseY, placedRects, allPoints, currentPoint, width, height)
@@ -666,7 +661,7 @@ local function scoreCandidate(rect, baseX, baseY, placedRects, allPoints, curren
     end
 
     for _, placed in ipairs(placedRects or {}) do
-        if rectsOverlap(rect, placed.rect) then
+        if rectsOverlap(rect, placed) then
             score = score + 1400
         end
     end
@@ -830,22 +825,33 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
     local zoomScale, zoomBucket, canvasBucket = getZoomScaleMultiplier()
     local densityScale = getDensityScale(mapData)
     local sourcePoints = mapData.points or {}
-    local points = {}
+
+    -- 재사용 버퍼에 필터 통과 포인트 채우기 (table 생성 없음)
+    wipe(_layoutPoints)
     for _, point in ipairs(sourcePoints) do
         if isPointEnabled(point) then
-            points[#points + 1] = point
+            _layoutPoints[#_layoutPoints + 1] = point
         end
     end
-    local entries = {}
+    local entryCount = #_layoutPoints
 
-    for _, point in ipairs(points) do
-        entries[#entries + 1] = {
-            point = point,
-            nearbyCount = getNearbyCount(points, point, point.crowdRadius or CROWD_RADIUS_PERCENT),
-        }
+    -- 엔트리 풀 재사용: 이전 run 객체에 덮어쓰기
+    for i = 1, entryCount do
+        local e = _layoutEntries[i]
+        if not e then
+            e = { point = nil, nearbyCount = 0 }
+            _layoutEntries[i] = e
+        end
+        local point = _layoutPoints[i]
+        e.point = point
+        e.nearbyCount = getNearbyCount(_layoutPoints, point, point.crowdRadius or CROWD_RADIUS_PERCENT)
+    end
+    -- 이전 run에 남은 슬롯 제거 (table.sort 범위 정확히 제한)
+    for i = entryCount + 1, #_layoutEntries do
+        _layoutEntries[i] = nil
     end
 
-    table.sort(entries, function(left, right)
+    table.sort(_layoutEntries, function(left, right)
         local leftPriority = getPointPriority(left.point)
         local rightPriority = getPointPriority(right.point)
         if leftPriority == rightPriority then
@@ -854,9 +860,13 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         return leftPriority < rightPriority
     end)
 
-    local placedRects = {}
+    -- placed rect 목록: 이번 run 시작 시 초기화 (풀 객체는 유지)
+    wipe(_layoutPlaced)
+    local placedCount = 0
+
     local fontOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("mapOverlay") or 0
-    for index, entry in ipairs(entries) do
+    for index = 1, entryCount do
+        local entry = _layoutEntries[index]
         local point = entry.point
         local label = self:EnsureLabel(index)
         local text = resolveDisplayText(point)
@@ -875,33 +885,63 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         local pointX = ((point.x or 0) / 100) * width
         local pointY = ((point.y or 0) / 100) * height
         local crowded = entry.nearbyCount >= 2
-        local candidates = buildCandidateOffsets(point, labelWidth, labelHeight, crowded)
-        local bestRect = nil
-        local bestOffset = nil
-        local bestScore = nil
+        local candidates = fillCandidateOffsets(point, labelWidth, labelHeight, crowded)
 
-        for _, candidate in ipairs(candidates) do
+        local bestScore = nil
+        local bestOffsetX = nil
+        local bestOffsetY = nil
+        local hw = labelWidth / 2
+        local hh = labelHeight / 2
+
+        for ci = 1, 16 do
+            local candidate = candidates[ci]
             local centerX = pointX + candidate.x
             local centerY = pointY + candidate.y
-            local rect = buildRect(centerX, centerY, labelWidth, labelHeight)
-            local score = scoreCandidate(rect, pointX, pointY, placedRects, points, point, width, height)
+            -- _scoreRect 인라인 채우기: buildRect 호출/테이블 생성 없음
+            _scoreRect.left   = centerX - hw
+            _scoreRect.right  = centerX + hw
+            _scoreRect.top    = centerY - hh
+            _scoreRect.bottom = centerY + hh
+            local score = scoreCandidate(_scoreRect, pointX, pointY, _layoutPlaced, _layoutPoints, point, width, height)
             if not bestScore or score < bestScore then
                 bestScore = score
-                bestRect = rect
-                bestOffset = candidate
+                bestOffsetX = candidate.x
+                bestOffsetY = candidate.y
+                -- _bestRect에 현재 best 복사 (참조 대신 값 캡처)
+                _bestRect.left   = _scoreRect.left
+                _bestRect.right  = _scoreRect.right
+                _bestRect.top    = _scoreRect.top
+                _bestRect.bottom = _scoreRect.bottom
             end
         end
 
-        local resolvedOffset = bestOffset or { x = point.offsetX or 0, y = point.offsetY or 0 }
-        label:SetPoint("CENTER", parent, "TOPLEFT", pointX + resolvedOffset.x, -(pointY + resolvedOffset.y))
+        local ox = bestOffsetX or (point.offsetX or 0)
+        local oy = bestOffsetY or (point.offsetY or 0)
+        label:SetPoint("CENTER", parent, "TOPLEFT", pointX + ox, -(pointY + oy))
         label:Show()
 
-        placedRects[#placedRects + 1] = {
-            rect = bestRect or buildRect(pointX, pointY, labelWidth, labelHeight),
-        }
+        -- placed rect 풀에서 객체 재사용 (wrapper {rect=...} 제거, 직접 rect 저장)
+        placedCount = placedCount + 1
+        local pr = _layoutPlacedPool[placedCount]
+        if not pr then
+            pr = { left=0, right=0, top=0, bottom=0 }
+            _layoutPlacedPool[placedCount] = pr
+        end
+        if bestOffsetX then
+            pr.left   = _bestRect.left
+            pr.right  = _bestRect.right
+            pr.top    = _bestRect.top
+            pr.bottom = _bestRect.bottom
+        else
+            pr.left   = pointX - hw
+            pr.right  = pointX + hw
+            pr.top    = pointY - hh
+            pr.bottom = pointY + hh
+        end
+        _layoutPlaced[placedCount] = pr
     end
 
-    for index = #entries + 1, #(self.labels or {}) do
+    for index = entryCount + 1, #(self.labels or {}) do
         self.labels[index]:Hide()
     end
 
@@ -944,28 +984,24 @@ function SilvermoonMapOverlay:RefreshInternal()
     local filterSignature = ""
     if ns.DB and ns.DB.GetSilvermoonMapOverlaySettings then
         local filters = ns.DB:GetSilvermoonMapOverlaySettings().filters or {}
-        filterSignature = table.concat({
-            filters.facilities and "1" or "0",
-            filters.portals and "1" or "0",
-            filters.professions and "1" or "0",
-            filters.renown and "1" or "0",
-            filters.dungeons and "1" or "0",
-            filters.delves and "1" or "0",
-        }, "")
+        filterSignature = (filters.facilities  and "1" or "0")
+                       .. (filters.portals     and "1" or "0")
+                       .. (filters.professions and "1" or "0")
+                       .. (filters.renown      and "1" or "0")
+                       .. (filters.dungeons    and "1" or "0")
+                       .. (filters.delves      and "1" or "0")
     end
     local _, zoomBucket, canvasBucket = getZoomScaleMultiplier()
     local mapFontOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("mapOverlay") or 0
-    local layoutKey = table.concat({
-        tostring(currentMapID or 0),
-        tostring(resolvedMapID or 0),
-        tostring(width),
-        tostring(height),
-        tostring(language),
-        filterSignature,
-        tostring(mapFontOffset),
-        tostring(zoomBucket or 0),
-        tostring(canvasBucket or 0),
-    }, ":")
+    local layoutKey = tostring(currentMapID or 0)
+        .. ":" .. tostring(resolvedMapID or 0)
+        .. ":" .. tostring(width)
+        .. ":" .. tostring(height)
+        .. ":" .. tostring(language)
+        .. ":" .. filterSignature
+        .. ":" .. tostring(mapFontOffset)
+        .. ":" .. tostring(zoomBucket or 0)
+        .. ":" .. tostring(canvasBucket or 0)
 
     if layoutKey ~= self.lastLayoutKey then
         self.lastLayoutKey = layoutKey
