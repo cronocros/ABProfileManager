@@ -276,44 +276,62 @@ function BlizzardFrameManager:Initialize()
         end
     end)
 
-    -- UpdateUIPanelPositions 훅: WoW가 패널 배치를 재계산할 때마다 저장 위치 즉시 복원
+    -- UpdateUIPanelPositions 훅: WoW가 패널 배치를 재계산할 때마다 저장 위치 복원
     -- (캐릭터창 탭 전환, 인접 패널 닫힘 등으로 인한 강제 재배치 대응)
+    -- 최적화: 즉시 복원 + 단일 deferred 복원 (프레임별 타이머 생성 제거)
     if type(UpdateUIPanelPositions) == "function" then
+        local uiPanelDeferPending = false
         hooksecurefunc("UpdateUIPanelPositions", function()
             if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
+            -- 즉시 복원
             for _, entry in ipairs(MANAGED_FRAMES) do
                 if ns.DB:IsBlizzardFrameMovable(entry.key) then
                     local frame = entry.getter and entry.getter()
                     if frame and frame:IsShown() then
                         restoreFramePosition(entry.key, frame)
-                        -- 지연 복원: WoW가 후처리로 추가 SetPoint를 호출하는 경우 대응
-                        local f = frame
-                        C_Timer.After(0, function()
-                            if f and f:IsShown() then restoreFramePosition(entry.key, f) end
-                        end)
                     end
                 end
+            end
+            -- 단일 deferred 복원 (중복 타이머 방지)
+            if not uiPanelDeferPending then
+                uiPanelDeferPending = true
+                C_Timer.After(0, function()
+                    uiPanelDeferPending = false
+                    if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
+                    for _, entry in ipairs(MANAGED_FRAMES) do
+                        if ns.DB:IsBlizzardFrameMovable(entry.key) then
+                            local frame = entry.getter and entry.getter()
+                            if frame and frame:IsShown() then
+                                restoreFramePosition(entry.key, frame)
+                            end
+                        end
+                    end
+                end)
             end
         end)
     end
 
     -- ShowUIPanel 훅: UIPanel 계열 프레임이 탭 전환 시 ShowUIPanel을 재호출하는 경우 대응
+    -- 최적화: 역방향 키-맵으로 O(n) 반복 제거
     if type(ShowUIPanel) == "function" then
+        -- 프레임 객체 → entry 역방향 맵 구축 (Show 시 즉시 조회)
+        local frameEntryMap = {}
+        for _, entry in ipairs(MANAGED_FRAMES) do
+            local f = entry.getter and entry.getter()
+            if f then frameEntryMap[f] = entry end
+        end
+
         pcall(function()
             hooksecurefunc("ShowUIPanel", function(frame)
                 if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
-                for _, entry in ipairs(MANAGED_FRAMES) do
-                    if ns.DB:IsBlizzardFrameMovable(entry.key) then
-                        local f = entry.getter and entry.getter()
-                        if f and f == frame then
-                            C_Timer.After(0, function()
-                                if f and f:IsShown() then restoreFramePosition(entry.key, f) end
-                            end)
-                            C_Timer.After(0.12, function()
-                                if f and f:IsShown() then restoreFramePosition(entry.key, f) end
-                            end)
-                        end
-                    end
+                local entry = frameEntryMap[frame]
+                if entry and ns.DB:IsBlizzardFrameMovable(entry.key) then
+                    C_Timer.After(0, function()
+                        if frame and frame:IsShown() then restoreFramePosition(entry.key, frame) end
+                    end)
+                    C_Timer.After(0.12, function()
+                        if frame and frame:IsShown() then restoreFramePosition(entry.key, frame) end
+                    end)
                 end
             end)
         end)

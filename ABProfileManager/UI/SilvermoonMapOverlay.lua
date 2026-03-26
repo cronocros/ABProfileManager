@@ -4,7 +4,7 @@ local SilvermoonMapOverlay = {}
 ns.UI.SilvermoonMapOverlay = SilvermoonMapOverlay
 
 local FONT_PATH = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
-local REFRESH_INTERVAL = 0.25
+local REFRESH_INTERVAL = 0.5
 local CATEGORY_COLORS = {
     service = { 1.00, 0.87, 0.42 },
     travel = { 0.48, 0.92, 1.00 },

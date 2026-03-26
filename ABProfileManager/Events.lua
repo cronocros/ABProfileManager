@@ -12,6 +12,11 @@ local professionRefreshForceScan = false
 local professionRefreshReason = nil
 local professionFollowUpToken = 0
 
+-- UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE 등 고주기 이벤트 디바운싱
+-- 0.15초 내 중복 발화를 하나로 합침
+local STATS_REFRESH_DELAY = 0.15
+local statsRefreshPending = false
+
 local function refreshGhostsAndRetries()
     ns:SafeCall(ns.Modules.ActionBarApplier, "ReconcilePendingGhosts")
     ns:SafeCall(ns.Modules.ActionBarApplier, "RetryPendingGhosts")
@@ -22,8 +27,12 @@ local function refreshStatsOverlay()
     if not ns.DB or not ns.DB:IsStatsOverlayEnabled() then
         return
     end
-
-    ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+    if statsRefreshPending then return end
+    statsRefreshPending = true
+    C_Timer.After(STATS_REFRESH_DELAY, function()
+        statsRefreshPending = false
+        ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+    end)
 end
 
 local function runProfessionKnowledgeRefresh(forceScan, reason)
