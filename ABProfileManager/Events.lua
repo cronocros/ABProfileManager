@@ -17,10 +17,24 @@ local professionFollowUpToken = 0
 local STATS_REFRESH_DELAY = 0.15
 local statsRefreshPending = false
 
+-- QUEST_LOG_UPDATE 디바운싱: 퀘스트 진행 중 고빈도 발화를 하나로 합침
+-- QuestManager:Scan 은 퀘스트당 5+ WoW API 호출 → 디바운스 없이 초당 수백 번 호출 가능
+local QUEST_PANEL_REFRESH_DELAY = 0.15
+local questPanelRefreshPending = false
+
 local function refreshGhostsAndRetries()
     ns:SafeCall(ns.Modules.ActionBarApplier, "ReconcilePendingGhosts")
     ns:SafeCall(ns.Modules.ActionBarApplier, "RetryPendingGhosts")
     ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
+end
+
+local function refreshQuestPanel()
+    if questPanelRefreshPending then return end
+    questPanelRefreshPending = true
+    C_Timer.After(QUEST_PANEL_REFRESH_DELAY, function()
+        questPanelRefreshPending = false
+        ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
+    end)
 end
 
 local function refreshStatsOverlay()
@@ -298,7 +312,7 @@ end
 
 function Events:QUEST_LOG_UPDATE()
     ns:SafeCall(ns.Modules.QuestManager, "Invalidate")
-    ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
+    refreshQuestPanel()  -- 디바운스: 고빈도 발화 시 0.15s 내 1회로 합산
     refreshProfessionKnowledgeViews(false, "QUEST_LOG_UPDATE")
 end
 

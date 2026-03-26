@@ -14,6 +14,9 @@ local _layoutPlaced      = {}   -- 배치 완료 rect 목록 (직접 rect 저장
 local _layoutPlacedPool  = {}   -- placed rect 객체 풀
 local _scoreRect         = { left=0, right=0, top=0, bottom=0 }  -- 후보 평가용 임시 rect
 local _bestRect          = { left=0, right=0, top=0, bottom=0 }  -- best 후보 캡처용 임시 rect
+-- mapID → mapInfo 캐시: 같은 mapID에 매번 pcall(C_Map.GetMapInfo) 방지
+-- mapInfo는 세션 중 변하지 않으므로 영구 캐시 가능 (false = 실패/없음)
+local _mapInfoCache      = {}
 -- 후보 오프셋 버퍼: 포인트당 16개 {x,y}를 매번 새로 만드는 것을 방지
 local _candidateBuf = {}
 for _ci = 1, 16 do _candidateBuf[_ci] = { x=0, y=0 } end
@@ -211,12 +214,15 @@ local function getMapInfo(mapID)
         return nil
     end
 
-    local ok, info = pcall(C_Map.GetMapInfo, mapID)
-    if ok then
-        return info
+    -- 캐시 히트: 같은 mapID 재호출 시 pcall 없이 즉시 반환
+    local cached = _mapInfoCache[mapID]
+    if cached ~= nil then
+        return cached ~= false and cached or nil
     end
 
-    return nil
+    local ok, info = pcall(C_Map.GetMapInfo, mapID)
+    _mapInfoCache[mapID] = (ok and info) or false
+    return ok and info or nil
 end
 
 local function tryResolveMapID(data, mapID)

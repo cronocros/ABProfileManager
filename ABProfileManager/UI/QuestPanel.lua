@@ -144,6 +144,12 @@ function QuestPanel:RefreshInternal(forceScan)
         return
     end
 
+    -- 퀘스트 패널이 보이지 않으면 전체 스캔 불필요
+    -- (QUEST_LOG_UPDATE 고빈도 발화 시 CPU 낭비 방지)
+    if not self.frame:IsVisible() then
+        return
+    end
+
     self:RefreshLocale()
 
     local scan = ns.Modules.QuestManager:Scan(forceScan and true or false)
@@ -290,6 +296,11 @@ function QuestPanel:Create(parent)
         setTooltip(currentButton, ns.L("quest_abandon_all_tooltip"))
     end)
     abandonAllButton:SetScript("OnLeave", GameTooltip_Hide)
+
+    -- 탭 전환 시(OnShow) 강제 갱신: 숨겨진 상태에서 건너뛴 스캔을 보완
+    frame:SetScript("OnShow", function()
+        self:Refresh(true)
+    end)
 
     self.frame = frame
     self.title = title
