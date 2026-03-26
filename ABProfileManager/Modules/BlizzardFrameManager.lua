@@ -203,12 +203,13 @@ local function applyToFrame(entry)
         pcall(function()
             frame:HookScript("OnShow", function(f)
                 if not ns.DB or not ns.DB:IsBlizzardFrameMovable(entry.key) then return end
-                -- uiPanel 여부에 관계없이 항상 다음 프레임에서 복원
-                -- (UIPanelLayout이 Show 이후에도 위치를 덮어쓸 수 있음)
+                -- 즉시 복원 (UIPanelLayout 덮어쓰기 대응)
                 C_Timer.After(0, function()
-                    if f and f:IsShown() then
-                        restoreFramePosition(entry.key, f)
-                    end
+                    if f and f:IsShown() then restoreFramePosition(entry.key, f) end
+                end)
+                -- 추가 지연 복원: 탭 전환 후 WoW가 다음 프레임에서 위치를 재설정하는 경우 대응
+                C_Timer.After(0.12, function()
+                    if f and f:IsShown() then restoreFramePosition(entry.key, f) end
                 end)
             end)
         end)
@@ -277,7 +278,6 @@ function BlizzardFrameManager:Initialize()
 
     -- UpdateUIPanelPositions 훅: WoW가 패널 배치를 재계산할 때마다 저장 위치 즉시 복원
     -- (캐릭터창 탭 전환, 인접 패널 닫힘 등으로 인한 강제 재배치 대응)
-    -- C_Timer 없이 직접 호출 → 탭 전환 시 깜박임 제거
     if type(UpdateUIPanelPositions) == "function" then
         hooksecurefunc("UpdateUIPanelPositions", function()
             if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
@@ -286,9 +286,36 @@ function BlizzardFrameManager:Initialize()
                     local frame = entry.getter and entry.getter()
                     if frame and frame:IsShown() then
                         restoreFramePosition(entry.key, frame)
+                        -- 지연 복원: WoW가 후처리로 추가 SetPoint를 호출하는 경우 대응
+                        local f = frame
+                        C_Timer.After(0, function()
+                            if f and f:IsShown() then restoreFramePosition(entry.key, f) end
+                        end)
                     end
                 end
             end
+        end)
+    end
+
+    -- ShowUIPanel 훅: UIPanel 계열 프레임이 탭 전환 시 ShowUIPanel을 재호출하는 경우 대응
+    if type(ShowUIPanel) == "function" then
+        pcall(function()
+            hooksecurefunc("ShowUIPanel", function(frame)
+                if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
+                for _, entry in ipairs(MANAGED_FRAMES) do
+                    if ns.DB:IsBlizzardFrameMovable(entry.key) then
+                        local f = entry.getter and entry.getter()
+                        if f and f == frame then
+                            C_Timer.After(0, function()
+                                if f and f:IsShown() then restoreFramePosition(entry.key, f) end
+                            end)
+                            C_Timer.After(0.12, function()
+                                if f and f:IsShown() then restoreFramePosition(entry.key, f) end
+                            end)
+                        end
+                    end
+                end
+            end)
         end)
     end
 
