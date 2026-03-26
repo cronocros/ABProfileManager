@@ -279,13 +279,15 @@ function BlizzardFrameManager:Initialize()
     -- UpdateUIPanelPositions 훅: WoW가 패널 배치를 재계산할 때마다 저장 위치 복원
     -- (캐릭터창 탭 전환, 인접 패널 닫힘 등으로 인한 강제 재배치 대응)
     -- 최적화: 즉시 복원 + 단일 deferred 복원 (프레임별 타이머 생성 제거)
+    -- UpdateUIPanelPositions 훅: UIPanel 계열 프레임만 대상 (uiPanel=true 필터)
+    -- WorldMapFrame 등 비UIPanel 프레임은 제외 — 반복 ClearAllPoints 가 지도 퀘스트 목록 리셋을 유발
     if type(UpdateUIPanelPositions) == "function" then
         local uiPanelDeferPending = false
         hooksecurefunc("UpdateUIPanelPositions", function()
             if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
-            -- 즉시 복원
+            -- 즉시 복원 (uiPanel=true 프레임만)
             for _, entry in ipairs(MANAGED_FRAMES) do
-                if ns.DB:IsBlizzardFrameMovable(entry.key) then
+                if entry.uiPanel and ns.DB:IsBlizzardFrameMovable(entry.key) then
                     local frame = entry.getter and entry.getter()
                     if frame and frame:IsShown() then
                         restoreFramePosition(entry.key, frame)
@@ -299,7 +301,7 @@ function BlizzardFrameManager:Initialize()
                     uiPanelDeferPending = false
                     if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
                     for _, entry in ipairs(MANAGED_FRAMES) do
-                        if ns.DB:IsBlizzardFrameMovable(entry.key) then
+                        if entry.uiPanel and ns.DB:IsBlizzardFrameMovable(entry.key) then
                             local frame = entry.getter and entry.getter()
                             if frame and frame:IsShown() then
                                 restoreFramePosition(entry.key, frame)
@@ -312,13 +314,15 @@ function BlizzardFrameManager:Initialize()
     end
 
     -- ShowUIPanel 훅: UIPanel 계열 프레임이 탭 전환 시 ShowUIPanel을 재호출하는 경우 대응
-    -- 최적화: 역방향 키-맵으로 O(n) 반복 제거
+    -- uiPanel=true 프레임만 대상 (WorldMapFrame 등 비UIPanel 제외)
     if type(ShowUIPanel) == "function" then
-        -- 프레임 객체 → entry 역방향 맵 구축 (Show 시 즉시 조회)
+        -- 프레임 객체 → entry 역방향 맵 구축 (uiPanel=true 프레임만)
         local frameEntryMap = {}
         for _, entry in ipairs(MANAGED_FRAMES) do
-            local f = entry.getter and entry.getter()
-            if f then frameEntryMap[f] = entry end
+            if entry.uiPanel then
+                local f = entry.getter and entry.getter()
+                if f then frameEntryMap[f] = entry end
+            end
         end
 
         pcall(function()
