@@ -346,7 +346,7 @@ function ItemLevelOverlay:EnsureFrame()
     local config = getConfig()
 
     local frame = CreateFrame("Frame", "ABPMItemLevelOverlay", UIParent, "BackdropTemplate")
-    frame:SetFrameStrata("MEDIUM")
+    frame:SetFrameStrata("DIALOG")
     frame:SetClampedToScreen(true)
     frame:SetSize(FRAME_W, TITLE_H + 6)
 
