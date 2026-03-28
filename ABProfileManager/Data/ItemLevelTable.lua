@@ -16,20 +16,22 @@ ns.Data.ItemLevelTable = {
         myth = 289,
     },
 
-    -- 구렁 (단계별 드랍 / 주간보상)
+    -- 구렁 (단계별 드랍 / 주간보상) — Midnight 시즌 1 실측 기준
     -- crestDrop: 해당 단계 클리어 시 드랍되는 문장 등급
+    -- ※ 아이템 레벨은 8단계(250/챔피언)에서 상한 고정; 11~12단계는 신화 문장(황금 보물상자)만 추가
     delves = {
-        { tier=1, ilvl=220, grade="adv",  maxilvl=237, vault=233, vaultGrade="vet",  vaultMax=250, crestDrop="chmp" },
-        { tier=2, ilvl=224, grade="adv",  maxilvl=237, vault=237, vaultGrade="adv",  vaultMax=237, crestDrop="chmp" },
-        { tier=3, ilvl=227, grade="adv",  maxilvl=237, vault=240, vaultGrade="vet",  vaultMax=250, crestDrop="chmp" },
-        { tier=4, ilvl=230, grade="adv",  maxilvl=237, vault=243, vaultGrade="vet",  vaultMax=250, crestDrop="chmp" },
-        { tier=5, ilvl=233, grade="vet",  maxilvl=250, vault=nil,  vaultGrade=nil,   vaultMax=nil, crestDrop="chmp" },
-        { tier=6, ilvl=237, grade="vet",  maxilvl=250, vault=253, vaultGrade="chmp", vaultMax=263, crestDrop="chmp" },
-        { tier=7,  ilvl=246, grade="chmp", maxilvl=263, vault=256, vaultGrade="chmp", vaultMax=263, crestDrop="hero" },
-        { tier=8,  ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="hero" },
-        { tier=9,  ilvl=253, grade="chmp", maxilvl=263, vault=263, vaultGrade="hero", vaultMax=276, crestDrop="hero" },
-        { tier=10, ilvl=256, grade="chmp", maxilvl=263, vault=266, vaultGrade="hero", vaultMax=276, crestDrop="hero" },
-        { tier=11, ilvl=259, grade="hero", maxilvl=276, vault=269, vaultGrade="hero", vaultMax=276, crestDrop="hero" },
+        { tier=1,  ilvl=220, grade="adv",  maxilvl=237, vault=233, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
+        { tier=2,  ilvl=224, grade="adv",  maxilvl=237, vault=237, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
+        { tier=3,  ilvl=227, grade="adv",  maxilvl=237, vault=240, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
+        { tier=4,  ilvl=230, grade="adv",  maxilvl=237, vault=243, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
+        { tier=5,  ilvl=233, grade="vet",  maxilvl=250, vault=246, vaultGrade="chmp", vaultMax=263, crestDrop="vet"  },
+        { tier=6,  ilvl=237, grade="vet",  maxilvl=250, vault=253, vaultGrade="chmp", vaultMax=263, crestDrop="vet"  },
+        { tier=7,  ilvl=246, grade="chmp", maxilvl=263, vault=256, vaultGrade="chmp", vaultMax=263, crestDrop="chmp" },
+        { tier=8,  ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
+        { tier=9,  ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
+        { tier=10, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
+        { tier=11, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="myth" },
+        { tier=12, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="myth" },
     },
 
     -- 5인 던전 + 쐐기
@@ -48,8 +50,8 @@ ns.Data.ItemLevelTable = {
             { key=8,  ilvl=263, grade="hero", maxilvl=276, rank=2, rankMax=6, vault=269, vaultGrade="hero", vaultRank=4, vaultMax=276, crestDrop="hero" },
             { key=9,  ilvl=263, grade="hero", maxilvl=276, rank=2, rankMax=6, vault=269, vaultGrade="hero", vaultRank=4, vaultMax=276, crestDrop="myth" },
             { key=10, ilvl=266, grade="hero", maxilvl=276, rank=3, rankMax=6, vault=272, vaultGrade="myth", vaultRank=1, vaultMax=289, crestDrop="myth" },
-            { key=11, ilvl=269, grade="hero", maxilvl=276, rank=4, rankMax=6, vault=276, vaultGrade="myth", vaultRank=2, vaultMax=289, crestDrop="myth" },
-            { key=12, ilvl=272, grade="myth", maxilvl=289, rank=1, rankMax=6, vault=279, vaultGrade="myth", vaultRank=3, vaultMax=289, crestDrop="myth" },
+            { key=11, ilvl=266, grade="hero", maxilvl=276, rank=3, rankMax=6, vault=272, vaultGrade="myth", vaultRank=1, vaultMax=289, crestDrop="myth" },
+            { key=12, ilvl=266, grade="hero", maxilvl=276, rank=3, rankMax=6, vault=272, vaultGrade="myth", vaultRank=1, vaultMax=289, crestDrop="myth" },
         },
     },
 

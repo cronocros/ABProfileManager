@@ -475,6 +475,8 @@ local function ensureRow(frame, index)
         if row.itemID and row.itemID > 0 then
             GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
             GameTooltip:SetItemByID(row.itemID)
+            -- 베이스 아이템은 일반/영웅 품질이지만 M+ 기준은 에픽 이상임을 표시
+            GameTooltip:AddLine("|cffcc33ff[M+ 신화+ 기준 — 에픽 등급 이상]|r")
             GameTooltip:Show()
         end
     end)
