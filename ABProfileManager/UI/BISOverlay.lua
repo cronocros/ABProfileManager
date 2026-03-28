@@ -505,12 +505,17 @@ function BISOverlay:RebuildContent()
                 iRow.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
 
                 if itemName then
-                    local qc = QC[quality] or QC[3]  -- 기본 파랑 (희귀/M+)
+                    -- M+ 기준: 최소 에픽(4=보라) 이상으로 표시
+                    -- 전설(5=주황)은 그대로, 그 외는 모두 에픽으로 올림
+                    local effectiveQ = math.max(quality or 4, 4)
+                    local qc = QC[effectiveQ] or QC[4]
                     iRow.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
                     iRow.nameLabel:SetText(itemName)
                 else
-                    iRow.nameLabel:SetTextColor(0.40, 0.40, 0.40, 1)
-                    iRow.nameLabel:SetText("|cff555555...|r")
+                    -- 로딩 중: 에픽 색상으로 표시
+                    local qc = QC[4]
+                    iRow.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 0.55)
+                    iRow.nameLabel:SetText("...")
                 end
 
                 -- 슬롯 라벨
