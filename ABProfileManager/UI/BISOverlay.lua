@@ -283,9 +283,9 @@ function BISOverlay:Initialize()
     if self._initialized then return end
     self._initialized = true
 
-    C_Timer.After(1, function()
+    local function setupPVEHooks()
         local pve = PVEFrame or LFGParentFrame
-        if not pve then return end
+        if not pve then return false end
 
         pve:HookScript("OnShow", function()
             if not ns.DB or not ns.DB:IsBISOverlayEnabled() then return end
@@ -295,5 +295,24 @@ function BISOverlay:Initialize()
         pve:HookScript("OnHide", function()
             if self.frame then self.frame:Hide() end
         end)
-    end)
+
+        -- 이미 열려 있으면 즉시 표시
+        if pve:IsShown() and ns.DB and ns.DB:IsBISOverlayEnabled() then
+            self:Refresh()
+        end
+        return true
+    end
+
+    -- PVEFrame 이 이미 존재하면 즉시 훅, 아니면 demand-load 대기
+    if not setupPVEHooks() then
+        local watchFrame = CreateFrame("Frame")
+        watchFrame:RegisterEvent("ADDON_LOADED")
+        watchFrame:SetScript("OnEvent", function(f, _, name)
+            if name == "Blizzard_LookingForGroup" then
+                setupPVEHooks()
+                f:UnregisterEvent("ADDON_LOADED")
+                f:SetScript("OnEvent", nil)
+            end
+        end)
+    end
 end
