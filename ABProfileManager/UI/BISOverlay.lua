@@ -139,6 +139,10 @@ function BISOverlay:RebuildContent()
     local specID = getPlayerSpecID()
     local bisData = ns.Data and ns.Data.BISItems and ns.Data.BISItems[specID]
 
+    ns.Utils.Debug(string.format("[BISOverlay] specID=%s bisData=%s",
+        tostring(specID),
+        bisData and (#bisData .. "개") or "nil"))
+
     -- 모든 행 숨기기
     for _, row in ipairs(frame.rows) do
         row:Hide()
@@ -155,8 +159,8 @@ function BISOverlay:RebuildContent()
         row:SetPoint("TOPLEFT", frame.content, "TOPLEFT", 0, -yOffset)
         row:SetHeight(ROW_H)
         row.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
-        row.label:SetTextColor(0.5, 0.5, 0.6, 1)
-        row.label:SetText(ns.L("bis_overlay_no_data"))
+        row.label:SetTextColor(0.85, 0.85, 0.85, 1)
+        row.label:SetText((ns.L("bis_overlay_no_data") or "no data") .. " (spec " .. tostring(specID) .. ")")
         row.itemID = nil
         row:Show()
         yOffset = yOffset + ROW_H
@@ -271,7 +275,10 @@ function BISOverlay:Refresh()
         self.frame:SetPoint("TOPLEFT", pve, "TOPRIGHT", 10, 0)
     end
 
-    self:RebuildContent()
+    local ok, err = pcall(function() self:RebuildContent() end)
+    if not ok then
+        ns.Utils.Debug("[BISOverlay] RebuildContent 오류: " .. tostring(err))
+    end
     self.frame:Show()
 end
 
