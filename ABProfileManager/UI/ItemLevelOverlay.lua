@@ -710,9 +710,10 @@ function ItemLevelOverlay:Initialize()
     self._initialized = true
 
     -- PVEFrame (파티찾기) 전용 연동
-    C_Timer.After(1, function()
+    local function setupPVEHooks()
         local pve = PVEFrame or LFGParentFrame
-        if not pve then return end
+        if not pve then return false end
+
         pve:HookScript("OnShow", function()
             if not ns.DB or not ns.DB:IsItemLevelOverlayEnabled() then return end
             self:EnsureFrame()
@@ -725,5 +726,28 @@ function ItemLevelOverlay:Initialize()
         pve:HookScript("OnHide", function()
             if self.frame then self.frame:Hide() end
         end)
-    end)
+
+        -- 이미 열려 있으면 즉시 표시
+        if pve:IsShown() and ns.DB and ns.DB:IsItemLevelOverlayEnabled() then
+            self:EnsureFrame()
+            if self.frame then
+                self.frame:ClearAllPoints()
+                self.frame:SetPoint("TOPLEFT", pve, "TOPRIGHT", 10, 0)
+                self:Refresh()
+            end
+        end
+        return true
+    end
+
+    if not setupPVEHooks() then
+        local watchFrame = CreateFrame("Frame")
+        watchFrame:RegisterEvent("ADDON_LOADED")
+        watchFrame:SetScript("OnEvent", function(f, _, name)
+            if name == "Blizzard_LookingForGroup" then
+                setupPVEHooks()
+                f:UnregisterEvent("ADDON_LOADED")
+                f:SetScript("OnEvent", nil)
+            end
+        end)
+    end
 end

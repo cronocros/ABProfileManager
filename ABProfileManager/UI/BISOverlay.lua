@@ -151,12 +151,15 @@ function BISOverlay:RebuildContent()
     local yOffset = 0
     local rowIndex = 0
 
+    local contentW = FRAME_W - PADDING * 2  -- 행 가로 폭
+
     if not bisData or #bisData == 0 then
         -- 데이터 없음
         rowIndex = rowIndex + 1
         local row = ensureRow(frame, rowIndex)
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", frame.content, "TOPLEFT", 0, -yOffset)
+        row:SetWidth(contentW)
         row:SetHeight(ROW_H)
         row.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
         row.label:SetTextColor(0.85, 0.85, 0.85, 1)
@@ -173,6 +176,7 @@ function BISOverlay:RebuildContent()
             local hdr = ensureRow(frame, rowIndex)
             hdr:ClearAllPoints()
             hdr:SetPoint("TOPLEFT", frame.content, "TOPLEFT", 0, -yOffset)
+            hdr:SetWidth(contentW)
             hdr:SetHeight(SECTION_H)
             hdr.label:SetFont(FONT_PATH, 11, FONT_FLAGS)
             hdr.label:SetTextColor(0.55, 0.80, 1.0, 1)
@@ -192,6 +196,7 @@ function BISOverlay:RebuildContent()
                     local bossRow = ensureRow(frame, rowIndex)
                     bossRow:ClearAllPoints()
                     bossRow:SetPoint("TOPLEFT", frame.content, "TOPLEFT", 6, -yOffset)
+                    bossRow:SetWidth(contentW - 6)
                     bossRow:SetHeight(BOSS_H)
                     bossRow.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
                     bossRow.label:SetTextColor(0.90, 0.80, 0.55, 1)
@@ -206,6 +211,7 @@ function BISOverlay:RebuildContent()
                 local itemRow = ensureRow(frame, rowIndex)
                 itemRow:ClearAllPoints()
                 itemRow:SetPoint("TOPLEFT", frame.content, "TOPLEFT", 14, -yOffset)
+                itemRow:SetWidth(contentW - 14)
                 itemRow:SetHeight(ROW_H)
                 itemRow.itemID = entry.itemID
 
