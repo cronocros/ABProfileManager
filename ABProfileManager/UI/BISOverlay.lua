@@ -48,9 +48,9 @@ local QC = {
     [5] = { 1.00, 0.55, 0.00 },
 }
 
--- note 배지 표시 텍스트 (한국어)
+-- note 배지 표시 텍스트
 local NOTE_TEXT = {
-    ["BIS"]  = "|cffffc000최선|r",
+    ["BIS"]  = "|cffffc000BIS|r",
     ["대체재"] = "|cff44aaff대체|r",
     ["2순위"] = "|cff55cc5522순|r",
 }
@@ -105,6 +105,7 @@ local function scheduleRebuild()
     C_Timer.After(0.3, function()
         _rebuildPending = false
         if BISOverlay.frame and BISOverlay.frame:IsShown() then
+            BISOverlay._isItemLoadRebuild = true  -- 스크롤 위치 유지
             pcall(function() BISOverlay:RebuildContent() end)
         end
     end)
@@ -141,21 +142,23 @@ function BISOverlay:UpdateScrollThumb()
 end
 
 -- ============================================================
--- 잠금 버튼 상태 업데이트
+-- 접기/펼치기
 -- ============================================================
 
-function BISOverlay:UpdateLockBtn()
+function BISOverlay:ApplyCollapse()
     local frame = self.frame
-    if not frame or not frame.lockBtn then return end
-    local locked = ns.DB and ns.DB:IsBISOverlayLocked()
-    if locked then
-        frame.lockBtn.bg:SetColorTexture(0.90, 0.75, 0.15, 0.85)
-        frame.lockBtn.label:SetTextColor(0.08, 0.05, 0.02, 1)
-        frame.lockBtn.label:SetText("잠")
+    if not frame then return end
+    if self._collapsed then
+        frame.scrollFrame:Hide()
+        frame.scrollBarTrack:Hide()
+        frame.scrollBarThumb:Hide()
+        if frame.collapseBtn then frame.collapseBtn.label:SetText("+") end
+        frame:SetHeight(HEADER_H + PADDING)
     else
-        frame.lockBtn.bg:SetColorTexture(0.12, 0.12, 0.22, 0.75)
-        frame.lockBtn.label:SetTextColor(0.55, 0.55, 0.65, 1)
-        frame.lockBtn.label:SetText("잠")
+        frame.scrollFrame:Show()
+        frame.scrollBarTrack:Show()
+        if frame.collapseBtn then frame.collapseBtn.label:SetText("-") end
+        pcall(function() self:RebuildContent() end)
     end
 end
 
@@ -215,36 +218,24 @@ function BISOverlay:EnsureFrame()
     mpBadge:SetTextColor(0.20, 0.80, 1.0, 1)
     mpBadge:SetText("M+")
 
-    -- ─── 잠금 버튼 ──────────────────────────────────────────
-    local lockBtn = CreateFrame("Button", nil, frame)
-    lockBtn:SetSize(18, 18)
-    lockBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -9)
+    -- ─── 접기/펼치기 버튼 ────────────────────────────────────
+    local collapseBtn = CreateFrame("Button", nil, frame)
+    collapseBtn:SetSize(18, 18)
+    collapseBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -9)
 
-    lockBtn.bg = lockBtn:CreateTexture(nil, "BACKGROUND")
-    lockBtn.bg:SetAllPoints()
-    lockBtn.bg:SetColorTexture(0.12, 0.12, 0.22, 0.75)
+    collapseBtn.label = collapseBtn:CreateFontString(nil, "OVERLAY")
+    collapseBtn.label:SetFont(FONT_PATH, 11, FONT_FLAGS)
+    collapseBtn.label:SetAllPoints()
+    collapseBtn.label:SetJustifyH("CENTER")
+    collapseBtn.label:SetJustifyV("MIDDLE")
+    collapseBtn.label:SetText("-")
+    collapseBtn.label:SetTextColor(0.70, 0.70, 0.80, 1)
 
-    lockBtn.label = lockBtn:CreateFontString(nil, "OVERLAY")
-    lockBtn.label:SetFont(FONT_PATH, 9, FONT_FLAGS)
-    lockBtn.label:SetAllPoints()
-    lockBtn.label:SetJustifyH("CENTER")
-    lockBtn.label:SetJustifyV("MIDDLE")
-    lockBtn.label:SetText("잠")
-    lockBtn.label:SetTextColor(0.55, 0.55, 0.65, 1)
-
-    lockBtn:SetScript("OnClick", function()
-        if not ns.DB then return end
-        ns.DB:SetBISOverlayLocked(not ns.DB:IsBISOverlayLocked())
-        self:UpdateLockBtn()
+    collapseBtn:SetScript("OnClick", function()
+        BISOverlay._collapsed = not BISOverlay._collapsed
+        BISOverlay:ApplyCollapse()
     end)
-    lockBtn:SetScript("OnEnter", function(self2)
-        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-        local locked = ns.DB and ns.DB:IsBISOverlayLocked()
-        GameTooltip:SetText(locked and "이동 잠금 해제" or "이동 잠금", 1, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    lockBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    frame.lockBtn = lockBtn
+    frame.collapseBtn = collapseBtn
 
     -- ─── 구분선 1 ───────────────────────────────────────────
     local sep1 = frame:CreateTexture(nil, "ARTWORK")
@@ -510,6 +501,11 @@ function BISOverlay:RebuildContent()
     local frame = self.frame
     if not frame then return end
 
+    -- 스크롤 위치 저장 (아이템 로드 재빌드일 때 복원용)
+    local isItemLoadRebuild = self._isItemLoadRebuild
+    self._isItemLoadRebuild = false
+    local savedScroll = frame.scrollFrame:GetVerticalScroll()
+
     local specID  = self.selectedSpecID or getPlayerSpecID()
     local bisData = ns.Data and ns.Data.BISItems and ns.Data.BISItems[specID]
 
@@ -681,9 +677,16 @@ function BISOverlay:RebuildContent()
     local totalH = HEADER_H + math.max(20, visH) + PADDING
     frame:SetHeight(totalH)
 
-    -- 스크롤 초기화 및 썸 업데이트 (레이아웃 확정 후)
-    frame.scrollFrame:SetVerticalScroll(0)
-    C_Timer.After(0, function() self:UpdateScrollThumb() end)
+    -- 스크롤 복원(아이템 로드) 또는 초기화(스펙 변경), 썸 업데이트 (레이아웃 확정 후)
+    C_Timer.After(0, function()
+        if isItemLoadRebuild and savedScroll > 0 then
+            local maxScroll = frame.scrollFrame:GetVerticalScrollRange()
+            frame.scrollFrame:SetVerticalScroll(math.min(savedScroll, maxScroll))
+        else
+            frame.scrollFrame:SetVerticalScroll(0)
+        end
+        self:UpdateScrollThumb()
+    end)
 end
 
 -- ============================================================
@@ -706,7 +709,6 @@ function BISOverlay:Refresh()
     if not self.frame then return end
 
     self:EnsureTabs()
-    self:UpdateLockBtn()
 
     self.frame:ClearAllPoints()
     local ilFrame = ns.UI.ItemLevelOverlay and ns.UI.ItemLevelOverlay.frame

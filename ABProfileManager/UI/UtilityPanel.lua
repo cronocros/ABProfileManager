@@ -84,6 +84,9 @@ function UtilityPanel:Create(parent)
     local bisCheck = makeCheck(overlayBox, widgets, ilLockCheck)
     frame.bisCheck = bisCheck
 
+    local bisLockCheck = makeCheck(overlayBox, widgets, bisCheck)
+    frame.bisLockCheck = bisLockCheck
+
     -- ═══════════════════════════════════════════════════════════
     -- 1행 우: 스탯 오버레이
     -- ═══════════════════════════════════════════════════════════
@@ -145,6 +148,7 @@ function UtilityPanel:Create(parent)
         { ilCheck,        cW },
         { ilLockCheck,    cW },
         { bisCheck,       cW },
+        { bisLockCheck,   cW },
         { statsCheck,     cW },
         { tankCheck,      cW },
         { statsLockCheck, cW },
@@ -181,6 +185,12 @@ function UtilityPanel:BindControls(refs)
         ns.DB:SetBISOverlayEnabled(chk:GetChecked())
         ns:RefreshUI()
         setStatus(ns.L("config_saved_bis_overlay", on(chk:GetChecked())))
+    end)
+
+    refs.bisLockCheck:SetScript("OnClick", function(chk)
+        ns.DB:SetBISOverlayLocked(chk:GetChecked())
+        ns:RefreshUI()
+        setStatus(ns.L("config_saved_bis_overlay_locked", on(chk:GetChecked())))
     end)
 
     refs.statsCheck:SetScript("OnClick", function(chk)
@@ -244,9 +254,11 @@ function UtilityPanel:Refresh()
     refs.ilCheck.Text:SetText(ns.L("config_item_level_overlay_show"))
     refs.ilLockCheck.Text:SetText(ns.L("config_item_level_overlay_lock"))
     refs.bisCheck.Text:SetText(ns.L("config_bis_overlay_show"))
+    refs.bisLockCheck.Text:SetText(ns.L("config_bis_overlay_lock"))
     refs.ilCheck:SetChecked(ns.DB:IsItemLevelOverlayEnabled())
     refs.ilLockCheck:SetChecked(ns.DB:IsItemLevelOverlayLocked())
     refs.bisCheck:SetChecked(ns.DB:IsBISOverlayEnabled())
+    refs.bisLockCheck:SetChecked(ns.DB:IsBISOverlayLocked())
 
     refs.statsBox.title:SetText(ns.L("utility_section_stats_overlay"))
     refs.statsHint:SetText(ns.L("utility_stats_hint"))
