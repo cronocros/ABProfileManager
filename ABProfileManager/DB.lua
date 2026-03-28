@@ -260,6 +260,15 @@ function DB:SetStatsOverlayEnabled(enabled)
     return self:IsStatsOverlayEnabled()
 end
 
+function DB:IsStatsOverlayLocked()
+    return self:GetStatsOverlaySettings().locked and true or false
+end
+
+function DB:SetStatsOverlayLocked(locked)
+    self:GetStatsOverlaySettings().locked = locked and true or false
+    return self:IsStatsOverlayLocked()
+end
+
 function DB:IsStatsOverlayTankStatsEnabled()
     return self:GetStatsOverlaySettings().showTankStats and true or false
 end
@@ -298,6 +307,15 @@ end
 function DB:SetProfessionKnowledgeOverlayEnabled(enabled)
     self:GetProfessionKnowledgeOverlaySettings().enabled = enabled and true or false
     return self:IsProfessionKnowledgeOverlayEnabled()
+end
+
+function DB:IsProfessionKnowledgeOverlayLocked()
+    return self:GetProfessionKnowledgeOverlaySettings().locked and true or false
+end
+
+function DB:SetProfessionKnowledgeOverlayLocked(locked)
+    self:GetProfessionKnowledgeOverlaySettings().locked = locked and true or false
+    return self:IsProfessionKnowledgeOverlayLocked()
 end
 
 function DB:IsProfessionKnowledgeOverlayTooltipEnabled()

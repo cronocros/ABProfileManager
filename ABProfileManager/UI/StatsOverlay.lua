@@ -21,6 +21,22 @@ local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 
 -- BuildSnapshotSignature 재사용 버퍼: 매 호출마다 table 생성 방지
 local _snapshotParts = {}
+-- BuildSnapshot 재사용 버퍼: 매 Refresh 마다 snapshot/entry 테이블 생성 방지
+local _snapshot = {}
+local _entryPool = {}
+local _entryPoolSize = 0
+
+local function acquireEntry()
+    _entryPoolSize = _entryPoolSize + 1
+    local entry = _entryPool[_entryPoolSize]
+    if entry then
+        wipe(entry)
+    else
+        entry = {}
+        _entryPool[_entryPoolSize] = entry
+    end
+    return entry
+end
 local HEADER_VALUE_SIZE = 15
 local NORMAL_LABEL_SIZE = 16
 local NORMAL_VALUE_SIZE = 16
@@ -283,15 +299,15 @@ local function getSecondaryStatDRTier(percentFromRating)
 end
 
 local function addRatedStat(snapshot, key, label, rating, percent, ratingPercent)
-    snapshot[#snapshot + 1] = {
-        key = key,
-        label = label,
-        primaryText = formatStatValueParts(rating),
-        style = "stat",
-        percentValue = safeNumber(percent),
-        ratingPercent = safeNumber(ratingPercent),
-        drTier = getSecondaryStatDRTier(ratingPercent),
-    }
+    local entry = acquireEntry()
+    entry.key = key
+    entry.label = label
+    entry.primaryText = formatStatValueParts(rating)
+    entry.style = "stat"
+    entry.percentValue = safeNumber(percent)
+    entry.ratingPercent = safeNumber(ratingPercent)
+    entry.drTier = getSecondaryStatDRTier(ratingPercent)
+    snapshot[#snapshot + 1] = entry
 end
 
 local function addPercentStat(snapshot, key, label, percent)
@@ -299,21 +315,24 @@ local function addPercentStat(snapshot, key, label, percent)
         return
     end
 
-    snapshot[#snapshot + 1] = {
-        key = key,
-        label = label,
-        secondaryText = formatPercent(percent),
-        style = "defense",
-    }
+    local entry = acquireEntry()
+    entry.key = key
+    entry.label = label
+    entry.secondaryText = formatPercent(percent)
+    entry.style = "defense"
+    snapshot[#snapshot + 1] = entry
 end
 
+-- applyTextStyle 옵션 테이블 사전 생성: 매 호출마다 3개 테이블 생성 방지
+local _textStyleOptions = {
+    domain = "statsOverlay",
+    flags = FONT_FLAGS,
+    shadowOffset = { 1, -1 },
+    shadowColor = { 0, 0, 0, 0.9 },
+}
+
 local function applyTextStyle(fontString, size, r, g, b)
-    ns.UI.Typography:ApplyFont(fontString, size, {
-        domain = "statsOverlay",
-        flags = FONT_FLAGS,
-        shadowOffset = { 1, -1 },
-        shadowColor = { 0, 0, 0, 0.9 },
-    })
+    ns.UI.Typography:ApplyFont(fontString, size, _textStyleOptions)
     fontString:SetTextColor(r, g, b, 1)
     fontString:SetJustifyH("LEFT")
     fontString:SetJustifyV("TOP")
@@ -362,7 +381,7 @@ function StatsOverlay:CreateRow()
     row.tooltipRegion:EnableMouse(true)
     row.tooltipRegion:RegisterForDrag("LeftButton")
     row.tooltipRegion:SetScript("OnDragStart", function()
-        if self.frame then
+        if self.frame and not (ns.DB and ns.DB:IsStatsOverlayLocked()) then
             self.frame:StartMoving()
         end
     end)
@@ -616,6 +635,7 @@ function StatsOverlay:Initialize()
         frame:SetHitRectInsets(0, 0, 0, 0)
     end
     frame:SetScript("OnDragStart", function(currentFrame)
+        if ns.DB and ns.DB:IsStatsOverlayLocked() then return end
         currentFrame:StartMoving()
     end)
     frame:SetScript("OnDragStop", function(currentFrame)
@@ -634,13 +654,15 @@ function StatsOverlay:Initialize()
 end
 
 function StatsOverlay:BuildSnapshot()
-    local snapshot = {}
+    _entryPoolSize = 0
+    wipe(_snapshot)
+    local snapshot = _snapshot
 
-    snapshot[#snapshot + 1] = {
-        label = "",
-        secondaryText = buildIdentityText(),
-        style = "header",
-    }
+    local headerEntry = acquireEntry()
+    headerEntry.label = ""
+    headerEntry.secondaryText = buildIdentityText()
+    headerEntry.style = "header"
+    snapshot[1] = headerEntry
 
     addRatedStat(
         snapshot,
@@ -697,14 +719,14 @@ function StatsOverlay:BuildSnapshot()
     local orderGroups = (mplusBucket and mplusBucket[specIndex]) or (classBucket and classBucket[specIndex]) or nil
     local priorityLabel, priorityText = getPriorityDisplay(specName or ns.L("stats_overlay_unknown_spec"), orderGroups)
 
-    snapshot[#snapshot + 1] = {
-        label = priorityLabel,
-        key = "priority",
-        value = priorityText,
-        style = "priority",
-        spacingBefore = PRIORITY_ROW_GAP,
-        isMplus = isMplus and true or false,
-    }
+    local priorityEntry = acquireEntry()
+    priorityEntry.label = priorityLabel
+    priorityEntry.key = "priority"
+    priorityEntry.value = priorityText
+    priorityEntry.style = "priority"
+    priorityEntry.spacingBefore = PRIORITY_ROW_GAP
+    priorityEntry.isMplus = isMplus and true or false
+    snapshot[#snapshot + 1] = priorityEntry
 
     for index = 2, #snapshot do
         if snapshot[index].style == "stat" then

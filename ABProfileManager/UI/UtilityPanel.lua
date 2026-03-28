@@ -78,9 +78,6 @@ function UtilityPanel:Create(parent)
     local ilCheck = makeCheck(overlayBox, widgets, ilHint)
     frame.ilCheck = ilCheck
 
-    local weCheck = makeCheck(overlayBox, widgets, ilCheck)
-    frame.weCheck = weCheck
-
     -- ═══════════════════════════════════════════════════════════
     -- 1행 우: 스탯 오버레이
     -- ═══════════════════════════════════════════════════════════
@@ -97,6 +94,9 @@ function UtilityPanel:Create(parent)
     local tankCheck = makeCheck(statsBox, widgets, statsCheck)
     frame.tankCheck = tankCheck
 
+    local statsLockCheck = makeCheck(statsBox, widgets, tankCheck)
+    frame.statsLockCheck = statsLockCheck
+
     -- ═══════════════════════════════════════════════════════════
     -- 2행 좌: 전문기술 오버레이
     -- ═══════════════════════════════════════════════════════════
@@ -110,21 +110,12 @@ function UtilityPanel:Create(parent)
     local profCheck = makeCheck(profBox, widgets, profHint)
     frame.profCheck = profCheck
 
+    local profLockCheck = makeCheck(profBox, widgets, profCheck)
+    frame.profLockCheck = profLockCheck
+
     -- ═══════════════════════════════════════════════════════════
-    -- 2행 우: 상점 / 우편
+    -- 2행 우: (상점/우편 기능 제거됨 — 빈 자리)
     -- ═══════════════════════════════════════════════════════════
-    local shopBox = makeBox(frame, widgets, COL_W, ROW2_H)
-    shopBox:SetPoint("TOPLEFT", statsBox, "BOTTOMLEFT", 0, -ROW_GAP)
-    frame.shopBox = shopBox
-
-    local shopHint = makeHint(shopBox, widgets, shopBox.title, cW)
-    frame.shopHint = shopHint
-
-    local merchantCheck = makeCheck(shopBox, widgets, shopHint)
-    frame.merchantCheck = merchantCheck
-
-    local mailCheck = makeCheck(shopBox, widgets, merchantCheck)
-    frame.mailCheck = mailCheck
 
     -- ═══════════════════════════════════════════════════════════
     -- 3행 전체: 블리자드 창 이동 (전체 폭)
@@ -173,12 +164,6 @@ function UtilityPanel:BindControls(refs)
         setStatus(ns.L("config_saved_item_level_overlay", on(chk:GetChecked())))
     end)
 
-    refs.weCheck:SetScript("OnClick", function(chk)
-        ns.DB:SetWorldEventOverlayEnabled(chk:GetChecked())
-        ns:RefreshUI()
-        setStatus(ns.L("config_saved_world_event_overlay", on(chk:GetChecked())))
-    end)
-
     refs.statsCheck:SetScript("OnClick", function(chk)
         ns.DB:SetStatsOverlayEnabled(chk:GetChecked())
         ns:RefreshUI()
@@ -191,22 +176,22 @@ function UtilityPanel:BindControls(refs)
         setStatus(ns.L("config_stats_tank_stats_show"))
     end)
 
+    refs.statsLockCheck:SetScript("OnClick", function(chk)
+        ns.DB:SetStatsOverlayLocked(chk:GetChecked())
+        ns:RefreshUI()
+        setStatus(ns.L("config_saved_stats_overlay_locked", on(chk:GetChecked())))
+    end)
+
     refs.profCheck:SetScript("OnClick", function(chk)
         ns.DB:SetProfessionKnowledgeOverlayEnabled(chk:GetChecked())
         ns:RefreshUI()
         setStatus(ns.L("config_saved_profession_overlay", on(chk:GetChecked())))
     end)
 
-    refs.merchantCheck:SetScript("OnClick", function(chk)
-        ns.DB:SetMerchantHelperEnabled(chk:GetChecked())
+    refs.profLockCheck:SetScript("OnClick", function(chk)
+        ns.DB:SetProfessionKnowledgeOverlayLocked(chk:GetChecked())
         ns:RefreshUI()
-        setStatus(ns.L("config_saved_merchant_helper", on(chk:GetChecked())))
-    end)
-
-    refs.mailCheck:SetScript("OnClick", function(chk)
-        ns.DB:SetMailHistoryEnabled(chk:GetChecked())
-        ns:RefreshUI()
-        setStatus(ns.L("config_saved_mail_history", on(chk:GetChecked())))
+        setStatus(ns.L("config_saved_profession_overlay_locked", on(chk:GetChecked())))
     end)
 
     refs.bfCheck:SetScript("OnClick", function(chk)
@@ -238,28 +223,23 @@ function UtilityPanel:Refresh()
     refs.overlayBox.title:SetText(ns.L("utility_section_overlays"))
     refs.ilHint:SetText(ns.L("utility_overlay_hint"))
     refs.ilCheck.Text:SetText(ns.L("config_item_level_overlay_show"))
-    refs.weCheck.Text:SetText(ns.L("config_world_event_overlay_show"))
     refs.ilCheck:SetChecked(ns.DB:IsItemLevelOverlayEnabled())
-    refs.weCheck:SetChecked(ns.DB:IsWorldEventOverlayEnabled())
 
     refs.statsBox.title:SetText(ns.L("utility_section_stats_overlay"))
     refs.statsHint:SetText(ns.L("utility_stats_hint"))
     refs.statsCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.tankCheck.Text:SetText(ns.L("config_stats_tank_stats_show"))
+    refs.statsLockCheck.Text:SetText(ns.L("config_stats_overlay_lock"))
     refs.statsCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.tankCheck:SetChecked(ns.DB:IsStatsOverlayTankStatsEnabled())
+    refs.statsLockCheck:SetChecked(ns.DB:IsStatsOverlayLocked())
 
     refs.profBox.title:SetText(ns.L("utility_section_profession_overlay"))
     refs.profHint:SetText(ns.L("utility_profession_hint"))
     refs.profCheck.Text:SetText(ns.L("config_profession_overlay_show"))
+    refs.profLockCheck.Text:SetText(ns.L("config_profession_overlay_lock"))
     refs.profCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
-
-    refs.shopBox.title:SetText(ns.L("utility_section_shop"))
-    refs.shopHint:SetText(ns.L("utility_shop_hint"))
-    refs.merchantCheck.Text:SetText(ns.L("config_merchant_helper_show"))
-    refs.mailCheck.Text:SetText(ns.L("config_mail_history_show"))
-    refs.merchantCheck:SetChecked(ns.DB:IsMerchantHelperEnabled())
-    refs.mailCheck:SetChecked(ns.DB:IsMailHistoryEnabled())
+    refs.profLockCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayLocked())
 
     refs.bfBox.title:SetText(ns.L("utility_section_blizzard"))
     refs.bfHint:SetText(ns.L("utility_blizzard_hint"))
