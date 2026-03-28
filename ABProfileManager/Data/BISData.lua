@@ -428,13 +428,28 @@ ns.Data.BISItems = {
 
     -- 수호 드루이드 (Guardian) — 104
     [104] = {
-        { dungeon = "마법학자의 정원",   boss = "게멜루스",         itemID = 250242, slot = "장신구", note = "BIS" },
-        { dungeon = "하늘탑",             boss = "아라크나스",       itemID = 252418, slot = "장신구", note = "BIS" },
-        { dungeon = "사론의 구덩이",     boss = "이크와 크릭",     itemID = 252421, slot = "장신구", note = "대체재" },
-        { dungeon = "삼두정의 권좌",     boss = "루라",             itemID = 151312, slot = "장신구", note = "대체재" },
+        -- 마법학자의 정원
+        { dungeon = "마법학자의 정원",   boss = "게멜루스",           itemID = 250242, slot = "장신구", note = "BIS" },
+        { dungeon = "마법학자의 정원",   boss = "세라넬 선래시",     itemID = 260312, slot = "망토",   note = "대체재" },
+        { dungeon = "마법학자의 정원",   boss = "데젠트리우스",       itemID = 251121, slot = "발",     note = "대체재" },
+        -- 마이사라 동굴
+        { dungeon = "마이사라 동굴",     boss = "보르다자",           itemID = 251161, slot = "머리",   note = "대체재" },
         { dungeon = "마이사라 동굴",     boss = "무로진과 네크락스", itemID = 251166, slot = "허리",   note = "BIS" },
-        { dungeon = "윈드러너 첨탑",     boss = "잔해 듀오",       itemID = 251087, slot = "다리",   note = "BIS" },
-        { dungeon = "알게타르 아카데미", boss = "벡사무스",         itemID = 193712, slot = "망토",   note = "BIS" },
+        -- 공결점 제나스
+        { dungeon = "공결점 제나스",     boss = "로스라시온",         itemID = 251217, slot = "반지",   note = "BIS" },
+        { dungeon = "공결점 제나스",     boss = "코어수호자 니사라", itemID = 251093, slot = "반지",   note = "대체재" },
+        -- 윈드러너 첨탑
+        { dungeon = "윈드러너 첨탑",     boss = "잔해 듀오",         itemID = 251087, slot = "다리",   note = "BIS" },
+        { dungeon = "윈드러너 첨탑",     boss = "안식 없는 심장",   itemID = 251099, slot = "가슴",   note = "대체재" },
+        -- 알게타르 아카데미
+        { dungeon = "알게타르 아카데미", boss = "벡사무스",           itemID = 193712, slot = "망토",   note = "BIS" },
+        { dungeon = "알게타르 아카데미", boss = "도라고사의 메아리", itemID = 193701, slot = "장신구", note = "대체재" },
+        -- 삼두정의 권좌
+        { dungeon = "삼두정의 권좌",     boss = "루라",               itemID = 151312, slot = "장신구", note = "대체재" },
+        -- 하늘탑
+        { dungeon = "하늘탑",             boss = "아라크나스",         itemID = 252418, slot = "장신구", note = "BIS" },
+        -- 사론의 구덩이
+        { dungeon = "사론의 구덩이",     boss = "이크와 크릭",       itemID = 252421, slot = "장신구", note = "대체재" },
     },
 
     -- 회복 드루이드 (Restoration) — 105
