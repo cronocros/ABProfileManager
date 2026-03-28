@@ -63,6 +63,9 @@ ns.Data.Defaults = {
             itemLevelOverlay = {
                 enabled = false,
             },
+            bisOverlay = {
+                enabled = false,
+            },
             worldEventOverlay = {
                 enabled = false,
             },

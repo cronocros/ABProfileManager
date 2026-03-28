@@ -196,6 +196,41 @@
 4. 라벨 줄바꿈/오프셋/카테고리 필터/지도 글자 크기 반영
 5. WorldMap에 텍스트 오버레이 렌더
 
+## 성능 및 GC 최적화 패턴
+
+### SilvermoonMapOverlay — LayoutPoints hot path (250ms OnUpdate 드라이버)
+
+`LayoutPoints`는 250ms 주기로 반복 호출되므로 테이블 할당을 최소화한다.
+
+- **모듈 레벨 재사용 버퍼** (파일 최상단 선언):
+  - `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool` — 포인트/엔트리/배치 결과 재사용
+  - `_scoreRect`, `_bestRect` — 충돌 감지 rect 재사용
+  - `_candidateBuf[16]` — 후보 오프셋 16슬롯 사전 할당
+  - `_mapInfoCache[mapID]` — `C_Map.GetMapInfo` pcall 결과 세션 영구 캐시
+- `fillCandidateOffsets(_candidateBuf, n, ...)` — `_candidateBuf`를 in-place로 채우고 신규 테이블 0개 생성
+- 베스트 후보 저장: `candidate` 레퍼런스가 아닌 `bestOffsetX/Y` 값으로 저장 (다음 호출 시 덮어쓰기 방지)
+- 결과: 호출당 신규 테이블 0개 → GC spike 제거
+
+### StatsOverlay — BuildSnapshotSignature
+
+- 모듈 레벨 `_snapshotParts = {}` 재사용 버퍼
+- 호출마다 `wipe(_snapshotParts)` 후 `..` 연산자로 문자열 연결
+- 기존 패턴(내부 익명 테이블 + `table.concat`) 대비 GC 부담 감소
+
+### QuestPanel — QUEST_LOG_UPDATE 디바운스
+
+`QUEST_LOG_UPDATE`는 전투 중/퀘스트 진행 중 초당 수백 회 발화 가능하다.
+
+- `Events.lua`: `refreshQuestPanel()` — 0.15초 내 중복 호출을 1회로 합산
+- `QuestPanel.RefreshInternal`: `IsVisible()` 가드 — 탭이 보이지 않으면 `QuestManager:Scan` 실행 건너뜀
+- `QuestManager:Scan`은 호출당 퀘스트 5+ WoW API를 사용하므로 디바운스 없이 실행 시 CPU 점유 급등
+
+### BlizzardFrameManager — SetUserPlaced 주의 사항
+
+- `SetUserPlaced(true)`는 `uiPanel=true` 프레임(CharacterFrame, QuestLogFrame 등)에만 적용한다.
+- WorldMapFrame에 `SetUserPlaced(true)` 적용 시 WoW가 compact/customized 모드로 전환 → 오른쪽 퀘스트 목록 패널 숨겨짐.
+- `UpdateUIPanelPositions` 훅은 `uiPanel=true` 프레임만 대상으로 해야 한다. 전체 프레임에 적용 시 WorldMapFrame에 반복 `ClearAllPoints`가 발생 → 지도 퀘스트 목록 주기적 소실.
+
 ## 안정성 메모
 
 - profession/TomTom 연동은 메인 기능에 영향을 주지 않도록 선택 기능으로 유지한다.

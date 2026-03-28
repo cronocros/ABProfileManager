@@ -28,13 +28,21 @@ local function refreshGhostsAndRetries()
     ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
 end
 
+-- 디바운스 콜백 사전 생성: 매 이벤트마다 클로저 생성 방지 (GC 압력 감소)
+local function _questPanelRefreshCallback()
+    questPanelRefreshPending = false
+    ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
+end
+
+local function _statsRefreshCallback()
+    statsRefreshPending = false
+    ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+end
+
 local function refreshQuestPanel()
     if questPanelRefreshPending then return end
     questPanelRefreshPending = true
-    C_Timer.After(QUEST_PANEL_REFRESH_DELAY, function()
-        questPanelRefreshPending = false
-        ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
-    end)
+    C_Timer.After(QUEST_PANEL_REFRESH_DELAY, _questPanelRefreshCallback)
 end
 
 local function refreshStatsOverlay()
@@ -43,10 +51,7 @@ local function refreshStatsOverlay()
     end
     if statsRefreshPending then return end
     statsRefreshPending = true
-    C_Timer.After(STATS_REFRESH_DELAY, function()
-        statsRefreshPending = false
-        ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
-    end)
+    C_Timer.After(STATS_REFRESH_DELAY, _statsRefreshCallback)
 end
 
 local function runProfessionKnowledgeRefresh(forceScan, reason)
@@ -69,6 +74,15 @@ local function runProfessionKnowledgeRefresh(forceScan, reason)
     end
 end
 
+local function _professionRefreshCallback()
+    professionRefreshPending = false
+    local pendingForceScan = professionRefreshForceScan
+    local pendingReason = professionRefreshReason
+    professionRefreshForceScan = false
+    professionRefreshReason = nil
+    runProfessionKnowledgeRefresh(pendingForceScan, pendingReason)
+end
+
 local function refreshProfessionKnowledgeViews(forceScan, reason)
     if not C_Timer or type(C_Timer.After) ~= "function" then
         runProfessionKnowledgeRefresh(forceScan, reason)
@@ -82,14 +96,7 @@ local function refreshProfessionKnowledgeViews(forceScan, reason)
     end
 
     professionRefreshPending = true
-    C_Timer.After(PROFESSION_REFRESH_DELAY, function()
-        professionRefreshPending = false
-        local pendingForceScan = professionRefreshForceScan
-        local pendingReason = professionRefreshReason
-        professionRefreshForceScan = false
-        professionRefreshReason = nil
-        runProfessionKnowledgeRefresh(pendingForceScan, pendingReason)
-    end)
+    C_Timer.After(PROFESSION_REFRESH_DELAY, _professionRefreshCallback)
 end
 
 local function scheduleProfessionFollowUpRefresh(reason)

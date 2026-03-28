@@ -166,15 +166,32 @@
 - `UpdateUIPanelPositions` hooksecurefunc로 탭 전환 시 깜박임 없이 복원
 - `lazyAddon` 패턴: ADDON_LOADED 이벤트 → 지연 로드 프레임(전문기술, 탤런트 등)에 적용
 - **주의**: `QuestFrame`(NPC 퀘스트 대화창)은 MANAGED_FRAMES에 넣지 말 것 — 퀘스트 목록창 소실 원인
+- **주의**: `SetUserPlaced(true)`는 반드시 `uiPanel=true` 프레임에만 적용할 것. WorldMapFrame 등 비UIPanel 프레임에 적용 시 WoW가 compact/customized 모드로 인식해 오른쪽 퀘스트 목록 패널을 숨김.
+  - `makeFrameMovable(key, frame, isUiPanel)` — `isUiPanel=true`일 때만 `SetUserPlaced(true)` 호출
+  - `restoreFramePosition(key, frame, isUiPanel)` — 동일
+  - `UpdateUIPanelPositions` / `ShowUIPanel` / `OnShow` 훅 내 모든 `restoreFramePosition` 호출에 적절한 `isUiPanel` 값 전달
+- **주의**: `UpdateUIPanelPositions` 훅은 `uiPanel=true` 프레임만 대상으로 해야 함. 모든 프레임에 적용 시 WorldMapFrame에 반복 `ClearAllPoints`가 발생해 지도 퀘스트 목록이 주기적으로 사라짐.
 
-### 6. MerchantHelper / MailHistory / WorldEventOverlay (비활성)
+### 6. GC 최적화 (SilvermoonMapOverlay / StatsOverlay / QuestPanel)
+
+- **SilvermoonMapOverlay**: `LayoutPoints` hot path가 호출당 0개 신규 테이블 생성으로 최적화됨
+  - 모듈 레벨 재사용 버퍼: `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool`, `_scoreRect`, `_bestRect`, `_candidateBuf[16]`
+  - `_mapInfoCache`: `C_Map.GetMapInfo` pcall 결과 세션 영구 캐시 (mapID → result)
+  - `fillCandidateOffsets`: `_candidateBuf`를 in-place로 채움 — 새 테이블 없음
+  - 베스트 오프셋은 레퍼런스(`candidate`) 아닌 값(`bestOffsetX/Y`)으로 저장 — 다음 호출 시 덮어쓰기 버그 방지
+- **StatsOverlay**: `BuildSnapshotSignature` — 모듈 레벨 `_snapshotParts` 재사용 버퍼 + `wipe()` 패턴으로 내부 익명 테이블 제거
+- **QuestPanel**: `RefreshInternal`에 `IsVisible()` 가드 추가 — 탭이 숨겨진 상태에서 `QUEST_LOG_UPDATE` 고빈도 발화 시 `QuestManager:Scan` 불필요 실행 방지
+- **Events.lua**: `QUEST_LOG_UPDATE` 0.15초 디바운스 추가 (`refreshQuestPanel`) — 전투/진행 중 초당 수백 회 발화 시 1회로 합산
+- 위 최적화는 CPU 점유 개선 목적으로 적용됨. GC 압박 패턴이 다시 보이면 `OnUpdate` 드라이버와 이벤트 핸들러를 먼저 확인할 것.
+
+### 7. MerchantHelper / MailHistory / WorldEventOverlay (비활성)
 
 - 세 모듈 모두 `Core.lua` 초기화 목록과 `Events.lua` 이벤트 등록에서 주석 처리
 - 파일은 유지 (미래 재활성화 대비)
 - 백그라운드 활동 없음: 이벤트 미등록, 프레임 미생성, OnUpdate 미실행
 - **재활성화 시**: `Core.lua` 주석 해제 + `Events.lua` 주석 해제
 
-### 7. 디버그 로그 버퍼 & `/abpm log` 명령
+### 8. 디버그 로그 버퍼 & `/abpm log` 명령
 
 - `Utils.lua` — `debugLogBuffer` (최대 200줄), `Utils.GetDebugLog()`, `Utils.ClearDebugLog()`
 - `/abpm log` 명령 → 팝업 EditBox에 로그 출력, 복사 가능

@@ -60,12 +60,15 @@ ABProfileManager/
 3. **typography 슬라이더** — 전역 영향, font만 바꾸지 말고 overflow/hitbox까지 함께 확인
 4. **지도 오버레이** — 내부 인스턴스/마이크로맵에 뜨지 않게 유지, child/detail map에서 부모 라벨 억지로 표시 금지
 5. **고스트 드래그 / 전투 중 대기열** — 항상 보수적으로 처리
+6. **BlizzardFrameManager** — `SetUserPlaced(true)`는 `uiPanel=true` 프레임에만 적용. WorldMapFrame에 적용 시 WoW compact 모드 전환 → 지도 오른쪽 퀘스트 목록 패널 숨겨짐. `UpdateUIPanelPositions` 훅도 `uiPanel=true` 프레임만 대상으로 해야 함 — 전체 적용 시 WorldMapFrame `ClearAllPoints` 반복으로 퀘스트 목록 주기적 소실.
+7. **GC 최적화 버퍼** — `SilvermoonMapOverlay.lua`와 `StatsOverlay.lua`에 모듈 레벨 재사용 버퍼 선언. 이 버퍼들(`_layoutPoints`, `_candidateBuf`, `_snapshotParts` 등)을 제거하거나 함수 내부로 이동하면 GC spike 재발.
 
 인게임 회귀 체크리스트:
 - profession 카드 폭과 체크박스 레이아웃
 - profession overlay 상세/요약/최소 모드
 - 전투메시지 설정 체크박스와 위로/아래로/부채꼴 버튼 선택 상태
 - 지도 오버레이가 외부 월드맵에서만 표시되는지
+- 지도를 열었을 때 오른쪽 퀘스트 목록이 정상 표시되는지
 - 퀘스트 ID 링크 클릭 동작
 - 스탯 overlay drag/hitbox
 
@@ -82,6 +85,15 @@ ABProfileManager/
 
 ### TomTom 연동
 선택적 연동(`Modules/TomTomBridge.lua`). 하란다르/공허폭풍 일부 1회성 보물은 해당 지역 진입 후 waypoint 생성. TomTom 이슈 제보 시 지역 진입 여부와 map lineage부터 확인.
+
+### BlizzardFrameManager
+`Modules/BlizzardFrameManager.lua`. MANAGED_FRAMES 목록의 프레임에 SetMovable + 위치 저장/복원 적용. `uiPanel=true` 프레임(CharacterFrame, QuestLogFrame 등)은 `SetUserPlaced(true)` 적용 — WoW UIPanelLayout 재배치 방지. WorldMapFrame 등 비UIPanel 프레임은 `SetUserPlaced` 건드리지 않음.
+
+### 이벤트 디바운싱
+`Events.lua`에서 고빈도 이벤트를 0.15초 내 1회로 합산:
+- `QUEST_LOG_UPDATE` → `refreshQuestPanel()` (QuestManager:Scan은 퀘스트당 5+ API 호출)
+- `UNIT_AURA/STATS/COMBAT_RATING_UPDATE` 등 → `refreshStatsOverlay()`
+새 이벤트 핸들러 추가 시 비활성 상태 early return과 디바운스 패턴 함께 적용할 것.
 
 ## 숨겨진 미완성 기능
 

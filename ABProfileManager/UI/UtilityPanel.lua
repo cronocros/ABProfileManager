@@ -15,9 +15,9 @@ end
 local COL_W   = 406   -- 열 폭 (852 - 40gap) / 2 ≈ 406
 local COL_GAP = 20    -- 열 사이 간격
 local FULL_W  = COL_W * 2 + COL_GAP  -- ~832 (블리자드 박스 전체 폭)
-local ROW1_H  = 240   -- 1행 박스 높이 (긴 힌트+2체크 여유)
+local ROW1_H  = 240   -- 1행 박스 높이
 local ROW2_H  = 210   -- 2행 박스 높이
-local BF_H    = 145   -- 블리자드 박스 높이 (힌트+체크+버튼)
+local BF_H    = 145   -- 블리자드 박스 높이
 local ROW_GAP = 10    -- 행 사이 간격
 local cW      = COL_W - 24  -- 컬럼 내부 텍스트 폭 (382)
 
@@ -39,7 +39,7 @@ end
 
 local function makeCheck(parent, widgets, anchor, dy)
     local chk = widgets.CreateCheckButton(parent, "")
-    chk:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 4, dy or -10)
+    chk:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, dy or -4)
     return chk
 end
 
@@ -66,7 +66,7 @@ function UtilityPanel:Create(parent)
     frame.title = title
 
     -- ═══════════════════════════════════════════════════════════
-    -- 1행 좌: 드랍/이벤트 오버레이
+    -- 1행 좌: 드랍템 오버레이
     -- ═══════════════════════════════════════════════════════════
     local overlayBox = makeBox(frame, widgets, COL_W, ROW1_H)
     overlayBox:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -14)
@@ -77,6 +77,12 @@ function UtilityPanel:Create(parent)
 
     local ilCheck = makeCheck(overlayBox, widgets, ilHint)
     frame.ilCheck = ilCheck
+
+    local ilLockCheck = makeCheck(overlayBox, widgets, ilCheck)
+    frame.ilLockCheck = ilLockCheck
+
+    local bisCheck = makeCheck(overlayBox, widgets, ilLockCheck)
+    frame.bisCheck = bisCheck
 
     -- ═══════════════════════════════════════════════════════════
     -- 1행 우: 스탯 오버레이
@@ -114,7 +120,7 @@ function UtilityPanel:Create(parent)
     frame.profLockCheck = profLockCheck
 
     -- ═══════════════════════════════════════════════════════════
-    -- 2행 우: (상점/우편 기능 제거됨 — 빈 자리)
+    -- 2행 우: (빈 자리)
     -- ═══════════════════════════════════════════════════════════
 
     -- ═══════════════════════════════════════════════════════════
@@ -131,19 +137,20 @@ function UtilityPanel:Create(parent)
     frame.bfCheck = bfCheck
 
     local bfResetBtn = widgets.CreateButton(bfBox, "", 160, 24)
-    bfResetBtn:SetPoint("TOPLEFT", bfCheck, "BOTTOMLEFT", 4, -10)
+    bfResetBtn:SetPoint("TOPLEFT", bfCheck, "BOTTOMLEFT", 0, -6)
     frame.bfResetBtn = bfResetBtn
 
     -- 체크박스 텍스트 스타일 적용
     for _, pair in ipairs({
-        { ilCheck,       cW },
-        { weCheck,       cW },
-        { statsCheck,    cW },
-        { tankCheck,     cW },
-        { profCheck,     cW },
-        { merchantCheck, cW },
-        { mailCheck,     cW },
-        { bfCheck,       FULL_W - 24 },
+        { ilCheck,        cW },
+        { ilLockCheck,    cW },
+        { bisCheck,       cW },
+        { statsCheck,     cW },
+        { tankCheck,      cW },
+        { statsLockCheck, cW },
+        { profCheck,      cW },
+        { profLockCheck,  cW },
+        { bfCheck,        FULL_W - 24 },
     }) do
         styleCheck(pair[1], pair[2])
     end
@@ -162,6 +169,18 @@ function UtilityPanel:BindControls(refs)
         ns.DB:SetItemLevelOverlayEnabled(chk:GetChecked())
         ns:RefreshUI()
         setStatus(ns.L("config_saved_item_level_overlay", on(chk:GetChecked())))
+    end)
+
+    refs.ilLockCheck:SetScript("OnClick", function(chk)
+        ns.DB:SetItemLevelOverlayLocked(chk:GetChecked())
+        ns:RefreshUI()
+        setStatus(ns.L("config_saved_item_level_overlay_locked", on(chk:GetChecked())))
+    end)
+
+    refs.bisCheck:SetScript("OnClick", function(chk)
+        ns.DB:SetBISOverlayEnabled(chk:GetChecked())
+        ns:RefreshUI()
+        setStatus(ns.L("config_saved_bis_overlay", on(chk:GetChecked())))
     end)
 
     refs.statsCheck:SetScript("OnClick", function(chk)
@@ -223,7 +242,11 @@ function UtilityPanel:Refresh()
     refs.overlayBox.title:SetText(ns.L("utility_section_overlays"))
     refs.ilHint:SetText(ns.L("utility_overlay_hint"))
     refs.ilCheck.Text:SetText(ns.L("config_item_level_overlay_show"))
+    refs.ilLockCheck.Text:SetText(ns.L("config_item_level_overlay_lock"))
+    refs.bisCheck.Text:SetText(ns.L("config_bis_overlay_show"))
     refs.ilCheck:SetChecked(ns.DB:IsItemLevelOverlayEnabled())
+    refs.ilLockCheck:SetChecked(ns.DB:IsItemLevelOverlayLocked())
+    refs.bisCheck:SetChecked(ns.DB:IsBISOverlayEnabled())
 
     refs.statsBox.title:SetText(ns.L("utility_section_stats_overlay"))
     refs.statsHint:SetText(ns.L("utility_stats_hint"))

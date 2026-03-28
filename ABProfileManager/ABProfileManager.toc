@@ -17,6 +17,7 @@ Data\ProfessionKnowledge.lua
 Data\ProfessionKnowledgeWaypoints.lua
 Data\SilvermoonMapData.lua
 Data\ItemLevelTable.lua
+Data\BISData.lua
 Data\WorldEventSchedule.lua
 DB.lua
 Modules\SlotMapper.lua
@@ -42,6 +43,7 @@ UI\MinimapButton.lua
 UI\StatsOverlay.lua
 UI\ProfessionKnowledgeOverlay.lua
 UI\ItemLevelOverlay.lua
+UI\BISOverlay.lua
 UI\WorldEventOverlay.lua
 UI\TransferDialog.lua
 UI\ProfilePanel.lua

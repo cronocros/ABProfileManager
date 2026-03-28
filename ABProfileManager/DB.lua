@@ -752,6 +752,15 @@ function DB:SetItemLevelOverlayEnabled(enabled)
     return self:IsItemLevelOverlayEnabled()
 end
 
+function DB:IsItemLevelOverlayLocked()
+    return self:GetItemLevelOverlaySettings().locked and true or false
+end
+
+function DB:SetItemLevelOverlayLocked(locked)
+    self:GetItemLevelOverlaySettings().locked = locked and true or false
+    return self:IsItemLevelOverlayLocked()
+end
+
 function DB:GetItemLevelOverlayConfig()
     if not ns.db then
         return ns.Data.Defaults.ui.itemLevelOverlay
@@ -836,4 +845,23 @@ function DB:SetWorldEventCompleted(eventKey, completed)
     local dateStr = date and date("%Y-%m-%d") or "unknown"
     local key = eventKey.."_"..dateStr
     self:GetWorldEventCompletions()[key] = completed or nil
+end
+
+-- ============================================================
+-- BISOverlay
+-- ============================================================
+
+function DB:GetBISOverlaySettings()
+    local settings = self:GetGlobalSettings()
+    settings.bisOverlay = settings.bisOverlay or { enabled = false }
+    return settings.bisOverlay
+end
+
+function DB:IsBISOverlayEnabled()
+    return self:GetBISOverlaySettings().enabled and true or false
+end
+
+function DB:SetBISOverlayEnabled(enabled)
+    self:GetBISOverlaySettings().enabled = enabled and true or false
+    return self:IsBISOverlayEnabled()
 end

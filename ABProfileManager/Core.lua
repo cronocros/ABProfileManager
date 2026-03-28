@@ -61,6 +61,7 @@ function ns:InitializeStartupModules()
         self.UI.StatsOverlay,
         self.UI.ProfessionKnowledgeOverlay,
         self.UI.ItemLevelOverlay,
+        self.UI.BISOverlay,
         -- [비활성] self.UI.WorldEventOverlay,  -- 월드이벤트 자동감지 미동작
         self.UI.TransferDialog,
         self.UI.ConfigPanel,
@@ -133,6 +134,7 @@ function ns:RefreshUI()
     self:SafeCall(self.UI.StatsOverlay, "Refresh")
     self:SafeCall(self.UI.ProfessionKnowledgeOverlay, "Refresh")
     self:SafeCall(self.UI.ItemLevelOverlay, "Refresh")
+    self:SafeCall(self.UI.BISOverlay, "Refresh")
     -- [비활성] self:SafeCall(self.UI.WorldEventOverlay, "Refresh")
     self:SafeCall(self.UI.SilvermoonMapOverlay, "Refresh")
     self:SafeCall(self.UI.MainWindow, "RefreshStatus")

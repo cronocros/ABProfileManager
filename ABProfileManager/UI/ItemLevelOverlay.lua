@@ -357,8 +357,8 @@ function ItemLevelOverlay:EnsureFrame()
             tile = true, tileSize = 8, edgeSize = 8,
             insets = { left=2, right=2, top=2, bottom=2 },
         })
-        frame:SetBackdropColor(0.04, 0.04, 0.06, 0.50)
-        frame:SetBackdropBorderColor(0.4, 0.4, 0.5, 0.60)
+        frame:SetBackdropColor(0.04, 0.04, 0.06, 0.85)
+        frame:SetBackdropBorderColor(0.4, 0.4, 0.5, 0.80)
     end
 
     local mode = config.anchorMode or "mythicplus"
@@ -378,7 +378,10 @@ function ItemLevelOverlay:EnsureFrame()
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(f) f:StartMoving() end)
+    frame:SetScript("OnDragStart", function(f)
+        if ns.DB and ns.DB:IsItemLevelOverlayLocked() then return end
+        f:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(f)
         f:StopMovingOrSizing()
         if ns.DB then

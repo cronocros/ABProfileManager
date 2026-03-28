@@ -59,9 +59,9 @@ local function safeDate()
 end
 
 local function resetEvaluationCaches(self)
-    self.evaluationCache = {}
-    self.sectionSummaryCache = {}
-    self.professionSummaryCache = {}
+    if self.evaluationCache then wipe(self.evaluationCache) else self.evaluationCache = {} end
+    if self.sectionSummaryCache then wipe(self.sectionSummaryCache) else self.sectionSummaryCache = {} end
+    if self.professionSummaryCache then wipe(self.professionSummaryCache) else self.professionSummaryCache = {} end
 end
 
 local function getQuestTitle(questID)
@@ -187,7 +187,8 @@ function Tracker:RefreshQuestCache(force)
         return self.completedQuestLookup
     end
 
-    local lookup = {}
+    if self.completedQuestLookup then wipe(self.completedQuestLookup) else self.completedQuestLookup = {} end
+    local lookup = self.completedQuestLookup
     if C_QuestLog and type(C_QuestLog.GetAllCompletedQuestIDs) == "function" then
         local completedQuestIDs = C_QuestLog.GetAllCompletedQuestIDs()
         if type(completedQuestIDs) == "table" then
@@ -200,8 +201,7 @@ function Tracker:RefreshQuestCache(force)
         end
     end
 
-    self.completedQuestLookup = lookup
-    self.questStatusLookup = {}
+    if self.questStatusLookup then wipe(self.questStatusLookup) else self.questStatusLookup = {} end
     self.questCacheDirty = false
     self.questCacheGeneration = (self.questCacheGeneration or 0) + 1
     resetEvaluationCaches(self)
