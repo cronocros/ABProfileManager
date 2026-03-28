@@ -865,3 +865,12 @@ function DB:SetBISOverlayEnabled(enabled)
     self:GetBISOverlaySettings().enabled = enabled and true or false
     return self:IsBISOverlayEnabled()
 end
+
+function DB:IsBISOverlayLocked()
+    return self:GetBISOverlaySettings().locked and true or false
+end
+
+function DB:SetBISOverlayLocked(locked)
+    self:GetBISOverlaySettings().locked = locked and true or false
+    return self:IsBISOverlayLocked()
+end

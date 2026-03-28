@@ -14,27 +14,31 @@ local SECTION_H    = 26
 local BOSS_H       = 18
 local ICON_SIZE    = 15
 local TAB_SIZE     = 24
-local TABS_H       = TAB_SIZE + 10
+local TABS_H       = TAB_SIZE + 12   -- 아이콘 + 하단 인디케이터 여백
 local TITLE_H      = 26
 local MAX_SCROLL_H = 340
 local FONT_PATH    = "Fonts\\2002.TTF"
 local FONT_FLAGS   = "OUTLINE"
 
--- 제목 + 탭 영역 높이
-local HEADER_H  = TITLE_H + 10 + TABS_H + 12  -- = 82
+-- 커스텀 스크롤바 치수
+local SB_W   = 7    -- 스크롤바 폭
+local SB_GAP = 5    -- 스크롤바와 컨텐츠 사이 간격
 
--- 유효 컨텐츠 폭 (스크롤바 공간 확보)
-local CONTENT_W = FRAME_W - PADDING * 2 - 28   -- = 412
+-- 헤더 총 높이
+local HEADER_H  = TITLE_H + 10 + TABS_H + 12  -- = 84
+
+-- 컨텐츠 폭: 스크롤바(+갭+오른쪽 패딩) 제외
+local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 
 -- 아이템 행 컬럼 레이아웃
 local ITEM_INDENT = 16
-local ITEM_W      = CONTENT_W - ITEM_INDENT    -- = 396
-local COL_ICON    = ICON_SIZE + 5              -- = 20
-local COL_SLOT    = 52
-local COL_NOTE    = 50
-local COL_NAME    = ITEM_W - COL_ICON - COL_SLOT - COL_NOTE  -- = 274
+local ITEM_W      = CONTENT_W - ITEM_INDENT   -- = 414
+local COL_ICON    = ICON_SIZE + 5             -- = 20
+local COL_NAME    = 210                        -- 아이템 이름 (고정 폭)
+local COL_SLOT    = 58                         -- 부위 슬롯
+local COL_NOTE    = 52                         -- BIS/대체 배지
 
--- 아이템 품질 색상 (M+ 기준)
+-- 아이템 품질 색상
 local QC = {
     [0] = { 0.55, 0.55, 0.55 },
     [1] = { 0.85, 0.85, 0.85 },
@@ -44,15 +48,15 @@ local QC = {
     [5] = { 1.00, 0.55, 0.00 },
 }
 
--- note 배지 텍스트 (색상 포함)
+-- note 배지 표시 텍스트 (한국어)
 local NOTE_TEXT = {
-    ["BIS"]  = "|cffffd000BIS|r",
-    ["대체재"] = "|cff44aaffALT|r",
-    ["2순위"] = "|cff55dd552nd|r",
+    ["BIS"]  = "|cffffc000최선|r",
+    ["대체재"] = "|cff44aaff대체|r",
+    ["2순위"] = "|cff55cc5522순|r",
 }
 
 -- ============================================================
--- Helper: 클래스 스펙 목록
+-- Helper 함수들
 -- ============================================================
 
 local function getClassSpecs()
@@ -91,7 +95,7 @@ local function groupByDungeon(items)
 end
 
 -- ============================================================
--- 아이템 정보 로드 이벤트 -> 디바운스 재빌드
+-- 아이템 정보 로드 이벤트 → 디바운스 재빌드
 -- ============================================================
 
 local _rebuildPending = false
@@ -104,6 +108,55 @@ local function scheduleRebuild()
             pcall(function() BISOverlay:RebuildContent() end)
         end
     end)
+end
+
+-- ============================================================
+-- 스크롤바 썸 업데이트
+-- ============================================================
+
+function BISOverlay:UpdateScrollThumb()
+    local frame = self.frame
+    if not frame or not frame.scrollBarThumb then return end
+    local sf        = frame.scrollFrame
+    local contentH  = frame.content:GetHeight()
+    local sfH       = math.max(1, sf:GetHeight())
+    local trackH    = math.max(1, frame.scrollBarTrack:GetHeight())
+
+    if contentH <= sfH then
+        frame.scrollBarThumb:Hide()
+        return
+    end
+
+    frame.scrollBarThumb:Show()
+    local ratio  = sfH / contentH
+    local thumbH = math.max(22, trackH * ratio)
+    frame.scrollBarThumb:SetHeight(thumbH)
+
+    local scrollRange = math.max(1, sf:GetVerticalScrollRange())
+    local scrollPos   = sf:GetVerticalScroll()
+    local thumbTravel = trackH - thumbH
+    local thumbY      = -(scrollPos / scrollRange * thumbTravel)
+    frame.scrollBarThumb:ClearAllPoints()
+    frame.scrollBarThumb:SetPoint("TOPRIGHT", frame.scrollBarTrack, "TOPRIGHT", 0, thumbY)
+end
+
+-- ============================================================
+-- 잠금 버튼 상태 업데이트
+-- ============================================================
+
+function BISOverlay:UpdateLockBtn()
+    local frame = self.frame
+    if not frame or not frame.lockBtn then return end
+    local locked = ns.DB and ns.DB:IsBISOverlayLocked()
+    if locked then
+        frame.lockBtn.bg:SetColorTexture(0.90, 0.75, 0.15, 0.85)
+        frame.lockBtn.label:SetTextColor(0.08, 0.05, 0.02, 1)
+        frame.lockBtn.label:SetText("잠")
+    else
+        frame.lockBtn.bg:SetColorTexture(0.12, 0.12, 0.22, 0.75)
+        frame.lockBtn.label:SetTextColor(0.55, 0.55, 0.65, 1)
+        frame.lockBtn.label:SetText("잠")
+    end
 end
 
 -- ============================================================
@@ -130,14 +183,18 @@ function BISOverlay:EnsureFrame()
         frame:SetBackdropBorderColor(0.50, 0.40, 0.80, 0.90)
     end
 
+    -- 드래그 (잠금 상태 확인)
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(f) f:StartMoving() end)
+    frame:SetScript("OnDragStart", function(f)
+        if ns.DB and ns.DB:IsBISOverlayLocked() then return end
+        f:StartMoving()
+    end)
     frame:SetScript("OnDragStop",  function(f) f:StopMovingOrSizing() end)
     frame:SetScript("OnHide",      function(f) f:StopMovingOrSizing() end)
 
-    -- 제목 바 배경
+    -- ─── 제목 바 배경 ───────────────────────────────────────
     local titleBar = frame:CreateTexture(nil, "BACKGROUND")
     titleBar:SetHeight(TITLE_H + 14)
     titleBar:SetPoint("TOPLEFT",  frame, "TOPLEFT",  5,  -5)
@@ -151,52 +208,138 @@ function BISOverlay:EnsureFrame()
     frame.titleText:SetTextColor(0.92, 0.82, 1.0, 1)
     frame.titleText:SetText(ns.L("bis_overlay_title"))
 
-    -- M+ 배지 텍스트
+    -- M+ 배지
     local mpBadge = frame:CreateFontString(nil, "OVERLAY")
     mpBadge:SetFont(FONT_PATH, 10, FONT_FLAGS)
-    mpBadge:SetPoint("LEFT", frame.titleText, "RIGHT", 8, 1)
+    mpBadge:SetPoint("LEFT", frame.titleText, "RIGHT", 6, 1)
     mpBadge:SetTextColor(0.20, 0.80, 1.0, 1)
     mpBadge:SetText("M+")
 
-    -- 구분선 1
+    -- ─── 잠금 버튼 ──────────────────────────────────────────
+    local lockBtn = CreateFrame("Button", nil, frame)
+    lockBtn:SetSize(18, 18)
+    lockBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -9)
+
+    lockBtn.bg = lockBtn:CreateTexture(nil, "BACKGROUND")
+    lockBtn.bg:SetAllPoints()
+    lockBtn.bg:SetColorTexture(0.12, 0.12, 0.22, 0.75)
+
+    lockBtn.label = lockBtn:CreateFontString(nil, "OVERLAY")
+    lockBtn.label:SetFont(FONT_PATH, 9, FONT_FLAGS)
+    lockBtn.label:SetAllPoints()
+    lockBtn.label:SetJustifyH("CENTER")
+    lockBtn.label:SetJustifyV("MIDDLE")
+    lockBtn.label:SetText("잠")
+    lockBtn.label:SetTextColor(0.55, 0.55, 0.65, 1)
+
+    lockBtn:SetScript("OnClick", function()
+        if not ns.DB then return end
+        ns.DB:SetBISOverlayLocked(not ns.DB:IsBISOverlayLocked())
+        self:UpdateLockBtn()
+    end)
+    lockBtn:SetScript("OnEnter", function(self2)
+        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        local locked = ns.DB and ns.DB:IsBISOverlayLocked()
+        GameTooltip:SetText(locked and "이동 잠금 해제" or "이동 잠금", 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    lockBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    frame.lockBtn = lockBtn
+
+    -- ─── 구분선 1 ───────────────────────────────────────────
     local sep1 = frame:CreateTexture(nil, "ARTWORK")
     sep1:SetHeight(1)
     sep1:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 10))
     sep1:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 10))
     sep1:SetColorTexture(0.45, 0.35, 0.70, 0.65)
 
-    -- 스펙 탭 영역
+    -- ─── 스펙 탭 영역 ────────────────────────────────────────
     frame.tabsFrame = CreateFrame("Frame", nil, frame)
     frame.tabsFrame:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 12))
     frame.tabsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 12))
     frame.tabsFrame:SetHeight(TABS_H)
     frame.tabs = {}
 
-    -- 구분선 2
+    -- ─── 구분선 2 ───────────────────────────────────────────
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
     sep2:SetHeight(1)
     sep2:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 12 + TABS_H + 4))
     sep2:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 12 + TABS_H + 4))
     sep2:SetColorTexture(0.45, 0.35, 0.70, 0.45)
 
-    -- 스크롤 프레임 (UIPanelScrollFrameTemplate)
-    frame.scrollFrame = CreateFrame("ScrollFrame", "ABPMBISOverlayScroll",
-        frame, "UIPanelScrollFrameTemplate")
-    frame.scrollFrame:SetPoint("TOPLEFT",     frame, "TOPLEFT",     PADDING,   -HEADER_H)
-    frame.scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING,   PADDING)
+    -- ─── 스크롤 프레임 ──────────────────────────────────────
+    frame.scrollFrame = CreateFrame("ScrollFrame", nil, frame)
+    frame.scrollFrame:SetPoint("TOPLEFT",     frame, "TOPLEFT",
+        PADDING, -HEADER_H)
+    frame.scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT",
+        -(PADDING + SB_W + SB_GAP), PADDING)
     frame.scrollFrame:EnableMouseWheel(true)
     frame.scrollFrame:SetScript("OnMouseWheel", function(sf, delta)
         local cur = sf:GetVerticalScroll()
         local max = sf:GetVerticalScrollRange()
         sf:SetVerticalScroll(math.max(0, math.min(max, cur - delta * 24)))
+        self:UpdateScrollThumb()
+    end)
+    frame.scrollFrame:SetScript("OnScrollRangeChanged", function()
+        self:UpdateScrollThumb()
     end)
 
-    -- 스크롤 자식 (컨텐츠)
+    -- ─── 스크롤 자식 ────────────────────────────────────────
     frame.content = CreateFrame("Frame", nil, frame.scrollFrame)
     frame.content:SetSize(CONTENT_W, 1)
     frame.scrollFrame:SetScrollChild(frame.content)
 
-    -- GET_ITEM_INFO_RECEIVED 이벤트 처리 (아이콘 지연 로드)
+    -- ─── 커스텀 스크롤바 트랙 ───────────────────────────────
+    frame.scrollBarTrack = frame:CreateTexture(nil, "ARTWORK")
+    frame.scrollBarTrack:SetWidth(SB_W)
+    frame.scrollBarTrack:SetPoint("TOPRIGHT",    frame, "TOPRIGHT",    -PADDING, -HEADER_H)
+    frame.scrollBarTrack:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING,  PADDING)
+    frame.scrollBarTrack:SetColorTexture(0.05, 0.05, 0.12, 0.85)
+
+    -- 트랙 좌측 미묘한 하이라이트 선
+    local sbEdge = frame:CreateTexture(nil, "ARTWORK")
+    sbEdge:SetWidth(1)
+    sbEdge:SetPoint("TOPRIGHT",    frame.scrollBarTrack, "TOPLEFT",    0, 0)
+    sbEdge:SetPoint("BOTTOMRIGHT", frame.scrollBarTrack, "BOTTOMLEFT", 0, 0)
+    sbEdge:SetColorTexture(0.30, 0.20, 0.55, 0.60)
+
+    -- ─── 커스텀 스크롤바 썸 ─────────────────────────────────
+    frame.scrollBarThumb = CreateFrame("Frame", nil, frame)
+    frame.scrollBarThumb:SetWidth(SB_W)
+    frame.scrollBarThumb:SetHeight(40)
+    frame.scrollBarThumb:SetPoint("TOPRIGHT", frame.scrollBarTrack, "TOPRIGHT", 0, 0)
+    frame.scrollBarThumb:Hide()
+
+    local thumbTex = frame.scrollBarThumb:CreateTexture(nil, "ARTWORK")
+    thumbTex:SetAllPoints()
+    thumbTex:SetColorTexture(0.55, 0.35, 0.88, 0.88)
+
+    -- 썸 드래그
+    local _dragging, _dragY, _dragScroll = false, 0, 0
+    frame.scrollBarThumb:EnableMouse(true)
+    frame.scrollBarThumb:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        _dragging  = true
+        _dragY     = select(2, GetCursorPosition()) / UIParent:GetEffectiveScale()
+        _dragScroll = frame.scrollFrame:GetVerticalScroll()
+    end)
+    frame.scrollBarThumb:SetScript("OnMouseUp", function()
+        _dragging = false
+    end)
+    frame.scrollBarThumb:SetScript("OnUpdate", function()
+        if not _dragging then return end
+        local curY    = select(2, GetCursorPosition()) / UIParent:GetEffectiveScale()
+        local dy      = _dragY - curY
+        local trackH  = math.max(1, frame.scrollBarTrack:GetHeight())
+        local thumbH  = math.max(1, frame.scrollBarThumb:GetHeight())
+        local maxS    = frame.scrollFrame:GetVerticalScrollRange()
+        local frac    = dy / (trackH - thumbH)
+        local newS    = math.max(0, math.min(maxS, _dragScroll + frac * maxS))
+        frame.scrollFrame:SetVerticalScroll(newS)
+        self:UpdateScrollThumb()
+    end)
+
+    -- GET_ITEM_INFO_RECEIVED 이벤트
     local evFrame = CreateFrame("Frame")
     evFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
     evFrame:SetScript("OnEvent", function(_, _, _, success)
@@ -228,15 +371,9 @@ function BISOverlay:EnsureTabs()
     for i, spec in ipairs(specs) do
         local tab = CreateFrame("Button", nil, frame.tabsFrame)
         tab:SetSize(TAB_SIZE, TAB_SIZE)
-        tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 6), -1)
+        tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 8), 0)
 
-        -- 선택 배경
-        tab.bg = tab:CreateTexture(nil, "BACKGROUND")
-        tab.bg:SetPoint("TOPLEFT",     tab, "TOPLEFT",     -2,  2)
-        tab.bg:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT",  2, -2)
-        tab.bg:SetColorTexture(0, 0, 0, 0)
-
-        -- 스펙 아이콘
+        -- 아이콘
         tab.icon = tab:CreateTexture(nil, "ARTWORK")
         tab.icon:SetAllPoints()
         if spec.icon then
@@ -244,11 +381,17 @@ function BISOverlay:EnsureTabs()
             tab.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
         end
 
-        -- 황금 테두리 (활성 탭)
-        tab.border = tab:CreateTexture(nil, "OVERLAY")
-        tab.border:SetPoint("TOPLEFT",     tab, "TOPLEFT",     -2,  2)
-        tab.border:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT",  2, -2)
-        tab.border:SetColorTexture(0.90, 0.75, 0.10, 0)
+        -- 하단 활성 인디케이터 바 (아이콘 바로 아래 2px 선)
+        tab.indicator = tab:CreateTexture(nil, "OVERLAY")
+        tab.indicator:SetHeight(2)
+        tab.indicator:SetPoint("BOTTOMLEFT",  tab, "BOTTOMLEFT",  0, -3)
+        tab.indicator:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, -3)
+        tab.indicator:SetColorTexture(0, 0, 0, 0)
+
+        -- 마우스 오버 하이라이트
+        tab.highlight = tab:CreateTexture(nil, "HIGHLIGHT")
+        tab.highlight:SetAllPoints()
+        tab.highlight:SetColorTexture(1, 1, 1, 0.12)
 
         tab.specID   = spec.specID
         tab.specName = spec.name
@@ -279,13 +422,11 @@ function BISOverlay:UpdateTabHighlight()
         if tab.specID == activeID then
             tab.icon:SetDesaturated(false)
             tab.icon:SetAlpha(1.0)
-            tab.border:SetColorTexture(0.90, 0.75, 0.10, 0.85)
-            tab.bg:SetColorTexture(0.90, 0.75, 0.10, 0.20)
+            tab.indicator:SetColorTexture(0.20, 0.85, 1.0, 1.0)  -- 밝은 시안
         else
             tab.icon:SetDesaturated(true)
-            tab.icon:SetAlpha(0.45)
-            tab.border:SetColorTexture(0, 0, 0, 0)
-            tab.bg:SetColorTexture(0, 0, 0, 0)
+            tab.icon:SetAlpha(0.40)
+            tab.indicator:SetColorTexture(0, 0, 0, 0)
         end
     end
 end
@@ -300,25 +441,21 @@ local function ensureRow(frame, index)
     local row = CreateFrame("Frame", nil, frame.content)
     row:SetHeight(ROW_H)
 
-    -- 배경 (던전 헤더 / 교번 아이템 배경용)
     row.bg = row:CreateTexture(nil, "BACKGROUND")
     row.bg:SetAllPoints()
     row.bg:SetColorTexture(0, 0, 0, 0)
 
-    -- 좌측 악센트 바
     row.accent = row:CreateTexture(nil, "ARTWORK")
     row.accent:SetWidth(3)
     row.accent:SetPoint("TOPLEFT",    row, "TOPLEFT",    0, 0)
     row.accent:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
     row.accent:SetColorTexture(0, 0, 0, 0)
 
-    -- 아이템 아이콘
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(ICON_SIZE, ICON_SIZE)
     row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     row.icon:Hide()
 
-    -- 메인 라벨 (던전명/보스명/아이템명)
     row.nameLabel = row:CreateFontString(nil, "OVERLAY")
     row.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
     row.nameLabel:SetJustifyH("LEFT")
@@ -326,7 +463,6 @@ local function ensureRow(frame, index)
     row.nameLabel:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -1)
     row.nameLabel:SetWidth(200)
 
-    -- 슬롯 라벨
     row.slotLabel = row:CreateFontString(nil, "OVERLAY")
     row.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
     row.slotLabel:SetJustifyH("CENTER")
@@ -334,7 +470,6 @@ local function ensureRow(frame, index)
     row.slotLabel:SetWidth(COL_SLOT)
     row.slotLabel:Hide()
 
-    -- note 배지 라벨
     row.noteLabel = row:CreateFontString(nil, "OVERLAY")
     row.noteLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
     row.noteLabel:SetJustifyH("CENTER")
@@ -342,7 +477,6 @@ local function ensureRow(frame, index)
     row.noteLabel:SetWidth(COL_NOTE)
     row.noteLabel:Hide()
 
-    -- 툴팁 영역
     row.tooltipRegion = CreateFrame("Frame", nil, row)
     row.tooltipRegion:SetAllPoints(row)
     row.tooltipRegion:EnableMouse(true)
@@ -358,10 +492,6 @@ local function ensureRow(frame, index)
     frame.rows[index] = row
     return row
 end
-
--- ============================================================
--- 행 초기화 헬퍼
--- ============================================================
 
 local function resetRow(row)
     row.bg:SetColorTexture(0, 0, 0, 0)
@@ -412,10 +542,10 @@ function BISOverlay:RebuildContent()
         yOffset = yOffset + ROW_H + 4
     else
         local dungeons, order = groupByDungeon(bisData)
-        local itemRowCount = 0  -- 홀짝 배경용
+        local itemRowCount = 0
 
         for _, dungeonName in ipairs(order) do
-            -- ─── 던전 헤더 ───────────────────────────────────────
+            -- ─── 던전 헤더 ───────────────────────────────────
             rowIndex = rowIndex + 1
             local hdr = ensureRow(frame, rowIndex)
             hdr:ClearAllPoints()
@@ -437,7 +567,7 @@ function BISOverlay:RebuildContent()
             local prevBoss = nil
 
             for _, entry in ipairs(items) do
-                -- ─── 보스 행 ─────────────────────────────────────
+                -- ─── 보스 행 ─────────────────────────────────
                 if entry.boss ~= prevBoss then
                     prevBoss = entry.boss
                     rowIndex = rowIndex + 1
@@ -456,7 +586,7 @@ function BISOverlay:RebuildContent()
                     yOffset = yOffset + BOSS_H + 2
                 end
 
-                -- ─── 아이템 행 ───────────────────────────────────
+                -- ─── 아이템 행 ───────────────────────────────
                 rowIndex = rowIndex + 1
                 itemRowCount = itemRowCount + 1
                 local iRow = ensureRow(frame, rowIndex)
@@ -470,10 +600,10 @@ function BISOverlay:RebuildContent()
                 if itemRowCount % 2 == 0 then
                     iRow.bg:SetColorTexture(0.06, 0.08, 0.14, 0.55)
                 else
-                    iRow.bg:SetColorTexture(0.04, 0.05, 0.10, 0.30)
+                    iRow.bg:SetColorTexture(0.04, 0.05, 0.10, 0.28)
                 end
 
-                -- 아이템 정보 조회 (GetItemInfo: name, _, quality, _, _, _, _, _, _, texture)
+                -- GetItemInfo 조회
                 local itemName, quality, texture
                 if entry.itemID and entry.itemID > 0 then
                     local ok, n, _, q, _, _, _, _, _, _, tex = pcall(GetItemInfo, entry.itemID)
@@ -481,13 +611,10 @@ function BISOverlay:RebuildContent()
                         itemName = n
                         quality  = q
                         texture  = tex
-                    else
-                        -- 아직 캐시 없음 (GET_ITEM_INFO_RECEIVED 대기)
-                        itemName = nil
                     end
                 end
 
-                -- 아이콘 배치
+                -- 아이콘
                 if texture then
                     iRow.icon:SetTexture(texture)
                     iRow.icon:SetPoint("LEFT", iRow, "LEFT", 0, 0)
@@ -496,36 +623,32 @@ function BISOverlay:RebuildContent()
                     iRow.icon:Hide()
                 end
 
-                -- 이름 라벨 (아이콘 우측)
-                local nameX = texture and (COL_ICON) or 0
-                local nameW  = COL_NAME + (texture and 0 or COL_ICON)
+                -- 이름 라벨 (아이콘 우측, 고정 폭으로 슬롯 컬럼 위치 보장)
+                local nameX = texture and COL_ICON or 0
+                local nameW = COL_NAME + (texture and 0 or COL_ICON)
                 iRow.nameLabel:ClearAllPoints()
                 iRow.nameLabel:SetPoint("LEFT", iRow, "LEFT", nameX, 0)
                 iRow.nameLabel:SetWidth(nameW)
                 iRow.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
 
                 if itemName then
-                    -- M+ 기준: 최소 에픽(4=보라) 이상으로 표시
-                    -- 전설(5=주황)은 그대로, 그 외는 모두 에픽으로 올림
+                    -- M+ 기준: 최소 에픽(4=보라), 전설(5=주황)은 유지
                     local effectiveQ = math.max(quality or 4, 4)
                     local qc = QC[effectiveQ] or QC[4]
                     iRow.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
                     iRow.nameLabel:SetText(itemName)
                 else
-                    -- 로딩 중: 에픽 색상으로 표시
-                    local qc = QC[4]
-                    iRow.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 0.55)
+                    iRow.nameLabel:SetTextColor(QC[4][1], QC[4][2], QC[4][3], 0.50)
                     iRow.nameLabel:SetText("...")
                 end
 
                 -- 슬롯 라벨
                 if entry.slot then
                     iRow.slotLabel:ClearAllPoints()
-                    iRow.slotLabel:SetPoint("LEFT", iRow, "LEFT",
-                        COL_ICON + COL_NAME, 0)
+                    iRow.slotLabel:SetPoint("LEFT", iRow, "LEFT", COL_ICON + COL_NAME, 0)
                     iRow.slotLabel:SetWidth(COL_SLOT)
                     iRow.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
-                    iRow.slotLabel:SetTextColor(0.70, 0.70, 0.70, 1)
+                    iRow.slotLabel:SetTextColor(0.72, 0.72, 0.72, 1)
                     iRow.slotLabel:SetText(entry.slot)
                     iRow.slotLabel:Show()
                 end
@@ -548,15 +671,19 @@ function BISOverlay:RebuildContent()
                 yOffset = yOffset + ROW_H + 1
             end
 
-            yOffset = yOffset + 6  -- 던전 간 간격
+            yOffset = yOffset + 6
         end
     end
 
-    -- 컨텐츠/프레임 높이 갱신
+    -- 높이 갱신
     frame.content:SetHeight(math.max(1, yOffset))
     local visH   = math.min(MAX_SCROLL_H, yOffset)
     local totalH = HEADER_H + math.max(20, visH) + PADDING
     frame:SetHeight(totalH)
+
+    -- 스크롤 초기화 및 썸 업데이트 (레이아웃 확정 후)
+    frame.scrollFrame:SetVerticalScroll(0)
+    C_Timer.After(0, function() self:UpdateScrollThumb() end)
 end
 
 -- ============================================================
@@ -579,6 +706,7 @@ function BISOverlay:Refresh()
     if not self.frame then return end
 
     self:EnsureTabs()
+    self:UpdateLockBtn()
 
     self.frame:ClearAllPoints()
     local ilFrame = ns.UI.ItemLevelOverlay and ns.UI.ItemLevelOverlay.frame

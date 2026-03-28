@@ -65,6 +65,7 @@ ns.Data.Defaults = {
             },
             bisOverlay = {
                 enabled = false,
+                locked  = false,
             },
             worldEventOverlay = {
                 enabled = false,
