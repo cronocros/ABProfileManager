@@ -61,6 +61,18 @@ local NOTE_TEXT = {
     ["2순위"] = "|cff55cc5522순|r",
 }
 
+-- 던전 → 모험 안내서 instanceID 매핑 (returning 던전 확인값, Midnight 신규 던전은 미확인)
+local DUNGEON_EJ_IDS = {
+    ["마법학자의 정원"]   = 585,   -- Magisters' Terrace (TBC)
+    ["마이사라 동굴"]     = nil,   -- Midnight 신규 (ID 미확인)
+    ["공결점 제나스"]     = nil,   -- Midnight 신규 (ID 미확인)
+    ["윈드러너 첨탑"]     = nil,   -- Midnight 신규 (ID 미확인)
+    ["알게타르 아카데미"] = 1196,  -- Algeth'ar Academy (DF)
+    ["삼두정의 권좌"]     = 1624,  -- Seat of the Triumvirate (Legion)
+    ["하늘탑"]            = 1279,  -- Skyreach (WoD)
+    ["사론의 구덩이"]     = 285,   -- Pit of Saron (WotLK)
+}
+
 -- ============================================================
 -- Helper 함수들
 -- ============================================================
@@ -88,6 +100,27 @@ local function getPlayerSpecID()
     local ok, specID = pcall(GetSpecializationInfo, idx)
     if ok and specID then return specID end
     return nil
+end
+
+-- 모험 안내서 열기 (safe — pcall 보호)
+local function openEncounterJournal(dungeonName)
+    local instanceID = dungeonName and DUNGEON_EJ_IDS[dungeonName]
+    pcall(function()
+        if EncounterJournal then
+            if not EncounterJournal:IsShown() then
+                if ShowUIPanel then
+                    ShowUIPanel(EncounterJournal)
+                elseif ToggleEncounterJournal then
+                    ToggleEncounterJournal()
+                end
+            end
+            if instanceID then
+                C_Timer.After(0.1, function()
+                    pcall(EJ_SelectInstance, instanceID)
+                end)
+            end
+        end
+    end)
 end
 
 local function groupByDungeon(items)
@@ -485,12 +518,29 @@ local function ensureRow(frame, index)
     row.tooltipRegion = CreateFrame("Frame", nil, row)
     row.tooltipRegion:SetAllPoints(row)
     row.tooltipRegion:EnableMouse(true)
+    row.tooltipRegion:RegisterForClicks("LeftButtonUp")
+    -- OnClick: 던전 헤더일 때 모험 안내서 열기
+    row.tooltipRegion:SetScript("OnClick", function()
+        if row._isDungeonHeader and row._ejDungeonName then
+            openEncounterJournal(row._ejDungeonName)
+        end
+    end)
+    -- OnEnter: 던전 헤더 힌트 / 아이템 툴팁 (에픽 품질 강제 표시)
     row.tooltipRegion:SetScript("OnEnter", function(self2)
-        if row.itemID and row.itemID > 0 then
+        if row._isDungeonHeader then
+            GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+            local hint = DUNGEON_EJ_IDS[row._ejDungeonName or ""]
+                and "|cff55ccff[클릭] 모험 안내서에서 열기|r"
+                or  "|cff888888[클릭] 모험 안내서 열기 (ID 미확인)|r"
+            GameTooltip:SetText(hint, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        elseif row.itemID and row.itemID > 0 then
             GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
             GameTooltip:SetItemByID(row.itemID)
-            -- 베이스 아이템은 일반/영웅 품질이지만 M+ 기준은 에픽 이상임을 표시
-            GameTooltip:AddLine("|cffcc33ff[M+ 신화+ 기준 — 에픽 등급 이상]|r")
+            -- 베이스 아이템은 파란색이지만 M+ 실착용은 에픽 이상 → 이름 색상을 에픽 보라로 강제 표시
+            local nameFS = _G["GameTooltipTextLeft1"]
+            if nameFS then nameFS:SetTextColor(0.80, 0.35, 1.00, 1) end
+            GameTooltip:AddLine("|cffcc33ff[M+ 신화+ 기준 — 에픽 등급]|r")
             GameTooltip:Show()
         end
     end)
@@ -507,6 +557,8 @@ local function resetRow(row)
     row.slotLabel:Hide()
     row.noteLabel:Hide()
     row.itemID = nil
+    row._isDungeonHeader = false
+    row._ejDungeonName   = nil
 end
 
 -- ============================================================
@@ -572,6 +624,9 @@ function BISOverlay:RebuildContent()
             hdr.nameLabel:SetFont(FONT_PATH, 12, FONT_FLAGS)
             hdr.nameLabel:SetTextColor(0.55, 0.88, 1.0, 1)
             hdr.nameLabel:SetText(dungeonName)
+            -- 클릭 → 모험 안내서 연동
+            hdr._isDungeonHeader = true
+            hdr._ejDungeonName   = dungeonName
             hdr:Show()
             yOffset = yOffset + SECTION_H + 1
 

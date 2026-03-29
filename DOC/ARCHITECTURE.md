@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.4.7`
+버전 기준: `v1.5.0`
 
 ## 목적
 
@@ -14,6 +14,8 @@
 - 캐릭터 스탯 오버레이
 - 한밤(Midnight) 지도 오버레이
 - 전체 typography 슬라이더
+- 드랍템 레벨 참조 오버레이 (쐐기/레이드/구렁/기타, 문장 수 패널)
+- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 모험 안내서 연동)
 
 핵심 원칙:
 
@@ -81,7 +83,6 @@
 - `Modules/CombatTextManager.lua`
   - Midnight 최신 전투메시지 `_v2` CVar와 구형 이름 fallback을 함께 관리
   - 현재 클라이언트 값을 읽어 초기 스냅샷을 만들고, 사용자가 켠 표출 방식만 다시 적용
-  - 적용 후 read-back 검증과 짧은 retry로 `부채꼴` 모드 실패를 더 보수적으로 감지
 - `UI/ConfigPanel.lua`
   - 일반 설정, typography 슬라이더, 개요, 전투메시지 표출 방식 설정을 담당
 - `UI/MapPanel.lua`
@@ -90,6 +91,34 @@
 - `Modules/TomTomBridge.lua`
   - TomTom 선택적 연동
   - 하란다르/공허폭풍 일부 1회성 보물은 해당 지역 진입 후 waypoint 생성 안내를 포함
+
+### 드랍/아이템 레벨 오버레이
+
+- `UI/ItemLevelOverlay.lua`
+  - 파티찾기(PVEFrame) 열릴 때 옆에 표시
+  - 탭: 개요 / 쐐기 / 구렁 / 레이드 / 기타
+  - 각 행: 단/난이도 | 클리어보상(ilvl+등급) | 드랍문장 | 위대한금고
+  - 우측 사이드 패널: "나의 문장" — `C_CurrencyInfo`로 현재 문장 보유량 표시
+  - 마우스 휠 스케일 조절
+- `Data/ItemLevelTable.lua`
+  - 쐐기(endOfDungeon, heroic, mythic0), 레이드(normal/heroic/mythic), 구렁(12단계), 제작, PvP 데이터
+  - Midnight 시즌 1 실측 기준
+
+### BIS 인던 드랍 정보 오버레이
+
+- `UI/BISOverlay.lua`
+  - 플레이어 클래스의 전 특성 탭 (spec icon 탭 클릭으로 전환)
+  - 던전별 / 보스별 / 아이템별 3단계 계층 렌더
+  - 아이템 아이콘 + 이름(에픽 품질 표시) + 부위 + BIS/대체 배지
+  - 던전 헤더 클릭 → `openEncounterJournal()` → 모험 안내서 자동 열기
+  - `DUNGEON_EJ_IDS` 테이블: returning 던전은 instanceID 확인, Midnight 신규 던전은 nil
+  - 아이템 툴팁: `GetItemByID` 베이스 품질(파란색) → `GameTooltipTextLeft1` 색상을 에픽 보라로 강제 표시
+  - 헤더 영역 마우스 휠: 스케일 0.5~2.0x 조절
+  - 잠금/접기: UtilityPanel bisLockCheck / 오버레이 우상단 −/+ 버튼
+- `Data/BISData.lua`
+  - 키: specID (전사 71~73, 성기사 65/66/70, ... 용기사 1467/1468/1473)
+  - 값: `{ dungeon, boss, itemID, slot, note }` 배열
+  - note: `"BIS"` / `"대체재"` / `"2순위"`
 
 ## 데이터 계층
 
@@ -103,6 +132,10 @@
   - 한밤(Midnight) 지도 라벨 정의
 - `Data/StatPriorities.lua`
   - 특성별 일반 PvE 우선순위
+- `Data/ItemLevelTable.lua`
+  - 컨텐츠별 드랍 아이템 레벨 테이블
+- `Data/BISData.lua`
+  - 전 클래스/특성 BIS 아이템 목록 (M+ 신화+ 기준)
 
 ## UI 계층
 
@@ -130,6 +163,12 @@
   - profession 포인트 오버레이
 - `UI/SilvermoonMapOverlay.lua`
   - 한밤(Midnight) 지도 텍스트 오버레이
+- `UI/ItemLevelOverlay.lua`
+  - 드랍 아이템 레벨 참조 오버레이
+- `UI/BISOverlay.lua`
+  - BIS 인던 드랍 정보 오버레이
+- `UI/UtilityPanel.lua`
+  - 편의기능 탭 (오버레이 on/off, 잠금, BlizzardFrameManager 설정)
 - `UI/TransferDialog.lua`
   - import/export 대화상자
 - `UI/ConfirmDialogs.lua`
@@ -147,7 +186,8 @@
   - 언어
   - 확인창
   - 디버그
-  - 오버레이 표시 여부
+  - 오버레이 표시 여부 (statsOverlay, professionKnowledgeOverlay, silvermoonMapOverlay, itemLevelOverlay, bisOverlay)
+  - bisOverlay.locked — BIS 오버레이 드래그 잠금
   - typography 도메인별 오프셋
   - 지도 라벨 카테고리 필터
   - 마우스 이동 자동 복구
@@ -156,8 +196,9 @@
 
 - `ui`
   - 메인 창 위치
-  - profession 오버레이 위치/모드
-  - stats 오버레이 위치
+  - profession 오버레이 위치/모드/scale
+  - stats 오버레이 위치/scale
+  - itemLevelOverlay 위치/scale/currentTab/collapsed/anchorMode
 
 ### 캐릭터별
 
@@ -196,6 +237,14 @@
 4. 라벨 줄바꿈/오프셋/카테고리 필터/지도 글자 크기 반영
 5. WorldMap에 텍스트 오버레이 렌더
 
+### BIS 오버레이
+
+1. `EnsureFrame()` — BackdropTemplate 프레임, 스크롤, 스펙 탭 생성
+2. `EnsureTabs()` — 현재 캐릭터 클래스의 specID별 탭 아이콘 생성
+3. `RebuildContent()` — 선택된 specID의 BISData를 던전→보스→아이템 순서로 렌더
+4. `GET_ITEM_INFO_RECEIVED` → 0.3초 디바운스 `scheduleRebuild()` → `_isItemLoadRebuild=true` → 스크롤 위치 유지 rebuild
+5. 던전 헤더 클릭 → `openEncounterJournal(dungeonName)` → EJ 열기
+
 ## 성능 및 GC 최적화 패턴
 
 ### SilvermoonMapOverlay — LayoutPoints hot path (250ms OnUpdate 드라이버)
@@ -223,7 +272,6 @@
 
 - `Events.lua`: `refreshQuestPanel()` — 0.15초 내 중복 호출을 1회로 합산
 - `QuestPanel.RefreshInternal`: `IsVisible()` 가드 — 탭이 보이지 않으면 `QuestManager:Scan` 실행 건너뜀
-- `QuestManager:Scan`은 호출당 퀘스트 5+ WoW API를 사용하므로 디바운스 없이 실행 시 CPU 점유 급등
 
 ### BlizzardFrameManager — SetUserPlaced 주의 사항
 
@@ -239,9 +287,12 @@
 - 지도 오버레이는 지원하지 않는 child/detail map에서 부모 지도 라벨을 억지로 보여주지 않는다.
 - 와우 `설정 > 애드온`은 메인 창 재사용이 아니라 경량 패널만 사용한다.
 - 대규모 UI 리디자인보다 현재 배치 유지와 overflow 방지 보정을 우선한다.
+- BIS/ItemLevelOverlay는 `pcall` 보호 하에 실행되어 오류 시 메인 UI 영향 없음.
 
 ## 현재 운영 메모
 
 - TomTom 1회성 waypoint는 하란다르/공허폭풍 일부 보물에서 별도 지역 지도 컨텍스트를 사용하므로, 해당 지역에 들어간 뒤 생성된다.
 - 지도 좌표는 패치 후 수동 보정이 필요할 수 있다.
 - 제작 주문, catch-up 같은 profession 예외 획득원은 아직 별도 자동 집계하지 않는다.
+- BIS 아이템 데이터는 Midnight 시즌 1 M+ 신화+ 기준이며, 패치 후 변경 시 `Data/BISData.lua`만 수정하면 된다.
+- 문장 수 패널의 통화 ID는 추정값 포함 — "?" 표시 시 `CREST_CURRENCY_IDS` 테이블에서 수정.

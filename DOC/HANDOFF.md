@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.4.7`
+버전 기준: `v1.5.0`
 
 ## 현재 상태
 
@@ -16,9 +16,10 @@
 - 한밤(Midnight) 지도 오버레이
 - 지도 전용 탭과 typography 슬라이더
 - 와우 `설정 > 애드온` 경량 하위 페이지
-- **[신규]** 드랍템 레벨정보 오버레이 (쐐기/레이드/구렁 탭, 파티찾기창 연동)
-- **[신규]** 블리자드 기본 UI 창 이동 자유화 (BlizzardFrameManager)
-- **[신규]** 편의기능 탭 (UtilityPanel) 통합
+- 드랍템 레벨정보 오버레이 (쐐기/레이드/구렁 탭, 파티찾기창 연동, 문장 수 사이드 패널)
+- 블리자드 기본 UI 창 이동 자유화 (BlizzardFrameManager)
+- 편의기능 탭 (UtilityPanel) 통합
+- **[신규 v1.5.0]** BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 던전 클릭 → 모험 안내서)
 - **[비활성]** 월드이벤트 오버레이 — Midnight 이벤트 스케줄 미확정, 자동감지 미동작
 - **[비활성]** 상점 도안/장난감 음영처리 (MerchantHelper) — Midnight spellID API 불일치
 - **[비활성]** 우편 수신자 히스토리 (MailHistory) — WoW taint 문제로 자동완성 미동작
@@ -79,6 +80,56 @@
 - 외부 지역 포탈 좌표는 실버문보다 검증 신뢰도가 낮으므로 사용자 제보가 들어오면 우선 재확인한다
 - 지원하지 않는 child/detail map은 부모 지도 라벨을 억지로 따라오지 않게 숨기는 것이 현재 기준이다
 
+### 5. BIS 인던 드랍 정보 오버레이 (v1.5.0 신규)
+
+- `UI/BISOverlay.lua` — 전 클래스/특성 M+ BIS 아이템 목록, 스펙 탭
+- `Data/BISData.lua` — specID 키, { dungeon, boss, itemID, slot, note } 배열
+- **던전 헤더 클릭 → 모험 안내서 자동 열기**: `DUNGEON_EJ_IDS` 테이블에 instanceID 매핑
+  - returning 던전(마법학자의 정원/알게타르/삼두정/하늘탑/사론의 구덩이): instanceID 확인값
+  - Midnight 신규 던전(마이사라 동굴/공결점 제나스/윈드러너 첨탑): instanceID 미확인 → nil (EJ는 열리나 특정 던전으로 이동 안 됨)
+- **아이템 툴팁**: `GetItemByID`는 베이스 품질(파랑) 반환 → `GameTooltipTextLeft1` 색상을 에픽 보라로 강제 설정
+- **마우스 휠 스케일**: 헤더 영역(스크롤프레임 밖) 스크롤 시 프레임 0.5~2.0배 스케일 조절
+- **잠금/접기**: 잠금은 UtilityPanel bisLockCheck, 접기는 오버레이 우상단 −/+ 버튼
+
+### 6. 드랍템 레벨 오버레이 — 문장 수 사이드 패널 (v1.5.0 신규)
+
+- `UI/ItemLevelOverlay.lua` — `EnsureCrestPanel` + `UpdateCrestPanel`
+- ItemLevelOverlay 프레임 오른쪽에 "나의 문장" 사이드 패널 자동 표시
+- `C_CurrencyInfo.GetCurrencyInfo(id)` 로 현재 문장 보유량 표시
+- **통화 ID (Midnight 시즌 1)**:
+  - 영웅 새벽 문장 = 3345 (연구 확인)
+  - 나머지(모험가/노련가/챔피언/신화): 3342~3346 순서 추정 → 인게임 검증 필요
+  - ID가 틀리면 수치가 "?" 로 표시됨 — `CREST_CURRENCY_IDS` 테이블에서 수정
+
+### 7. BlizzardFrameManager (블리자드 창 이동)
+
+- `Modules/BlizzardFrameManager.lua` — MANAGED_FRAMES 목록의 각 프레임에 SetMovable + OnDragStop 저장 + OnShow 복원
+- `UpdateUIPanelPositions` hooksecurefunc로 탭 전환 시 깜박임 없이 복원
+- `lazyAddon` 패턴: ADDON_LOADED 이벤트 → 지연 로드 프레임(전문기술, 탤런트 등)에 적용
+- **주의**: `QuestFrame`(NPC 퀘스트 대화창)은 MANAGED_FRAMES에 넣지 말 것 — 퀘스트 목록창 소실 원인
+- **주의**: `SetUserPlaced(true)`는 반드시 `uiPanel=true` 프레임에만 적용할 것. WorldMapFrame 등 비UIPanel 프레임에 적용 시 WoW가 compact/customized 모드로 인식해 오른쪽 퀘스트 목록 패널을 숨김.
+
+### 8. GC 최적화 (SilvermoonMapOverlay / StatsOverlay / QuestPanel)
+
+- **SilvermoonMapOverlay**: `LayoutPoints` hot path가 호출당 0개 신규 테이블 생성으로 최적화됨
+  - 모듈 레벨 재사용 버퍼: `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool`, `_scoreRect`, `_bestRect`, `_candidateBuf[16]`
+  - `_mapInfoCache`: `C_Map.GetMapInfo` pcall 결과 세션 영구 캐시 (mapID → result)
+- **StatsOverlay**: `BuildSnapshotSignature` — 모듈 레벨 `_snapshotParts` 재사용 버퍼
+- **QuestPanel**: `RefreshInternal`에 `IsVisible()` 가드 추가
+- **Events.lua**: `QUEST_LOG_UPDATE` 0.15초 디바운스 추가
+
+### 9. MerchantHelper / MailHistory / WorldEventOverlay (비활성)
+
+- 세 모듈 모두 `Core.lua` 초기화 목록과 `Events.lua` 이벤트 등록에서 주석 처리
+- 파일은 유지 (미래 재활성화 대비)
+- 백그라운드 활동 없음: 이벤트 미등록, 프레임 미생성, OnUpdate 미실행
+- **재활성화 시**: `Core.lua` 주석 해제 + `Events.lua` 주석 해제
+
+### 10. 디버그 로그 버퍼 & `/abpm log` 명령
+
+- `Utils.lua` — `debugLogBuffer` (최대 200줄), `Utils.GetDebugLog()`, `Utils.ClearDebugLog()`
+- `/abpm log` 명령 → 팝업 EditBox에 로그 출력, 복사 가능
+
 ## 중요한 파일
 
 ### 핵심
@@ -122,11 +173,13 @@
 - `ABProfileManager/UI/AddonSettingsPages.lua`
 - `ABProfileManager/UI/UtilityPanel.lua`
 
-### 신규 모듈 (v1.4.7)
+### 드랍/아이템레벨/BIS 오버레이
 
 - `ABProfileManager/Modules/BlizzardFrameManager.lua` — 블리자드 UI 창 이동/복원
-- `ABProfileManager/UI/ItemLevelOverlay.lua` — 드랍템 레벨 참조 오버레이 (파티찾기창 연동)
-- `ABProfileManager/Data/ItemLevelTable.lua` — 쐐기/레이드/구렁 ilvl 데이터
+- `ABProfileManager/UI/ItemLevelOverlay.lua` — 드랍템 레벨 참조 오버레이 (파티찾기창 연동, 문장 수 패널)
+- `ABProfileManager/Data/ItemLevelTable.lua` — 쐐기/레이드/구렁 ilvl 데이터 (Midnight 시즌 1)
+- `ABProfileManager/UI/BISOverlay.lua` — BIS 인던 드랍 정보 오버레이 (전 클래스/특성)
+- `ABProfileManager/Data/BISData.lua` — specID 키 BIS 아이템 목록
 
 ### 비활성 모듈 (코드 유지, 초기화 비활성)
 
@@ -150,6 +203,31 @@
 - 지도 오버레이 외부 월드맵만 표시되는지
 - 퀘스트 ID 링크 클릭
 - 스탯 overlay drag/hitbox
+- BIS 오버레이 던전 헤더 클릭 → 모험 안내서 열림 확인
+- 드랍템 레벨 오버레이 문장 수 패널 표시 확인
+
+## 미완성 기능 — 추후 작업 예정
+
+### 스탯 오버레이 쐐기(M+) 우선순위 모드
+
+- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.5). 기능 자체는 DB/Locale/ConfigPanel에 구현이 남아 있음.
+- **이유**: 인게임 테스트에서 동작 불안정 확인. 탱커 6종 M+ 데이터는 정상이나 UI 토글이 일관되게 반응하지 않는 경우 발생.
+- **재개 시 작업 위치**: `UI/ConfigPanel.lua` (`mythicPlusCheck:Hide()` 제거 후 다시 노출), `UI/StatsOverlay.lua` (`BuildSnapshot`의 `isMplus` 분기), `DB.lua` (`IsStatsOverlayMythicPlusMode`), `Data/StatPriorities.lua` (`ns.Data.StatPrioritiesMythicPlus`).
+
+### BIS 오버레이 Midnight 신규 던전 EJ instanceID
+
+- 마이사라 동굴 / 공결점 제나스 / 윈드러너 첨탑의 EJ instanceID 미확인
+- `UI/BISOverlay.lua` 상단 `DUNGEON_EJ_IDS` 테이블에 nil 로 마킹됨
+- 인게임에서 `/dump EJ_GetCurrentInstance()` 또는 Wowhead에서 확인 후 채워 넣으면 됨
+
+### 드랍 문장 통화 ID 검증
+
+- `UI/ItemLevelOverlay.lua`의 `CREST_CURRENCY_IDS` 테이블
+- 영웅 새벽 문장(3345) 외 나머지 4종은 연속값 추정 → 인게임 `/dump C_CurrencyInfo.GetCurrencyInfo(3342)` 등으로 검증 필요
+
+### 경매장 현행 확장팩 필터 자동 선택
+
+- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.6). WoW 보안 시스템 taint 문제로 동작 불가.
 
 ## 문서 위치
 
@@ -160,67 +238,9 @@
 - 보안 검토: `DOC/SECURITY_REVIEW.md`
 - 배포 절차: `DOC/RELEASE_PROCESS.md`
 
-### 5. BlizzardFrameManager (블리자드 창 이동)
-
-- `Modules/BlizzardFrameManager.lua` — MANAGED_FRAMES 목록의 각 프레임에 SetMovable + OnDragStop 저장 + OnShow 복원
-- `UpdateUIPanelPositions` hooksecurefunc로 탭 전환 시 깜박임 없이 복원
-- `lazyAddon` 패턴: ADDON_LOADED 이벤트 → 지연 로드 프레임(전문기술, 탤런트 등)에 적용
-- **주의**: `QuestFrame`(NPC 퀘스트 대화창)은 MANAGED_FRAMES에 넣지 말 것 — 퀘스트 목록창 소실 원인
-- **주의**: `SetUserPlaced(true)`는 반드시 `uiPanel=true` 프레임에만 적용할 것. WorldMapFrame 등 비UIPanel 프레임에 적용 시 WoW가 compact/customized 모드로 인식해 오른쪽 퀘스트 목록 패널을 숨김.
-  - `makeFrameMovable(key, frame, isUiPanel)` — `isUiPanel=true`일 때만 `SetUserPlaced(true)` 호출
-  - `restoreFramePosition(key, frame, isUiPanel)` — 동일
-  - `UpdateUIPanelPositions` / `ShowUIPanel` / `OnShow` 훅 내 모든 `restoreFramePosition` 호출에 적절한 `isUiPanel` 값 전달
-- **주의**: `UpdateUIPanelPositions` 훅은 `uiPanel=true` 프레임만 대상으로 해야 함. 모든 프레임에 적용 시 WorldMapFrame에 반복 `ClearAllPoints`가 발생해 지도 퀘스트 목록이 주기적으로 사라짐.
-
-### 6. GC 최적화 (SilvermoonMapOverlay / StatsOverlay / QuestPanel)
-
-- **SilvermoonMapOverlay**: `LayoutPoints` hot path가 호출당 0개 신규 테이블 생성으로 최적화됨
-  - 모듈 레벨 재사용 버퍼: `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool`, `_scoreRect`, `_bestRect`, `_candidateBuf[16]`
-  - `_mapInfoCache`: `C_Map.GetMapInfo` pcall 결과 세션 영구 캐시 (mapID → result)
-  - `fillCandidateOffsets`: `_candidateBuf`를 in-place로 채움 — 새 테이블 없음
-  - 베스트 오프셋은 레퍼런스(`candidate`) 아닌 값(`bestOffsetX/Y`)으로 저장 — 다음 호출 시 덮어쓰기 버그 방지
-- **StatsOverlay**: `BuildSnapshotSignature` — 모듈 레벨 `_snapshotParts` 재사용 버퍼 + `wipe()` 패턴으로 내부 익명 테이블 제거
-- **QuestPanel**: `RefreshInternal`에 `IsVisible()` 가드 추가 — 탭이 숨겨진 상태에서 `QUEST_LOG_UPDATE` 고빈도 발화 시 `QuestManager:Scan` 불필요 실행 방지
-- **Events.lua**: `QUEST_LOG_UPDATE` 0.15초 디바운스 추가 (`refreshQuestPanel`) — 전투/진행 중 초당 수백 회 발화 시 1회로 합산
-- 위 최적화는 CPU 점유 개선 목적으로 적용됨. GC 압박 패턴이 다시 보이면 `OnUpdate` 드라이버와 이벤트 핸들러를 먼저 확인할 것.
-
-### 7. MerchantHelper / MailHistory / WorldEventOverlay (비활성)
-
-- 세 모듈 모두 `Core.lua` 초기화 목록과 `Events.lua` 이벤트 등록에서 주석 처리
-- 파일은 유지 (미래 재활성화 대비)
-- 백그라운드 활동 없음: 이벤트 미등록, 프레임 미생성, OnUpdate 미실행
-- **재활성화 시**: `Core.lua` 주석 해제 + `Events.lua` 주석 해제
-
-### 8. 디버그 로그 버퍼 & `/abpm log` 명령
-
-- `Utils.lua` — `debugLogBuffer` (최대 200줄), `Utils.GetDebugLog()`, `Utils.ClearDebugLog()`
-- `/abpm log` 명령 → 팝업 EditBox에 로그 출력, 복사 가능
-
-## 미완성 기능 — 추후 작업 예정
-
-### 스탯 오버레이 쐐기(M+) 우선순위 모드
-
-- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.5). 기능 자체는 DB/Locale/ConfigPanel에 구현이 남아 있음.
-- **이유**: 인게임 테스트에서 동작 불안정 확인. 탱커 6종 M+ 데이터는 정상이나 UI 토글이 일관되게 반응하지 않는 경우 발생.
-- **재개 시 작업 위치**: `UI/ConfigPanel.lua` (`mythicPlusCheck:Hide()` 제거 후 다시 노출), `UI/StatsOverlay.lua` (`BuildSnapshot`의 `isMplus` 분기), `DB.lua` (`IsStatsOverlayMythicPlusMode`), `Data/StatPriorities.lua` (`ns.Data.StatPrioritiesMythicPlus`).
-- **체크리스트**: 쐐기 모드 on/off 전환 후 overlay 즉시 갱신 여부, 특성 변경 시 isMplus 상태 유지 여부, 툴팁 타이틀 `[쐐기]`/`[레이드]` 정상 교체 여부.
-
-### 경매장 현행 확장팩 필터 자동 선택
-
-- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.6). 기능 코드는 `Events.lua`에 유지. 동작 불가 확인.
-- **디버깅 결과 (v1.4.5~v1.4.6)**:
-  - 옥셔네이터(Auctionator) 애드온이 AH UI를 교체하고 있음. `AuctionHouseFrame` 아래 `AuctionatorAHFrame`이 실제 UI를 담당.
-  - "현행 확장팩 전용" 텍스트는 WoW 보안 시스템에 의해 차단됨: `GetText()` 반환값이 "secret string value tainted by ABProfileManager" 오류 발생 → 텍스트 기반 탐색 불가.
-  - `AuctionHouseFrame` 내 CheckButton을 `GetObjectType()` 기반으로 탐색하면 depth 2에 unnamed CheckButton 1개 존재 (필터 닫힌 상태에서는 [H] 숨김).
-  - `/abpm ahdebug` 임시 명령어 3종 추가: `names` (프레임 이름 스캔), `checks` (CheckButton 탐색), `find <keyword>` (키워드 탐색, depth 12).
-- **현재 구현 방식** (`Events.lua`):
-  1. 필터 버튼("필터"/"Filter" 텍스트)을 찾아 클릭
-  2. 0.35초 후 `AuctionHouseFrame` 하위에서 Auctionator 프레임을 제외한 visible CheckButton 탐색 → 클릭
-  3. 클릭 후 0.15초 뒤 필터 버튼 재클릭으로 패널 닫기
-- **미해결 문제**: 필터 버튼 클릭 후 해당 CheckButton이 실제로 IsVisible() = true가 되는지 확인 필요. 필터 패널이 열린 상태에서 `/abpm ahdebug checks`를 실행해 CheckButton이 [V] 상태가 되는지 검증하면 됨.
-- **재개 시 작업 위치**: `Events.lua` (`findExpansionCheckButton`, `applyAuctionHouseExpansionFilter`), `UI/ConfigPanel.lua` (`auctionHouseFilterCheck:Hide()` 제거 후 복구).
-
 ## 다음 작업자에게
 
 - TomTom waypoint는 현재 동작 설명까지 정리된 상태이므로, 회귀 제보가 오면 먼저 지역 진입 여부와 map lineage부터 확인하는 것이 맞다.
 - UI 퍼블리싱은 이미 사용자가 맞춘 상태를 선호하므로, overflow 보정이나 안전장치 위주로만 접근하는 편이 안전하다.
+- BIS 데이터는 M+ 신화+ 기준으로 작성되었고, 아이템 슬롯 정확도는 WoW 데이터베이스와 비교해 주기적으로 검증이 필요하다.
+- 문장 수 패널의 통화 ID는 추정값 포함이므로 인게임에서 "?" 표시 시 통화 ID를 수정해야 한다.

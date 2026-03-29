@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-`ABProfileManager`는 WoW Retail (Interface 120001 = Patch 12.0.1, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리 등을 한 애드온으로 처리한다.
+`ABProfileManager`는 WoW Retail (Interface 120001 = Patch 12.0.1, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 인던 드랍 정보 오버레이 등을 한 애드온으로 처리한다.
+
+**현재 버전**: v1.5.1
 
 ## 검증 명령어
 
@@ -32,8 +34,8 @@ ABProfileManager/
 ├── Constants.lua     # 게임 상수 (바, 슬롯, 모드)
 ├── Locale.lua / Locale_Additions.lua  # 한국어(koKR) 기본 / 영어(enUS) fallback
 ├── Modules/          # 핵심 로직 (13개 모듈)
-├── Data/             # 정적 데이터 (Defaults, ProfessionKnowledge, SilvermoonMapData, StatPriorities)
-└── UI/               # 사용자 인터페이스 (16개 모듈)
+├── Data/             # 정적 데이터 (Defaults, ProfessionKnowledge, SilvermoonMapData, StatPriorities, ItemLevelTable, BISData)
+└── UI/               # 사용자 인터페이스 (18개 모듈, BISOverlay/ItemLevelOverlay 포함)
 ```
 
 ### 핵심 패턴
@@ -62,6 +64,8 @@ ABProfileManager/
 5. **고스트 드래그 / 전투 중 대기열** — 항상 보수적으로 처리
 6. **BlizzardFrameManager** — `SetUserPlaced(true)`는 `uiPanel=true` 프레임에만 적용. WorldMapFrame에 적용 시 WoW compact 모드 전환 → 지도 오른쪽 퀘스트 목록 패널 숨겨짐. `UpdateUIPanelPositions` 훅도 `uiPanel=true` 프레임만 대상으로 해야 함 — 전체 적용 시 WorldMapFrame `ClearAllPoints` 반복으로 퀘스트 목록 주기적 소실.
 7. **GC 최적화 버퍼** — `SilvermoonMapOverlay.lua`와 `StatsOverlay.lua`에 모듈 레벨 재사용 버퍼 선언. 이 버퍼들(`_layoutPoints`, `_candidateBuf`, `_snapshotParts` 등)을 제거하거나 함수 내부로 이동하면 GC spike 재발.
+8. **BIS 오버레이 tooltip 품질 표시** — `GameTooltipTextLeft1` 색상을 에픽 보라(0.80, 0.35, 1.00)로 강제 설정. WoW DB 베이스 아이템은 파란색이나 M+ 실착용은 에픽 이상임을 표시. 이 방식은 bonus ID 없이 색상만 수정.
+9. **문장 수 패널 통화 ID** — `UI/ItemLevelOverlay.lua`의 `CREST_CURRENCY_IDS` 테이블. 영웅(3345) 확인, 나머지 추정. "?" 표시 시 인게임 `/dump C_CurrencyInfo.GetCurrencyInfo(ID)` 로 확인 후 수정.
 
 인게임 회귀 체크리스트:
 - profession 카드 폭과 체크박스 레이아웃
@@ -71,6 +75,8 @@ ABProfileManager/
 - 지도를 열었을 때 오른쪽 퀘스트 목록이 정상 표시되는지
 - 퀘스트 ID 링크 클릭 동작
 - 스탯 overlay drag/hitbox
+- BIS 오버레이 던전 헤더 클릭 → 모험 안내서 열림
+- 드랍템 레벨 오버레이 문장 수 사이드 패널 "?" 여부 확인
 
 ## 주요 서브시스템 작동 방식
 
@@ -95,12 +101,23 @@ ABProfileManager/
 - `UNIT_AURA/STATS/COMBAT_RATING_UPDATE` 등 → `refreshStatsOverlay()`
 새 이벤트 핸들러 추가 시 비활성 상태 early return과 디바운스 패턴 함께 적용할 것.
 
+### BIS 인던 드랍 오버레이
+`UI/BISOverlay.lua`. 전클래스/전특성(39개 스펙) BIS 인던 드랍 아이템을 탭별로 표시 (던전/레이드/월드보스/제작). 행 풀(pool) 패턴으로 재활용. 던전 헤더 클릭 시 WoW 모험 안내서(EncounterJournal) 열기(`DUNGEON_EJ_IDS` 테이블). M+ 툴팁은 `GameTooltipTextLeft1` 색상 강제로 에픽 표시. 마우스 휠 스케일 지원.
+- `_isDungeonHeader` / `_ejDungeonName` 플래그: `resetRow()`에서 초기화, `RebuildContent` 헤더 생성 시 설정
+- Midnight 신규 던전 EJ ID 미확인: `마이사라 동굴`, `공결점 제나스`, `윈드러너 첨탑` → `nil`로 마킹, 인게임 확인 후 수정
+
+### 아이템 레벨 오버레이 + 문장 수 패널
+`UI/ItemLevelOverlay.lua`. 던전/레이드/M+/제작 탭별 드랍 템렙 표 + 위대한 금고 컬럼. 우측에 `EnsureCrestPanel()` / `UpdateCrestPanel()` 으로 생성한 자식 프레임 — 현재 보유 문장(Crest) 수 실시간 표시. `C_CurrencyInfo.GetCurrencyInfo(id)` 사용.
+- `CREST_CURRENCY_IDS` 테이블: 영웅(3345) 확인, 나머지 3342~3346 추정 — "?" 표시 시 인게임 `/dump` 로 확인
+
 ## 숨겨진 미완성 기능
 
 수정 전 반드시 인지할 것:
 
 - **스탯 오버레이 쐐기(M+) 우선순위 모드**: `UI/ConfigPanel.lua`에서 `mythicPlusCheck:Hide()`로 숨김 처리. 재개 시 `UI/StatsOverlay.lua`의 `BuildSnapshot` `isMplus` 분기, `DB.lua`의 `IsStatsOverlayMythicPlusMode`, `Data/StatPriorities.lua`의 `ns.Data.StatPrioritiesMythicPlus` 함께 확인.
 - **경매장 현행 확장팩 필터 자동 선택**: `UI/ConfigPanel.lua`에서 `auctionHouseFilterCheck:Hide()`로 숨김. WoW 보안 시스템에 의해 `GetText()` taint 발생으로 동작 불가. `Events.lua`에 코드 유지.
+- **BIS 던전 EJ ID 미확인 (Midnight 신규 던전)**: `마이사라 동굴`, `공결점 제나스`, `윈드러너 첨탑`의 EncounterJournal instanceID가 현재 `nil`. 클릭 시 모험 안내서는 열리나 해당 던전으로 이동하지 않음. 인게임 `EJ_GetInstanceInfo()` 또는 Wowhead로 확인 후 `UI/BISOverlay.lua`의 `DUNGEON_EJ_IDS` 수정.
+- **문장 수 통화 ID 미확인**: `UI/ItemLevelOverlay.lua`의 `CREST_CURRENCY_IDS`. 영웅(3345) 외 추정값. "?" 표시 시 `/dump C_CurrencyInfo.GetCurrencyInfo(ID)`로 각 ID 확인 후 수정.
 
 ## 에이전트 팀 구조 (`sub/`)
 
