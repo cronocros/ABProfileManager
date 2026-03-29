@@ -20,6 +20,12 @@ local MAX_SCROLL_H = 340
 local FONT_PATH    = "Fonts\\2002.TTF"
 local FONT_FLAGS   = "OUTLINE"
 
+-- 스케일 조절 (헤더 영역 마우스 휠)
+local SCALE_STEP = 0.05
+local SCALE_MIN  = 0.50
+local SCALE_MAX  = 2.00
+local _bisScale  = 1.0
+
 -- 커스텀 스크롤바 치수
 local SB_W   = 7    -- 스크롤바 폭
 local SB_GAP = 5    -- 스크롤바와 컨텐츠 사이 간격
@@ -34,9 +40,9 @@ local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 local ITEM_INDENT = 16
 local ITEM_W      = CONTENT_W - ITEM_INDENT   -- = 414
 local COL_ICON    = ICON_SIZE + 5             -- = 20
-local COL_NAME    = 210                        -- 아이템 이름 (고정 폭)
-local COL_SLOT    = 58                         -- 부위 슬롯
-local COL_NOTE    = 52                         -- BIS/대체 배지
+local COL_NAME    = 165                        -- 아이템 이름 (고정 폭)
+local COL_SLOT    = 52                         -- 부위 슬롯
+local COL_NOTE    = 48                         -- BIS/대체 배지
 
 -- 아이템 품질 색상
 local QC = {
@@ -189,7 +195,15 @@ function BISOverlay:EnsureFrame()
     -- 드래그 (잠금 상태 확인)
     frame:SetMovable(true)
     frame:EnableMouse(true)
+    frame:EnableMouseWheel(true)
     frame:RegisterForDrag("LeftButton")
+    -- 헤더 영역(스크롤프레임 밖)에서 마우스 휠 → 스케일 조절
+    frame:SetScript("OnMouseWheel", function(f, delta)
+        _bisScale = math.max(SCALE_MIN, math.min(SCALE_MAX,
+            _bisScale + delta * SCALE_STEP))
+        _bisScale = math.floor(_bisScale * 100 + 0.5) / 100
+        f:SetScale(_bisScale)
+    end)
     frame:SetScript("OnDragStart", function(f)
         if ns.DB and ns.DB:IsBISOverlayLocked() then return end
         f:StartMoving()

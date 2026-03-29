@@ -39,7 +39,7 @@ end
 
 local function makeCheck(parent, widgets, anchor, dy)
     local chk = widgets.CreateCheckButton(parent, "")
-    chk:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, dy or -4)
+    chk:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, dy or -2)
     return chk
 end
 
@@ -48,6 +48,7 @@ local function styleCheck(chk, w)
         chk.Text:SetWidth(w)
         chk.Text:SetJustifyH("LEFT")
         if chk.Text.SetWordWrap then chk.Text:SetWordWrap(true) end
+        chk.Text:SetTextColor(0.88, 0.88, 0.95, 1)  -- 밝은 청백색 (노란색 대신)
     end
 end
 

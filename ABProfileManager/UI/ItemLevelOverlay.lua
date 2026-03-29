@@ -276,7 +276,7 @@ local function buildRaidRows(avgIlvl)
     local tbl = ns.Data and ns.Data.ItemLevelTable
     if not tbl or not tbl.raid then return {} end
     local rows = {}
-    rows[#rows+1] = colHeader("ilvl_col_difficulty", "ilvl_col_drop", nil, "ilvl_col_crest")
+    rows[#rows+1] = colHeader("ilvl_col_difficulty", "ilvl_col_drop", "ilvl_col_vault", "ilvl_col_crest")
     for _, key in ipairs({ "normal", "heroic", "mythic" }) do
         local e = tbl.raid[key]
         if e then rows[#rows+1] = raidRow(key, e, avgIlvl) end
