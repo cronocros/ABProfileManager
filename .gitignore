@@ -1,4 +1,6 @@
 backups/source/
+.claude/
+*.zip
 *.log
 *.tmp
 *.bak

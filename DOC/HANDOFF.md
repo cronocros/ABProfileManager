@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.5.0`
+버전 기준: `main (v1.5.3 기반)`
 
 ## 현재 상태
 
@@ -16,10 +16,10 @@
 - 한밤(Midnight) 지도 오버레이
 - 지도 전용 탭과 typography 슬라이더
 - 와우 `설정 > 애드온` 경량 하위 페이지
-- 드랍템 레벨정보 오버레이 (쐐기/레이드/구렁 탭, 파티찾기창 연동, 문장 수 사이드 패널)
+- 드랍템 레벨정보 오버레이 (쐐기/레이드/구렁 탭, 파티찾기창 연동, 4열 표 + 우측 `나의 문장` 패널)
 - 블리자드 기본 UI 창 이동 자유화 (BlizzardFrameManager)
 - 편의기능 탭 (UtilityPanel) 통합
-- **[신규 v1.5.0]** BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 던전 클릭 → 모험 안내서)
+- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 던전 클릭 → 모험 안내서)
 - **[비활성]** 월드이벤트 오버레이 — Midnight 이벤트 스케줄 미확정, 자동감지 미동작
 - **[비활성]** 상점 도안/장난감 음영처리 (MerchantHelper) — Midnight spellID API 불일치
 - **[비활성]** 우편 수신자 히스토리 (MailHistory) — WoW taint 문제로 자동완성 미동작
@@ -80,26 +80,29 @@
 - 외부 지역 포탈 좌표는 실버문보다 검증 신뢰도가 낮으므로 사용자 제보가 들어오면 우선 재확인한다
 - 지원하지 않는 child/detail map은 부모 지도 라벨을 억지로 따라오지 않게 숨기는 것이 현재 기준이다
 
-### 5. BIS 인던 드랍 정보 오버레이 (v1.5.0 신규)
+### 5. BIS 인던 드랍 정보 오버레이
 
-- `UI/BISOverlay.lua` — 전 클래스/특성 M+ BIS 아이템 목록, 스펙 탭
-- `Data/BISData.lua` — specID 키, { dungeon, boss, itemID, slot, note } 배열
-- **던전 헤더 클릭 → 모험 안내서 자동 열기**: `DUNGEON_EJ_IDS` 테이블에 instanceID 매핑
+- `UI/BISOverlay.lua` — 전 클래스/특성 BIS 아이템 목록, 스펙 탭, 부위별 섹션 렌더
+- `Data/BISData.lua` — 수기 specID 키, { dungeon, boss, itemID, slot, note } 배열
+- `Data/BISData_Method.lua` — Method.gg 기반 시즌 1 던전 BIS 보강 데이터, itemID 기준 병합
+- **아이템 행 클릭 → 모험 안내서 자동 열기**: `DUNGEON_EJ_IDS` 테이블에 instanceID 매핑
   - returning 던전(마법학자의 정원/알게타르/삼두정/하늘탑/사론의 구덩이): instanceID 확인값
   - Midnight 신규 던전(마이사라 동굴/공결점 제나스/윈드러너 첨탑): instanceID 미확인 → nil (EJ는 열리나 특정 던전으로 이동 안 됨)
-- **아이템 툴팁**: `GetItemByID`는 베이스 품질(파랑) 반환 → `GameTooltipTextLeft1` 색상을 에픽 보라로 강제 설정
+- **아이템 툴팁**: 베이스 아이템 툴팁 대신 한밤 시즌 1 던전 트랙 요약을 커스텀 표시
 - **마우스 휠 스케일**: 헤더 영역(스크롤프레임 밖) 스크롤 시 프레임 0.5~2.0배 스케일 조절
 - **잠금/접기**: 잠금은 UtilityPanel bisLockCheck, 접기는 오버레이 우상단 −/+ 버튼
 
-### 6. 드랍템 레벨 오버레이 — 문장 수 사이드 패널 (v1.5.0 신규)
+### 6. 드랍템 레벨 오버레이 — 4열 표 + 우측 `나의 문장` 패널
 
-- `UI/ItemLevelOverlay.lua` — `EnsureCrestPanel` + `UpdateCrestPanel`
-- ItemLevelOverlay 프레임 오른쪽에 "나의 문장" 사이드 패널 자동 표시
+- `UI/ItemLevelOverlay.lua` — `단 / 클리어보상 / 드랍문장 / 위대한 금고` 4열 레이아웃 + 우측 고정 문장 패널
+- 우측 패널에 현재 문장 보유량을 한 번만 통합 표시
+- 쐐기 헤더 옆에 챔피언 / 영웅 / 신화 최고 강화 레벨 요약 표시
 - `C_CurrencyInfo.GetCurrencyInfo(id)` 로 현재 문장 보유량 표시
+- 통화 ID는 `CREST_ID_BY_GRADE` 테이블로 관리
 - **통화 ID (Midnight 시즌 1)**:
   - 영웅 새벽 문장 = 3345 (연구 확인)
   - 나머지(모험가/노련가/챔피언/신화): 3342~3346 순서 추정 → 인게임 검증 필요
-  - ID가 틀리면 수치가 "?" 로 표시됨 — `CREST_CURRENCY_IDS` 테이블에서 수정
+  - ID가 틀리면 수치가 "?" 로 표시됨 — `CREST_ID_BY_GRADE` 테이블에서 수정
 
 ### 7. BlizzardFrameManager (블리자드 창 이동)
 
@@ -176,10 +179,11 @@
 ### 드랍/아이템레벨/BIS 오버레이
 
 - `ABProfileManager/Modules/BlizzardFrameManager.lua` — 블리자드 UI 창 이동/복원
-- `ABProfileManager/UI/ItemLevelOverlay.lua` — 드랍템 레벨 참조 오버레이 (파티찾기창 연동, 문장 수 패널)
+- `ABProfileManager/UI/ItemLevelOverlay.lua` — 드랍템 레벨 참조 오버레이 (파티찾기창 연동, 4열 표 + 우측 `나의 문장` 패널)
 - `ABProfileManager/Data/ItemLevelTable.lua` — 쐐기/레이드/구렁 ilvl 데이터 (Midnight 시즌 1)
 - `ABProfileManager/UI/BISOverlay.lua` — BIS 인던 드랍 정보 오버레이 (전 클래스/특성)
 - `ABProfileManager/Data/BISData.lua` — specID 키 BIS 아이템 목록
+- `ABProfileManager/Data/BISData_Method.lua` — Method.gg 기반 BIS 보강 데이터
 
 ### 비활성 모듈 (코드 유지, 초기화 비활성)
 
@@ -203,8 +207,8 @@
 - 지도 오버레이 외부 월드맵만 표시되는지
 - 퀘스트 ID 링크 클릭
 - 스탯 overlay drag/hitbox
-- BIS 오버레이 던전 헤더 클릭 → 모험 안내서 열림 확인
-- 드랍템 레벨 오버레이 문장 수 패널 표시 확인
+- BIS 오버레이 아이템 행 클릭 → 모험 안내서 열림 확인
+- 드랍템 레벨 오버레이 우측 `나의 문장` 패널의 수치/"?" 여부 확인
 
 ## 미완성 기능 — 추후 작업 예정
 
@@ -222,7 +226,7 @@
 
 ### 드랍 문장 통화 ID 검증
 
-- `UI/ItemLevelOverlay.lua`의 `CREST_CURRENCY_IDS` 테이블
+- `UI/ItemLevelOverlay.lua`의 `CREST_ID_BY_GRADE` 테이블
 - 영웅 새벽 문장(3345) 외 나머지 4종은 연속값 추정 → 인게임 `/dump C_CurrencyInfo.GetCurrencyInfo(3342)` 등으로 검증 필요
 
 ### 경매장 현행 확장팩 필터 자동 선택
@@ -242,5 +246,5 @@
 
 - TomTom waypoint는 현재 동작 설명까지 정리된 상태이므로, 회귀 제보가 오면 먼저 지역 진입 여부와 map lineage부터 확인하는 것이 맞다.
 - UI 퍼블리싱은 이미 사용자가 맞춘 상태를 선호하므로, overflow 보정이나 안전장치 위주로만 접근하는 편이 안전하다.
-- BIS 데이터는 M+ 신화+ 기준으로 작성되었고, 아이템 슬롯 정확도는 WoW 데이터베이스와 비교해 주기적으로 검증이 필요하다.
-- 문장 수 패널의 통화 ID는 추정값 포함이므로 인게임에서 "?" 표시 시 통화 ID를 수정해야 한다.
+- BIS 데이터는 수기 데이터와 Method.gg 보강 데이터를 함께 사용하므로, 시즌 변경 시 source 던전/slot/itemID를 같이 재검증해야 한다.
+- 문장 컬럼의 통화 ID는 추정값 포함이므로 인게임에서 "?" 표시 시 통화 ID를 수정해야 한다.

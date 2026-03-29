@@ -11,7 +11,6 @@ local FRAME_W      = 460
 local PADDING      = 10
 local ROW_H        = 20
 local SECTION_H    = 26
-local BOSS_H       = 18
 local ICON_SIZE    = 15
 local TAB_SIZE     = 24
 local TABS_H       = TAB_SIZE + 12   -- 아이콘 + 하단 인디케이터 여백
@@ -37,12 +36,12 @@ local HEADER_H  = TITLE_H + 10 + TABS_H + 12  -- = 84
 local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 
 -- 아이템 행 컬럼 레이아웃
-local ITEM_INDENT = 16
-local ITEM_W      = CONTENT_W - ITEM_INDENT   -- = 414
-local COL_ICON    = ICON_SIZE + 5             -- = 20
-local COL_NAME    = 165                        -- 아이템 이름 (고정 폭)
-local COL_SLOT    = 52                         -- 부위 슬롯
-local COL_NOTE    = 48                         -- BIS/대체 배지
+local ITEM_INDENT = 10
+local ITEM_W      = CONTENT_W - ITEM_INDENT
+local COL_ICON    = ICON_SIZE + 5
+local COL_NAME    = 216
+local COL_SLOT    = 112                        -- 던전 출처
+local COL_NOTE    = 54                         -- BIS/대체/3순 배지
 
 -- 아이템 품질 색상
 local QC = {
@@ -54,11 +53,50 @@ local QC = {
     [5] = { 1.00, 0.55, 0.00 },
 }
 
--- note 배지 표시 텍스트
-local NOTE_TEXT = {
-    ["BIS"]  = "|cffffc000BIS|r",
-    ["대체재"] = "|cff44aaff대체|r",
-    ["2순위"] = "|cff55cc5522순|r",
+local SLOT_ORDER = {
+    "무기", "보조장비", "방패", "머리", "목", "어깨", "망토", "가슴",
+    "손목", "손", "허리", "다리", "발", "반지", "장신구",
+}
+
+local SLOT_SORT_ORDER = {}
+for i, slotName in ipairs(SLOT_ORDER) do
+    SLOT_SORT_ORDER[slotName] = i
+end
+
+local SLOT_LOCALE_KEYS = {
+    ["무기"] = "bis_slot_weapon",
+    ["보조장비"] = "bis_slot_offhand",
+    ["방패"] = "bis_slot_shield",
+    ["머리"] = "bis_slot_head",
+    ["목"] = "bis_slot_neck",
+    ["어깨"] = "bis_slot_shoulders",
+    ["망토"] = "bis_slot_cloak",
+    ["가슴"] = "bis_slot_chest",
+    ["손목"] = "bis_slot_wrist",
+    ["손"] = "bis_slot_hands",
+    ["허리"] = "bis_slot_waist",
+    ["다리"] = "bis_slot_legs",
+    ["발"] = "bis_slot_feet",
+    ["반지"] = "bis_slot_ring",
+    ["장신구"] = "bis_slot_trinket",
+}
+
+local DUNGEON_LOCALE_KEYS = {
+    ["마법학자의 정원"] = "bis_dungeon_magisters_terrace",
+    ["마이사라 동굴"] = "bis_dungeon_maisara_caverns",
+    ["공결점 제나스"] = "bis_dungeon_nexus_point_xenas",
+    ["윈드러너 첨탑"] = "bis_dungeon_windrunner_spire",
+    ["알게타르 아카데미"] = "bis_dungeon_algethar_academy",
+    ["삼두정의 권좌"] = "bis_dungeon_seat_of_the_triumvirate",
+    ["하늘탑"] = "bis_dungeon_skyreach",
+    ["사론의 구덩이"] = "bis_dungeon_pit_of_saron",
+}
+
+local NOTE_BADGE_COLOR = {
+    bis   = "ffffc000",
+    alt   = "ff44aaff",
+    third = "ff66cc66",
+    rank  = "ff888888",
 }
 
 -- 던전 → 모험 안내서 instanceID 매핑 (returning 던전 확인값, Midnight 신규 던전은 미확인)
@@ -123,14 +161,142 @@ local function openEncounterJournal(dungeonName)
     end)
 end
 
-local function groupByDungeon(items)
-    local dungeons, order = {}, {}
-    for _, item in ipairs(items) do
-        local k = item.dungeon or "?"
-        if not dungeons[k] then dungeons[k] = {}; order[#order + 1] = k end
-        dungeons[k][#dungeons[k] + 1] = item
+local function localizeSlot(slotName)
+    local key = slotName and SLOT_LOCALE_KEYS[slotName]
+    return key and ns.L(key) or slotName or "?"
+end
+
+local function localizeDungeon(dungeonName)
+    local key = dungeonName and DUNGEON_LOCALE_KEYS[dungeonName]
+    return key and ns.L(key) or dungeonName or "?"
+end
+
+local function canonicalNote(note)
+    if note == "BIS" then
+        return "bis"
     end
-    return dungeons, order
+    if note == "대체재" or note == "대체" then
+        return "alt"
+    end
+    if note == "2순위" or note == "3순위" then
+        return "third"
+    end
+    return "rank"
+end
+
+local function notePriority(note)
+    local canonical = canonicalNote(note)
+    if canonical == "bis" then return 1 end
+    if canonical == "alt" then return 2 end
+    if canonical == "third" then return 3 end
+    return 4
+end
+
+local function noteBadge(kind, index)
+    local key
+    if kind == "bis" then
+        key = "bis_note_bis"
+    elseif kind == "alt" then
+        key = "bis_note_alt"
+    elseif kind == "third" then
+        key = "bis_note_third"
+    else
+        key = nil
+    end
+
+    local label = key and ns.L(key) or (index and ns.L("bis_note_rank", index) or "")
+    local color = NOTE_BADGE_COLOR[kind] or NOTE_BADGE_COLOR.rank
+    return label ~= "" and ("|c" .. color .. label .. "|r") or ""
+end
+
+local function notePlain(kind, index)
+    if kind == "bis" then
+        return ns.L("bis_note_bis")
+    end
+    if kind == "alt" then
+        return ns.L("bis_note_alt")
+    end
+    if kind == "third" then
+        return ns.L("bis_note_third")
+    end
+    return ns.L("bis_note_rank", index or 4)
+end
+
+local function trackSummary(grades)
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local gradeMax = tbl and tbl.gradeMax
+    if not gradeMax then return "" end
+
+    local parts = {}
+    for _, grade in ipairs(grades or {}) do
+        local maxIlvl = gradeMax[grade]
+        if maxIlvl then
+            local label = ns.L("ilvl_crest_" .. grade) or ns.L("ilvl_grade_" .. grade) or grade
+            parts[#parts + 1] = label .. " ~" .. tostring(maxIlvl)
+        end
+    end
+    return table.concat(parts, ", ")
+end
+
+local function slotSortValue(slotName)
+    return SLOT_SORT_ORDER[slotName] or 999
+end
+
+local function groupBySlot(items)
+    local slots, order = {}, {}
+    for _, item in ipairs(items) do
+        local slotName = item.slot or "기타"
+        if not slots[slotName] then
+            slots[slotName] = {}
+            order[#order + 1] = slotName
+        end
+        slots[slotName][#slots[slotName] + 1] = item
+    end
+
+    table.sort(order, function(a, b)
+        local av, bv = slotSortValue(a), slotSortValue(b)
+        if av ~= bv then
+            return av < bv
+        end
+        return tostring(a) < tostring(b)
+    end)
+
+    for _, slotName in ipairs(order) do
+        local entries = slots[slotName]
+        table.sort(entries, function(a, b)
+            local ap, bp = notePriority(a.note), notePriority(b.note)
+            if ap ~= bp then
+                return ap < bp
+            end
+            if (a.dungeon or "") ~= (b.dungeon or "") then
+                return (a.dungeon or "") < (b.dungeon or "")
+            end
+            return (a.itemID or 0) < (b.itemID or 0)
+        end)
+
+        local altCount = 0
+        for _, entry in ipairs(entries) do
+            local kind = canonicalNote(entry.note)
+            if kind == "bis" then
+                entry._displayNoteKind = "bis"
+                entry._displayNoteIndex = 1
+            else
+                altCount = altCount + 1
+                if altCount == 1 then
+                    entry._displayNoteKind = "alt"
+                    entry._displayNoteIndex = 2
+                elseif altCount == 2 then
+                    entry._displayNoteKind = "third"
+                    entry._displayNoteIndex = 3
+                else
+                    entry._displayNoteKind = "rank"
+                    entry._displayNoteIndex = altCount + 1
+                end
+            end
+        end
+    end
+
+    return slots, order
 end
 
 -- ============================================================
@@ -473,6 +639,49 @@ end
 -- 행 생성/재사용
 -- ============================================================
 
+local function requestItemData(itemID)
+    if not itemID or itemID <= 0 then return end
+    if C_Item and C_Item.RequestLoadItemDataByID then
+        pcall(C_Item.RequestLoadItemDataByID, itemID)
+    end
+end
+
+local function showSeasonItemTooltip(owner, row)
+    if not row or not row.itemID or row.itemID <= 0 then return end
+
+    local ok, itemName, _, quality = pcall(GetItemInfo, row.itemID)
+    local displayName = (ok and itemName) or ("Item #" .. tostring(row.itemID))
+    local effectiveQ = math.max(quality or 4, 4)
+    local qc = QC[effectiveQ] or QC[4]
+    local entry = row._entry or {}
+    local noteKind = row._displayNoteKind or canonicalNote(entry.note)
+    local noteIndex = row._displayNoteIndex or 3
+
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    GameTooltip:ClearLines()
+    GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+    GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
+    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), localizeDungeon(entry.dungeon), 0.70, 0.78, 0.90, 1, 1, 1)
+    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
+
+    local runTrack = trackSummary({ "chmp", "hero" })
+    if runTrack ~= "" then
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_end_of_run"), runTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+    end
+    local vaultTrack = trackSummary({ "hero", "myth" })
+    if vaultTrack ~= "" then
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+    end
+
+    if DUNGEON_EJ_IDS[entry.dungeon or ""] then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+    end
+    GameTooltip:Show()
+end
+
 local function ensureRow(frame, index)
     if frame.rows[index] then return frame.rows[index] end
 
@@ -499,11 +708,11 @@ local function ensureRow(frame, index)
     row.nameLabel:SetJustifyH("LEFT")
     row.nameLabel:SetJustifyV("MIDDLE")
     row.nameLabel:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -1)
-    row.nameLabel:SetWidth(200)
+    row.nameLabel:SetWidth(COL_NAME + COL_ICON)
 
     row.slotLabel = row:CreateFontString(nil, "OVERLAY")
     row.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
-    row.slotLabel:SetJustifyH("CENTER")
+    row.slotLabel:SetJustifyH("LEFT")
     row.slotLabel:SetJustifyV("MIDDLE")
     row.slotLabel:SetWidth(COL_SLOT)
     row.slotLabel:Hide()
@@ -519,29 +728,24 @@ local function ensureRow(frame, index)
     row.tooltipRegion:SetAllPoints(row)
     row.tooltipRegion:EnableMouse(true)
     row.tooltipRegion:RegisterForClicks("LeftButtonUp")
-    -- OnClick: 던전 헤더일 때 모험 안내서 열기
     row.tooltipRegion:SetScript("OnClick", function()
-        if row._isDungeonHeader and row._ejDungeonName then
-            openEncounterJournal(row._ejDungeonName)
+        if row._sectionDungeon then
+            openEncounterJournal(row._sectionDungeon)
+        elseif row._entry and row._entry.dungeon then
+            openEncounterJournal(row._entry.dungeon)
         end
     end)
-    -- OnEnter: 던전 헤더 힌트 / 아이템 툴팁 (에픽 품질 강제 표시)
     row.tooltipRegion:SetScript("OnEnter", function(self2)
-        if row._isDungeonHeader then
+        if row._sectionDungeon then
             GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-            local hint = DUNGEON_EJ_IDS[row._ejDungeonName or ""]
-                and "|cff55ccff[클릭] 모험 안내서에서 열기|r"
-                or  "|cff888888[클릭] 모험 안내서 열기 (ID 미확인)|r"
-            GameTooltip:SetText(hint, 1, 1, 1, 1, true)
+            GameTooltip:SetText(localizeDungeon(row._sectionDungeon), 1, 1, 1, 1, true)
+            local hint = DUNGEON_EJ_IDS[row._sectionDungeon or ""]
+                and ns.L("bis_tooltip_open_journal")
+                or ns.L("bis_tooltip_open_journal_missing")
+            GameTooltip:AddLine(hint, 0.70, 0.78, 0.90, true)
             GameTooltip:Show()
         elseif row.itemID and row.itemID > 0 then
-            GameTooltip:SetOwner(self2, "ANCHOR_RIGHT")
-            GameTooltip:SetItemByID(row.itemID)
-            -- 베이스 아이템은 파란색이지만 M+ 실착용은 에픽 이상 → 이름 색상을 에픽 보라로 강제 표시
-            local nameFS = _G["GameTooltipTextLeft1"]
-            if nameFS then nameFS:SetTextColor(0.80, 0.35, 1.00, 1) end
-            GameTooltip:AddLine("|cffcc33ff[M+ 신화+ 기준 — 에픽 등급]|r")
-            GameTooltip:Show()
+            showSeasonItemTooltip(self2, row)
         end
     end)
     row.tooltipRegion:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -557,8 +761,10 @@ local function resetRow(row)
     row.slotLabel:Hide()
     row.noteLabel:Hide()
     row.itemID = nil
-    row._isDungeonHeader = false
-    row._ejDungeonName   = nil
+    row._entry = nil
+    row._sectionDungeon = nil
+    row._displayNoteKind = nil
+    row._displayNoteIndex = nil
 end
 
 -- ============================================================
@@ -605,11 +811,10 @@ function BISOverlay:RebuildContent()
         row:Show()
         yOffset = yOffset + ROW_H + 4
     else
-        local dungeons, order = groupByDungeon(bisData)
+        local slots, order = groupBySlot(bisData)
         local itemRowCount = 0
 
-        for _, dungeonName in ipairs(order) do
-            -- ─── 던전 헤더 ───────────────────────────────────
+        for _, slotName in ipairs(order) do
             rowIndex = rowIndex + 1
             local hdr = ensureRow(frame, rowIndex)
             hdr:ClearAllPoints()
@@ -623,37 +828,14 @@ function BISOverlay:RebuildContent()
             hdr.nameLabel:SetWidth(CONTENT_W - 12)
             hdr.nameLabel:SetFont(FONT_PATH, 12, FONT_FLAGS)
             hdr.nameLabel:SetTextColor(0.55, 0.88, 1.0, 1)
-            hdr.nameLabel:SetText(dungeonName)
-            -- 클릭 → 모험 안내서 연동
-            hdr._isDungeonHeader = true
-            hdr._ejDungeonName   = dungeonName
+            hdr.nameLabel:SetText(localizeSlot(slotName))
+            hdr._sectionDungeon = nil
             hdr:Show()
             yOffset = yOffset + SECTION_H + 1
 
-            local items = dungeons[dungeonName]
-            local prevBoss = nil
+            local items = slots[slotName]
 
             for _, entry in ipairs(items) do
-                -- ─── 보스 행 ─────────────────────────────────
-                if entry.boss ~= prevBoss then
-                    prevBoss = entry.boss
-                    rowIndex = rowIndex + 1
-                    local bRow = ensureRow(frame, rowIndex)
-                    bRow:ClearAllPoints()
-                    bRow:SetPoint("TOPLEFT", frame.content, "TOPLEFT", 5, -yOffset)
-                    bRow:SetWidth(CONTENT_W - 5)
-                    bRow:SetHeight(BOSS_H)
-                    bRow.nameLabel:ClearAllPoints()
-                    bRow.nameLabel:SetPoint("LEFT", bRow, "LEFT", 0, 0)
-                    bRow.nameLabel:SetWidth(CONTENT_W - 5)
-                    bRow.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
-                    bRow.nameLabel:SetTextColor(0.98, 0.82, 0.38, 1)
-                    bRow.nameLabel:SetText("|cffcc8800> |r" .. (entry.boss or "?"))
-                    bRow:Show()
-                    yOffset = yOffset + BOSS_H + 2
-                end
-
-                -- ─── 아이템 행 ───────────────────────────────
                 rowIndex = rowIndex + 1
                 itemRowCount = itemRowCount + 1
                 local iRow = ensureRow(frame, rowIndex)
@@ -662,6 +844,9 @@ function BISOverlay:RebuildContent()
                 iRow:SetWidth(ITEM_W)
                 iRow:SetHeight(ROW_H)
                 iRow.itemID = entry.itemID
+                iRow._entry = entry
+                iRow._displayNoteKind = entry._displayNoteKind
+                iRow._displayNoteIndex = entry._displayNoteIndex
 
                 -- 교번 배경
                 if itemRowCount % 2 == 0 then
@@ -678,6 +863,8 @@ function BISOverlay:RebuildContent()
                         itemName = n
                         quality  = q
                         texture  = tex
+                    else
+                        requestItemData(entry.itemID)
                     end
                 end
 
@@ -709,21 +896,20 @@ function BISOverlay:RebuildContent()
                     iRow.nameLabel:SetText("...")
                 end
 
-                -- 슬롯 라벨
-                if entry.slot then
+                -- 던전 출처
+                if entry.dungeon then
                     iRow.slotLabel:ClearAllPoints()
                     iRow.slotLabel:SetPoint("LEFT", iRow, "LEFT", COL_ICON + COL_NAME, 0)
                     iRow.slotLabel:SetWidth(COL_SLOT)
                     iRow.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
                     iRow.slotLabel:SetTextColor(0.72, 0.72, 0.72, 1)
-                    iRow.slotLabel:SetText(entry.slot)
+                    iRow.slotLabel:SetText(localizeDungeon(entry.dungeon))
                     iRow.slotLabel:Show()
                 end
 
                 -- note 배지
-                local noteTxt = NOTE_TEXT[entry.note]
-                    or (entry.note and ("|cff888888" .. entry.note .. "|r"))
-                if noteTxt then
+                local noteTxt = noteBadge(entry._displayNoteKind, entry._displayNoteIndex)
+                if noteTxt and noteTxt ~= "" then
                     iRow.noteLabel:ClearAllPoints()
                     iRow.noteLabel:SetPoint("LEFT", iRow, "LEFT",
                         COL_ICON + COL_NAME + COL_SLOT, 0)

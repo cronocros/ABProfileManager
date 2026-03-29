@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.5.1`
+- `v1.5.3`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.1/ABProfileManager-v1.5.1.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.5.1.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.1.md](./RELEASE_NOTES_v1.5.1.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.3/ABProfileManager-v1.5.3.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.5.3.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.3.md](./RELEASE_NOTES_v1.5.3.md)
 
 ## 요약
 
@@ -22,8 +22,8 @@
 - 지도 전용 탭과 전체 UI 글자 크기 슬라이더 제공
 - profession 오버레이 상세 간격, 범례 한 줄 표기, token 색상 정리
 - 설정 탭에서 전투메시지 표출 방식만 관리
-- 전클래스/전특성 BIS 인던 드랍 정보 오버레이 (던전 클릭 → 모험 안내서 연동)
-- 던전/레이드/M+/제작 드랍 아이템 레벨 표 + 위대한 금고 컬럼 + 현재 보유 문장 수 패널
+- 전클래스/전특성 BIS 인던 드랍 정보 오버레이 (부위별 정리, 던전 클릭 → 모험 안내서 연동)
+- 던전/레이드/M+/제작 드랍 아이템 레벨 표 + 위대한 금고 컬럼 + 우측 `나의 문장` 통합 패널
 
 ## 핵심 기능
 
@@ -73,14 +73,15 @@
   - 후보 목록 기호 깨짐 제거와 스크롤/퀘스트 ID 클릭 경로 보정
 - BIS 인던 드랍 정보 오버레이
   - 전클래스/전특성(39개 스펙) BIS 아이템 표시
-  - 던전 / 레이드 / 월드보스 / 제작 탭 구분
-  - 던전 헤더 클릭 시 WoW 모험 안내서(Encounter Journal) 연동
-  - M+ 기준 아이템 에픽 품질 표시
+  - 부위별 섹션 안에 BIS / 대체 / 3순 우선순위로 정렬
+  - 아이템 행 클릭 시 WoW 모험 안내서(Encounter Journal) 연동
+  - 툴팁에 한밤 시즌 1 던전 트랙 요약 표시
   - 마우스 휠 스케일 조절 (0.5×~2.0×)
 - 드랍 아이템 레벨 오버레이
   - 던전 / 레이드 / M+ / 제작 탭별 드랍 템렙 표
   - 위대한 금고 컬럼
-  - 우측 현재 보유 문장(Crest) 수 통합 패널
+  - 우측 고정 `나의 문장` 패널로 현재 보유량 통합 표시
+  - 쐐기 섹션 헤더에 챔피언/영웅/신화 최고 강화 레벨 요약 표시
 
 ## 설치
 
@@ -146,7 +147,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 제작 주문, catch-up 같은 일부 profession 예외 획득원은 아직 별도 자동 집계하지 않습니다.
 - 전투메시지 설정은 기본 WoW 전투메시지 on/off를 대신하지 않습니다. 기본 표시 여부는 와우 설정에서 켜고, 여기서는 표출 방식만 조정합니다.
 - BIS 오버레이에서 Midnight 신규 던전(마이사라 동굴, 공결점 제나스, 윈드러너 첨탑)의 모험 안내서 이동은 ID 확인 후 지원 예정입니다.
-- 문장(Crest) 수 패널의 일부 통화 ID는 추정값이며, "?"로 표시될 수 있습니다.
+- 문장(Crest) 컬럼의 일부 통화 ID는 추정값이며, "?"로 표시될 수 있습니다.
 
 ## 문서
 

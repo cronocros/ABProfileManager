@@ -8,7 +8,7 @@
 
 - [../README.md](../README.md)
   - 기본 사용자 안내와 기능 요약
-- [../RELEASE_NOTES_v1.4.6.md](../RELEASE_NOTES_v1.4.6.md)
+- [../RELEASE_NOTES_v1.5.3.md](../RELEASE_NOTES_v1.5.3.md)
   - 최신 릴리스 노트
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름

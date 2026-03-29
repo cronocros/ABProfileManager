@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.5.0`
+버전 기준: `main (v1.5.3 기반)`
 
 ## 목적
 
@@ -14,8 +14,8 @@
 - 캐릭터 스탯 오버레이
 - 한밤(Midnight) 지도 오버레이
 - 전체 typography 슬라이더
-- 드랍템 레벨 참조 오버레이 (쐐기/레이드/구렁/기타, 문장 수 패널)
-- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 모험 안내서 연동)
+- 드랍템 레벨 참조 오버레이 (쐐기/레이드/구렁/기타, 4열 표 + 우측 `나의 문장` 패널)
+- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 부위별 정렬, 모험 안내서 연동)
 
 핵심 원칙:
 
@@ -97,8 +97,9 @@
 - `UI/ItemLevelOverlay.lua`
   - 파티찾기(PVEFrame) 열릴 때 옆에 표시
   - 탭: 개요 / 쐐기 / 구렁 / 레이드 / 기타
-  - 각 행: 단/난이도 | 클리어보상(ilvl+등급) | 드랍문장 | 위대한금고
-  - 우측 사이드 패널: "나의 문장" — `C_CurrencyInfo`로 현재 문장 보유량 표시
+  - 각 행: 단/난이도 | 클리어보상(ilvl+등급) | 드랍문장 | 위대한 금고
+  - 우측 고정 패널에 `CREST_ID_BY_GRADE` 기반 현재 문장 보유량 통합 표시
+  - 쐐기 섹션 헤더에 챔피언/영웅/신화 최고 강화 레벨 요약 표시
   - 마우스 휠 스케일 조절
 - `Data/ItemLevelTable.lua`
   - 쐐기(endOfDungeon, heroic, mythic0), 레이드(normal/heroic/mythic), 구렁(12단계), 제작, PvP 데이터
@@ -108,17 +109,20 @@
 
 - `UI/BISOverlay.lua`
   - 플레이어 클래스의 전 특성 탭 (spec icon 탭 클릭으로 전환)
-  - 던전별 / 보스별 / 아이템별 3단계 계층 렌더
-  - 아이템 아이콘 + 이름(에픽 품질 표시) + 부위 + BIS/대체 배지
-  - 던전 헤더 클릭 → `openEncounterJournal()` → 모험 안내서 자동 열기
+  - 부위별 섹션 아래 아이템 목록 렌더
+  - 아이템 아이콘 + 이름 + 던전 출처 + BIS/대체/3순 배지
+  - 아이템 행 클릭 → `openEncounterJournal()` → 모험 안내서 자동 열기
   - `DUNGEON_EJ_IDS` 테이블: returning 던전은 instanceID 확인, Midnight 신규 던전은 nil
-  - 아이템 툴팁: `GetItemByID` 베이스 품질(파란색) → `GameTooltipTextLeft1` 색상을 에픽 보라로 강제 표시
+  - 아이템 툴팁: 한밤 시즌 1 던전 트랙 요약(`클리어 보상` / `위대한 금고`)을 커스텀 표시
   - 헤더 영역 마우스 휠: 스케일 0.5~2.0x 조절
   - 잠금/접기: UtilityPanel bisLockCheck / 오버레이 우상단 −/+ 버튼
 - `Data/BISData.lua`
   - 키: specID (전사 71~73, 성기사 65/66/70, ... 용기사 1467/1468/1473)
   - 값: `{ dungeon, boss, itemID, slot, note }` 배열
   - note: `"BIS"` / `"대체재"` / `"2순위"`
+- `Data/BISData_Method.lua`
+  - Method.gg Midnight Season 1 가이드 표에서 추출한 던전 BIS 보강 데이터
+  - 기존 수기 BIS 데이터에 itemID 기준으로 병합
 
 ## 데이터 계층
 
@@ -241,9 +245,9 @@
 
 1. `EnsureFrame()` — BackdropTemplate 프레임, 스크롤, 스펙 탭 생성
 2. `EnsureTabs()` — 현재 캐릭터 클래스의 specID별 탭 아이콘 생성
-3. `RebuildContent()` — 선택된 specID의 BISData를 던전→보스→아이템 순서로 렌더
+3. `RebuildContent()` — 선택된 specID의 BISData를 부위→아이템 순서로 렌더
 4. `GET_ITEM_INFO_RECEIVED` → 0.3초 디바운스 `scheduleRebuild()` → `_isItemLoadRebuild=true` → 스크롤 위치 유지 rebuild
-5. 던전 헤더 클릭 → `openEncounterJournal(dungeonName)` → EJ 열기
+5. 아이템 행 클릭 → `openEncounterJournal(dungeonName)` → EJ 열기
 
 ## 성능 및 GC 최적화 패턴
 
@@ -295,4 +299,4 @@
 - 지도 좌표는 패치 후 수동 보정이 필요할 수 있다.
 - 제작 주문, catch-up 같은 profession 예외 획득원은 아직 별도 자동 집계하지 않는다.
 - BIS 아이템 데이터는 Midnight 시즌 1 M+ 신화+ 기준이며, 패치 후 변경 시 `Data/BISData.lua`만 수정하면 된다.
-- 문장 수 패널의 통화 ID는 추정값 포함 — "?" 표시 시 `CREST_CURRENCY_IDS` 테이블에서 수정.
+- 문장 컬럼의 통화 ID는 추정값 포함 — "?" 표시 시 `CREST_ID_BY_GRADE` 테이블에서 수정.
