@@ -42,8 +42,9 @@ local COL_ICON    = ICON_SIZE + 5
 local COL_NAME    = 216
 local COL_SLOT    = 112                        -- 던전 출처
 local COL_NOTE    = 54                         -- BIS/대체/3순 배지
-local SPEC_PICKER_W = 154
-local SPEC_PICKER_ROW_H = 18
+local SPEC_PICKER_W = 134
+local SPEC_PICKER_BTN_H = 22
+local SPEC_PICKER_ROW_H = 20
 local SPEC_PICKER_MAX_VISIBLE = 12
 
 -- 아이템 품질 색상
@@ -134,6 +135,18 @@ local function getPlayerClassID()
     return classID
 end
 
+local function getClassColorRGB(classFile)
+    local color = classFile and C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(classFile)
+    if color then
+        return color.r or 0.78, color.g or 0.78, color.b or 0.90
+    end
+    color = classFile and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+    if color then
+        return color.r or 0.78, color.g or 0.78, color.b or 0.90
+    end
+    return 0.78, 0.78, 0.90
+end
+
 local function getAllSpecs()
     if not GetNumClasses or not GetClassInfo
     or not GetNumSpecializationsForClassID
@@ -146,7 +159,7 @@ local function getAllSpecs()
     local numClasses = GetNumClasses() or 0
 
     for classID = 1, numClasses do
-        local className = GetClassInfo(classID)
+        local className, classFile = GetClassInfo(classID)
         local specCount = GetNumSpecializationsForClassID(classID) or 0
         for specIndex = 1, specCount do
             local ok, specID, specName, _, icon = pcall(
@@ -159,6 +172,7 @@ local function getAllSpecs()
                     icon = icon,
                     classID = classID,
                     className = className,
+                    classFile = classFile,
                     specIndex = specIndex,
                     isPlayerClass = classID == playerClassID,
                 }
@@ -304,7 +318,16 @@ local function formatSpecSelection(spec)
     end
     local classLabel = spec.className or "?"
     local specLabel = spec.name or ("Spec " .. tostring(spec.specID))
-    return classLabel .. " · " .. specLabel
+    return classLabel .. "/" .. specLabel
+end
+
+local function formatTrackLabel(grade, rank, rankMax)
+    if not grade then return "" end
+    local label = ns.L("ilvl_crest_" .. grade) or ns.L("ilvl_grade_" .. grade) or grade
+    if rank and rankMax then
+        return string.format("%s %d/%d", label, rank, rankMax)
+    end
+    return label
 end
 
 local function trackSummary(grades)
@@ -321,6 +344,54 @@ local function trackSummary(grades)
         end
     end
     return table.concat(parts, ", ")
+end
+
+local function getSeasonalMythicPlusSummary(kind)
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
+    if not entries or #entries == 0 then return "" end
+
+    local first = entries[1]
+    local last = entries[#entries]
+    if kind == "run" then
+        return string.format("%d~%d (%s -> %s)",
+            first.ilvl or 0,
+            last.ilvl or 0,
+            formatTrackLabel(first.grade, first.rank, first.rankMax),
+            formatTrackLabel(last.grade, last.rank, last.rankMax)
+        )
+    end
+
+    return string.format("%d~%d (%s -> %s)",
+        first.vault or 0,
+        last.vault or 0,
+        formatTrackLabel(first.vaultGrade, first.vaultRank, first.vaultMax),
+        formatTrackLabel(last.vaultGrade, last.vaultRank, last.vaultMax)
+    )
+end
+
+local function getSeasonalMythicPlusRange()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
+    if not entries or #entries == 0 then return nil, nil end
+    return entries[1].ilvl, entries[#entries].ilvl
+end
+
+local function overrideTooltipItemLevelLine(minIlvl, maxIlvl)
+    if not minIlvl or not maxIlvl then return end
+    local replacement = ns.L("bis_tooltip_item_level_scaled", minIlvl, maxIlvl)
+    for i = 2, 12 do
+        local fs = _G["GameTooltipTextLeft" .. i]
+        local text = fs and fs:GetText()
+        if text and (
+            text:find("Item Level", 1, true)
+            or text:find("아이템 레벨", 1, true)
+        ) then
+            fs:SetText(replacement)
+            fs:SetTextColor(0.38, 0.88, 1.00, 1)
+            return
+        end
+    end
 end
 
 local function slotSortValue(slotName)
@@ -554,8 +625,8 @@ function BISOverlay:EnsureFrame()
     frame.tabs = {}
 
     frame.specPickerBtn = CreateFrame("Button", nil, frame.tabsFrame, "BackdropTemplate")
-    frame.specPickerBtn:SetSize(SPEC_PICKER_W, 20)
-    frame.specPickerBtn:SetPoint("TOPRIGHT", frame.tabsFrame, "TOPRIGHT", 0, 2)
+    frame.specPickerBtn:SetSize(SPEC_PICKER_W, SPEC_PICKER_BTN_H)
+    frame.specPickerBtn:SetPoint("TOPRIGHT", frame.tabsFrame, "TOPRIGHT", -1, 1)
     if frame.specPickerBtn.SetBackdrop then
         frame.specPickerBtn:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -563,13 +634,26 @@ function BISOverlay:EnsureFrame()
             tile = true, tileSize = 8, edgeSize = 8,
             insets = { left = 2, right = 2, top = 2, bottom = 2 },
         })
-        frame.specPickerBtn:SetBackdropColor(0.06, 0.08, 0.15, 0.96)
-        frame.specPickerBtn:SetBackdropBorderColor(0.28, 0.35, 0.52, 0.90)
+        frame.specPickerBtn:SetBackdropColor(0.07, 0.10, 0.18, 0.97)
+        frame.specPickerBtn:SetBackdropBorderColor(0.30, 0.38, 0.56, 0.92)
     end
+    frame.specPickerBtn.fill = frame.specPickerBtn:CreateTexture(nil, "BACKGROUND")
+    frame.specPickerBtn.fill:SetPoint("TOPLEFT", frame.specPickerBtn, "TOPLEFT", 3, -3)
+    frame.specPickerBtn.fill:SetPoint("BOTTOMRIGHT", frame.specPickerBtn, "BOTTOMRIGHT", -3, 3)
+    frame.specPickerBtn.fill:SetColorTexture(0.10, 0.14, 0.23, 0.92)
+    frame.specPickerBtn.accent = frame.specPickerBtn:CreateTexture(nil, "ARTWORK")
+    frame.specPickerBtn.accent:SetWidth(2)
+    frame.specPickerBtn.accent:SetPoint("TOPLEFT", frame.specPickerBtn, "TOPLEFT", 4, -4)
+    frame.specPickerBtn.accent:SetPoint("BOTTOMLEFT", frame.specPickerBtn, "BOTTOMLEFT", 4, 4)
+    frame.specPickerBtn.accent:SetColorTexture(0.34, 0.76, 1.00, 0.85)
+    frame.specPickerBtn.icon = frame.specPickerBtn:CreateTexture(nil, "ARTWORK")
+    frame.specPickerBtn.icon:SetSize(14, 14)
+    frame.specPickerBtn.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    frame.specPickerBtn.icon:SetPoint("LEFT", frame.specPickerBtn, "LEFT", 10, 0)
     frame.specPickerBtn.label = frame.specPickerBtn:CreateFontString(nil, "OVERLAY")
     frame.specPickerBtn.label:SetFont(FONT_PATH, 9, FONT_FLAGS)
-    frame.specPickerBtn.label:SetPoint("LEFT", frame.specPickerBtn, "LEFT", 8, 0)
-    frame.specPickerBtn.label:SetPoint("RIGHT", frame.specPickerBtn, "RIGHT", -16, 0)
+    frame.specPickerBtn.label:SetPoint("LEFT", frame.specPickerBtn.icon, "RIGHT", 6, 0)
+    frame.specPickerBtn.label:SetPoint("RIGHT", frame.specPickerBtn, "RIGHT", -18, 0)
     frame.specPickerBtn.label:SetJustifyH("LEFT")
     frame.specPickerBtn.label:SetTextColor(0.82, 0.84, 0.94, 1)
     frame.specPickerBtn.arrow = frame.specPickerBtn:CreateFontString(nil, "OVERLAY")
@@ -732,16 +816,27 @@ local function ensureSpecPickerRow(frame, index)
     hl:SetColorTexture(1, 1, 1, 0.10)
 
     row.icon = row:CreateTexture(nil, "ARTWORK")
-    row.icon:SetSize(14, 14)
+    row.icon:SetSize(15, 15)
     row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    row.icon:SetPoint("LEFT", row, "LEFT", 3, 0)
+    row.icon:SetPoint("LEFT", row, "LEFT", 4, 0)
 
     row.label = row:CreateFontString(nil, "OVERLAY")
     row.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
     row.label:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
-    row.label:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+    row.label:SetPoint("RIGHT", row, "RIGHT", -48, 0)
     row.label:SetJustifyH("LEFT")
     row.label:SetTextColor(0.90, 0.92, 1.00, 1)
+
+    row.classLabel = row:CreateFontString(nil, "OVERLAY")
+    row.classLabel:SetFont(FONT_PATH, 8, FONT_FLAGS)
+    row.classLabel:SetPoint("RIGHT", row, "RIGHT", -5, 0)
+    row.classLabel:SetJustifyH("RIGHT")
+
+    row.accent = row:CreateTexture(nil, "ARTWORK")
+    row.accent:SetWidth(2)
+    row.accent:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+    row.accent:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
+    row.accent:SetColorTexture(0, 0, 0, 0)
 
     picker.rows[index] = row
     return row
@@ -765,18 +860,29 @@ function BISOverlay:RefreshSpecPickerRows()
         local row = ensureSpecPickerRow(frame, i)
         local spec = items[picker.offset + i]
         row.specID = spec and spec.specID or nil
-        row.label:SetText(spec and formatSpecSelection(spec) or "")
+        row.label:SetText(spec and (spec.name or "") or "")
         if spec and spec.icon then
             row.icon:SetTexture(spec.icon)
             row.icon:Show()
         else
             row.icon:Hide()
         end
+        if spec then
+            local cr, cg, cb = getClassColorRGB(spec.classFile)
+            row.classLabel:SetText(spec.className or "")
+            row.classLabel:SetTextColor(cr, cg, cb, 0.92)
+            row.classLabel:Show()
+        else
+            row.classLabel:SetText("")
+            row.classLabel:Hide()
+        end
 
         if spec and spec.specID == activeID then
             row.bg:SetColorTexture(0.18, 0.52, 0.78, 0.28)
+            row.accent:SetColorTexture(0.34, 0.76, 1.00, 0.95)
         else
             row.bg:SetColorTexture(0, 0, 0, 0)
+            row.accent:SetColorTexture(0, 0, 0, 0)
         end
 
         row:SetScript("OnClick", function(self2)
@@ -806,14 +912,29 @@ function BISOverlay:UpdateSpecPickerButton()
     if showingOtherClass then
         frame.specPickerBtn.label:SetText(formatSpecSelection(activeSpec))
         frame.specPickerBtn.label:SetTextColor(0.38, 0.88, 1.00, 1)
+        if frame.specPickerBtn.icon and activeSpec and activeSpec.icon then
+            frame.specPickerBtn.icon:SetTexture(activeSpec.icon)
+            frame.specPickerBtn.icon:Show()
+        end
         if frame.specPickerBtn.SetBackdropBorderColor then
             frame.specPickerBtn:SetBackdropBorderColor(0.26, 0.70, 0.96, 0.95)
+        end
+        if frame.specPickerBtn.fill then
+            frame.specPickerBtn.fill:SetColorTexture(0.09, 0.16, 0.25, 0.94)
         end
     else
         frame.specPickerBtn.label:SetText(ns.L("bis_all_specs"))
         frame.specPickerBtn.label:SetTextColor(0.82, 0.84, 0.94, 1)
+        local activePlayerSpec = activeSpec or getSpecInfo(getPlayerSpecID())
+        if frame.specPickerBtn.icon and activePlayerSpec and activePlayerSpec.icon then
+            frame.specPickerBtn.icon:SetTexture(activePlayerSpec.icon)
+            frame.specPickerBtn.icon:Show()
+        end
         if frame.specPickerBtn.SetBackdropBorderColor then
             frame.specPickerBtn:SetBackdropBorderColor(0.28, 0.35, 0.52, 0.90)
+        end
+        if frame.specPickerBtn.fill then
+            frame.specPickerBtn.fill:SetColorTexture(0.10, 0.14, 0.23, 0.92)
         end
     end
 
@@ -953,6 +1074,7 @@ local function showSeasonItemTooltip(owner, row)
     local noteKind = row._displayNoteKind or canonicalNote(entry.note)
     local noteIndex = row._displayNoteIndex or 3
     local _, itemLink, quality = GetItemInfo(row.itemID)
+    local scaledMinIlvl, scaledMaxIlvl = getSeasonalMythicPlusRange()
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:ClearLines()
@@ -981,17 +1103,19 @@ local function showSeasonItemTooltip(owner, row)
         end
     end
 
+    overrideTooltipItemLevelLine(scaledMinIlvl, scaledMaxIlvl)
+
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), localizeDungeon(entry.dungeon), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
 
-    local runTrack = trackSummary({ "chmp", "hero" })
+    local runTrack = getSeasonalMythicPlusSummary("run")
     if runTrack ~= "" then
         GameTooltip:AddDoubleLine(ns.L("bis_tooltip_end_of_run"), runTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
     end
-    local vaultTrack = trackSummary({ "hero", "myth" })
+    local vaultTrack = getSeasonalMythicPlusSummary("vault")
     if vaultTrack ~= "" then
         GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
     end

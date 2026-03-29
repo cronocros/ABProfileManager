@@ -17,13 +17,13 @@ local TAB_GAP    = 2
 
 -- 4열: 단(label) | 클리어보상(drop) | 드랍문장(crest) | 위대한금고(vault)
 -- 우측에는 나의 문장을 고정 패널로 1회만 표시한다.
-local CREST_PANEL_W = 94
-local TABLE_GAP     = 2
+local CREST_PANEL_W = 88
+local TABLE_GAP     = 0
 local CONTENT_W     = FRAME_W - 8
 local TABLE_W       = CONTENT_W - CREST_PANEL_W - TABLE_GAP
 local COL_DROP_X    = 46
 local COL_CREST_X   = 156
-local COL_VAULT_X   = 222
+local COL_VAULT_X   = 224
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
@@ -554,7 +554,7 @@ function ItemLevelOverlay:EnsureFrame()
     end
     frame.crestPanel = crestPanel
 
-    local crestTitle = makeFS(crestPanel, 9, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
+    local crestTitle = makeFS(crestPanel, 10, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
     crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 7, -7)
     crestTitle:SetJustifyH("LEFT")
     crestTitle:SetText(ns.L("ilvl_col_my_crest"))
@@ -562,13 +562,13 @@ function ItemLevelOverlay:EnsureFrame()
 
     frame.crestLines = {}
     for i, _ in ipairs(CREST_PANEL_GRADES) do
-        local fs = makeFS(crestPanel, 10, 1, 1, 1)
+        local fs = makeFS(crestPanel, 11, 1, 1, 1)
         if i == 1 then
-            fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -6)
+            fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -5)
         else
-            fs:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -3)
+            fs:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -2)
         end
-        fs:SetWidth(CREST_PANEL_W - 14)
+        fs:SetWidth(CREST_PANEL_W - 10)
         fs:SetJustifyH("LEFT")
         frame.crestLines[i] = fs
     end
@@ -697,7 +697,7 @@ function ItemLevelOverlay:RebuildContent()
                 fs:SetText(text ~= "" and text or ((ns.L("ilvl_crest_"..grade) or grade) .. " -"))
             end
         end
-        local crestPanelH = 24 + (#CREST_PANEL_GRADES * 16)
+        local crestPanelH = 26 + (#CREST_PANEL_GRADES * 17)
         frame.crestPanel:SetHeight(crestPanelH)
     end
 
