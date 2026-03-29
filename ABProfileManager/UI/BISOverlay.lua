@@ -56,6 +56,16 @@ local QC = {
     [5] = { 1.00, 0.55, 0.00 },
 }
 
+local function getSeasonDisplayQuality(itemQuality)
+    -- 시즌 M+ 드랍은 구던 원본 품질이 파템이어도 최소 에픽으로 보정해서 보여준다.
+    return math.max(itemQuality or 4, 4)
+end
+
+local function getQualityColor(itemQuality)
+    local effectiveQ = getSeasonDisplayQuality(itemQuality)
+    return QC[effectiveQ] or QC[4], effectiveQ
+end
+
 local SLOT_ORDER = {
     "무기", "보조장비", "방패", "머리", "목", "어깨", "망토", "가슴",
     "손목", "손", "허리", "다리", "발", "반지", "장신구",
@@ -942,11 +952,11 @@ local function showSeasonItemTooltip(owner, row)
     local entry = row._entry or {}
     local noteKind = row._displayNoteKind or canonicalNote(entry.note)
     local noteIndex = row._displayNoteIndex or 3
+    local _, itemLink, quality = GetItemInfo(row.itemID)
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:ClearLines()
 
-    local itemLink = select(2, GetItemInfo(row.itemID))
     local hasBaseTooltip = false
 
     if itemLink and GameTooltip.SetHyperlink then
@@ -961,8 +971,14 @@ local function showSeasonItemTooltip(owner, row)
         requestItemData(row.itemID)
         local ok, itemName, _, quality = pcall(GetItemInfo, row.itemID)
         local displayName = (ok and itemName) or ("Item #" .. tostring(row.itemID))
-        local qc = QC[quality or 4] or QC[4]
+        local qc = getQualityColor(quality)
         GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+    else
+        local nameFS = _G.GameTooltipTextLeft1
+        local qc = getQualityColor(quality)
+        if nameFS then
+            nameFS:SetTextColor(qc[1], qc[2], qc[3], 1)
+        end
     end
 
     GameTooltip:AddLine(" ")
@@ -1191,9 +1207,7 @@ function BISOverlay:RebuildContent()
                 iRow.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
 
                 if itemName then
-                    -- M+ 기준: 최소 에픽(4=보라), 전설(5=주황)은 유지
-                    local effectiveQ = math.max(quality or 4, 4)
-                    local qc = QC[effectiveQ] or QC[4]
+                    local qc = getQualityColor(quality)
                     iRow.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
                     iRow.nameLabel:SetText(itemName)
                 else
