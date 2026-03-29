@@ -42,6 +42,9 @@ local COL_ICON    = ICON_SIZE + 5
 local COL_NAME    = 216
 local COL_SLOT    = 112                        -- 던전 출처
 local COL_NOTE    = 54                         -- BIS/대체/3순 배지
+local SPEC_PICKER_W = 154
+local SPEC_PICKER_ROW_H = 18
+local SPEC_PICKER_MAX_VISIBLE = 12
 
 -- 아이템 품질 색상
 local QC = {
@@ -115,17 +118,80 @@ local DUNGEON_EJ_IDS = {
 -- Helper 함수들
 -- ============================================================
 
-local function getClassSpecs()
-    if not UnitClass or not GetNumSpecializationsForClassID
-    or not GetSpecializationInfoForClassID then return {} end
+local function getPlayerClassID()
+    if not UnitClass then return nil end
     local _, _, classID = UnitClass("player")
-    if not classID then return {} end
+    return classID
+end
+
+local function getAllSpecs()
+    if not GetNumClasses or not GetClassInfo
+    or not GetNumSpecializationsForClassID
+    or not GetSpecializationInfoForClassID then
+        return {}
+    end
+
     local specs = {}
-    local n = GetNumSpecializationsForClassID(classID)
-    for i = 1, n do
-        local ok, specID, name, _, icon = pcall(GetSpecializationInfoForClassID, classID, i)
-        if ok and specID then
-            specs[#specs + 1] = { specID = specID, name = name, icon = icon }
+    local playerClassID = getPlayerClassID()
+    local numClasses = GetNumClasses() or 0
+
+    for classID = 1, numClasses do
+        local className = GetClassInfo(classID)
+        local specCount = GetNumSpecializationsForClassID(classID) or 0
+        for specIndex = 1, specCount do
+            local ok, specID, specName, _, icon = pcall(
+                GetSpecializationInfoForClassID, classID, specIndex
+            )
+            if ok and specID and specName then
+                specs[#specs + 1] = {
+                    specID = specID,
+                    name = specName,
+                    icon = icon,
+                    classID = classID,
+                    className = className,
+                    specIndex = specIndex,
+                    isPlayerClass = classID == playerClassID,
+                }
+            end
+        end
+    end
+
+    table.sort(specs, function(a, b)
+        local ap = a.isPlayerClass and 0 or 1
+        local bp = b.isPlayerClass and 0 or 1
+        if ap ~= bp then
+            return ap < bp
+        end
+        if a.classID ~= b.classID then
+            return a.classID < b.classID
+        end
+        if a.specIndex ~= b.specIndex then
+            return a.specIndex < b.specIndex
+        end
+        return tostring(a.name) < tostring(b.name)
+    end)
+
+    return specs
+end
+
+local function getSpecInfo(specID)
+    if not specID then return nil end
+    for _, spec in ipairs(getAllSpecs()) do
+        if spec.specID == specID then
+            return spec
+        end
+    end
+    return nil
+end
+
+local function getClassSpecs()
+    local specs = {}
+    local classID = getPlayerClassID()
+    if not classID then return specs end
+
+    for _, spec in ipairs(getAllSpecs()) do
+        if spec.classID == classID then
+            specs[#specs + 1] = spec
         end
     end
     return specs
@@ -220,6 +286,15 @@ local function notePlain(kind, index)
         return ns.L("bis_note_third")
     end
     return ns.L("bis_note_rank", index or 4)
+end
+
+local function formatSpecSelection(spec)
+    if not spec then
+        return ns.L("bis_all_specs") or "All Specs"
+    end
+    local classLabel = spec.className or "?"
+    local specLabel = spec.name or ("Spec " .. tostring(spec.specID))
+    return classLabel .. " · " .. specLabel
 end
 
 local function trackSummary(grades)
@@ -354,6 +429,7 @@ function BISOverlay:ApplyCollapse()
     local frame = self.frame
     if not frame then return end
     if self._collapsed then
+        if frame.specPicker then frame.specPicker:Hide() end
         frame.scrollFrame:Hide()
         frame.scrollBarTrack:Hide()
         frame.scrollBarThumb:Hide()
@@ -408,7 +484,10 @@ function BISOverlay:EnsureFrame()
         f:StartMoving()
     end)
     frame:SetScript("OnDragStop",  function(f) f:StopMovingOrSizing() end)
-    frame:SetScript("OnHide",      function(f) f:StopMovingOrSizing() end)
+    frame:SetScript("OnHide",      function(f)
+        f:StopMovingOrSizing()
+        if f.specPicker then f.specPicker:Hide() end
+    end)
 
     -- ─── 제목 바 배경 ───────────────────────────────────────
     local titleBar = frame:CreateTexture(nil, "BACKGROUND")
@@ -463,6 +542,72 @@ function BISOverlay:EnsureFrame()
     frame.tabsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 12))
     frame.tabsFrame:SetHeight(TABS_H)
     frame.tabs = {}
+
+    frame.specPickerBtn = CreateFrame("Button", nil, frame.tabsFrame, "BackdropTemplate")
+    frame.specPickerBtn:SetSize(SPEC_PICKER_W, 20)
+    frame.specPickerBtn:SetPoint("TOPRIGHT", frame.tabsFrame, "TOPRIGHT", 0, 2)
+    if frame.specPickerBtn.SetBackdrop then
+        frame.specPickerBtn:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 8, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        frame.specPickerBtn:SetBackdropColor(0.06, 0.08, 0.15, 0.96)
+        frame.specPickerBtn:SetBackdropBorderColor(0.28, 0.35, 0.52, 0.90)
+    end
+    frame.specPickerBtn.label = frame.specPickerBtn:CreateFontString(nil, "OVERLAY")
+    frame.specPickerBtn.label:SetFont(FONT_PATH, 9, FONT_FLAGS)
+    frame.specPickerBtn.label:SetPoint("LEFT", frame.specPickerBtn, "LEFT", 8, 0)
+    frame.specPickerBtn.label:SetPoint("RIGHT", frame.specPickerBtn, "RIGHT", -16, 0)
+    frame.specPickerBtn.label:SetJustifyH("LEFT")
+    frame.specPickerBtn.label:SetTextColor(0.82, 0.84, 0.94, 1)
+    frame.specPickerBtn.arrow = frame.specPickerBtn:CreateFontString(nil, "OVERLAY")
+    frame.specPickerBtn.arrow:SetFont(FONT_PATH, 9, FONT_FLAGS)
+    frame.specPickerBtn.arrow:SetPoint("RIGHT", frame.specPickerBtn, "RIGHT", -6, 0)
+    frame.specPickerBtn.arrow:SetText("v")
+    frame.specPickerBtn.arrow:SetTextColor(0.78, 0.80, 0.92, 1)
+    frame.specPickerBtn:SetScript("OnEnter", function(self2)
+        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        GameTooltip:SetText(ns.L("bis_all_specs"), 1, 1, 1, 1, true)
+        GameTooltip:AddLine(ns.L("bis_all_specs_hint"), 0.70, 0.78, 0.90, true)
+        GameTooltip:Show()
+    end)
+    frame.specPickerBtn:SetScript("OnLeave", function()
+        if not (frame.specPicker and frame.specPicker:IsShown()) then
+            GameTooltip:Hide()
+        end
+    end)
+
+    frame.specPicker = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+    frame.specPicker:SetFrameStrata("TOOLTIP")
+    frame.specPicker:SetFrameLevel(frame:GetFrameLevel() + 20)
+    frame.specPicker:SetWidth(SPEC_PICKER_W)
+    frame.specPicker:SetClampedToScreen(true)
+    frame.specPicker:EnableMouse(true)
+    frame.specPicker:EnableMouseWheel(true)
+    frame.specPicker:Hide()
+    frame.specPicker.rows = {}
+    frame.specPicker.items = {}
+    frame.specPicker.offset = 0
+    if frame.specPicker.SetBackdrop then
+        frame.specPicker:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 8, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        frame.specPicker:SetBackdropColor(0.04, 0.05, 0.10, 0.97)
+        frame.specPicker:SetBackdropBorderColor(0.35, 0.42, 0.60, 0.95)
+    end
+    frame.specPicker:SetScript("OnMouseWheel", function(self2, delta)
+        local total = #self2.items
+        local visible = math.min(total, SPEC_PICKER_MAX_VISIBLE)
+        if total <= visible then return end
+        local maxOffset = total - visible
+        self2.offset = math.max(0, math.min(maxOffset, self2.offset - delta))
+        BISOverlay:RefreshSpecPickerRows()
+    end)
 
     -- ─── 구분선 2 ───────────────────────────────────────────
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
@@ -559,6 +704,142 @@ end
 -- 스펙 탭 생성/업데이트
 -- ============================================================
 
+local function ensureSpecPickerRow(frame, index)
+    local picker = frame.specPicker
+    if picker.rows[index] then return picker.rows[index] end
+
+    local row = CreateFrame("Button", nil, picker)
+    row:SetHeight(SPEC_PICKER_ROW_H)
+    row:SetPoint("TOPLEFT", picker, "TOPLEFT", 4, -((index - 1) * SPEC_PICKER_ROW_H + 4))
+    row:SetPoint("RIGHT", picker, "RIGHT", -4, 0)
+
+    row.bg = row:CreateTexture(nil, "BACKGROUND")
+    row.bg:SetAllPoints()
+    row.bg:SetColorTexture(0, 0, 0, 0)
+
+    local hl = row:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints()
+    hl:SetColorTexture(1, 1, 1, 0.10)
+
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon:SetSize(14, 14)
+    row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    row.icon:SetPoint("LEFT", row, "LEFT", 3, 0)
+
+    row.label = row:CreateFontString(nil, "OVERLAY")
+    row.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
+    row.label:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+    row.label:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+    row.label:SetJustifyH("LEFT")
+    row.label:SetTextColor(0.90, 0.92, 1.00, 1)
+
+    picker.rows[index] = row
+    return row
+end
+
+function BISOverlay:RefreshSpecPickerRows()
+    local frame = self.frame
+    local picker = frame and frame.specPicker
+    if not picker then return end
+
+    local items = picker.items or {}
+    local total = #items
+    local visible = math.min(total, SPEC_PICKER_MAX_VISIBLE)
+    local maxOffset = math.max(0, total - visible)
+    picker.offset = math.max(0, math.min(maxOffset, picker.offset or 0))
+    picker:SetHeight(visible * SPEC_PICKER_ROW_H + 8)
+
+    local activeID = self.selectedSpecID or getPlayerSpecID()
+
+    for i = 1, visible do
+        local row = ensureSpecPickerRow(frame, i)
+        local spec = items[picker.offset + i]
+        row.specID = spec and spec.specID or nil
+        row.label:SetText(spec and formatSpecSelection(spec) or "")
+        if spec and spec.icon then
+            row.icon:SetTexture(spec.icon)
+            row.icon:Show()
+        else
+            row.icon:Hide()
+        end
+
+        if spec and spec.specID == activeID then
+            row.bg:SetColorTexture(0.18, 0.52, 0.78, 0.28)
+        else
+            row.bg:SetColorTexture(0, 0, 0, 0)
+        end
+
+        row:SetScript("OnClick", function(self2)
+            if not self2.specID then return end
+            BISOverlay.selectedSpecID = self2.specID
+            BISOverlay:UpdateTabHighlight()
+            if frame.specPicker then frame.specPicker:Hide() end
+            BISOverlay:RebuildContent()
+        end)
+        row:Show()
+    end
+
+    for i = visible + 1, #picker.rows do
+        picker.rows[i]:Hide()
+    end
+end
+
+function BISOverlay:UpdateSpecPickerButton()
+    local frame = self.frame
+    if not frame or not frame.specPickerBtn then return end
+
+    local playerClassID = getPlayerClassID()
+    local activeID = self.selectedSpecID or getPlayerSpecID()
+    local activeSpec = getSpecInfo(activeID)
+    local showingOtherClass = activeSpec and playerClassID and activeSpec.classID ~= playerClassID
+
+    if showingOtherClass then
+        frame.specPickerBtn.label:SetText(formatSpecSelection(activeSpec))
+        frame.specPickerBtn.label:SetTextColor(0.38, 0.88, 1.00, 1)
+        if frame.specPickerBtn.SetBackdropBorderColor then
+            frame.specPickerBtn:SetBackdropBorderColor(0.26, 0.70, 0.96, 0.95)
+        end
+    else
+        frame.specPickerBtn.label:SetText(ns.L("bis_all_specs"))
+        frame.specPickerBtn.label:SetTextColor(0.82, 0.84, 0.94, 1)
+        if frame.specPickerBtn.SetBackdropBorderColor then
+            frame.specPickerBtn:SetBackdropBorderColor(0.28, 0.35, 0.52, 0.90)
+        end
+    end
+
+    if frame.specPicker and frame.specPicker:IsShown() then
+        self:RefreshSpecPickerRows()
+    end
+end
+
+function BISOverlay:ToggleSpecPicker()
+    local frame = self.frame
+    if not frame or not frame.specPicker or not frame.specPickerBtn then return end
+
+    if frame.specPicker:IsShown() then
+        frame.specPicker:Hide()
+        return
+    end
+
+    frame.specPicker.items = getAllSpecs()
+    frame.specPicker:ClearAllPoints()
+    frame.specPicker:SetPoint("TOPRIGHT", frame.specPickerBtn, "BOTTOMRIGHT", 0, -4)
+
+    local activeID = self.selectedSpecID or getPlayerSpecID()
+    local visible = math.min(#frame.specPicker.items, SPEC_PICKER_MAX_VISIBLE)
+    local offset = 0
+    for i, spec in ipairs(frame.specPicker.items) do
+        if spec.specID == activeID then
+            offset = math.max(0, math.min(#frame.specPicker.items - visible, i - 2))
+            break
+        end
+    end
+    frame.specPicker.offset = offset
+    self:RefreshSpecPickerRows()
+    frame.specPicker:Show()
+    frame.specPicker:Raise()
+end
+
 function BISOverlay:EnsureTabs()
     local frame = self.frame
     if not frame then return end
@@ -566,6 +847,7 @@ function BISOverlay:EnsureTabs()
     if #specs == 0 then return end
     if #frame.tabs == #specs then
         self:UpdateTabHighlight()
+        self:UpdateSpecPickerButton()
         return
     end
 
@@ -615,7 +897,14 @@ function BISOverlay:EnsureTabs()
         frame.tabs[i] = tab
     end
 
+    if frame.specPickerBtn then
+        frame.specPickerBtn:SetScript("OnClick", function()
+            BISOverlay:ToggleSpecPicker()
+        end)
+    end
+
     self:UpdateTabHighlight()
+    self:UpdateSpecPickerButton()
 end
 
 function BISOverlay:UpdateTabHighlight()
@@ -633,6 +922,7 @@ function BISOverlay:UpdateTabHighlight()
             tab.indicator:SetColorTexture(0, 0, 0, 0)
         end
     end
+    self:UpdateSpecPickerButton()
 end
 
 -- ============================================================
@@ -649,19 +939,34 @@ end
 local function showSeasonItemTooltip(owner, row)
     if not row or not row.itemID or row.itemID <= 0 then return end
 
-    local ok, itemName, _, quality = pcall(GetItemInfo, row.itemID)
-    local displayName = (ok and itemName) or ("Item #" .. tostring(row.itemID))
-    local effectiveQ = math.max(quality or 4, 4)
-    local qc = QC[effectiveQ] or QC[4]
     local entry = row._entry or {}
     local noteKind = row._displayNoteKind or canonicalNote(entry.note)
     local noteIndex = row._displayNoteIndex or 3
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:ClearLines()
-    GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
-    GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
+
+    local itemLink = select(2, GetItemInfo(row.itemID))
+    local hasBaseTooltip = false
+
+    if itemLink and GameTooltip.SetHyperlink then
+        local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, itemLink)
+        hasBaseTooltip = ok
+    elseif GameTooltip.SetItemByID then
+        local ok = pcall(GameTooltip.SetItemByID, GameTooltip, row.itemID)
+        hasBaseTooltip = ok
+    end
+
+    if not hasBaseTooltip then
+        requestItemData(row.itemID)
+        local ok, itemName, _, quality = pcall(GetItemInfo, row.itemID)
+        local displayName = (ok and itemName) or ("Item #" .. tostring(row.itemID))
+        local qc = QC[quality or 4] or QC[4]
+        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+    end
+
     GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), localizeDungeon(entry.dungeon), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)

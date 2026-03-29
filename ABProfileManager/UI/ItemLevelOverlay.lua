@@ -5,7 +5,7 @@ ns.UI.ItemLevelOverlay = ItemLevelOverlay
 
 local FONT_PATH  = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FONT_FLAGS = "OUTLINE"
-local FRAME_W    = 442
+local FRAME_W    = 456
 local TITLE_H    = 22
 local TAB_H      = 18
 local ROW_H      = 17
@@ -17,13 +17,13 @@ local TAB_GAP    = 2
 
 -- 4열: 단(label) | 클리어보상(drop) | 드랍문장(crest) | 위대한금고(vault)
 -- 우측에는 나의 문장을 고정 패널로 1회만 표시한다.
-local CREST_PANEL_W = 108
-local TABLE_GAP     = 8
+local CREST_PANEL_W = 94
+local TABLE_GAP     = 2
 local CONTENT_W     = FRAME_W - 8
 local TABLE_W       = CONTENT_W - CREST_PANEL_W - TABLE_GAP
-local COL_DROP_X    = 50
-local COL_CREST_X   = 136
-local COL_VAULT_X   = 196
+local COL_DROP_X    = 46
+local COL_CREST_X   = 156
+local COL_VAULT_X   = 222
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
@@ -31,14 +31,14 @@ local SCALE_MAX  = 2.00
 
 local TAB_KEYS = { "overview", "mythicplus", "delves", "raid", "other" }
 
--- Midnight 시즌 1 문장 통화 ID — 등급별 보유량 조회용
--- 영웅(3345) 확인, 나머지 3342~3346 추정 → 인게임 /dump C_CurrencyInfo.GetCurrencyInfo(ID) 로 검증 필요
+-- Midnight 시즌 1 Dawncrest 통화 ID — 등급별 보유량 조회용
+-- 인게임 확인 결과와 현 시즌 애드온 데이터 기준으로 보정한 값이다.
 local CREST_ID_BY_GRADE = {
-    adv  = 3342,
-    vet  = 3343,
-    chmp = 3344,
+    adv  = 3383,
+    vet  = 3341,
+    chmp = 3343,
     hero = 3345,
-    myth = 3346,
+    myth = 3347,
 }
 
 local HEADER_COLOR = { 0.50, 0.58, 0.68 }
@@ -111,7 +111,10 @@ end
 -- 등급명에 인라인 색상 적용
 local function gradeRankColored(grade, rank, rankMax)
     if not grade then return "" end
-    local name = ns.L("ilvl_grade_"..grade) or grade
+    local name = ns.L("ilvl_crest_"..grade) or ns.L("ilvl_grade_"..grade) or grade
+    if rank and rankMax then
+        name = string.format("%s %d/%d", name, rank, rankMax)
+    end
     local gc = GRADE_COLORS[grade]
     if not gc then return name end
     return inlineColor(colorHex(gc[1], gc[2], gc[3]), name)
