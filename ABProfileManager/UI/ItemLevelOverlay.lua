@@ -23,9 +23,6 @@ local SCALE_MAX  = 2.00
 
 local TAB_KEYS = { "overview", "mythicplus", "delves", "raid", "other" }
 
--- 나의 문장 사이드 패널 폭
-local CREST_PANEL_W = 108
-
 -- Midnight 시즌 1 새벽 문장 통화 ID
 -- 영웅 새벽 문장(3345)은 연구로 확인, 나머지는 연속 추정값 — 인게임 검증 필요
 local CREST_CURRENCY_IDS = {
@@ -314,7 +311,30 @@ local function buildOtherRows(avgIlvl)
     local tbl = ns.Data and ns.Data.ItemLevelTable
     if not tbl then return {} end
     local rows = {}
+    local function spacer() rows[#rows+1] = { isSpacer=true } end
+
+    -- 나의 문장 섹션
+    rows[#rows+1] = { isHeader=true, label=ns.L("ilvl_crest_panel_title") }
+    rows[#rows+1] = colHeader("ilvl_col_grade", "ilvl_col_count", nil, nil)
+    for _, info in ipairs(CREST_CURRENCY_IDS) do
+        local currInfo = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo(info.id)
+        local qty = currInfo and currInfo.quantity
+        local gc = CREST_COLORS[info.grade] or { 0.85, 0.85, 0.85 }
+        local hex = colorHex(gc[1], gc[2], gc[3])
+        local gradeName = ns.L("ilvl_crest_"..info.grade) or info.grade
+        rows[#rows+1] = {
+            label    = inlineColor(hex, gradeName),
+            dropStr  = qty ~= nil and tostring(qty) or "?",
+            vaultStr = "",
+            crestDrop = nil,
+            grade     = nil,
+            highlight = false,
+            vaultHL   = false,
+        }
+    end
+
     if tbl.crafted then
+        spacer()
         rows[#rows+1] = { isHeader=true, label=ns.L("ilvl_section_crafted") }
         for _, k in ipairs({ "base", "r5" }) do
             local e = tbl.crafted[k]
@@ -332,6 +352,7 @@ local function buildOtherRows(avgIlvl)
         end
     end
     if tbl.pvp then
+        spacer()
         rows[#rows+1] = { isHeader=true, label=ns.L("ilvl_section_pvp") }
         for _, k in ipairs({ "honor", "conquest" }) do
             local e = tbl.pvp[k]
@@ -693,87 +714,6 @@ function ItemLevelOverlay:UpdateLayout()
         frame.tabRow:Show()
         frame.content:Show()
         frame.toggleBtn:SetText("-")
-    end
-
-    self:UpdateCrestPanel()
-end
-
--- ============================================================
--- 나의 문장 사이드 패널
--- ============================================================
-
-function ItemLevelOverlay:EnsureCrestPanel()
-    if self.crestPanel then return self.crestPanel end
-    local frame = self.frame
-    if not frame then return nil end
-
-    local panel = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    panel:SetWidth(CREST_PANEL_W)
-    panel:SetPoint("TOPLEFT", frame, "TOPRIGHT", 4, 0)
-
-    if panel.SetBackdrop then
-        panel:SetBackdrop({
-            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-            tile = true, tileSize = 8, edgeSize = 8,
-            insets = { left=2, right=2, top=2, bottom=2 },
-        })
-        panel:SetBackdropColor(0.04, 0.04, 0.06, 0.88)
-        panel:SetBackdropBorderColor(0.40, 0.40, 0.55, 0.80)
-    end
-
-    -- 패널 타이틀
-    local titleFS = makeFS(panel, 10, 0.65, 0.80, 1.00)
-    titleFS:SetPoint("TOPLEFT", panel, "TOPLEFT", 6, -5)
-    titleFS:SetText(ns.L("ilvl_crest_panel_title") or "나의 문장")
-    panel.titleFS = titleFS
-
-    -- 구분선
-    local div = panel:CreateTexture(nil, "ARTWORK")
-    div:SetHeight(1)
-    div:SetColorTexture(0.30, 0.40, 0.55, 0.60)
-    div:SetPoint("TOPLEFT",  panel, "TOPLEFT",  4, -18)
-    div:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -18)
-
-    -- 문장 종류별 행
-    panel.rows = {}
-    for i, info in ipairs(CREST_CURRENCY_IDS) do
-        local rowY = -(20 + (i - 1) * 16)
-        local gc = CREST_COLORS[info.grade] or { 0.85, 0.85, 0.85 }
-
-        local nameFS = makeFS(panel, 10, gc[1], gc[2], gc[3])
-        nameFS:SetPoint("TOPLEFT", panel, "TOPLEFT", 6, rowY)
-        nameFS:SetWidth(CREST_PANEL_W - 42)
-        nameFS:SetJustifyH("LEFT")
-
-        local countFS = makeFS(panel, 10, 1.00, 1.00, 1.00)
-        countFS:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -6, rowY)
-        countFS:SetWidth(36)
-        countFS:SetJustifyH("RIGHT")
-
-        panel.rows[i] = { grade = info.grade, id = info.id, nameFS = nameFS, countFS = countFS }
-    end
-
-    self.crestPanel = panel
-    return panel
-end
-
-function ItemLevelOverlay:UpdateCrestPanel()
-    local frame = self.frame
-    if not frame then return end
-
-    local panel = self:EnsureCrestPanel()
-    if not panel then return end
-
-    -- 높이를 메인 프레임에 맞춤
-    panel:SetHeight(frame:GetHeight())
-
-    -- 문장 종류명 + 현재 보유량 갱신
-    for _, row in ipairs(panel.rows) do
-        row.nameFS:SetText(ns.L("ilvl_crest_" .. row.grade) or row.grade)
-        local info = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo(row.id)
-        local qty  = info and info.quantity
-        row.countFS:SetText(qty ~= nil and tostring(qty) or "?")
     end
 end
 

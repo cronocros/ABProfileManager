@@ -515,7 +515,7 @@ local function ensureRow(frame, index)
     row.noteLabel:SetWidth(COL_NOTE)
     row.noteLabel:Hide()
 
-    row.tooltipRegion = CreateFrame("Frame", nil, row)
+    row.tooltipRegion = CreateFrame("Button", nil, row)
     row.tooltipRegion:SetAllPoints(row)
     row.tooltipRegion:EnableMouse(true)
     row.tooltipRegion:RegisterForClicks("LeftButtonUp")
