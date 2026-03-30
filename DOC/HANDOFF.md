@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.5.3 기반)`
+버전 기준: `main (v1.5.4 기반)`
 
 ## 현재 상태
 
@@ -34,6 +34,12 @@
 6. 고스트 드래그와 전투 중 대기열 상호작용은 항상 보수적으로 다룰 것
 
 ## 운영 메모
+
+### 0. v1.5.4 QA 반영 메모
+
+- BIS 시즌 툴팁의 정확한 현재 시즌 스탯은 `itemID`만으로는 보장되지 않는다. `UI/BISOverlay.lua`는 Encounter Journal preview hyperlink를 얻을 수 있을 때만 그 링크로 툴팁을 열도록 정리했다.
+- Encounter Journal이 시즌 preview link를 주지 못하는 던전/아이템은 base item tooltip로 떨어질 수 있으므로, 이 경로를 다시 건드릴 때는 `getPreviewMythicPlusLootLink()`와 `showSeasonItemTooltip()`를 같이 본다.
+- 드랍템 레벨 오버레이와 BIS 오버레이는 폭/간격 민감도가 높다. 컬럼 상수만 바꿀 게 아니라 실제 한글 문자열 잘림과 탭/스크롤 영역까지 같이 봐야 한다.
 
 ### 1. TomTom waypoint 지역 컨텍스트
 

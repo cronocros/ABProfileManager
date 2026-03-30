@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.5.3 기반)`
+버전 기준: `main (v1.5.4 기반)`
 
 ## 목적
 

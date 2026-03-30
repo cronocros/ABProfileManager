@@ -126,6 +126,16 @@ function AddonSettingsPages:CreatePanels()
                 return ns.L("settings_subpanel_quests_summary")
             end
         ),
+        utility = self:CreatePanel(
+            "Utility",
+            "utility",
+            "settings_subpanel_utility_title",
+            "settings_subpanel_utility_body",
+            "settings_subpanel_button_utility",
+            function()
+                return ns.L("settings_subpanel_utility_summary")
+            end
+        ),
         map = self:CreatePanel(
             "Map",
             "map",
@@ -157,6 +167,7 @@ function AddonSettingsPages:Register(parentCategory)
         { key = "professions", label = ns.L("settings_category_professions") },
         { key = "map", label = ns.L("settings_category_map") },
         { key = "quests", label = ns.L("settings_category_quests") },
+        { key = "utility", label = ns.L("settings_category_utility") },
     }
 
     self.categories = {}

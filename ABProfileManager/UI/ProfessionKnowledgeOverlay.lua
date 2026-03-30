@@ -935,19 +935,23 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     local oneTimeLine = buildRowFragments(oneTimeRows, 4)
     local weeklySummaryComplete = summary and summary.weeklyMax > 0 and summary.weeklyEarned >= summary.weeklyMax
     local oneTimeSummaryComplete = summary and summary.oneTimeMax > 0 and summary.oneTimeEarned >= summary.oneTimeMax
-    local coloredSummary = string.format(
-        "%s %s   |   %s %s",
-        ns.L("professions_overlay_prefix_weekly"),
-        colorize(
-            formatPointProgress(summary and summary.weeklyEarned or 0, summary and summary.weeklyMax or 0, true),
-            weeklySummaryComplete and getCompleteColorHex() or getPendingColorHex()
-        ),
-        ns.L("professions_overlay_prefix_onetime"),
-        colorize(
-            formatPointProgress(summary and summary.oneTimeEarned or 0, summary and summary.oneTimeMax or 0, true),
-            oneTimeSummaryComplete and getCompleteColorHex() or getPendingColorHex()
-        )
+    local weeklySummaryText = colorize(
+        formatPointProgress(summary and summary.weeklyEarned or 0, summary and summary.weeklyMax or 0, true),
+        weeklySummaryComplete and getCompleteColorHex() or getPendingColorHex()
     )
+    local oneTimeSummaryText = colorize(
+        formatPointProgress(summary and summary.oneTimeEarned or 0, summary and summary.oneTimeMax or 0, true),
+        oneTimeSummaryComplete and getCompleteColorHex() or getPendingColorHex()
+    )
+    local coloredSummary = string.format("%s %s", ns.L("professions_overlay_prefix_weekly"), weeklySummaryText)
+    if not oneTimeSummaryComplete then
+        coloredSummary = string.format(
+            "%s   |   %s %s",
+            coloredSummary,
+            ns.L("professions_overlay_prefix_onetime"),
+            oneTimeSummaryText
+        )
+    end
 
     row.summary:SetText(coloredSummary)
     if fullyComplete then
@@ -976,16 +980,19 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     row.weeklyDetails:SetTextColor(0.92, 0.94, 0.95, 1)
     row.oneTimeDetails:SetTextColor(0.92, 0.94, 0.95, 1)
 
+    local showOneTimeDetails = expanded and not oneTimeSummaryComplete
     row.weeklyPrefix:SetShown(expanded)
     row.weeklyDetails:SetShown(expanded)
-    row.oneTimePrefix:SetShown(expanded)
-    row.oneTimeDetails:SetShown(expanded)
-    row.lineBreak:SetShown(expanded)
+    row.oneTimePrefix:SetShown(showOneTimeDetails)
+    row.oneTimeDetails:SetShown(showOneTimeDetails)
+    row.lineBreak:SetShown(showOneTimeDetails)
 
-    local oneTimeLineWidth = math.max(96, math.ceil((row.oneTimePrefix:GetStringWidth() or detailPrefixWidth) + 4 + math.min(detailWidth, row.oneTimeDetails:GetStringWidth() or detailWidth)))
-    row.lineBreak:ClearAllPoints()
-    row.lineBreak:SetPoint("TOPLEFT", row.oneTimePrefix, "BOTTOMLEFT", 0, -5)
-    row.lineBreak:SetWidth(oneTimeLineWidth)
+    if showOneTimeDetails then
+        local oneTimeLineWidth = math.max(96, math.ceil((row.oneTimePrefix:GetStringWidth() or detailPrefixWidth) + 4 + math.min(detailWidth, row.oneTimeDetails:GetStringWidth() or detailWidth)))
+        row.lineBreak:ClearAllPoints()
+        row.lineBreak:SetPoint("TOPLEFT", row.oneTimePrefix, "BOTTOMLEFT", 0, -5)
+        row.lineBreak:SetWidth(oneTimeLineWidth)
+    end
 
     local rowHeight = math.max(
         ICON_SIZE,
@@ -997,10 +1004,15 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     if expanded then
         rowHeight = rowHeight +
             3 +
-            math.ceil(row.weeklyDetails:GetStringHeight() or DETAIL_SIZE) +
-            2 +
-            math.ceil(row.oneTimeDetails:GetStringHeight() or DETAIL_SIZE) +
-            8
+            math.ceil(row.weeklyDetails:GetStringHeight() or DETAIL_SIZE)
+        if showOneTimeDetails then
+            rowHeight = rowHeight +
+                2 +
+                math.ceil(row.oneTimeDetails:GetStringHeight() or DETAIL_SIZE) +
+                8
+        else
+            rowHeight = rowHeight + 6
+        end
     end
 
     row:SetHeight(rowHeight)

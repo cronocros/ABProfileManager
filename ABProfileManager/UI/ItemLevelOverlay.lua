@@ -5,7 +5,7 @@ ns.UI.ItemLevelOverlay = ItemLevelOverlay
 
 local FONT_PATH  = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FONT_FLAGS = "OUTLINE"
-local FRAME_W    = 456
+local FRAME_W    = 432
 local TITLE_H    = 22
 local TAB_H      = 18
 local ROW_H      = 17
@@ -17,13 +17,13 @@ local TAB_GAP    = 2
 
 -- 4열: 단(label) | 클리어보상(drop) | 드랍문장(crest) | 위대한금고(vault)
 -- 우측에는 나의 문장을 고정 패널로 1회만 표시한다.
-local CREST_PANEL_W = 88
+local CREST_PANEL_W = 78
 local TABLE_GAP     = 0
 local CONTENT_W     = FRAME_W - 8
 local TABLE_W       = CONTENT_W - CREST_PANEL_W - TABLE_GAP
-local COL_DROP_X    = 46
-local COL_CREST_X   = 156
-local COL_VAULT_X   = 224
+local COL_DROP_X    = 72
+local COL_CREST_X   = 174
+local COL_VAULT_X   = 248
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
@@ -109,11 +109,13 @@ local function makeBtnText(btn, size, r, g, b)
 end
 
 -- 등급명에 인라인 색상 적용
-local function gradeRankColored(grade, rank, rankMax)
+local function gradeRankColored(grade, rank, rankMax, showUnknownRank)
     if not grade then return "" end
     local name = ns.L("ilvl_crest_"..grade) or ns.L("ilvl_grade_"..grade) or grade
     if rank and rankMax then
         name = string.format("%s %d/%d", name, rank, rankMax)
+    elseif showUnknownRank then
+        name = string.format("%s ?/?", name)
     end
     local gc = GRADE_COLORS[grade]
     if not gc then return name end
@@ -121,16 +123,16 @@ local function gradeRankColored(grade, rank, rankMax)
 end
 
 -- 클리어 보상: 숫자(흰색, base color) + 등급명(인라인 색상)
-local function clearRewardStr(ilvl, grade, rank, rankMax)
+local function clearRewardStr(ilvl, grade, rank, rankMax, showUnknownRank)
     if not ilvl then return "" end
-    local gp = gradeRankColored(grade, rank, rankMax)
+    local gp = gradeRankColored(grade, rank, rankMax, showUnknownRank)
     return gp ~= "" and (tostring(ilvl).." "..gp) or tostring(ilvl)
 end
 
 -- 위대한 금고: 동일 포맷
-local function vaultClearStr(vault, vaultGrade, vaultRank, rankMax)
+local function vaultClearStr(vault, vaultGrade, vaultRank, rankMax, showUnknownRank)
     if not vault then return "-" end
-    return clearRewardStr(vault, vaultGrade, vaultRank, rankMax)
+    return clearRewardStr(vault, vaultGrade, vaultRank, rankMax, showUnknownRank)
 end
 
 local function getConfig()
@@ -238,8 +240,8 @@ end
 local function delveRow(label, e, avgIlvl)
     return {
         label      = label,
-        dropStr    = clearRewardStr(e.ilvl, e.grade, nil, nil),
-        vaultStr   = vaultClearStr(e.vault, e.vaultGrade, nil, nil),
+        dropStr    = clearRewardStr(e.ilvl, e.grade, nil, nil, true),
+        vaultStr   = vaultClearStr(e.vault, e.vaultGrade, nil, nil, true),
         crestDrop  = e.crestDrop,
         grade      = e.grade,
         vaultGrade = e.vaultGrade,
@@ -355,7 +357,7 @@ local function buildRaidRows(avgIlvl)
         rows[#rows+1] = { isHeader=true, label="" }
         rows[#rows+1] = {
             label     = ns.L("ilvl_world_boss"),
-            dropStr   = clearRewardStr(wb.ilvl, wb.grade, nil, nil),
+            dropStr   = clearRewardStr(wb.ilvl, wb.grade, nil, nil, true),
             vaultStr  = "",
             crestDrop = wb.crestDrop,
             grade     = wb.grade,
@@ -554,21 +556,21 @@ function ItemLevelOverlay:EnsureFrame()
     end
     frame.crestPanel = crestPanel
 
-    local crestTitle = makeFS(crestPanel, 10, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
-    crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 7, -7)
+    local crestTitle = makeFS(crestPanel, 11, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
+    crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 5, -46)
     crestTitle:SetJustifyH("LEFT")
     crestTitle:SetText(ns.L("ilvl_col_my_crest"))
     frame.crestTitle = crestTitle
 
     frame.crestLines = {}
     for i, _ in ipairs(CREST_PANEL_GRADES) do
-        local fs = makeFS(crestPanel, 11, 1, 1, 1)
+        local fs = makeFS(crestPanel, 12, 1, 1, 1)
         if i == 1 then
-            fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -5)
+            fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -7)
         else
             fs:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -2)
         end
-        fs:SetWidth(CREST_PANEL_W - 10)
+        fs:SetWidth(CREST_PANEL_W - 6)
         fs:SetJustifyH("LEFT")
         frame.crestLines[i] = fs
     end
@@ -697,7 +699,7 @@ function ItemLevelOverlay:RebuildContent()
                 fs:SetText(text ~= "" and text or ((ns.L("ilvl_crest_"..grade) or grade) .. " -"))
             end
         end
-        local crestPanelH = 26 + (#CREST_PANEL_GRADES * 17)
+        local crestPanelH = 72 + (#CREST_PANEL_GRADES * 18)
         frame.crestPanel:SetHeight(crestPanelH)
     end
 

@@ -7,8 +7,8 @@ ns.UI.BISOverlay = BISOverlay
 -- 레이아웃 상수
 -- ============================================================
 
-local FRAME_W      = 460
-local PADDING      = 10
+local FRAME_W      = 420
+local PADDING      = 8
 local ROW_H        = 20
 local SECTION_H    = 26
 local ICON_SIZE    = 15
@@ -36,13 +36,13 @@ local HEADER_H  = TITLE_H + 10 + TABS_H + 12  -- = 84
 local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 
 -- 아이템 행 컬럼 레이아웃
-local ITEM_INDENT = 10
+local ITEM_INDENT = 2
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local COL_ICON    = ICON_SIZE + 5
-local COL_NAME    = 216
-local COL_SLOT    = 112                        -- 던전 출처
-local COL_NOTE    = 54                         -- BIS/대체/3순 배지
-local SPEC_PICKER_W = 134
+local COL_NAME    = 150
+local COL_SLOT    = 68                         -- 던전 출처
+local COL_NOTE    = 34                         -- BIS/대체/3순 배지
+local SPEC_PICKER_W = 126
 local SPEC_PICKER_BTN_H = 22
 local SPEC_PICKER_ROW_H = 20
 local SPEC_PICKER_MAX_VISIBLE = 12
@@ -125,6 +125,9 @@ local DUNGEON_EJ_IDS = {
     ["사론의 구덩이"]     = 285,   -- Pit of Saron (WotLK)
 }
 
+local EJ_INSTANCE_CACHE = {}
+local EJ_PREVIEW_LINK_CACHE = {}
+
 -- ============================================================
 -- Helper 함수들
 -- ============================================================
@@ -133,6 +136,130 @@ local function getPlayerClassID()
     if not UnitClass then return nil end
     local _, _, classID = UnitClass("player")
     return classID
+end
+
+local function ensureEncounterJournalLoaded()
+    if EncounterJournal_LoadUI then
+        pcall(EncounterJournal_LoadUI)
+    elseif UIParentLoadAddOn then
+        pcall(UIParentLoadAddOn, "Blizzard_EncounterJournal")
+    end
+
+    return type(EJ_SelectInstance) == "function"
+        and type(EJ_GetInstanceByIndex) == "function"
+end
+
+local function getSeasonPreviewKeyLevel()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
+    return entries and entries[#entries] and entries[#entries].key or 12
+end
+
+local function getDungeonInstanceID(dungeonName)
+    if not dungeonName then return nil end
+    if DUNGEON_EJ_IDS[dungeonName] then
+        return DUNGEON_EJ_IDS[dungeonName]
+    end
+    if EJ_INSTANCE_CACHE[dungeonName] ~= nil then
+        return EJ_INSTANCE_CACHE[dungeonName] or nil
+    end
+    if not ensureEncounterJournalLoaded() then
+        EJ_INSTANCE_CACHE[dungeonName] = false
+        return nil
+    end
+
+    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
+    local tierCount = EJ_GetNumTiers and (EJ_GetNumTiers() or 0) or 0
+    local foundID
+
+    for tier = 1, tierCount do
+        pcall(EJ_SelectTier, tier)
+        local index = 1
+        while true do
+            local instanceID, instanceName = EJ_GetInstanceByIndex(index, false)
+            if not instanceID then
+                break
+            end
+            if instanceName == dungeonName then
+                foundID = instanceID
+                break
+            end
+            index = index + 1
+        end
+        if foundID then
+            break
+        end
+    end
+
+    if savedTier then
+        pcall(EJ_SelectTier, savedTier)
+    end
+
+    EJ_INSTANCE_CACHE[dungeonName] = foundID or false
+    if foundID then
+        DUNGEON_EJ_IDS[dungeonName] = foundID
+    end
+    return foundID
+end
+
+local function getPreviewMythicPlusLootLink(dungeonName, itemID)
+    if not dungeonName or not itemID then return nil end
+
+    local previewLevel = getSeasonPreviewKeyLevel()
+    local cacheKey = string.format("%s:%d:%d", dungeonName, itemID, previewLevel)
+    if EJ_PREVIEW_LINK_CACHE[cacheKey] ~= nil then
+        return EJ_PREVIEW_LINK_CACHE[cacheKey] or nil
+    end
+    if not ensureEncounterJournalLoaded() then
+        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
+        return nil
+    end
+
+    local instanceID = getDungeonInstanceID(dungeonName)
+    if not instanceID then
+        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
+        return nil
+    end
+
+    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
+    local savedInstance = EJ_GetCurrentInstance and EJ_GetCurrentInstance() or nil
+    local savedPreviewLevel = C_EncounterJournal
+        and C_EncounterJournal.GetPreviewMythicPlusLevel
+        and C_EncounterJournal.GetPreviewMythicPlusLevel()
+        or nil
+
+    local foundLink
+    if pcall(EJ_SelectInstance, instanceID) then
+        if C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
+            pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, previewLevel)
+        end
+
+        if C_EncounterJournal and C_EncounterJournal.GetLootInfoByIndex then
+            local lootCount = EJ_GetNumLoot and (EJ_GetNumLoot() or 0) or 0
+            for i = 1, lootCount do
+                local ok, info = pcall(C_EncounterJournal.GetLootInfoByIndex, i)
+                if ok and info and info.itemID == itemID then
+                    foundLink = info.link or info.itemLink or info.hyperlink
+                    if foundLink then
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    if savedTier then
+        pcall(EJ_SelectTier, savedTier)
+    end
+    if savedInstance then
+        pcall(EJ_SelectInstance, savedInstance)
+    end
+    if savedPreviewLevel and C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
+        pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, savedPreviewLevel)
+    end
+
+    EJ_PREVIEW_LINK_CACHE[cacheKey] = foundLink or false
+    return foundLink
 end
 
 local function getClassColorRGB(classFile)
@@ -232,8 +359,11 @@ end
 
 -- 모험 안내서 열기 (safe — pcall 보호)
 local function openEncounterJournal(dungeonName)
-    local instanceID = dungeonName and DUNGEON_EJ_IDS[dungeonName]
+    local instanceID = getDungeonInstanceID(dungeonName)
     pcall(function()
+        if not ensureEncounterJournalLoaded() then
+            return
+        end
         if EncounterJournal then
             if not EncounterJournal:IsShown() then
                 if ShowUIPanel then
@@ -375,23 +505,6 @@ local function getSeasonalMythicPlusRange()
     local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
     if not entries or #entries == 0 then return nil, nil end
     return entries[1].ilvl, entries[#entries].ilvl
-end
-
-local function overrideTooltipItemLevelLine(minIlvl, maxIlvl)
-    if not minIlvl or not maxIlvl then return end
-    local replacement = ns.L("bis_tooltip_item_level_scaled", minIlvl, maxIlvl)
-    for i = 2, 12 do
-        local fs = _G["GameTooltipTextLeft" .. i]
-        local text = fs and fs:GetText()
-        if text and (
-            text:find("Item Level", 1, true)
-            or text:find("아이템 레벨", 1, true)
-        ) then
-            fs:SetText(replacement)
-            fs:SetTextColor(0.38, 0.88, 1.00, 1)
-            return
-        end
-    end
 end
 
 local function slotSortValue(slotName)
@@ -1073,7 +1186,18 @@ local function showSeasonItemTooltip(owner, row)
     local entry = row._entry or {}
     local noteKind = row._displayNoteKind or canonicalNote(entry.note)
     local noteIndex = row._displayNoteIndex or 3
-    local _, itemLink, quality = GetItemInfo(row.itemID)
+    local previewLevel = getSeasonPreviewKeyLevel()
+    local previewLink = getPreviewMythicPlusLootLink(entry.dungeon, row.itemID)
+    local tooltipLink = previewLink
+    local itemName
+    local quality
+    if previewLink then
+        itemName, _, quality = GetItemInfo(previewLink)
+    end
+    if not quality then
+        itemName, tooltipLink, quality = GetItemInfo(row.itemID)
+    end
+    tooltipLink = previewLink or tooltipLink
     local scaledMinIlvl, scaledMaxIlvl = getSeasonalMythicPlusRange()
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
@@ -1081,8 +1205,8 @@ local function showSeasonItemTooltip(owner, row)
 
     local hasBaseTooltip = false
 
-    if itemLink and GameTooltip.SetHyperlink then
-        local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, itemLink)
+    if tooltipLink and GameTooltip.SetHyperlink then
+        local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, tooltipLink)
         hasBaseTooltip = ok
     elseif GameTooltip.SetItemByID then
         local ok = pcall(GameTooltip.SetItemByID, GameTooltip, row.itemID)
@@ -1091,8 +1215,9 @@ local function showSeasonItemTooltip(owner, row)
 
     if not hasBaseTooltip then
         requestItemData(row.itemID)
-        local ok, itemName, _, quality = pcall(GetItemInfo, row.itemID)
-        local displayName = (ok and itemName) or ("Item #" .. tostring(row.itemID))
+        local ok, resolvedName, _, fallbackQuality = pcall(GetItemInfo, row.itemID)
+        local displayName = itemName or (ok and resolvedName) or ("Item #" .. tostring(row.itemID))
+        quality = quality or fallbackQuality
         local qc = getQualityColor(quality)
         GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
     else
@@ -1103,10 +1228,12 @@ local function showSeasonItemTooltip(owner, row)
         end
     end
 
-    overrideTooltipItemLevelLine(scaledMinIlvl, scaledMaxIlvl)
-
-    GameTooltip:AddLine(" ")
     GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
+    if previewLink then
+        GameTooltip:AddLine(ns.L("bis_tooltip_preview_key", previewLevel), 0.38, 0.88, 1.00, true)
+    elseif scaledMinIlvl and scaledMaxIlvl then
+        GameTooltip:AddLine(ns.L("bis_tooltip_item_level_scaled", scaledMinIlvl, scaledMaxIlvl), 0.38, 0.88, 1.00, true)
+    end
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), localizeDungeon(entry.dungeon), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)

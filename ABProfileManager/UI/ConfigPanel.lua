@@ -442,14 +442,14 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.debugCheck:SetPoint("TOPLEFT", refs.confirmCheck, "BOTTOMLEFT", 0, -8)
 
     refs.logViewBtn = CreateFrame("Button", nil, refs.generalBox, "UIPanelButtonTemplate")
-    refs.logViewBtn:SetSize(72, 20)
-    refs.logViewBtn:SetPoint("LEFT", refs.debugCheck, "RIGHT", 8, 1)
+    refs.logViewBtn:SetSize(84, 20)
+    refs.logViewBtn:SetPoint("TOPLEFT", refs.debugCheck, "BOTTOMLEFT", 24, -4)
     refs.logViewBtn:SetScript("OnClick", function()
         ns.Commands:HandleSlash("log")
     end)
 
     refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(refs.generalBox, "")
-    refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.debugCheck, "BOTTOMLEFT", 0, -8)
+    refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.logViewBtn, "BOTTOMLEFT", -24, -8)
 
     -- 스탯/전문기술 오버레이 체크박스는 편의기능 탭으로 이전 (숨김 처리)
     refs.statsOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
@@ -575,11 +575,11 @@ function ConfigPanel:RegisterSettingsCategory()
             columnWidth = 300,
             columnGap = 12,
             helpWidth = 612,
-            generalHeight = 296,
-            overlayHeight = 372,
+            generalHeight = 318,
+            overlayHeight = 324,
             overviewHeight = 174,
             overviewTextHeight = 100,
-            combatTextHeight = 244,
+            combatTextHeight = 248,
         })
 
         panel:SetScript("OnShow", function()
@@ -635,11 +635,11 @@ function ConfigPanel:Create(parent)
     self.mainRefs = self:BuildControlSet(frame, {
         titleY = -20,
         showOpenButton = false,
-        generalHeight = 296,
-        overlayHeight = 372,
+        generalHeight = 318,
+        overlayHeight = 324,
         overviewHeight = 194,
         overviewTextHeight = 128,
-        combatTextHeight = 214,
+        combatTextHeight = 218,
     })
 
     self.title = self.mainRefs.title

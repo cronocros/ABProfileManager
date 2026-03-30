@@ -68,6 +68,7 @@ function MainWindow:Initialize()
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
+    frame:EnableKeyboard(true)
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnMouseDown", function(currentFrame)
         if currentFrame.Raise then
@@ -91,6 +92,11 @@ function MainWindow:Initialize()
             currentFrame:Raise()
         end
     end)
+    frame:SetScript("OnKeyDown", function(currentFrame, key)
+        if key == "ESCAPE" then
+            currentFrame:Hide()
+        end
+    end)
     frame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -101,6 +107,18 @@ function MainWindow:Initialize()
     })
     frame:SetBackdropColor(0.02, 0.04, 0.07, 0.95)
     frame:Hide()
+    if UISpecialFrames then
+        local alreadyRegistered = false
+        for _, frameName in ipairs(UISpecialFrames) do
+            if frameName == "ABProfileManagerMainWindow" then
+                alreadyRegistered = true
+                break
+            end
+        end
+        if not alreadyRegistered then
+            table.insert(UISpecialFrames, "ABProfileManagerMainWindow")
+        end
+    end
 
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     title:SetPoint("TOPLEFT", 22, -18)
