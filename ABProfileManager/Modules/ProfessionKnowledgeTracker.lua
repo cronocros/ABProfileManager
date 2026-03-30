@@ -536,6 +536,7 @@ end
 
 function Tracker:InvalidateProfessionCache()
     self.knownProfessionCache = nil
+    resetEvaluationCaches(self)
 end
 
 function Tracker:GetSectionSummary(professionKey, sectionName)

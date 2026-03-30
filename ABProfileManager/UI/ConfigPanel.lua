@@ -153,6 +153,7 @@ end
 
 function ConfigPanel:ApplyLanguage(language, refs)
     ns.DB:SetLanguage(language)
+    ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     ns:RefreshUI()
     setStatus(refs, ns.L(
         "config_saved_language",
