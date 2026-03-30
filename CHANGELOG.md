@@ -10,6 +10,12 @@
 
 문서 최신화와 BIS / 시즌 최고기록 오버레이 QA 후속 조정을 묶은 릴리스.
 
+유지보수 재패키징 (2026-03-31):
+- 현재 비활성/미완성 상태인 `MerchantHelper`, `MailHistory`, `WorldEventOverlay`, `WorldEventSchedule`를 TOC 로드 목록에서 제외해 불필요한 메모리 점유와 초기 로드 비용을 줄임
+- `ProfessionKnowledgeTracker`는 완료 퀘스트 스냅샷이 실제로 바뀐 경우에만 generation/cache를 갱신하도록 조정해 bag/loot follow-up refresh의 중복 계산을 완화
+- `ProfessionKnowledgeOverlay`는 tooltip 데이터를 hover 시점에만 만들고, render signature가 같으면 전체 row 재구성을 건너뛰도록 정리
+- 메인 창 탭 전환은 전역 `RefreshUI()` 대신 현재 탭만 refresh하도록 바꾸고, 메인 창이 닫혀 있을 때는 숨겨진 내부 패널 refresh를 생략하도록 `Core.lua` refresh 경로를 정리
+
 주요 변경:
 - 루트 `README`, `ADDON_INTRO`, `AGENTS`, `DOC/ARCHITECTURE`, `DOC/HANDOFF`, `DOC/SECURITY_REVIEW`, `DOC/README`, 릴리스 노트를 현재 동작 기준으로 전면 갱신
 - BIS 인던 드랍 정보 오버레이를 최종 QA 상태로 정리: `드랍 출처 / 유형 / BIS 여부` 열, 체크박스형 `쐐기 / 레이드 / 제작` 필터, 참고용 안내 문구, 제작/촉매 비랜딩, 아이템 hover 툴팁 비활성화

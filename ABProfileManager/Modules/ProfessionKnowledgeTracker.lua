@@ -3,8 +3,11 @@ local _, ns = ...
 local Tracker = {}
 ns.Modules.ProfessionKnowledgeTracker = Tracker
 
+local EMPTY_TABLE = {}
 local KNOWN_SKILL_LINES = {}
 local ORDER_INDEX = {}
+local DEFINITION_BY_KEY = {}
+local _completedQuestScanBuffer = {}
 local OBJECTIVE_BASE_TRANSLATIONS = {
     ["Tranquility Bloom"] = "평온꽃",
     ["Sanguithorn"] = "붉은가시",
@@ -62,6 +65,22 @@ local function resetEvaluationCaches(self)
     if self.evaluationCache then wipe(self.evaluationCache) else self.evaluationCache = {} end
     if self.sectionSummaryCache then wipe(self.sectionSummaryCache) else self.sectionSummaryCache = {} end
     if self.professionSummaryCache then wipe(self.professionSummaryCache) else self.professionSummaryCache = {} end
+end
+
+local function hasSameQuestLookup(existing, fresh, freshCount)
+    if type(existing) ~= "table" then
+        return freshCount == 0
+    end
+
+    local existingCount = 0
+    for questID in pairs(existing) do
+        existingCount = existingCount + 1
+        if not fresh[questID] then
+            return false
+        end
+    end
+
+    return existingCount == freshCount
 end
 
 local function getQuestTitle(questID)
@@ -160,6 +179,7 @@ end
 function Tracker:Initialize()
     wipe(KNOWN_SKILL_LINES)
     wipe(ORDER_INDEX)
+    wipe(DEFINITION_BY_KEY)
 
     local order = ns.Data and ns.Data.ProfessionKnowledge and ns.Data.ProfessionKnowledge.order or {}
     for index, key in ipairs(order) do
@@ -168,12 +188,14 @@ function Tracker:Initialize()
 
     for _, definition in ipairs(getDefinitions()) do
         KNOWN_SKILL_LINES[definition.skillLine] = definition
+        DEFINITION_BY_KEY[definition.key] = definition
     end
 
     self.completedQuestLookup = {}
     self.questStatusLookup = {}
     self.questCacheDirty = true
     self.questCacheGeneration = 0
+    self.knownProfessionCache = nil
     resetEvaluationCaches(self)
 end
 
@@ -187,35 +209,55 @@ function Tracker:RefreshQuestCache(force)
         return self.completedQuestLookup
     end
 
-    if self.completedQuestLookup then wipe(self.completedQuestLookup) else self.completedQuestLookup = {} end
-    local lookup = self.completedQuestLookup
+    wipe(_completedQuestScanBuffer)
+    local freshLookup = _completedQuestScanBuffer
+    local freshCount = 0
     if C_QuestLog and type(C_QuestLog.GetAllCompletedQuestIDs) == "function" then
         local completedQuestIDs = C_QuestLog.GetAllCompletedQuestIDs()
         if type(completedQuestIDs) == "table" then
             for _, questID in pairs(completedQuestIDs) do
                 questID = tonumber(questID)
                 if questID and questID > 0 then
-                    lookup[questID] = true
+                    if not freshLookup[questID] then
+                        freshLookup[questID] = true
+                        freshCount = freshCount + 1
+                    end
                 end
             end
         end
     end
 
-    if self.questStatusLookup then wipe(self.questStatusLookup) else self.questStatusLookup = {} end
+    if not self.completedQuestLookup then
+        self.completedQuestLookup = {}
+    end
+
+    local lookup = self.completedQuestLookup
+    local changed = not hasSameQuestLookup(lookup, freshLookup, freshCount)
+    if changed then
+        wipe(lookup)
+        for questID in pairs(freshLookup) do
+            lookup[questID] = true
+        end
+        if self.questStatusLookup then wipe(self.questStatusLookup) else self.questStatusLookup = {} end
+        self.questCacheGeneration = (self.questCacheGeneration or 0) + 1
+        resetEvaluationCaches(self)
+    elseif not self.questStatusLookup then
+        self.questStatusLookup = {}
+    end
+
     self.questCacheDirty = false
-    self.questCacheGeneration = (self.questCacheGeneration or 0) + 1
-    resetEvaluationCaches(self)
 
     local store = getProfessionStore()
     if store then
         store.lastScanAt = safeDate()
-        store.lastCompletedQuestCount = 0
-        for _ in pairs(lookup) do
-            store.lastCompletedQuestCount = (store.lastCompletedQuestCount or 0) + 1
-        end
+        store.lastCompletedQuestCount = freshCount
     end
 
-    ns.Utils.Debug(string.format("Profession knowledge scan refreshed: %d completed quests", ns.Utils.TableCount(lookup)))
+    ns.Utils.Debug(string.format(
+        "Profession knowledge scan refreshed: %d completed quests (%s)",
+        freshCount,
+        changed and "changed" or "unchanged"
+    ))
 
     return lookup
 end
@@ -226,13 +268,7 @@ function Tracker:GetLastScanLabel()
 end
 
 function Tracker:GetDefinitionByKey(professionKey)
-    for _, definition in ipairs(getDefinitions()) do
-        if definition.key == professionKey then
-            return definition
-        end
-    end
-
-    return nil
+    return DEFINITION_BY_KEY[professionKey]
 end
 
 function Tracker:GetDefinitionBySkillLine(skillLine)
@@ -428,7 +464,7 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
             rawName = rawName,
             points = points,
             complete = isComplete,
-            questIDs = ns.Utils.DeepCopy(objective.questIDs or {}),
+            questIDs = objective.questIDs or EMPTY_TABLE,
         }
     end
 
@@ -454,6 +490,10 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
 end
 
 function Tracker:GetKnownProfessions()
+    if self.knownProfessionCache then
+        return self.knownProfessionCache
+    end
+
     if type(GetProfessions) ~= "function" or type(GetProfessionInfo) ~= "function" then
         return {}
     end
@@ -490,7 +530,13 @@ function Tracker:GetKnownProfessions()
         return leftIndex < rightIndex
     end)
 
+    self.knownProfessionCache = results
     return results
+end
+
+function Tracker:InvalidateProfessionCache()
+    self.knownProfessionCache = nil
+    resetEvaluationCaches(self)
 end
 
 function Tracker:GetSectionSummary(professionKey, sectionName)

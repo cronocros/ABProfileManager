@@ -33,6 +33,32 @@ local function showTab(window, tabName)
     applyTabSelectionStyles(window)
 end
 
+local function refreshCurrentTab(window)
+    if not window then
+        return
+    end
+
+    ns:SafeCall(ns.UI.MainWindow, "RefreshLocale")
+
+    if window.currentTab == "profiles" then
+        ns:SafeCall(ns.UI.ProfilePanel, "Refresh")
+    elseif window.currentTab == "action_bars" then
+        ns:SafeCall(ns.UI.ActionBarPanel, "Refresh")
+    elseif window.currentTab == "professions" then
+        ns:SafeCall(ns.UI.ProfessionPanel, "Refresh")
+    elseif window.currentTab == "map" then
+        ns:SafeCall(ns.UI.MapPanel, "Refresh")
+    elseif window.currentTab == "quests" then
+        ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
+    elseif window.currentTab == "config" then
+        ns:SafeCall(ns.UI.ConfigPanel, "Refresh")
+    elseif window.currentTab == "utility" then
+        ns:SafeCall(ns.UI.UtilityPanel, "Refresh")
+    end
+
+    ns:SafeCall(ns.UI.MainWindow, "RefreshStatus")
+end
+
 function MainWindow:RefreshLocale()
     if not self.frame then
         return
@@ -186,31 +212,31 @@ function MainWindow:Initialize()
 
     profilesTab:SetScript("OnClick", function()
         showTab(frame, "profiles")
-        ns:RefreshUI()
+        refreshCurrentTab(frame)
     end)
     actionBarsTab:SetScript("OnClick", function()
         showTab(frame, "action_bars")
-        ns:RefreshUI()
+        refreshCurrentTab(frame)
     end)
     professionsTab:SetScript("OnClick", function()
         showTab(frame, "professions")
-        ns:RefreshUI()
+        refreshCurrentTab(frame)
     end)
     mapTab:SetScript("OnClick", function()
         showTab(frame, "map")
-        ns:RefreshUI()
+        refreshCurrentTab(frame)
     end)
     questsTab:SetScript("OnClick", function()
         showTab(frame, "quests")
-        ns:RefreshUI()
+        refreshCurrentTab(frame)
     end)
     configTab:SetScript("OnClick", function()
         showTab(frame, "config")
-        ns:RefreshUI()
+        refreshCurrentTab(frame)
     end)
     utilityTab:SetScript("OnClick", function()
         showTab(frame, "utility")
-        ns:RefreshUI()
+        refreshCurrentTab(frame)
     end)
 
     frame.title = title
@@ -278,7 +304,7 @@ function MainWindow:Toggle()
     if self.frame.Raise then
         self.frame:Raise()
     end
-    ns:RefreshUI()
+    refreshCurrentTab(self.frame)
 end
 
 function MainWindow:OpenToTab(tabName)
@@ -306,9 +332,11 @@ function MainWindow:OpenToTab(tabName)
     }
 
     showTab(self.frame, validTabs[tabName] and tabName or "profiles")
-    ns:RefreshUI()
+    refreshCurrentTab(self.frame)
 end
 
 function MainWindow:OnPlayerLogin()
-    ns:RefreshUI()
+    if self.frame and self.frame:IsShown() then
+        refreshCurrentTab(self.frame)
+    end
 end

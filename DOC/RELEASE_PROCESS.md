@@ -41,6 +41,15 @@ git push origin main
 gh release create v<version> "dist/ABProfileManager-v<version>.zip" --title "v<version>" --notes-file "RELEASE_NOTES_v<version>.md"
 ```
 
+같은 버전으로 유지보수 재패키징만 다시 하는 경우:
+
+```powershell
+gh release upload v<version> "dist/ABProfileManager-v<version>.zip" --clobber
+gh release edit v<version> --notes-file "RELEASE_NOTES_v<version>.md"
+```
+
+- 버전을 올리지 않을 때는 새 릴리스를 만들지 말고 기존 태그/릴리스 자산과 노트를 갱신한다.
+
 ## 문서 체크
 
 - 루트 `README.md`

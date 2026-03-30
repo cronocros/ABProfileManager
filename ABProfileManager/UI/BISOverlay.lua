@@ -2064,17 +2064,7 @@ function BISOverlay:EnsureFrame()
 
     -- 썸 드래그
     local _dragging, _dragY, _dragScroll = false, 0, 0
-    frame.scrollBarThumb:EnableMouse(true)
-    frame.scrollBarThumb:SetScript("OnMouseDown", function(_, button)
-        if button ~= "LeftButton" then return end
-        _dragging  = true
-        _dragY     = select(2, GetCursorPosition()) / UIParent:GetEffectiveScale()
-        _dragScroll = frame.scrollFrame:GetVerticalScroll()
-    end)
-    frame.scrollBarThumb:SetScript("OnMouseUp", function()
-        _dragging = false
-    end)
-    frame.scrollBarThumb:SetScript("OnUpdate", function()
+    local function updateThumbDrag()
         if not _dragging then return end
         local curY    = select(2, GetCursorPosition()) / UIParent:GetEffectiveScale()
         local dy      = _dragY - curY
@@ -2085,6 +2075,18 @@ function BISOverlay:EnsureFrame()
         local newS    = math.max(0, math.min(maxS, _dragScroll + frac * maxS))
         frame.scrollFrame:SetVerticalScroll(newS)
         self:UpdateScrollThumb()
+    end
+    frame.scrollBarThumb:EnableMouse(true)
+    frame.scrollBarThumb:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        _dragging  = true
+        _dragY     = select(2, GetCursorPosition()) / UIParent:GetEffectiveScale()
+        _dragScroll = frame.scrollFrame:GetVerticalScroll()
+        frame.scrollBarThumb:SetScript("OnUpdate", updateThumbDrag)
+    end)
+    frame.scrollBarThumb:SetScript("OnMouseUp", function()
+        _dragging = false
+        frame.scrollBarThumb:SetScript("OnUpdate", nil)
     end)
 
     -- GET_ITEM_INFO_RECEIVED 이벤트

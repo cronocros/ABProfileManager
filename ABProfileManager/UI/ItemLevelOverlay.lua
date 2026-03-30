@@ -47,6 +47,7 @@ local CREST_ID_BY_GRADE = {
 
 local HEADER_COLOR = { 0.50, 0.58, 0.68 }
 local CREST_PANEL_GRADES = { "adv", "vet", "chmp", "hero", "myth" }
+local _cachedBountifulDelveNames = nil
 
 local GRADE_COLORS = {
     expl = { 0.62, 0.62, 0.62 },
@@ -226,6 +227,10 @@ local function mythicPlusSummaryText()
 end
 
 local function getBestEffortBountifulDelveNames()
+    if _cachedBountifulDelveNames then
+        return _cachedBountifulDelveNames
+    end
+
     local names = {}
     local seen = {}
 
@@ -260,6 +265,7 @@ local function getBestEffortBountifulDelveNames()
     if #names == 0 then
         names[1] = ns.L("ilvl_key_unknown")
     end
+    _cachedBountifulDelveNames = names
     return names
 end
 
@@ -791,6 +797,88 @@ function ItemLevelOverlay:EnsureRow(index)
     return row
 end
 
+function ItemLevelOverlay:InvalidateBountifulDelveNamesCache()
+    _cachedBountifulDelveNames = nil
+end
+
+function ItemLevelOverlay:BuildContentSignature(avgIlvl)
+    local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or "?"
+    return table.concat({
+        tostring(self.currentTab or "overview"),
+        tostring(avgIlvl or 0),
+        tostring(language),
+    }, ":")
+end
+
+function ItemLevelOverlay:RefreshHeader(avgIlvl)
+    local frame = self.frame
+    if not frame then
+        return
+    end
+
+    local avgText = (avgIlvl and avgIlvl > 0) and tostring(avgIlvl) or "?"
+    frame.avgLabel:SetText(ns.L("ilvl_avg_label", avgText))
+    frame.titleText:SetText(ns.L("ilvl_overlay_title"))
+    if frame.hintText then
+        frame.hintText:SetText(ns.L("ilvl_overlay_hint"))
+    end
+
+    for _, btn in ipairs(frame.tabs or {}) do
+        local active = btn.tabKey == self.currentTab
+        btn:SetText(ns.L("ilvl_tab_" .. btn.tabKey))
+        if active then
+            btn.bg:SetColorTexture(0.30, 0.30, 0.55, 0.95)
+            btn:GetFontString():SetTextColor(1, 1, 1, 1)
+        else
+            btn.bg:SetColorTexture(0.15, 0.15, 0.25, 0.80)
+            btn:GetFontString():SetTextColor(0.70, 0.70, 0.80, 1)
+        end
+    end
+end
+
+function ItemLevelOverlay:RefreshSidePanel()
+    local frame = self.frame
+    if not frame then
+        return
+    end
+
+    if frame.crestTitle then
+        frame.crestTitle:SetText(ns.L("ilvl_col_my_crest"))
+    end
+    if frame.keyTitle then
+        frame.keyTitle:SetText(ns.L("ilvl_col_my_key"))
+    end
+    if not frame.crestPanel then
+        return
+    end
+
+    for i, grade in ipairs(CREST_PANEL_GRADES) do
+        local line = frame.crestLines and frame.crestLines[i]
+        if line then
+            local labelText, valueText, r, g, b = crestCountParts(grade)
+            line.label:SetText(labelText)
+            line.label:SetTextColor(r, g, b, 1)
+            line.value:SetText(valueText)
+            line.value:SetTextColor(r, g, b, 1)
+        end
+    end
+
+    local keyLines = getMyKeyLines()
+    for i, fs in ipairs(frame.keyLines or {}) do
+        fs:SetText(keyLines[i] or "")
+        if i == 1 then
+            fs:SetTextColor(0.70, 0.84, 1.00, 1)
+        elseif i <= 5 then
+            fs:SetTextColor(0.92, 0.94, 1.00, 1)
+        else
+            fs:SetTextColor(1.00, 0.84, 0.46, 1)
+        end
+    end
+
+    local crestPanelH = 146 + (#CREST_PANEL_GRADES * (CREST_LINE_H + 2)) + (#(frame.keyLines or {}) * 16)
+    frame.crestPanel:SetHeight(crestPanelH)
+end
+
 -- ============================================================
 -- 탭 선택 / 최소화
 -- ============================================================
@@ -799,6 +887,7 @@ function ItemLevelOverlay:SelectTab(tabKey)
     self.currentTab = tabKey or "overview"
     local config = ns.DB and ns.DB:GetItemLevelOverlayConfig()
     if config then config.currentTab = self.currentTab end
+    self._lastContentSignature = nil
     self:RebuildContent()
 end
 
@@ -813,29 +902,12 @@ end
 -- 컨텐츠 재구성
 -- ============================================================
 
-function ItemLevelOverlay:RebuildContent()
+function ItemLevelOverlay:RebuildContent(avgIlvl)
     local frame = self.frame
     if not frame then return end
 
-    local avgIlvl = getAverageItemLevel()
-    local avgText = avgIlvl > 0 and tostring(avgIlvl) or "?"
-    frame.avgLabel:SetText(ns.L("ilvl_avg_label", avgText))
-    frame.titleText:SetText(ns.L("ilvl_overlay_title"))
-    if frame.hintText then
-        frame.hintText:SetText(ns.L("ilvl_overlay_hint"))
-    end
-
-    for _, btn in ipairs(frame.tabs or {}) do
-        local active = btn.tabKey == self.currentTab
-        btn:SetText(ns.L("ilvl_tab_"..btn.tabKey))
-        if active then
-            btn.bg:SetColorTexture(0.30, 0.30, 0.55, 0.95)
-            btn:GetFontString():SetTextColor(1, 1, 1, 1)
-        else
-            btn.bg:SetColorTexture(0.15, 0.15, 0.25, 0.80)
-            btn:GetFontString():SetTextColor(0.70, 0.70, 0.80, 1)
-        end
-    end
+    avgIlvl = avgIlvl or getAverageItemLevel()
+    self:RefreshHeader(avgIlvl)
 
     local rowData = {}
     if     self.currentTab == "overview"   then rowData = buildOverviewRows(avgIlvl)
@@ -845,37 +917,7 @@ function ItemLevelOverlay:RebuildContent()
     elseif self.currentTab == "other"      then rowData = buildOtherRows(avgIlvl)
     end
 
-    if frame.crestTitle then
-        frame.crestTitle:SetText(ns.L("ilvl_col_my_crest"))
-    end
-    if frame.keyTitle then
-        frame.keyTitle:SetText(ns.L("ilvl_col_my_key"))
-    end
-    if frame.crestPanel then
-        for i, grade in ipairs(CREST_PANEL_GRADES) do
-            local line = frame.crestLines and frame.crestLines[i]
-            if line then
-                local labelText, valueText, r, g, b = crestCountParts(grade)
-                line.label:SetText(labelText)
-                line.label:SetTextColor(r, g, b, 1)
-                line.value:SetText(valueText)
-                line.value:SetTextColor(r, g, b, 1)
-            end
-        end
-        local keyLines = getMyKeyLines()
-        for i, fs in ipairs(frame.keyLines or {}) do
-            fs:SetText(keyLines[i] or "")
-            if i == 1 then
-                fs:SetTextColor(0.70, 0.84, 1.00, 1)
-            elseif i <= 5 then
-                fs:SetTextColor(0.92, 0.94, 1.00, 1)
-            else
-                fs:SetTextColor(1.00, 0.84, 0.46, 1)
-            end
-        end
-        local crestPanelH = 146 + (#CREST_PANEL_GRADES * (CREST_LINE_H + 2)) + (#(frame.keyLines or {}) * 16)
-        frame.crestPanel:SetHeight(crestPanelH)
-    end
+    self:RefreshSidePanel()
 
     local yOffset = 2
     for i, data in ipairs(rowData) do
@@ -967,6 +1009,7 @@ function ItemLevelOverlay:RebuildContent()
 
     local crestPanelH = frame.crestPanel and frame.crestPanel:GetHeight() or 0
     self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + math.max(yOffset, crestPanelH + 4) + PADDING
+    self._lastContentSignature = self:BuildContentSignature(avgIlvl)
     self:UpdateLayout()
 end
 
@@ -1012,7 +1055,14 @@ function ItemLevelOverlay:Refresh()
     if not self.frame then self:EnsureFrame() end
     if not self.frame then return end
 
-    self:RebuildContent()
+    local avgIlvl = getAverageItemLevel()
+    local contentSignature = self:BuildContentSignature(avgIlvl)
+    if self._lastContentSignature ~= contentSignature then
+        self:RebuildContent(avgIlvl)
+    else
+        self:RefreshHeader(avgIlvl)
+        self:RefreshSidePanel()
+    end
     self.frame:Show()
 end
 

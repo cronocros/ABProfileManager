@@ -122,15 +122,31 @@ function ns:SetSelectedSource(kind, key)
     }
 end
 
+local function isMainWindowVisible(self)
+    local mainWindow = self and self.UI and self.UI.MainWindow
+    return mainWindow and mainWindow.frame and mainWindow.frame:IsShown()
+end
+
+local function isSettingsPanelVisible(self)
+    local configPanel = self and self.UI and self.UI.ConfigPanel
+    return configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown()
+end
+
 function ns:RefreshUI()
     self:SafeCall(self.UI.Typography, "RefreshRegistered")
-    self:SafeCall(self.UI.ProfilePanel, "Refresh")
-    self:SafeCall(self.UI.ActionBarPanel, "Refresh")
-    self:SafeCall(self.UI.ProfessionPanel, "Refresh")
-    self:SafeCall(self.UI.MapPanel, "Refresh")
-    self:SafeCall(self.UI.QuestPanel, "Refresh")
-    self:SafeCall(self.UI.ConfigPanel, "Refresh")
-    self:SafeCall(self.UI.UtilityPanel, "Refresh")
+
+    if isMainWindowVisible(self) then
+        self:SafeCall(self.UI.ProfilePanel, "Refresh")
+        self:SafeCall(self.UI.ActionBarPanel, "Refresh")
+        self:SafeCall(self.UI.ProfessionPanel, "Refresh")
+        self:SafeCall(self.UI.MapPanel, "Refresh")
+        self:SafeCall(self.UI.QuestPanel, "Refresh")
+        self:SafeCall(self.UI.ConfigPanel, "Refresh")
+        self:SafeCall(self.UI.UtilityPanel, "Refresh")
+    elseif isSettingsPanelVisible(self) then
+        self:SafeCall(self.UI.ConfigPanel, "Refresh")
+    end
+
     self:SafeCall(self.UI.MinimapButton, "Refresh")
     self:SafeCall(self.UI.StatsOverlay, "Refresh")
     self:SafeCall(self.UI.ProfessionKnowledgeOverlay, "Refresh")
@@ -139,5 +155,7 @@ function ns:RefreshUI()
     self:SafeCall(self.UI.MythicPlusRecordOverlay, "Refresh")
     -- [비활성] self:SafeCall(self.UI.WorldEventOverlay, "Refresh")
     self:SafeCall(self.UI.SilvermoonMapOverlay, "Refresh")
-    self:SafeCall(self.UI.MainWindow, "RefreshStatus")
+    if isMainWindowVisible(self) then
+        self:SafeCall(self.UI.MainWindow, "RefreshStatus")
+    end
 end
