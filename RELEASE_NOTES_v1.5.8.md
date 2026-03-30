@@ -1,6 +1,13 @@
 # ABProfileManager v1.5.8
 
-릴리스 날짜: 2026-03-30
+릴리스 날짜: 2026-03-31 (유지보수 재패키징)
+
+## 유지보수 재패키징
+
+- `MerchantHelper`, `MailHistory`, `WorldEventOverlay`, `WorldEventSchedule`는 현재 사용자 기능으로 노출되지 않는 비활성/미완성 상태이므로 TOC 로드 목록에서 제외했습니다.
+- profession 추적은 완료 퀘스트 스냅샷이 실제로 바뀐 경우에만 요약 캐시와 overlay 계산을 무효화하도록 보수적으로 최적화했습니다.
+- profession overlay tooltip은 refresh 시점이 아니라 hover 시점에만 생성되도록 바꿔 follow-up refresh 구간의 CPU/메모리 압박을 줄였습니다.
+- 메인 창이 닫혀 있을 때는 내부 탭 패널 전체를 더 이상 매번 refresh하지 않고, 보이는 UI와 overlay만 갱신하도록 정리했습니다.
 
 ## 요약
 

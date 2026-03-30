@@ -41,6 +41,7 @@
   - profession / quest / stats 갱신 이벤트 연결
 - `ABProfileManager/Commands.lua`
   - `/abpm` 슬래시 명령 처리
+- 현재 비활성/미완성 기능인 `MerchantHelper`, `MailHistory`, `WorldEventOverlay`, `WorldEventSchedule`는 repo에는 유지하지만 패키지 TOC 로드 목록에서는 제외한다.
 
 ## 주요 모듈
 
@@ -258,6 +259,16 @@
 - item info 지연 수신 시 전체 컨텐츠를 다시 만들지 않는다.
 - visible row만 갱신하고, anchor target이 바뀌지 않으면 `ClearAllPoints/SetPoint`를 스킵한다.
 - Encounter Journal live scan은 Journal이 열린 상태나 직후에는 보수적으로 제한한다.
+
+### ProfessionKnowledgeTracker / Overlay
+
+- 완료 퀘스트 전체 스캔 결과가 직전과 같으면 `questCacheGeneration`과 evaluation cache를 다시 만들지 않는다.
+- `ProfessionKnowledgeOverlay` tooltip 라인은 row refresh 시 선계산하지 않고 hover 시점에만 구성한다.
+
+### Core / MainWindow refresh 경로
+
+- `Core.lua`의 `ns:RefreshUI()`는 메인 창이 닫혀 있을 때 숨겨진 내부 탭 패널 refresh를 생략한다.
+- `MainWindow.lua` 탭 전환은 전역 refresh 대신 현재 탭과 상태 영역만 갱신한다.
 
 ### QuestPanel
 

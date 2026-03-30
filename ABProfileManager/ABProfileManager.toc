@@ -19,7 +19,6 @@ Data\SilvermoonMapData.lua
 Data\ItemLevelTable.lua
 Data\BISData.lua
 Data\BISData_Method.lua
-Data\WorldEventSchedule.lua
 DB.lua
 Modules\SlotMapper.lua
 Modules\ActionBarScanner.lua
@@ -35,8 +34,6 @@ Modules\ProfessionKnowledgeTracker.lua
 Modules\TomTomBridge.lua
 Modules\CombatTextManager.lua
 Modules\BlizzardFrameManager.lua
-Modules\MerchantHelper.lua
-Modules\MailHistory.lua
 UI\Typography.lua
 UI\Widgets.lua
 UI\ConfirmDialogs.lua
@@ -46,7 +43,6 @@ UI\ProfessionKnowledgeOverlay.lua
 UI\ItemLevelOverlay.lua
 UI\BISOverlay.lua
 UI\MythicPlusRecordOverlay.lua
-UI\WorldEventOverlay.lua
 UI\TransferDialog.lua
 UI\ProfilePanel.lua
 UI\ActionBarPanel.lua

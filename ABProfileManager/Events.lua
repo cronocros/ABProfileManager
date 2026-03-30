@@ -233,6 +233,8 @@ function Events:PLAYER_LOGIN()
     ns.State.playerLoggedIn = true
     ns:SafeCall(ns.DB, "SetDebugEnabled", false)
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
+    ns:SafeCall(ns.UI.ItemLevelOverlay, "InvalidateBountifulDelveNamesCache")
+    ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     ensureMouseMoveSetting()
     ensureCombatTextSettings()
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
@@ -248,6 +250,8 @@ end
 
 function Events:PLAYER_ENTERING_WORLD()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
+    ns:SafeCall(ns.UI.ItemLevelOverlay, "InvalidateBountifulDelveNamesCache")
+    ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     ensureMouseMoveSetting()
     ensureCombatTextSettings()
     refreshGhostsAndRetries()
@@ -283,11 +287,13 @@ end
 
 function Events:PLAYER_SPECIALIZATION_CHANGED()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
+    ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     refreshProfessionKnowledgeViews(true, "PLAYER_SPECIALIZATION_CHANGED")
     ns:RefreshUI()
 end
 
 function Events:SKILL_LINES_CHANGED()
+    ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     refreshProfessionKnowledgeViews(true, "SKILL_LINES_CHANGED")
     ns:RefreshUI()
 end
@@ -370,10 +376,12 @@ function Events:CURRENCY_DISPLAY_UPDATE()
 end
 
 function Events:ACTIVE_DELVE_DATA_UPDATE()
+    ns:SafeCall(ns.UI.ItemLevelOverlay, "InvalidateBountifulDelveNamesCache")
     refreshItemLevelOverlay()
 end
 
 function Events:AREA_POIS_UPDATED()
+    ns:SafeCall(ns.UI.ItemLevelOverlay, "InvalidateBountifulDelveNamesCache")
     refreshItemLevelOverlay()
 end
 

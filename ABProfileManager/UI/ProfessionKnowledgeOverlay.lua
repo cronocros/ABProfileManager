@@ -384,6 +384,28 @@ local function buildOverlayTooltipLines(professionEntry)
     return lines
 end
 
+local function buildRenderSignature(professions, displayMode, overlayScale)
+    local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
+    local parts = {
+        tostring(displayMode or ""),
+        tostring(overlayScale or 1),
+        tostring(ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or ""),
+        tostring(ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("professionOverlay") or 0),
+        tostring(tracker and tracker.questCacheGeneration or 0),
+        tostring(#(professions or {})),
+    }
+
+    for _, professionEntry in ipairs(professions or {}) do
+        parts[#parts + 1] = table.concat({
+            tostring(professionEntry.key or ""),
+            tostring(professionEntry.skillLevel or 0),
+            tostring(professionEntry.maxSkillLevel or 0),
+        }, ":")
+    end
+
+    return table.concat(parts, "|")
+end
+
 local function getPendingTreasureWaypoints(professionKey)
     local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
     if not tracker or not professionKey then
@@ -846,8 +868,8 @@ function ProfessionKnowledgeOverlay:CreateRow()
         end
     end)
     row:SetScript("OnEnter", function(currentRow)
-        if currentRow.tooltipLines and ns.DB and ns.DB:IsProfessionKnowledgeOverlayTooltipEnabled() then
-            showRowTooltip(currentRow, currentRow.tooltipLines)
+        if currentRow.professionEntry and ns.DB and ns.DB:IsProfessionKnowledgeOverlayTooltipEnabled() then
+            showRowTooltip(currentRow, self:GetTooltipLinesForRow(currentRow))
         end
     end)
     row:SetScript("OnLeave", function()
@@ -912,6 +934,14 @@ function ProfessionKnowledgeOverlay:EnsureRowCount(count)
     end
 end
 
+function ProfessionKnowledgeOverlay:GetTooltipLinesForRow(row)
+    if not row or not row.professionEntry then
+        return nil
+    end
+
+    return buildOverlayTooltipLines(row.professionEntry)
+end
+
 function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode, contentWidth)
     local tracker = ns.Modules.ProfessionKnowledgeTracker
     local summary = tracker:GetProfessionSummary(professionEntry.key)
@@ -926,6 +956,7 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
         and summary.oneTimeEarned >= summary.oneTimeMax
 
     row.icon:SetTexture(professionEntry.icon or ns.Constants.DEFAULT_ICON)
+    row.professionEntry = professionEntry
     row.professionKey = professionEntry.key
     row:SetWidth(math.max(contentWidth, MIN_WIDTH - (PADDING_X * 2)))
     row.title:SetText(tracker:GetProfessionDisplayName(professionEntry))
@@ -974,7 +1005,6 @@ function ProfessionKnowledgeOverlay:RefreshRow(row, professionEntry, displayMode
     row.oneTimePrefix:SetText(getDetailPrefixText("oneTime"))
     row.oneTimeDetails:SetWidth(detailWidth)
     row.oneTimeDetails:SetText(oneTimeLine ~= "" and oneTimeLine or ns.L("no_items"))
-    row.tooltipLines = buildOverlayTooltipLines(professionEntry)
     row.displayMode = displayMode
 
     row.weeklyDetails:SetTextColor(0.92, 0.94, 0.95, 1)
@@ -1042,9 +1072,18 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
     end
 
     local displayMode = getDisplayMode()
-    self.frame:SetScale(getOverlayScale())
+    local overlayScale = getOverlayScale()
+    local renderSignature = buildRenderSignature(professions, displayMode, overlayScale)
+    self.frame:SetScale(overlayScale)
     self.frame.title:SetText(ns.L("professions_overlay_title"))
     self.frame.toggleButton:SetText(getModeButtonGlyph(displayMode))
+
+    if self.frame:IsShown() and self.lastRenderSignature == renderSignature then
+        self.frame:Show()
+        return
+    end
+
+    self.lastRenderSignature = renderSignature
 
     if displayMode == OVERLAY_MODE_MINI then
         self:HideHoverPanel()
@@ -1090,6 +1129,7 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
     end
 
     for index = #professions + 1, #self.rows do
+        self.rows[index].professionEntry = nil
         self.rows[index]:Hide()
     end
 

@@ -39,6 +39,11 @@
 - `알게타르 아카데미`는 현재 한국어 표기상 `알게타르 대학` alias를 같이 쓴다.
 - `UI/MythicPlusRecordOverlay.lua`는 이제 `평점 + 던전명`만 표시한다. 시간 라인은 사용하지 않는다.
 - 긴 한글 던전명은 강제 줄바꿈 override를 사용한다.
+- `ABProfileManager.toc`는 현재 비활성/미완성 상태인 `WorldEventSchedule`, `MerchantHelper`, `MailHistory`, `WorldEventOverlay`를 런타임 로드 대상에서 제외한다. 소스 파일은 저장소에 남아 있지만 메모리 절감을 위해 게임 내에서는 불러오지 않는다.
+- `UI/ItemLevelOverlay.lua`는 `currentTab + avgIlvl + language` 시그니처가 바뀔 때만 본문 표를 다시 구성한다. `CURRENCY_DISPLAY_UPDATE` 류의 잦은 이벤트에서는 우측 패널만 갱신하고, 풍요 구렁 이름 스캔은 캐시 후 `ACTIVE_DELVE_DATA_UPDATE`, `AREA_POIS_UPDATED`에서만 무효화한다.
+- `Modules/ProfessionKnowledgeTracker.lua`는 profession 정의와 현재 보유 profession 목록을 캐시한다. `PLAYER_LOGIN`, `PLAYER_ENTERING_WORLD`, `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`에서만 profession 목록 캐시를 무효화한다.
+- `UI/ProfessionKnowledgeOverlay.lua`는 profession hover 툴팁을 매 refresh마다 전부 만들지 않고, 실제 hover 시점에만 지연 생성한다.
+- `Core.lua`의 `RefreshUI()`는 이제 메인 창이 닫혀 있을 때 내부 탭 패널 전체를 refresh하지 않는다. 메인 창 탭 전환도 현재 탭만 refresh하는 경로로 바뀌었으므로, 패널 stale 제보가 오면 `Core.lua`, `UI/MainWindow.lua`를 함께 본다.
 
 ## 1. 회귀 민감 메모
 
@@ -88,7 +93,10 @@
 
 - profession/quest refresh는 보호 경로를 거친다.
 - `QUEST_TURNED_IN`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `LOOT_CLOSED` 뒤 follow-up refresh가 들어간다.
+- `Modules/ProfessionKnowledgeTracker.lua`는 완료 퀘스트 스냅샷이 실제로 바뀐 경우에만 `questCacheGeneration`과 요약 캐시를 무효화한다.
+- `UI/ProfessionKnowledgeOverlay.lua` tooltip 라인은 refresh 때 미리 만들지 않고 hover 시점에만 계산한다.
 - 시체 채집/보물 채집 관련 제보가 오면 `Events.lua`, `UI/ProfessionKnowledgeOverlay.lua`, `UI/ProfessionPanel.lua`, `UI/QuestPanel.lua`를 먼저 본다.
+- `ProfessionKnowledgeTracker:RefreshQuestCache()`는 completed quest 집합이 실제로 바뀐 경우에만 generation/cache를 올린다. profession 툴팁/요약 리빌드가 괜히 반복되면 이 경로를 먼저 본다.
 
 ### 전투메시지 표출 방식
 
@@ -123,6 +131,15 @@
 
 - 설정 탭 체크박스 UI 숨김 처리 유지
 - WoW 보안 시스템 taint 문제로 동작 불가
+
+### 패키지에서 로드 제외한 비활성 기능
+
+- 아래 파일들은 repo에는 남겨 두지만 현재 패키지 TOC에서는 제외한다.
+  - `Data/WorldEventSchedule.lua`
+  - `Modules/MerchantHelper.lua`
+  - `Modules/MailHistory.lua`
+  - `UI/WorldEventOverlay.lua`
+- 다시 살릴 때는 단순히 파일만 고치는 것이 아니라 `ABProfileManager.toc`, `Core.lua`, `Events.lua`, 관련 DB/Locale 키 사용처를 같이 점검해야 한다.
 
 ## 4. 중요한 파일
 
