@@ -241,6 +241,8 @@ local function getDungeonInstanceID(dungeonName)
     return candidates[1] and candidates[1].instanceID or nil
 end
 
+local normalizeCompareText
+
 local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName)
     if not dungeonName or (not itemID and not fallbackName) then return nil end
 
@@ -567,7 +569,7 @@ local function getDisplaySourceLabel(entry)
     return entry.sourceLabel or entry.boss or localizeSourceType(sourceType)
 end
 
-local function normalizeCompareText(text)
+normalizeCompareText = function(text)
     text = string.lower(tostring(text or ""))
     text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
     text = text:gsub("|r", "")
