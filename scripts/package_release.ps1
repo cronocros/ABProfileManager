@@ -1,5 +1,5 @@
 param(
-    [string]$ProjectRoot = "E:\Dev_ai\wowadon"
+    [string]$ProjectRoot = "E:\Dev_ai\wowaddon"
 )
 
 $ErrorActionPreference = "Stop"

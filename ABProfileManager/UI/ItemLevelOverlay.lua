@@ -11,6 +11,8 @@ local TAB_H      = 18
 local ROW_H      = 17
 local ROW_GAP    = 2
 local PADDING    = 6
+local CREST_LINE_H = 16
+local CREST_VALUE_W = 34
 
 local TAB_GAP    = 2
 
@@ -62,14 +64,6 @@ local CREST_COLORS = {
     chmp = { 0.28, 0.68, 1.00 },  -- 파랑 (챔피언)
     hero = { 0.72, 0.35, 1.00 },  -- 보라 (영웅)
     myth = { 1.00, 0.20, 0.20 },  -- 빨강 (신화)
-}
-
-local PADDED_CREST_LABELS_KOKR = {
-    adv = "모험가 ",
-    vet = "노련가 ",
-    chmp = "챔피언",
-    hero = "영웅  ",
-    myth = "신화  ",
 }
 
 local function colorHex(r, g, b)
@@ -190,17 +184,12 @@ local function getItemCountByID(itemID)
     return nil
 end
 
-local function crestCountStr(grade)
+local function crestCountParts(grade)
     local qty = getMyCount(grade)
-    if qty == nil then return "" end
     local cc = CREST_COLORS[grade] or { 0.85, 0.85, 0.85 }
-    local hex = colorHex(cc[1], cc[2], cc[3])
     local name = ns.L("ilvl_crest_"..grade) or grade
-    if ns.DB and ns.Constants and ns.DB.GetLanguage
-    and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN then
-        name = PADDED_CREST_LABELS_KOKR[grade] or name
-    end
-    return inlineColor(hex, name) .. " " .. tostring(qty)
+    local value = qty ~= nil and tostring(qty) or "-"
+    return name, value, cc[1], cc[2], cc[3]
 end
 
 local function sectionSummaryParts()
@@ -684,15 +673,24 @@ function ItemLevelOverlay:EnsureFrame()
 
     frame.crestLines = {}
     for i, _ in ipairs(CREST_PANEL_GRADES) do
-        local fs = makeFS(crestPanel, 14, 1, 1, 1)
+        local line = CreateFrame("Frame", nil, crestPanel)
+        line:SetSize(CREST_PANEL_W - 10, CREST_LINE_H)
         if i == 1 then
-            fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -6)
+            line:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -6)
         else
-            fs:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -1)
+            line:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -1)
         end
-        fs:SetWidth(CREST_PANEL_W - 10)
-        fs:SetJustifyH("LEFT")
-        frame.crestLines[i] = fs
+        line.label = makeFS(line, 14, 1, 1, 1)
+        line.label:SetPoint("LEFT", line, "LEFT", 0, 0)
+        line.label:SetPoint("RIGHT", line, "RIGHT", -CREST_VALUE_W, 0)
+        line.label:SetJustifyH("LEFT")
+
+        line.value = makeFS(line, 14, 1, 1, 1)
+        line.value:SetPoint("RIGHT", line, "RIGHT", 0, 0)
+        line.value:SetWidth(CREST_VALUE_W)
+        line.value:SetJustifyH("RIGHT")
+
+        frame.crestLines[i] = line
     end
 
     local keyDivider = crestPanel:CreateTexture(nil, "ARTWORK")
@@ -855,10 +853,13 @@ function ItemLevelOverlay:RebuildContent()
     end
     if frame.crestPanel then
         for i, grade in ipairs(CREST_PANEL_GRADES) do
-            local fs = frame.crestLines and frame.crestLines[i]
-            if fs then
-                local text = crestCountStr(grade)
-                fs:SetText(text ~= "" and text or ((ns.L("ilvl_crest_"..grade) or grade) .. " -"))
+            local line = frame.crestLines and frame.crestLines[i]
+            if line then
+                local labelText, valueText, r, g, b = crestCountParts(grade)
+                line.label:SetText(labelText)
+                line.label:SetTextColor(r, g, b, 1)
+                line.value:SetText(valueText)
+                line.value:SetTextColor(r, g, b, 1)
             end
         end
         local keyLines = getMyKeyLines()
@@ -872,7 +873,7 @@ function ItemLevelOverlay:RebuildContent()
                 fs:SetTextColor(1.00, 0.84, 0.46, 1)
             end
         end
-        local crestPanelH = 146 + (#CREST_PANEL_GRADES * 18) + (#(frame.keyLines or {}) * 16)
+        local crestPanelH = 146 + (#CREST_PANEL_GRADES * (CREST_LINE_H + 2)) + (#(frame.keyLines or {}) * 16)
         frame.crestPanel:SetHeight(crestPanelH)
     end
 

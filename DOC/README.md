@@ -1,6 +1,6 @@
 # DOC Index
 
-이 폴더는 `ABProfileManager`의 기술 문서와 운영 문서만 유지합니다.
+이 폴더는 `ABProfileManager`의 기술 문서와 운영 문서를 유지합니다.
 
 사용자 안내는 루트 [README.md](../README.md)를 기준으로 봅니다.
 
@@ -8,7 +8,9 @@
 
 - [../README.md](../README.md)
   - 기본 사용자 안내와 기능 요약
-- [../RELEASE_NOTES_v1.5.7.md](../RELEASE_NOTES_v1.5.7.md)
+- [../AGENTS.md](../AGENTS.md)
+  - 작업자/에이전트용 저장소 운영 지침
+- [../RELEASE_NOTES_v1.5.8.md](../RELEASE_NOTES_v1.5.8.md)
   - 최신 릴리스 노트
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름

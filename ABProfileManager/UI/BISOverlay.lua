@@ -13,7 +13,7 @@ local ROW_H        = 19
 local SECTION_H    = 24
 local ICON_SIZE    = 15
 local TAB_SIZE     = 24
-local TABS_H       = 54              -- spec tabs + source filter row
+local TABS_H       = 30              -- spec tabs + source filter row
 local TITLE_H      = 26
 local MAX_SCROLL_H = 340
 local FONT_PATH    = "Fonts\\2002.TTF"
@@ -39,22 +39,22 @@ local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local COL_ICON    = ICON_SIZE + 5
-local COL_NAME    = 108
-local COL_SLOT    = 150
-local COL_NOTE    = 54
-local COL_TYPE    = 60
+local COL_NAME    = 210
+local COL_SLOT    = 96
+local COL_TYPE    = 34
+local COL_NOTE    = 40
 local SPEC_PICKER_W = 154
 local SPEC_PICKER_BTN_H = 22
 local SPEC_PICKER_ROW_H = 20
 local SPEC_PICKER_MAX_VISIBLE = 12
-local FILTER_BTN_W = 44
-local FILTER_BTN_H = 20
+local FILTER_BTN_W = 48
+local FILTER_BTN_H = 18
 
 local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted" }
 local BIS_SOURCE_DEFAULTS = {
     mythicplus = true,
-    raid = false,
-    crafted = false,
+    raid = true,
+    crafted = true,
 }
 local BIS_SOURCE_LABEL_KEYS = {
     mythicplus = "bis_source_mplus",
@@ -114,11 +114,21 @@ local DUNGEON_LOCALE_KEYS = {
     ["마법학자의 정원"] = "bis_dungeon_magisters_terrace",
     ["마이사라 동굴"] = "bis_dungeon_maisara_caverns",
     ["공결점 제나스"] = "bis_dungeon_nexus_point_xenas",
+    ["공결탑 제나스"] = "bis_dungeon_nexus_point_xenas",
     ["윈드러너 첨탑"] = "bis_dungeon_windrunner_spire",
     ["알게타르 아카데미"] = "bis_dungeon_algethar_academy",
+    ["알게타르 대학"] = "bis_dungeon_algethar_academy",
     ["삼두정의 권좌"] = "bis_dungeon_seat_of_the_triumvirate",
     ["하늘탑"] = "bis_dungeon_skyreach",
     ["사론의 구덩이"] = "bis_dungeon_pit_of_saron",
+}
+
+local RAID_META_LABEL_PATTERNS = {
+    "raid",
+    "tier",
+    "catalyst",
+    "촉매",
+    "vault",
 }
 
 local NOTE_BADGE_COLOR = {
@@ -135,16 +145,31 @@ local SOURCE_TYPE_COLOR = {
 }
 
 -- 던전 → 모험 안내서 instanceID 매핑 (returning 던전 확인값, Midnight 신규 던전은 미확인)
-local DUNGEON_EJ_IDS = {}
+local DUNGEON_EJ_IDS = {
+    ["공결점 제나스"] = 1314,
+    ["공결탑 제나스"] = 1314,
+    ["알게타르 아카데미"] = 2526,
+    ["알게타르 대학"] = 2526,
+}
+local DUNGEON_EJ_TIERS = {
+    ["공결점 제나스"] = 13,
+    ["공결탑 제나스"] = 13,
+}
 local EJ_INSTANCE_CACHE = {}
 local EJ_CANDIDATE_CACHE = {}
 local EJ_RAID_CANDIDATES_CACHE = nil
+local EJ_ENCOUNTER_CACHE = {}
 local EJ_PREVIEW_LINK_CACHE = {}
 local EJ_PREVIEW_CONTEXT_CACHE = {}
+local _journalNavigationToken = 0
+local normalizeCompareText
 local getEntrySourceType
 local getSeasonalMythicPlusRange
 local getSeasonalRaidRange
+local requestItemData
+local hasRaidMetaLabel
 local isCraftingSourceLabel
+local isEnglishOnlyLabel
 local localizeSourceLabel
 local resolveSeasonDungeonName
 
@@ -169,29 +194,48 @@ local function ensureEncounterJournalLoaded()
         and type(EJ_GetInstanceByIndex) == "function"
 end
 
+local function getEnglishLocaleText(key)
+    local enUS = ns.Locale and ns.Locale.strings and ns.Locale.strings.enUS
+    return enUS and enUS[key] or nil
+end
+
+local function getNow()
+    if type(GetTime) == "function" then
+        return GetTime()
+    end
+    return 0
+end
+
+local function isJournalPreviewSuspended()
+    local untilTime = BISOverlay and BISOverlay._journalPreviewSuspendUntil
+    return untilTime and untilTime > getNow() or false
+end
+
 local function getSeasonPreviewKeyLevel()
     local tbl = ns.Data and ns.Data.ItemLevelTable
     local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
     if entries then
         for _, entry in ipairs(entries) do
-            if entry.key == 10 then
-                return 10
+            if entry.key == 2 then
+                return 2
             end
         end
         if entries[#entries] and entries[#entries].key then
-            return entries[#entries].key
+            return entries[1].key
         end
     end
-    return 10
+    return 2
 end
 
 local function getRaidPreviewDifficultyID()
     if DifficultyUtil and DifficultyUtil.ID then
-        return DifficultyUtil.ID.PrimaryRaidMythic
+        return DifficultyUtil.ID.PrimaryRaidNormal
+            or DifficultyUtil.ID.RaidNormal
+            or DifficultyUtil.ID.PrimaryRaidMythic
             or DifficultyUtil.ID.RaidMythic
             or DifficultyUtil.ID.Raid25Heroic
     end
-    return 16
+    return 14
 end
 
 local function getDungeonCandidates(dungeonName)
@@ -221,6 +265,31 @@ local function getDungeonCandidates(dungeonName)
         }
     end
 
+    local normalizedDungeonName = normalizeCompareText and normalizeCompareText(dungeonName) or string.lower(tostring(dungeonName or ""))
+    local localeKey = DUNGEON_LOCALE_KEYS[dungeonName]
+    local localizedDungeonName = localeKey and ns.L(localeKey) or nil
+    local englishDungeonName = localeKey and getEnglishLocaleText(localeKey) or nil
+    local normalizedLocalizedName = normalizeCompareText and normalizeCompareText(localizedDungeonName)
+        or string.lower(tostring(localizedDungeonName or ""))
+    local normalizedEnglishName = normalizeCompareText and normalizeCompareText(englishDungeonName)
+        or string.lower(tostring(englishDungeonName or ""))
+
+    local function matchesDungeonName(instanceName)
+        if not instanceName or not dungeonName then
+            return false
+        end
+        if instanceName == dungeonName
+            or (localizedDungeonName and instanceName == localizedDungeonName)
+            or (englishDungeonName and instanceName == englishDungeonName) then
+            return true
+        end
+        local normalizedInstanceName = normalizeCompareText and normalizeCompareText(instanceName)
+            or string.lower(tostring(instanceName or ""))
+        return normalizedInstanceName == normalizedDungeonName
+            or (normalizedLocalizedName ~= "" and normalizedInstanceName == normalizedLocalizedName)
+            or (normalizedEnglishName ~= "" and normalizedInstanceName == normalizedEnglishName)
+    end
+
     for tier = tierCount, 1, -1 do
         pcall(EJ_SelectTier, tier)
         local index = 1
@@ -229,7 +298,7 @@ local function getDungeonCandidates(dungeonName)
             if not instanceID then
                 break
             end
-            if instanceName == dungeonName then
+            if matchesDungeonName(instanceName) then
                 addCandidate(instanceID, tier)
             end
             index = index + 1
@@ -298,8 +367,6 @@ local function getDungeonInstanceID(dungeonName)
     return candidates[1] and candidates[1].instanceID or nil
 end
 
-local normalizeCompareText
-
 local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName)
     if not dungeonName or (not itemID and not fallbackName) then return nil end
 
@@ -318,6 +385,12 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
     )
     if EJ_PREVIEW_CONTEXT_CACHE[cacheKey] ~= nil then
         return EJ_PREVIEW_CONTEXT_CACHE[cacheKey] or nil
+    end
+    if not BISOverlay._allowLiveJournalScan then
+        local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
+        if journalVisible or isJournalPreviewSuspended() then
+            return nil
+        end
     end
     if not ensureEncounterJournalLoaded() then
         EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
@@ -424,6 +497,12 @@ local function getPreviewRaidLootContext(itemID, fallbackName)
     local cacheKey = string.format("raid:%s:%s", tostring(itemID or 0), normalizedTargetName)
     if EJ_PREVIEW_CONTEXT_CACHE[cacheKey] ~= nil then
         return EJ_PREVIEW_CONTEXT_CACHE[cacheKey] or nil
+    end
+    if not BISOverlay._allowLiveJournalScan then
+        local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
+        if journalVisible or isJournalPreviewSuspended() then
+            return nil
+        end
     end
     if not ensureEncounterJournalLoaded() then
         EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
@@ -669,6 +748,143 @@ local function getEncounterJournalContextForEntry(entry, itemID)
     return nil
 end
 
+local function buildEncounterHints(entry)
+    local hints, seen = {}, {}
+
+    local function addHint(value)
+        local text = type(value) == "string" and value:match("^%s*(.-)%s*$") or nil
+        if not text or text == "" then
+            return
+        end
+        local normalized = normalizeCompareText(text)
+        if normalized == "" or seen[normalized] then
+            return
+        end
+        seen[normalized] = true
+        hints[#hints + 1] = {
+            raw = text,
+            normalized = normalized,
+        }
+    end
+
+    addHint(entry and entry.boss)
+    addHint(entry and entry.sourceLabel)
+    addHint(localizeSourceLabel(entry and entry.sourceLabel))
+    addHint(entry and entry.dungeon)
+
+    local rawLabel = entry and entry.sourceLabel
+    if type(rawLabel) == "string" then
+        for token in string.gmatch(rawLabel, "[^,/|]+") do
+            local trimmed = token:match("^%s*(.-)%s*$")
+            addHint(trimmed)
+            addHint(localizeSourceLabel(trimmed))
+        end
+    end
+
+    return hints
+end
+
+local function findEncounterIDInInstance(instanceID, encounterHints)
+    if not instanceID or not encounterHints or #encounterHints == 0
+        or type(EJ_GetEncounterInfoByIndex) ~= "function" then
+        return nil
+    end
+
+    for _, hint in ipairs(encounterHints) do
+        local cacheKey = string.format("%s:%s", tostring(instanceID), hint.normalized)
+        local cached = EJ_ENCOUNTER_CACHE[cacheKey]
+        if cached ~= nil then
+            if cached ~= false then
+                return cached
+            end
+        else
+            local foundEncounterID = nil
+            local index = 1
+            while true do
+                local ok, encounterName, _, encounterID = pcall(EJ_GetEncounterInfoByIndex, index, instanceID)
+                if not ok or not encounterName then
+                    break
+                end
+                if normalizeCompareText(encounterName) == hint.normalized then
+                    foundEncounterID = encounterID
+                    break
+                end
+                index = index + 1
+            end
+
+            EJ_ENCOUNTER_CACHE[cacheKey] = foundEncounterID or false
+            if foundEncounterID then
+                return foundEncounterID
+            end
+        end
+    end
+
+    return nil
+end
+
+local function resolveFallbackJournalTarget(entry)
+    if not entry then
+        return nil
+    end
+
+    local sourceType = getEntrySourceType(entry)
+    local encounterHints = buildEncounterHints(entry)
+
+    if sourceType == "mythicplus" then
+        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
+        local candidates = dungeonName and getDungeonCandidates(dungeonName) or nil
+        local candidate = candidates and candidates[1] or nil
+        local instanceID = candidate and candidate.instanceID or (dungeonName and getDungeonInstanceID(dungeonName)) or nil
+        if not instanceID then
+            return nil
+        end
+        return {
+            instanceID = instanceID,
+            tier = candidate and candidate.tier or (dungeonName and DUNGEON_EJ_TIERS[dungeonName]) or nil,
+            difficulty = 23,
+            encounterID = findEncounterIDInInstance(instanceID, encounterHints),
+        }
+    end
+
+    if sourceType == "raid" then
+        local candidates = getRaidCandidates()
+        if not candidates or #candidates == 0 then
+            return nil
+        end
+
+        for _, candidate in ipairs(candidates) do
+            local candidateName = normalizeCompareText(candidate.name)
+            for _, hint in ipairs(encounterHints) do
+                if hint.normalized == candidateName then
+                    return {
+                        instanceID = candidate.instanceID,
+                        tier = candidate.tier,
+                        difficulty = getRaidPreviewDifficultyID(),
+                    }
+                end
+            end
+        end
+
+        for _, candidate in ipairs(candidates) do
+            local encounterID = findEncounterIDInInstance(candidate.instanceID, encounterHints)
+            if encounterID then
+                return {
+                    instanceID = candidate.instanceID,
+                    tier = candidate.tier,
+                    difficulty = getRaidPreviewDifficultyID(),
+                    encounterID = encounterID,
+                }
+            end
+        end
+
+        return {
+            difficulty = getRaidPreviewDifficultyID(),
+        }
+    end
+
+    return nil
+end
+
 -- 모험 안내서 열기 (safe — pcall 보호)
 local function openEncounterJournalForEntry(entry, itemID)
     if not entry then
@@ -676,26 +892,47 @@ local function openEncounterJournalForEntry(entry, itemID)
     end
 
     local sourceType = getEntrySourceType(entry)
-    if sourceType == "crafted" then
+    local sourceLabel = entry and (entry.sourceLabel or entry.boss or "")
+    if sourceType == "crafted" or hasRaidMetaLabel(sourceLabel) then
         return
     end
 
-    local context = getEncounterJournalContextForEntry(entry, itemID)
-    local instanceID = context and context.instanceID or nil
-    local tier = context and context.tier or nil
-    local journalItemID = context and context.itemID or itemID
-    local encounterID = context and context.encounterID or nil
-    local difficultyID = context and context.difficulty
-        or (sourceType == "raid" and getRaidPreviewDifficultyID() or 23)
+    _journalNavigationToken = _journalNavigationToken + 1
+    local navigationToken = _journalNavigationToken
+    BISOverlay._journalPreviewSuspendUntil = getNow() + 1.0
 
-    if not instanceID and sourceType == "mythicplus" then
-        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
-        instanceID = getDungeonInstanceID(dungeonName)
+    local target = resolveFallbackJournalTarget(entry) or {}
+    local context
+    if not target.instanceID then
+        local ok, resolvedContext
+        BISOverlay._allowLiveJournalScan = true
+        ok, resolvedContext = pcall(getEncounterJournalContextForEntry, entry, itemID)
+        BISOverlay._allowLiveJournalScan = false
+        if ok then
+            context = resolvedContext
+        end
     end
+
+    local instanceID = target.instanceID or (context and context.instanceID) or nil
+    local tier = target.tier or (context and context.tier) or nil
+    local journalItemID = (context and context.itemID) or itemID
+    local encounterID = target.encounterID or (context and context.encounterID) or nil
+    local difficultyID = target.difficulty or (context and context.difficulty)
+        or (sourceType == "raid" and getRaidPreviewDifficultyID() or 23)
 
     pcall(function()
         if not ensureEncounterJournalLoaded() then
             return
+        end
+        if tier then
+            pcall(EJ_SelectTier, tier)
+        end
+        if EJ_SetDifficulty then
+            pcall(EJ_SetDifficulty, difficultyID)
+        end
+        if sourceType == "mythicplus"
+        and C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
+            pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, getSeasonPreviewKeyLevel())
         end
         if EncounterJournal then
             if not EncounterJournal:IsShown() then
@@ -710,6 +947,9 @@ local function openEncounterJournalForEntry(entry, itemID)
             end
             if instanceID then
                 C_Timer.After(0.1, function()
+                    if navigationToken ~= _journalNavigationToken then
+                        return
+                    end
                     if tier then
                         pcall(EJ_SelectTier, tier)
                     end
@@ -758,20 +998,37 @@ local function getSourceFilters()
     return settings.sources
 end
 
+local function getRenderSignature(specID)
+    local filters = getSourceFilters()
+    return table.concat({
+        tostring(specID or 0),
+        filters.mythicplus and "1" or "0",
+        filters.raid and "1" or "0",
+        filters.crafted and "1" or "0",
+    }, ":")
+end
+
 getEntrySourceType = function(entry)
     local sourceType = entry and entry.sourceType
     local sourceLabel = entry and (entry.sourceLabel or entry.dungeon or entry.boss) or nil
+    local resolvedDungeon = resolveSeasonDungeonName(entry and entry.dungeon or sourceLabel)
 
     if sourceType == "crafted" or isCraftingSourceLabel(sourceLabel) then
         return "crafted"
     end
-    if resolveSeasonDungeonName(entry and entry.dungeon or sourceLabel) then
+    if resolvedDungeon and sourceType == "raid" and not hasRaidMetaLabel(sourceLabel) then
         return "mythicplus"
     end
     if sourceType == "raid" then
         return "raid"
     end
-    return "mythicplus"
+    if sourceType == "mythicplus" then
+        return "mythicplus"
+    end
+    if resolvedDungeon then
+        return "mythicplus"
+    end
+    return sourceType or "mythicplus"
 end
 
 local function isSourceEnabled(sourceType)
@@ -796,6 +1053,46 @@ end
 local function localizeSourceType(sourceType)
     local key = BIS_SOURCE_LABEL_KEYS[sourceType or "mythicplus"] or BIS_SOURCE_LABEL_KEYS.mythicplus
     return ns.L(key)
+end
+
+hasRaidMetaLabel = function(label)
+    local normalized = normalizeCompareText(label)
+    if normalized == "" then
+        return false
+    end
+    for _, token in ipairs(RAID_META_LABEL_PATTERNS) do
+        if normalized:find(token, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
+local function getSourceBasisLabel(sourceType)
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    if sourceType == "mythicplus" then
+        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
+        local entry = entries and entries[1]
+        if entry and entry.key and entry.ilvl then
+            return string.format("+%d %d", entry.key, entry.ilvl)
+        end
+        return ns.L("bis_basis_mplus")
+    end
+    if sourceType == "raid" then
+        local normal = tbl and tbl.raid and tbl.raid.normal
+        if normal and normal.min and normal.max then
+            return string.format("%d~%d", normal.min, normal.max)
+        end
+        return ns.L("bis_basis_raid")
+    end
+    if sourceType == "crafted" then
+        local crafted = tbl and tbl.crafted
+        if crafted and crafted.base and crafted.base.ilvl and crafted.r5 and crafted.r5.ilvl then
+            return string.format("%d/%d", crafted.base.ilvl, crafted.r5.ilvl)
+        end
+        return ns.L("bis_basis_crafted")
+    end
+    return localizeSourceType(sourceType)
 end
 
 local function getSourceTypeColor(sourceType)
@@ -893,13 +1190,17 @@ local SOURCE_LABEL_KOKR = {
     [normalizeCompareText("Magisters' Terrace")] = "마법학자의 정원",
     [normalizeCompareText("Magisters’ Terrace (Degentrius)")] = "마법학자의 정원",
     [normalizeCompareText("Maisara Caverns")] = "마이사라 동굴",
-    [normalizeCompareText("Nexus-Point")] = "공결점 제나스",
-    [normalizeCompareText("Nexus-Point Xenas")] = "공결점 제나스",
-    [normalizeCompareText("Nexus-Point Xenas Belo'ren")] = "공결점 제나스",
+    [normalizeCompareText("Nexus-Point")] = "공결탑 제나스",
+    [normalizeCompareText("Nexus-Point Xenas")] = "공결탑 제나스",
+    [normalizeCompareText("Nexus-Point Xenas Belo'ren")] = "공결탑 제나스",
+    [normalizeCompareText("공결점 제나스")] = "공결탑 제나스",
     [normalizeCompareText("Pit of Saron")] = "사론의 구덩이",
-    [normalizeCompareText("Algethar’s Academy")] = "알게타르 아카데미",
-    [normalizeCompareText("Algethar Academy")] = "알게타르 아카데미",
-    [normalizeCompareText("Alhgeth’ar Academy")] = "알게타르 아카데미",
+    [normalizeCompareText("Algeth'ar Academy")] = "알게타르 대학",
+    [normalizeCompareText("Algeth’ar Academy")] = "알게타르 대학",
+    [normalizeCompareText("Algethar’s Academy")] = "알게타르 대학",
+    [normalizeCompareText("Algethar Academy")] = "알게타르 대학",
+    [normalizeCompareText("Alhgeth’ar Academy")] = "알게타르 대학",
+    [normalizeCompareText("알게타르 아카데미")] = "알게타르 대학",
     [normalizeCompareText("Skyreach")] = "하늘탑",
     [normalizeCompareText("Skyreach / Vaelgor & Ezzorak")] = "하늘탑",
     [normalizeCompareText("Fallen King Salhadaar")] = "공허 첨탑",
@@ -940,7 +1241,7 @@ localizeSourceLabel = function(label)
     return label
 end
 
-local function isEnglishOnlyLabel(label)
+isEnglishOnlyLabel = function(label)
     return type(label) == "string" and label:find("[A-Za-z]") ~= nil and label:find("[가-힣]") == nil
 end
 
@@ -976,7 +1277,7 @@ resolveSeasonDungeonName = function(label)
         if normalized == normalizeCompareText(dungeonName) then
             return dungeonName
         end
-        local englishName = ns.L(localeKey)
+        local englishName = getEnglishLocaleText(localeKey)
         if englishName and normalized == normalizeCompareText(englishName) then
             return dungeonName
         end
@@ -1266,24 +1567,19 @@ local function groupBySlot(items)
             return (a.itemID or 0) < (b.itemID or 0)
         end)
 
-        local altCount = 0
-        for _, entry in ipairs(entries) do
-            local kind = canonicalNote(entry.note)
-            if kind == "bis" then
+        for index, entry in ipairs(entries) do
+            if index == 1 then
                 entry._displayNoteKind = "bis"
                 entry._displayNoteIndex = 1
+            elseif index == 2 then
+                entry._displayNoteKind = "alt"
+                entry._displayNoteIndex = 2
+            elseif index == 3 then
+                entry._displayNoteKind = "third"
+                entry._displayNoteIndex = 3
             else
-                altCount = altCount + 1
-                if altCount == 1 then
-                    entry._displayNoteKind = "alt"
-                    entry._displayNoteIndex = 2
-                elseif altCount == 2 then
-                    entry._displayNoteKind = "third"
-                    entry._displayNoteIndex = 3
-                else
-                    entry._displayNoteKind = "rank"
-                    entry._displayNoteIndex = altCount + 1
-                end
+                entry._displayNoteKind = "rank"
+                entry._displayNoteIndex = index
             end
         end
     end
@@ -1302,10 +1598,53 @@ local function scheduleRebuild()
     C_Timer.After(0.3, function()
         _rebuildPending = false
         if BISOverlay.frame and BISOverlay.frame:IsShown() then
-            BISOverlay._isItemLoadRebuild = true  -- 스크롤 위치 유지
-            pcall(function() BISOverlay:RebuildContent() end)
+            pcall(function()
+                BISOverlay:RefreshVisibleItemRows()
+                BISOverlay:UpdateScrollThumb()
+            end)
         end
     end)
+end
+
+local function refreshItemRowDisplay(row)
+    if not row or not row.nameLabel then
+        return false
+    end
+
+    row.nameLabel:ClearAllPoints()
+    row.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
+
+    if row.itemID and row.itemID > 0 then
+        local ok, itemName, _, quality, _, _, _, _, _, _, texture = pcall(GetItemInfo, row.itemID)
+        if ok and itemName then
+            if texture then
+                row.icon:SetTexture(texture)
+                row.icon:SetPoint("LEFT", row, "LEFT", 0, 0)
+                row.icon:Show()
+            else
+                row.icon:Hide()
+            end
+
+            local nameX = texture and COL_ICON or 0
+            local nameW = COL_NAME + (texture and 0 or COL_ICON)
+            row.nameLabel:SetPoint("LEFT", row, "LEFT", nameX, 0)
+            row.nameLabel:SetWidth(nameW)
+
+            local qc = getQualityColor(quality)
+            row.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
+            row.nameLabel:SetText(itemName)
+            return true
+        end
+
+        requestItemData(row.itemID)
+    end
+
+    row.icon:Hide()
+    row.nameLabel:SetPoint("LEFT", row, "LEFT", 0, 0)
+    row.nameLabel:SetWidth(COL_NAME + COL_ICON)
+    row.nameLabel:SetTextColor(QC[4][1], QC[4][2], QC[4][3], 0.50)
+    row.nameLabel:SetText("...")
+    return false
 end
 
 -- ============================================================
@@ -1370,12 +1709,24 @@ function BISOverlay:UpdateSourceFilterButtons()
         if button.label then
             button.label:SetText(label)
         end
+        if button.checkMark then
+            button.checkMark:SetText(active and "X" or "")
+        end
         if active then
             if button.fill then
-                button.fill:SetColorTexture(0.14, 0.34, 0.56, 0.96)
+                button.fill:SetColorTexture(0.10, 0.16, 0.25, 0.92)
             end
             if button.SetBackdropBorderColor then
                 button:SetBackdropBorderColor(0.34, 0.76, 1.00, 0.92)
+            end
+            if button.checkFill then
+                button.checkFill:SetColorTexture(0.18, 0.42, 0.68, 0.98)
+            end
+            if button.checkBox and button.checkBox.SetBackdropBorderColor then
+                button.checkBox:SetBackdropBorderColor(0.38, 0.82, 1.00, 0.95)
+            end
+            if button.checkMark then
+                button.checkMark:SetTextColor(1, 1, 1, 1)
             end
             if button.label then
                 button.label:SetTextColor(1, 1, 1, 1)
@@ -1386,6 +1737,12 @@ function BISOverlay:UpdateSourceFilterButtons()
             end
             if button.SetBackdropBorderColor then
                 button:SetBackdropBorderColor(0.26, 0.30, 0.42, 0.78)
+            end
+            if button.checkFill then
+                button.checkFill:SetColorTexture(0.04, 0.05, 0.10, 0.95)
+            end
+            if button.checkBox and button.checkBox.SetBackdropBorderColor then
+                button.checkBox:SetBackdropBorderColor(0.32, 0.38, 0.52, 0.88)
             end
             if button.label then
                 button.label:SetTextColor(0.72, 0.78, 0.90, 1)
@@ -1467,9 +1824,15 @@ function BISOverlay:EnsureFrame()
     frame.hintText:SetTextColor(0.60, 0.72, 0.88, 1)
     frame.hintText:SetText(ns.L("bis_overlay_hint"))
 
+    frame.noticeText = frame:CreateFontString(nil, "OVERLAY")
+    frame.noticeText:SetFont(FONT_PATH, 9, FONT_FLAGS)
+    frame.noticeText:SetPoint("LEFT", frame.hintText, "RIGHT", 6, 0)
+    frame.noticeText:SetTextColor(1.00, 0.82, 0.46, 1)
+    frame.noticeText:SetText(ns.L("bis_overlay_notice"))
+
     frame.avgLabel = frame:CreateFontString(nil, "OVERLAY")
     frame.avgLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
-    frame.avgLabel:SetPoint("RIGHT", frame, "TOPRIGHT", -(PADDING + 22), -10)
+    frame.avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -(PADDING + 16), 0)
     frame.avgLabel:SetJustifyH("RIGHT")
     frame.avgLabel:SetTextColor(0.82, 0.86, 0.94, 1)
     frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", "?"))
@@ -1509,7 +1872,7 @@ function BISOverlay:EnsureFrame()
 
     frame.specPickerBtn = CreateFrame("Button", nil, frame.tabsFrame, "BackdropTemplate")
     frame.specPickerBtn:SetSize(SPEC_PICKER_W, SPEC_PICKER_BTN_H)
-    frame.specPickerBtn:SetPoint("BOTTOMRIGHT", frame.tabsFrame, "BOTTOMRIGHT", 0, 0)
+    frame.specPickerBtn:SetPoint("TOPRIGHT", frame.tabsFrame, "TOPRIGHT", 0, -1)
     if frame.specPickerBtn.SetBackdrop then
         frame.specPickerBtn:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -1562,9 +1925,9 @@ function BISOverlay:EnsureFrame()
         local button = CreateFrame("Button", nil, frame.tabsFrame, "BackdropTemplate")
         button:SetSize(FILTER_BTN_W, FILTER_BTN_H)
         if previousSourceButton then
-            button:SetPoint("RIGHT", previousSourceButton, "LEFT", -4, 0)
+            button:SetPoint("RIGHT", previousSourceButton, "LEFT", -2, 0)
         else
-            button:SetPoint("RIGHT", frame.specPickerBtn, "LEFT", -6, 0)
+            button:SetPoint("RIGHT", frame.specPickerBtn, "LEFT", -4, 0)
         end
         if button.SetBackdrop then
             button:SetBackdrop({
@@ -1577,11 +1940,37 @@ function BISOverlay:EnsureFrame()
         button.fill = button:CreateTexture(nil, "BACKGROUND")
         button.fill:SetPoint("TOPLEFT", button, "TOPLEFT", 3, -3)
         button.fill:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -3, 3)
+        button.checkBox = CreateFrame("Frame", nil, button, "BackdropTemplate")
+        button.checkBox:SetSize(10, 10)
+        button.checkBox:SetPoint("LEFT", button, "LEFT", 5, 0)
+        if button.checkBox.SetBackdrop then
+            button.checkBox:SetBackdrop({
+                bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                tile = true, tileSize = 8, edgeSize = 8,
+                insets = { left = 2, right = 2, top = 2, bottom = 2 },
+            })
+        end
+        button.checkFill = button.checkBox:CreateTexture(nil, "BACKGROUND")
+        button.checkFill:SetPoint("TOPLEFT", button.checkBox, "TOPLEFT", 2, -2)
+        button.checkFill:SetPoint("BOTTOMRIGHT", button.checkBox, "BOTTOMRIGHT", -2, 2)
+        button.checkMark = button.checkBox:CreateFontString(nil, "OVERLAY")
+        button.checkMark:SetFont(FONT_PATH, 8, FONT_FLAGS)
+        button.checkMark:SetAllPoints()
+        button.checkMark:SetJustifyH("CENTER")
+        button.checkMark:SetJustifyV("MIDDLE")
         button.label = button:CreateFontString(nil, "OVERLAY")
-        button.label:SetFont(FONT_PATH, 9, FONT_FLAGS)
-        button.label:SetAllPoints()
-        button.label:SetJustifyH("CENTER")
+        button.label:SetFont(FONT_PATH, 8, FONT_FLAGS)
+        button.label:SetPoint("LEFT", button.checkBox, "RIGHT", 3, 0)
+        button.label:SetPoint("RIGHT", button, "RIGHT", -3, 0)
+        button.label:SetJustifyH("LEFT")
         button.label:SetJustifyV("MIDDLE")
+        if button.label.SetWordWrap then
+            button.label:SetWordWrap(false)
+        end
+        if button.label.SetMaxLines then
+            button.label:SetMaxLines(1)
+        end
         button:SetScript("OnClick", function()
             BISOverlay:ToggleSourceFilter(sourceType)
         end)
@@ -1977,7 +2366,7 @@ end
 -- 행 생성/재사용
 -- ============================================================
 
-local function requestItemData(itemID)
+requestItemData = function(itemID)
     if not itemID or itemID <= 0 then return end
     if C_Item and C_Item.RequestLoadItemDataByID then
         pcall(C_Item.RequestLoadItemDataByID, itemID)
@@ -2002,6 +2391,7 @@ local function showSeasonItemTooltip(owner, row)
         previewContext = getPreviewRaidLootContext(row.itemID, fallbackName)
     end
     local previewLink = previewContext and previewContext.link or nil
+    local _, baseTooltipLink, baseQuality = GetItemInfo(row.itemID)
     local previewValidation
     if sourceType == "mythicplus" then
         previewValidation = validatePreviewTooltip(previewContext)
@@ -2015,7 +2405,9 @@ local function showSeasonItemTooltip(owner, row)
         itemName, _, quality = GetItemInfo(previewLink)
     end
     if not quality then
-        itemName, tooltipLink, quality = GetItemInfo(row.itemID)
+        itemName = itemName or fallbackName
+        tooltipLink = baseTooltipLink
+        quality = baseQuality
     end
     tooltipLink = previewLink or tooltipLink
     local scaledMinIlvl, scaledMaxIlvl = getSeasonalMythicPlusRange()
@@ -2024,6 +2416,7 @@ local function showSeasonItemTooltip(owner, row)
     GameTooltip:ClearLines()
 
     local hasBaseTooltip = false
+    local usedBaseTooltipFallback = false
 
     if (sourceType == "mythicplus" or sourceType == "raid")
     and previewLink and previewValidation and previewValidation.trusted then
@@ -2033,11 +2426,23 @@ local function showSeasonItemTooltip(owner, row)
 
     if not hasBaseTooltip then
         requestItemData(row.itemID)
-        local ok, resolvedName, _, fallbackQuality = pcall(GetItemInfo, row.itemID)
-        local displayName = itemName or (ok and resolvedName) or ("Item #" .. tostring(row.itemID))
-        quality = quality or fallbackQuality
-        local qc = getQualityColor(quality)
-        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+        if baseTooltipLink and GameTooltip.SetHyperlink then
+            local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, baseTooltipLink)
+            hasBaseTooltip = ok and true or false
+            usedBaseTooltipFallback = hasBaseTooltip
+        end
+        if not hasBaseTooltip and GameTooltip.SetItemByID then
+            local ok = pcall(GameTooltip.SetItemByID, GameTooltip, row.itemID)
+            hasBaseTooltip = ok and true or false
+            usedBaseTooltipFallback = hasBaseTooltip
+        end
+        if not hasBaseTooltip then
+            local ok, resolvedName, _, fallbackQuality = pcall(GetItemInfo, row.itemID)
+            local displayName = itemName or (ok and resolvedName) or ("Item #" .. tostring(row.itemID))
+            quality = quality or fallbackQuality
+            local qc = getQualityColor(quality)
+            GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+        end
     else
         local nameFS = _G.GameTooltipTextLeft1
         local qc = getQualityColor(quality)
@@ -2049,6 +2454,7 @@ local function showSeasonItemTooltip(owner, row)
     GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.70, 0.78, 0.90, 1, 1, 1)
+    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
 
     if sourceType == "mythicplus" then
@@ -2057,6 +2463,9 @@ local function showSeasonItemTooltip(owner, row)
         elseif scaledMinIlvl and scaledMaxIlvl then
             GameTooltip:AddLine(ns.L("bis_tooltip_item_level_scaled", scaledMinIlvl, scaledMaxIlvl), 0.38, 0.88, 1.00, true)
             GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.72, 0.42, true)
+            if usedBaseTooltipFallback then
+                GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.58, 0.30, true)
+            end
         end
         local runTrack = getSeasonalMythicPlusSummary("run")
         if runTrack ~= "" then
@@ -2071,6 +2480,9 @@ local function showSeasonItemTooltip(owner, row)
             GameTooltip:AddLine(ns.L("bis_tooltip_raid_preview"), 0.38, 0.88, 1.00, true)
         else
             GameTooltip:AddLine(ns.L("bis_tooltip_raid_fallback"), 1.00, 0.72, 0.42, true)
+            if usedBaseTooltipFallback then
+                GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.58, 0.30, true)
+            end
         end
         for _, line in ipairs(getSeasonalRaidSummaryLines()) do
             GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
@@ -2094,6 +2506,22 @@ local function showSeasonItemTooltip(owner, row)
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end
     GameTooltip:Show()
+end
+
+local function isCursorOverSourceColumn(button)
+    if not button or not button.GetLeft or not button.GetEffectiveScale then
+        return false
+    end
+    local left = button:GetLeft()
+    if not left then
+        return false
+    end
+    local scale = button:GetEffectiveScale() or 1
+    local cursorX = select(1, GetCursorPosition()) / scale
+    local localX = cursorX - left
+    local sourceLeft = COL_ICON + COL_NAME
+    local sourceRight = sourceLeft + COL_SLOT
+    return localX >= sourceLeft and localX <= sourceRight
 end
 
 local function ensureRow(frame, index)
@@ -2161,26 +2589,18 @@ local function ensureRow(frame, index)
     row.tooltipRegion:SetAllPoints(row)
     row.tooltipRegion:EnableMouse(true)
     row.tooltipRegion:RegisterForClicks("LeftButtonUp")
-    row.tooltipRegion:SetScript("OnClick", function()
+    row.tooltipRegion:SetScript("OnClick", function(self2)
         if row._sectionDungeon then
             openEncounterJournalForEntry({ dungeon = row._sectionDungeon, sourceType = "mythicplus" })
         elseif row._entry then
-            openEncounterJournalForEntry(row._entry, row.itemID)
+            if isCursorOverSourceColumn(self2) then
+                openEncounterJournalForEntry(row._entry, nil)
+            else
+                openEncounterJournalForEntry(row._entry, row.itemID)
+            end
         end
     end)
-    row.tooltipRegion:SetScript("OnEnter", function(self2)
-        if row._sectionDungeon then
-            GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-            GameTooltip:SetText(localizeDungeon(row._sectionDungeon), 1, 1, 1, 1, true)
-            local hint = getDungeonInstanceID(row._sectionDungeon)
-                and ns.L("bis_tooltip_open_journal")
-                or ns.L("bis_tooltip_open_journal_missing")
-            GameTooltip:AddLine(hint, 0.70, 0.78, 0.90, true)
-            GameTooltip:Show()
-        elseif row.itemID and row.itemID > 0 then
-            showSeasonItemTooltip(self2, row)
-        end
-    end)
+    row.tooltipRegion:SetScript("OnEnter", nil)
     row.tooltipRegion:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     frame.rows[index] = row
@@ -2201,6 +2621,22 @@ local function resetRow(row)
     row._displayNoteIndex = nil
 end
 
+function BISOverlay:RefreshVisibleItemRows()
+    local frame = self.frame
+    if not frame or not frame.rows then
+        return false
+    end
+
+    local refreshed = false
+    for _, row in ipairs(frame.rows) do
+        if row:IsShown() and row.itemID and row.itemID > 0 then
+            refreshed = refreshItemRowDisplay(row) or refreshed
+        end
+    end
+
+    return refreshed
+end
+
 -- ============================================================
 -- 컨텐츠 빌드
 -- ============================================================
@@ -2215,6 +2651,7 @@ function BISOverlay:RebuildContent()
     local savedScroll = frame.scrollFrame:GetVerticalScroll()
 
     local specID  = self.selectedSpecID or getPlayerSpecID()
+    self._lastRenderSignature = getRenderSignature(specID)
     local bisData = ns.Data and ns.Data.BISItems and ns.Data.BISItems[specID]
     local avgIlvl = getAverageItemLevel()
     if frame.titleText then
@@ -2222,6 +2659,9 @@ function BISOverlay:RebuildContent()
     end
     if frame.hintText then
         frame.hintText:SetText(ns.L("bis_overlay_hint"))
+    end
+    if frame.noticeText then
+        frame.noticeText:SetText(ns.L("bis_overlay_notice"))
     end
     if frame.avgLabel then
         frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
@@ -2309,44 +2749,8 @@ function BISOverlay:RebuildContent()
                     iRow.bg:SetColorTexture(0.04, 0.05, 0.10, 0.28)
                 end
 
-                -- GetItemInfo 조회
-                local itemName, quality, texture
-                if entry.itemID and entry.itemID > 0 then
-                    local ok, n, _, q, _, _, _, _, _, _, tex = pcall(GetItemInfo, entry.itemID)
-                    if ok and n then
-                        itemName = n
-                        quality  = q
-                        texture  = tex
-                    else
-                        requestItemData(entry.itemID)
-                    end
-                end
-
-                -- 아이콘
-                if texture then
-                    iRow.icon:SetTexture(texture)
-                    iRow.icon:SetPoint("LEFT", iRow, "LEFT", 0, 0)
-                    iRow.icon:Show()
-                else
-                    iRow.icon:Hide()
-                end
-
-                -- 이름 라벨 (아이콘 우측, 고정 폭으로 슬롯 컬럼 위치 보장)
-                local nameX = texture and COL_ICON or 0
-                local nameW = COL_NAME + (texture and 0 or COL_ICON)
-                iRow.nameLabel:ClearAllPoints()
-                iRow.nameLabel:SetPoint("LEFT", iRow, "LEFT", nameX, 0)
-                iRow.nameLabel:SetWidth(nameW)
-                iRow.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
-
-                if itemName then
-                    local qc = getQualityColor(quality)
-                    iRow.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
-                    iRow.nameLabel:SetText(itemName)
-                else
-                    iRow.nameLabel:SetTextColor(QC[4][1], QC[4][2], QC[4][3], 0.50)
-                    iRow.nameLabel:SetText("...")
-                end
+                -- 아이템 이름/아이콘은 부분 갱신 가능하도록 별도 처리
+                refreshItemRowDisplay(iRow)
 
                 -- 출처 라벨
                 local sourceLabel = getDisplaySourceLabel(entry)
@@ -2360,28 +2764,28 @@ function BISOverlay:RebuildContent()
                     iRow.slotLabel:Show()
                 end
 
+                local sourceType = getEntrySourceType(entry)
+                local sr, sg, sb = getSourceTypeColor(sourceType)
+                iRow.typeLabel:ClearAllPoints()
+                iRow.typeLabel:SetPoint("LEFT", iRow, "LEFT", COL_ICON + COL_NAME + COL_SLOT, 0)
+                iRow.typeLabel:SetWidth(COL_TYPE)
+                iRow.typeLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
+                iRow.typeLabel:SetTextColor(sr, sg, sb, 1)
+                iRow.typeLabel:SetText(localizeSourceType(sourceType))
+                iRow.typeLabel:Show()
+
                 -- note 배지
                 local noteTxt = noteBadge(entry._displayNoteKind, entry._displayNoteIndex)
                 if noteTxt and noteTxt ~= "" then
                     iRow.noteLabel:ClearAllPoints()
                     iRow.noteLabel:SetPoint("LEFT", iRow, "LEFT",
-                        COL_ICON + COL_NAME + COL_SLOT, 0)
+                        COL_ICON + COL_NAME + COL_SLOT + COL_TYPE, 0)
                     iRow.noteLabel:SetWidth(COL_NOTE)
                     iRow.noteLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
                     iRow.noteLabel:SetTextColor(1, 1, 1, 1)
                     iRow.noteLabel:SetText(noteTxt)
                     iRow.noteLabel:Show()
                 end
-
-                local sourceType = getEntrySourceType(entry)
-                local sr, sg, sb = getSourceTypeColor(sourceType)
-                iRow.typeLabel:ClearAllPoints()
-                iRow.typeLabel:SetPoint("LEFT", iRow, "LEFT", COL_ICON + COL_NAME + COL_SLOT + COL_NOTE, 0)
-                iRow.typeLabel:SetWidth(COL_TYPE)
-                iRow.typeLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
-                iRow.typeLabel:SetTextColor(sr, sg, sb, 1)
-                iRow.typeLabel:SetText(localizeSourceType(sourceType))
-                iRow.typeLabel:Show()
 
                 iRow:Show()
                 yOffset = yOffset + ROW_H + 1
@@ -2429,13 +2833,42 @@ function BISOverlay:Refresh()
     if not self.frame then return end
 
     self:EnsureTabs()
+    self:UpdateSourceFilterButtons()
+    self:UpdateSpecPickerButton()
 
-    self.frame:ClearAllPoints()
+    -- 앵커 대상이 바뀌었을 때만 ClearAllPoints/SetPoint 호출 (깜박임 방지)
     local ilFrame = ns.UI.ItemLevelOverlay and ns.UI.ItemLevelOverlay.frame
-    if ilFrame and ilFrame:IsShown() then
-        self.frame:SetPoint("TOPLEFT", ilFrame, "TOPRIGHT", 6, 0)
-    else
-        self.frame:SetPoint("TOPLEFT", pve, "TOPRIGHT", 10, 0)
+    local anchorTarget = (ilFrame and ilFrame:IsShown()) and ilFrame or pve
+    if self._lastAnchorTarget ~= anchorTarget then
+        self._lastAnchorTarget = anchorTarget
+        self.frame:ClearAllPoints()
+        if anchorTarget == ilFrame then
+            self.frame:SetPoint("TOPLEFT", ilFrame, "TOPRIGHT", 6, 0)
+        else
+            self.frame:SetPoint("TOPLEFT", pve, "TOPRIGHT", 10, 0)
+        end
+    end
+
+    local specID = self.selectedSpecID or getPlayerSpecID()
+    local renderSignature = getRenderSignature(specID)
+    if self.frame:IsShown() and self._lastRenderSignature == renderSignature then
+        if self.frame.titleText then
+            self.frame.titleText:SetText(ns.L("bis_overlay_title"))
+        end
+        if self.frame.hintText then
+            self.frame.hintText:SetText(ns.L("bis_overlay_hint"))
+        end
+        if self.frame.noticeText then
+            self.frame.noticeText:SetText(ns.L("bis_overlay_notice"))
+        end
+        if self.frame.avgLabel then
+            local avgIlvl = getAverageItemLevel()
+            self.frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
+        end
+        self:RefreshVisibleItemRows()
+        self:UpdateScrollThumb()
+        self.frame:Show()
+        return
     end
 
     local ok, err = pcall(function() self:RebuildContent() end)

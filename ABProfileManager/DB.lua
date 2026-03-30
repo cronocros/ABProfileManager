@@ -859,9 +859,20 @@ function DB:GetBISOverlaySettings()
     settings.bisOverlay = settings.bisOverlay or { enabled = false }
     settings.bisOverlay.sources = settings.bisOverlay.sources or {
         mythicplus = true,
-        raid = false,
-        crafted = false,
+        raid = true,
+        crafted = true,
     }
+    if settings.bisOverlay._allSourcesMigrationV1 ~= true then
+        local sources = settings.bisOverlay.sources
+        if sources
+            and sources.mythicplus == true
+            and sources.raid == false
+            and sources.crafted == false then
+            sources.raid = true
+            sources.crafted = true
+        end
+        settings.bisOverlay._allSourcesMigrationV1 = true
+    end
     return settings.bisOverlay
 end
 

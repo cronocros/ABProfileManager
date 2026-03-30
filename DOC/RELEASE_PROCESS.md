@@ -44,6 +44,7 @@ gh release create v<version> "dist/ABProfileManager-v<version>.zip" --title "v<v
 ## 문서 체크
 
 - 루트 `README.md`
+- `AGENTS.md`
 - `ABProfileManager/ADDON_INTRO.txt`
 - `DOC/ARCHITECTURE.md`
 - `DOC/HANDOFF.md`

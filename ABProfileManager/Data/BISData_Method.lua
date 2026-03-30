@@ -6,6 +6,50 @@ local _, ns = ...
 ns.Data = ns.Data or {}
 ns.Data.BISItems = ns.Data.BISItems or {}
 
+local legacyDungeonFallbacks = {}
+for specID, entries in pairs(ns.Data.BISItems) do
+    local copiedEntries = {}
+    for _, entry in ipairs(entries) do
+        local copy = {}
+        for key, value in pairs(entry) do
+            copy[key] = value
+        end
+        copiedEntries[#copiedEntries + 1] = copy
+    end
+    legacyDungeonFallbacks[specID] = copiedEntries
+end
+
+local function cloneEntry(entry)
+    local copy = {}
+    for key, value in pairs(entry or {}) do
+        copy[key] = value
+    end
+    copy.sourceType = copy.sourceType or "mythicplus"
+    copy.sourceLabel = copy.sourceLabel or copy.dungeon or copy.boss or nil
+    return copy
+end
+
+local function buildEntryKey(entry)
+    return string.format("%s:%s", tostring(entry and entry.slot or ""), tostring(entry and entry.itemID or 0))
+end
+
+local function nextFallbackNote(existingCount)
+    if existingCount <= 0 then
+        return "BIS"
+    end
+    if existingCount == 1 then
+        return "대체재"
+    end
+    if existingCount == 2 then
+        return "2순위"
+    end
+    return "3순위"
+end
+
+local function isBisNote(note)
+    return note == "BIS"
+end
+
 local overallOverrides = {
     [62] = {
         { dungeon = nil, boss = nil, itemID = 250060, slot = "머리", note = "BIS", sourceType = "raid", sourceLabel = "Lightblinded Vanguard" },
@@ -680,15 +724,53 @@ local overallOverrides = {
 }
 
 for specID, overallItems in pairs(overallOverrides) do
-    local sanitized = {}
-    for _, entry in ipairs(overallItems) do
-        local copy = {}
-        for key, value in pairs(entry) do
-            copy[key] = value
+    local merged = {}
+    local seenKeys = {}
+    local slotCounts = {}
+    local slotFallbackCounts = {}
+
+    local function addEntry(entry, legacyFallback)
+        local copy = cloneEntry(entry)
+        local entryKey = buildEntryKey(copy)
+        if seenKeys[entryKey] then
+            return
         end
-        copy.sourceType = copy.sourceType or "mythicplus"
-        copy.sourceLabel = copy.sourceLabel or copy.dungeon or copy.boss or nil
-        sanitized[#sanitized + 1] = copy
+
+        local slotName = copy.slot or "기타"
+        local existingCount = slotCounts[slotName] or 0
+        local fallbackCount = slotFallbackCounts[slotName] or 0
+
+        if legacyFallback and existingCount > 0 and isBisNote(copy.note) then
+            copy.note = nextFallbackNote(fallbackCount + 1)
+        elseif not copy.note or copy.note == "" then
+            copy.note = nextFallbackNote(existingCount)
+        end
+
+        merged[#merged + 1] = copy
+        seenKeys[entryKey] = true
+        slotCounts[slotName] = existingCount + 1
+        if not isBisNote(copy.note) then
+            slotFallbackCounts[slotName] = fallbackCount + 1
+        end
     end
-    ns.Data.BISItems[specID] = sanitized
+
+    for _, entry in ipairs(overallItems) do
+        addEntry(entry, false)
+    end
+
+    for _, entry in ipairs(legacyDungeonFallbacks[specID] or {}) do
+        addEntry(entry, true)
+    end
+
+    ns.Data.BISItems[specID] = merged
+end
+
+for specID, entries in pairs(legacyDungeonFallbacks) do
+    if not ns.Data.BISItems[specID] then
+        local copiedEntries = {}
+        for _, entry in ipairs(entries) do
+            copiedEntries[#copiedEntries + 1] = cloneEntry(entry)
+        end
+        ns.Data.BISItems[specID] = copiedEntries
+    end
 end

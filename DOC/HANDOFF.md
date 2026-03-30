@@ -1,10 +1,10 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.5.7 기반)`
+버전 기준: `main (v1.5.8 기반)`
 
 ## 현재 상태
 
-프로젝트는 실제 인게임 사용 기준으로 유지되는 WoW Retail 애드온이다. 문서 세트는 루트 `README.md`를 사용자 안내로, `DOC` 아래 문서를 기술/운영 문서로 정리한 상태다.
+프로젝트는 실제 인게임 사용 기준으로 유지되는 WoW Retail 애드온이다. 문서 세트는 루트 `README.md`를 사용자 안내로, `DOC` 아래 문서를 기술/운영 문서로 유지한다.
 
 현재 기준 핵심 기능:
 
@@ -16,155 +16,115 @@
 - 한밤(Midnight) 지도 오버레이
 - 지도 전용 탭과 typography 슬라이더
 - 와우 `설정 > 애드온` 경량 하위 페이지
-- 드랍템 레벨정보 오버레이 (쐐기/레이드/구렁 탭, 파티찾기창 연동, 4열 표 + 우측 `나의 문장` 패널)
-- 블리자드 기본 UI 창 이동 자유화 (BlizzardFrameManager)
-- 편의기능 탭 (UtilityPanel) 통합
-- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 던전 클릭 → 모험 안내서)
-- **[비활성]** 월드이벤트 오버레이 — Midnight 이벤트 스케줄 미확정, 자동감지 미동작
-- **[비활성]** 상점 도안/장난감 음영처리 (MerchantHelper) — Midnight spellID API 불일치
-- **[비활성]** 우편 수신자 히스토리 (MailHistory) — WoW taint 문제로 자동완성 미동작
+- 드랍템 레벨정보 오버레이
+- BIS 인던 드랍 정보 오버레이
+- 파티찾기 시즌 최고기록 아이콘 오버레이
+- 블리자드 기본 UI 창 이동 자유화
+- 편의기능 탭 통합
 
-## 사용자가 민감하게 보는 지점
+## 0. v1.5.8 QA 반영 메모
 
-1. 메인 UI 레이아웃은 크게 건드리지 말 것
-2. profession 카드와 overlay의 정렬, 여백, 폰트는 이미 여러 번 맞춘 상태라 큰 재배치는 피할 것
-3. typography 슬라이더는 전역 영향 범위가 넓으므로 font만 바꾸지 말고 overflow와 hitbox까지 같이 볼 것
-4. 지도 오버레이는 가독성과 위치를 우선하며, 내부 지도에 뜨지 않게 유지할 것
-5. 설정 패널과 지도 탭은 역할을 섞지 말 것
-6. 고스트 드래그와 전투 중 대기열 상호작용은 항상 보수적으로 다룰 것
+- `Data/BISData_Method.lua`는 이제 Method.gg current overall BIS를 먼저 넣고, 기존 `Data/BISData.lua` 수기 던전 데이터를 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합한다.
+- `UI/BISOverlay.lua`는 `GET_ITEM_INFO_RECEIVED`마다 전체 리스트를 다시 그리지 않고 `RefreshVisibleItemRows()`만 태운다. 깜빡임 회귀가 나오면 `scheduleRebuild()`, `RefreshVisibleItemRows()`, `Refresh()`의 render signature 분기를 먼저 본다.
+- BIS source filter 기본값은 `mythicplus / raid / crafted` 전부 on이고, 예전 `쐐기만 on` 저장값은 DB migration으로 1회 승격된다.
+- BIS 필터 버튼은 체크박스형 compact UI다. 드루이드 4특성처럼 헤더가 빡빡한 클래스 레이아웃 기준으로 맞춘 상태라 폭을 크게 다시 키우면 겹침이 쉽게 재발한다.
+- BIS 헤더에는 `참고용, 실제 템은 직접 확인` 안내가 들어간다.
+- BIS 아이템 hover 툴팁은 현재 의도적으로 비활성화했다. preview tooltip 회귀를 잡는 방향이 아니라, 현재는 hover 자체를 다시 켜지 않는 쪽이 안전하다.
+- BIS 랜딩은 드랍 출처 클릭 기준이다. 제작과 촉매 항목은 Encounter Journal 랜딩 대상이 아니다.
+- 던전명 direct 보정:
+  - `공결탑 제나스 = tier 13 / instanceID 1314`
+  - 사용자 인게임 출력에서 `tier 12 / instanceID 1316` 후보도 확인됨
+  - `알게타르 대학 = instanceID 2526`
+- `공결점 제나스`는 잘못된 한글명이었고, 현재 표시/랜딩 기준은 `공결탑 제나스`다.
+- `알게타르 아카데미`는 현재 한국어 표기상 `알게타르 대학` alias를 같이 쓴다.
+- `UI/MythicPlusRecordOverlay.lua`는 이제 `평점 + 던전명`만 표시한다. 시간 라인은 사용하지 않는다.
+- 긴 한글 던전명은 강제 줄바꿈 override를 사용한다.
 
-## 운영 메모
+## 1. 회귀 민감 메모
 
-### 0. v1.5.7 QA 반영 메모
+### BIS 인던 드랍 정보 오버레이
 
-- `Data/BISData_Method.lua`는 이제 기존 `Data/BISData.lua` 수기 쐐기 대체재를 뒤에서 병합하지 않는다. 현 시즌 BIS 오염이 다시 생기면 먼저 이 파일 하단에 base merge가 재도입됐는지 본다.
-- `UI/BISOverlay.lua`는 `sourceType`를 그대로 믿지 않고 `sourceLabel`을 다시 해석한다. 던전명이 섞인 `raid` 행은 현재 시즌 M+ 경로로 재분류하고, 영문 source label은 한글 또는 소스 타입명으로 정규화한다.
-- BIS 툴팁은 `mythicplus`/`raid`에서 Encounter Journal preview link가 시즌 범위 안에 들어올 때만 실제 tooltip을 쓰고, 그렇지 않으면 현재 시즌 요약만 보여준다. 저레벨 `44` tooltip 회귀가 나오면 `validatePreviewTooltip()`, `validateRaidPreviewTooltip()`, `showSeasonItemTooltip()`를 같이 본다.
-- BIS 클릭은 던전명 하드코딩보다 `itemID -> instanceID/encounterID` 검색을 우선한다. 레이드가 다시 최근 페이지로만 열리면 `getPreviewRaidLootContext()`와 `openEncounterJournalForEntry()`를 먼저 본다.
-- `UI/MythicPlusRecordOverlay.lua`는 더 이상 아웃박스를 쓰지 않고, 던전 아이콘 위에 `평점 / 최고기록 시간`만 텍스트로 덧씌운다.
+- `UI/BISOverlay.lua`는 폭/열 간격/스크롤 영역 민감도가 높다. 열 폭만 조정하지 말고 실제 스크롤 thumb와 마지막 열 가림 여부까지 같이 확인해야 한다.
+- `sourceType`를 그대로 믿지 않고 `sourceLabel`도 함께 다시 해석한다. 레이드 only인데 쐐기 행이 남는 회귀가 나면 이 재분류 경로를 먼저 본다.
+- Encounter Journal live scan은 Journal이 열려 있는 동안 보수적으로 제한한다. 다시 무리하게 live preview를 돌리면 모험 안내서 내용이 사라지거나 랜딩 직후 흔들리는 회귀가 난다.
+- 제작 / 촉매는 랜딩하지 않는다. 이 경로를 건드릴 때는 `hasRaidMetaLabel()`과 crafted/sourceType 분기를 같이 본다.
+- 현재 unresolved direct ID:
+  - `마이사라 동굴`
+  - `윈드러너 첨탑`
 
-### 1. v1.5.6 QA 반영 메모
+### 드랍템 레벨 오버레이
 
-- `Data/BISData_Method.lua`는 이제 Method.gg current overall BIS를 기준으로 raid/crafted/mythicplus `sourceType`와 `sourceLabel`을 함께 넣는다.
-- `UI/BISOverlay.lua`는 오래된 던전 BIS 아이템을 시즌 preview loot와 `itemID` 우선, `아이템명` fallback 순으로 다시 매칭한다. 구던전 툴팁 회귀가 나면 `getPreviewMythicPlusLootContext()`와 `showSeasonItemTooltip()`를 같이 본다.
-- BIS 리스트는 `아이템명 / 출처 / BIS 여부 / 타입` 컬럼 구조다. 제작/레이드/쐐기 필터가 비어 보이면 데이터 파일의 `sourceType` 누락부터 확인한다.
-- BIS 아이템 클릭은 `EncounterJournal_OpenJournal()` 뒤 delayed `lootTab.Click()`까지 태운다. 클릭 랜딩이 다시 summary 탭으로 빠지면 `openEncounterJournalForEntry()` delayed block을 우선 본다.
-- `UI/ItemLevelOverlay.lua` 우측 패널은 `나의 문장` + `나의 열쇠`이며, `나의 열쇠`는 `오늘의 풍요 4개 + 열쇠 파편 + 복원된 열쇠` 7줄 구조다.
-- `UI/MythicPlusRecordOverlay.lua`는 `ChallengesFrame.DungeonIcons` 위에 `단수 / 평점 / 최고기록 시간`을 직접 덧씌운다. 별도 프레임 이동형 오버레이가 아니므로 설정은 Utility 탭 체크박스만 갖는다.
+- `UI/ItemLevelOverlay.lua` 우측 패널은 `나의 문장` + `나의 열쇠` 2개 섹션이다.
+- 현재 `CREST_ID_BY_GRADE`는 다음 값 기준으로 문서/코드를 맞춰둔 상태다.
+  - `adv = 3383`
+  - `vet = 3341`
+  - `chmp = 3343`
+  - `hero = 3345`
+  - `myth = 3347`
+- `DELVE_RESTORED_KEY_CURRENCY_ID = 3028`
+- `열쇠 파편`은 여전히 안전한 itemID가 확정되지 않아 `-` fallback이 남아 있을 수 있다.
 
-### 1. v1.5.5 QA 반영 메모
+### 파티찾기 시즌 최고기록 오버레이
 
-- BIS 시즌 툴팁은 더 이상 오래된 던전의 고정 EJ ID를 우선 사용하지 않는다. `UI/BISOverlay.lua`는 던전명으로 Encounter Journal tier 후보를 최신 순으로 수집하고, 실제 시즌 preview loot link를 찾은 candidate를 우선 사용한다.
-- BIS 아이템 클릭 시 가능하면 `EncounterJournal_OpenJournal()`로 바로 해당 던전 loot 탭까지 연다. 이 경로를 다시 건드릴 때는 `openEncounterJournal()`과 `getPreviewMythicPlusLootContext()`를 같이 본다.
-- BIS 헤더에는 spec 드롭다운 외에 소스 필터(`mythicplus/raid/crafted`)가 추가됐다. 현재 repo 데이터는 실질적으로 던전 기반이므로, raid/crafted를 제대로 확장하려면 데이터 파일에 `sourceType/sourceLabel/sourceTier`를 같이 넣는 방향이 가장 안전하다.
-- 드랍템 레벨 오버레이 우측 패널은 `나의 문장` + `나의 열쇠` 2개 섹션으로 확장됐다. `복원된 열쇠`는 Blizzard Delves currency `3028`을 쓰고, `열쇠 파편`은 아직 안전한 itemID가 확정되지 않아 `-` fallback이 남아 있다.
-- Blizzard 기본 설정 전투메시지 블록은 settings-only 레이아웃으로 설명문을 숨기고 폭을 줄였다. 메인 설정창 레이아웃은 유지한다.
+- `UI/MythicPlusRecordOverlay.lua`는 이동형 프레임이 아니라 `ChallengesFrame.DungeonIcons` 위에 붙는다.
+- 현재 표시 규칙은 `평점 + 던전명`이다.
+- 줄바꿈 override 대상:
+  - `윈드러너 첨탑`
+  - `삼두정의 권좌`
+  - `공결탑 제나스`
+  - `사론의 구덩이`
+  - `마법학자의 정원`
+  - `마이사라 동굴`
+  - `알케타르 대학`
 
-### 1. v1.5.4 QA 반영 메모
+### BlizzardFrameManager / 지도
 
-- BIS 시즌 툴팁의 정확한 현재 시즌 스탯은 `itemID`만으로는 보장되지 않는다. `UI/BISOverlay.lua`는 Encounter Journal preview hyperlink를 얻을 수 있을 때만 그 링크로 툴팁을 열도록 정리했다.
-- Encounter Journal이 시즌 preview link를 주지 못하는 던전/아이템은 base item tooltip로 떨어질 수 있으므로, 이 경로를 다시 건드릴 때는 `getPreviewMythicPlusLootLink()`와 `showSeasonItemTooltip()`를 같이 본다.
-- 드랍템 레벨 오버레이와 BIS 오버레이는 폭/간격 민감도가 높다. 컬럼 상수만 바꿀 게 아니라 실제 한글 문자열 잘림과 탭/스크롤 영역까지 같이 봐야 한다.
+- `SetUserPlaced(true)`는 반드시 `uiPanel=true` 프레임에만 적용할 것. WorldMapFrame에 적용 시 오른쪽 퀘스트 목록 패널이 숨는다.
+- 지도 오버레이는 child/detail map에서 부모 라벨을 억지로 보여주지 않는 현재 기준을 유지하는 편이 안전하다.
 
-### 2. TomTom waypoint 지역 컨텍스트
+## 2. 운영 메모
 
-- profession 오버레이 `1회성` 우클릭 panel은 현재 정상 동작한다
-- 하란다르와 공허폭풍 일부 보물은 별도 지역 지도라서, 해당 지역에 들어가면 waypoint가 생성된다
+### profession / quest refresh
 
-운영 메모:
+- profession/quest refresh는 보호 경로를 거친다.
+- `QUEST_TURNED_IN`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `LOOT_CLOSED` 뒤 follow-up refresh가 들어간다.
+- 시체 채집/보물 채집 관련 제보가 오면 `Events.lua`, `UI/ProfessionKnowledgeOverlay.lua`, `UI/ProfessionPanel.lua`, `UI/QuestPanel.lua`를 먼저 본다.
 
-- TomTom 관련 제보가 오면 다른 지역에서 테스트한 것인지 먼저 확인한다
-- 추가 수정이 필요하면 `Modules/TomTomBridge.lua`와 `UI/ProfessionKnowledgeOverlay.lua`를 같이 본다
-- mapID 제한과 현재 플레이어 지도 lineage를 먼저 확인한다
+### 전투메시지 표출 방식
 
-### 3. profession refresh 안정화
+- 현재는 기본 WoW 전투메시지 on/off를 건드리지 않고 `위로 / 아래로 / 부채꼴` 표출 방식과 방향성 분산만 관리한다.
+- `_v2` CVar 우선, 없으면 구형 이름 fallback.
+- 모드 값은 `1=위로`, `2=아래로`, `3=부채꼴`.
 
-- profession/quest refresh는 이제 보호 경로를 거친다
-- 채집/루팅 직후 연속 이벤트는 짧게 합쳐 처리한다
-- `LOOT_CLOSED` 이후에도 profession refresh를 다시 확인해 1회성 완료 반영 누락 가능성을 줄였다
-- `QUEST_TURNED_IN`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `LOOT_CLOSED` 뒤 follow-up refresh를 추가로 태워 드랍/논문/1회성 누락 가능성을 더 줄였다
-- 최신 사용자 피드백 기준으로 구렁/던전 시체 약초채집 blank Lua 오류는 재현되지 않았다
+### TomTom waypoint 지역 컨텍스트
 
-운영 메모:
+- 하란다르와 공허폭풍 일부 보물은 별도 지역 지도라서, 해당 지역에 들어가야 waypoint가 정상 생성된다.
+- TomTom 관련 제보가 오면 지역 진입 여부와 map lineage를 먼저 확인한다.
 
-- 시체 채집/보물 채집 관련 제보가 오면 `Events.lua`, `UI/ProfessionKnowledgeOverlay.lua`, `UI/ProfessionPanel.lua`, `UI/QuestPanel.lua`를 먼저 본다
-- 오류 원문이 필요하면 `/abpm debug on`과 기본 Lua 오류 표시를 같이 켜고 본다
+## 3. 미완성 기능
 
-### 3. 전투메시지 표출 방식 관리
+### 스탯 오버레이 쐐기(M+) 우선순위 모드
 
-- Midnight 최신 클라이언트는 일부 전투메시지 옵션이 기본 UI에서 잘 보이지 않는다
-- 현재는 `CombatTextManager`가 `_v2` CVar를 우선 사용하고, 없으면 구형 이름으로 fallback 한다
-- 현재는 기본 WoW 전투메시지 on/off는 건드리지 않고, `위로 / 아래로 / 부채꼴` 표출 방식과 방향성 분산만 다시 적용한다
-- 사용자가 설정 탭에서 항목을 건드리면 해당 표출 방식을 저장하고 바로 적용한다
-- 로그인/월드 진입 직후에는 짧은 retry까지 함께 태워 적용 누락을 줄인다
-- `전투메시지 표출 방식 관리`를 끄면 이후 로그인/월드 진입 때 강제 재적용하지 않는다
+- `UI/ConfigPanel.lua`에서 `mythicPlusCheck:Hide()`로 UI 숨김 처리
+- 재개 시:
+  - `UI/StatsOverlay.lua`의 `BuildSnapshot` `isMplus` 분기
+  - `DB.lua`의 `IsStatsOverlayMythicPlusMode`
+  - `Data/StatPriorities.lua`의 `ns.Data.StatPrioritiesMythicPlus`
 
-운영 메모:
+### BIS 오버레이 direct EJ ID 미확인
 
-- 전투메시지 모드 관련 제보가 오면 `Modules/CombatTextManager.lua`, `UI/ConfigPanel.lua`, `DB.lua`, `Events.lua`를 같이 본다
-- 모드 값은 `1=위로`, `2=아래로`, `3=부채꼴` 기준으로 저장한다
+- 현재 추가 확인이 필요한 던전:
+  - `마이사라 동굴`
+  - `윈드러너 첨탑`
+- 예전처럼 `EJ_GetCurrentInstance()`를 쓰면 안 된다. 현 클라이언트에서는 제거된 API다.
+- 인게임 확인 시 `EJ_GetInstanceByIndex()` 기반 매크로나 직접 Encounter Journal 출력값을 기준으로 확인하는 편이 안전하다.
 
-### 4. 지도 좌표 보정
+### 경매장 현행 확장팩 필터 자동 선택
 
-- 정적 좌표 기반이라 패치 후 drift가 생길 수 있다
-- 보정은 `Data/SilvermoonMapData.lua`와 `UI/SilvermoonMapOverlay.lua`를 같이 수정한다
-- 외부 지역 포탈 좌표는 실버문보다 검증 신뢰도가 낮으므로 사용자 제보가 들어오면 우선 재확인한다
-- 지원하지 않는 child/detail map은 부모 지도 라벨을 억지로 따라오지 않게 숨기는 것이 현재 기준이다
+- 설정 탭 체크박스 UI 숨김 처리 유지
+- WoW 보안 시스템 taint 문제로 동작 불가
 
-### 5. BIS 인던 드랍 정보 오버레이
-
-- `UI/BISOverlay.lua` — 전 클래스/특성 BIS 아이템 목록, 스펙 탭, 부위별 섹션 렌더
-- `Data/BISData.lua` — 수기 specID 키, { dungeon, boss, itemID, slot, note } 배열
-- `Data/BISData_Method.lua` — Method.gg 기반 시즌 1 던전 BIS 보강 데이터, itemID 기준 병합
-- **아이템 행 클릭 → 모험 안내서 자동 열기**: `DUNGEON_EJ_IDS` 테이블에 instanceID 매핑
-  - returning 던전(마법학자의 정원/알게타르/삼두정/하늘탑/사론의 구덩이): instanceID 확인값
-  - Midnight 신규 던전(마이사라 동굴/공결점 제나스/윈드러너 첨탑): instanceID 미확인 → nil (EJ는 열리나 특정 던전으로 이동 안 됨)
-- **아이템 툴팁**: 베이스 아이템 툴팁 대신 한밤 시즌 1 던전 트랙 요약을 커스텀 표시
-- **마우스 휠 스케일**: 헤더 영역(스크롤프레임 밖) 스크롤 시 프레임 0.5~2.0배 스케일 조절
-- **잠금/접기**: 잠금은 UtilityPanel bisLockCheck, 접기는 오버레이 우상단 −/+ 버튼
-
-### 6. 드랍템 레벨 오버레이 — 4열 표 + 우측 `나의 문장` 패널
-
-- `UI/ItemLevelOverlay.lua` — `단 / 클리어보상 / 드랍문장 / 위대한 금고` 4열 레이아웃 + 우측 고정 문장 패널
-- 우측 패널에 현재 문장 보유량을 한 번만 통합 표시
-- 쐐기 헤더 옆에 챔피언 / 영웅 / 신화 최고 강화 레벨 요약 표시
-- `C_CurrencyInfo.GetCurrencyInfo(id)` 로 현재 문장 보유량 표시
-- 통화 ID는 `CREST_ID_BY_GRADE` 테이블로 관리
-- **통화 ID (Midnight 시즌 1)**:
-  - 영웅 새벽 문장 = 3345 (연구 확인)
-  - 나머지(모험가/노련가/챔피언/신화): 3342~3346 순서 추정 → 인게임 검증 필요
-  - ID가 틀리면 수치가 "?" 로 표시됨 — `CREST_ID_BY_GRADE` 테이블에서 수정
-
-### 7. BlizzardFrameManager (블리자드 창 이동)
-
-- `Modules/BlizzardFrameManager.lua` — MANAGED_FRAMES 목록의 각 프레임에 SetMovable + OnDragStop 저장 + OnShow 복원
-- `UpdateUIPanelPositions` hooksecurefunc로 탭 전환 시 깜박임 없이 복원
-- `lazyAddon` 패턴: ADDON_LOADED 이벤트 → 지연 로드 프레임(전문기술, 탤런트 등)에 적용
-- **주의**: `QuestFrame`(NPC 퀘스트 대화창)은 MANAGED_FRAMES에 넣지 말 것 — 퀘스트 목록창 소실 원인
-- **주의**: `SetUserPlaced(true)`는 반드시 `uiPanel=true` 프레임에만 적용할 것. WorldMapFrame 등 비UIPanel 프레임에 적용 시 WoW가 compact/customized 모드로 인식해 오른쪽 퀘스트 목록 패널을 숨김.
-
-### 8. GC 최적화 (SilvermoonMapOverlay / StatsOverlay / QuestPanel)
-
-- **SilvermoonMapOverlay**: `LayoutPoints` hot path가 호출당 0개 신규 테이블 생성으로 최적화됨
-  - 모듈 레벨 재사용 버퍼: `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool`, `_scoreRect`, `_bestRect`, `_candidateBuf[16]`
-  - `_mapInfoCache`: `C_Map.GetMapInfo` pcall 결과 세션 영구 캐시 (mapID → result)
-- **StatsOverlay**: `BuildSnapshotSignature` — 모듈 레벨 `_snapshotParts` 재사용 버퍼
-- **QuestPanel**: `RefreshInternal`에 `IsVisible()` 가드 추가
-- **Events.lua**: `QUEST_LOG_UPDATE` 0.15초 디바운스 추가
-
-### 9. MerchantHelper / MailHistory / WorldEventOverlay (비활성)
-
-- 세 모듈 모두 `Core.lua` 초기화 목록과 `Events.lua` 이벤트 등록에서 주석 처리
-- 파일은 유지 (미래 재활성화 대비)
-- 백그라운드 활동 없음: 이벤트 미등록, 프레임 미생성, OnUpdate 미실행
-- **재활성화 시**: `Core.lua` 주석 해제 + `Events.lua` 주석 해제
-
-### 10. 디버그 로그 버퍼 & `/abpm log` 명령
-
-- `Utils.lua` — `debugLogBuffer` (최대 200줄), `Utils.GetDebugLog()`, `Utils.ClearDebugLog()`
-- `/abpm log` 명령 → 팝업 EditBox에 로그 출력, 복사 가능
-
-## 중요한 파일
+## 4. 중요한 파일
 
 ### 핵심
 
@@ -174,108 +134,47 @@
 - `ABProfileManager/Locale.lua`
 - `ABProfileManager/Locale_Additions.lua`
 
-### 액션바
+### 드랍 / BIS / 시즌 최고기록
 
-- `ABProfileManager/Modules/ActionBarScanner.lua`
-- `ABProfileManager/Modules/ActionBarApplier.lua`
-- `ABProfileManager/Modules/ProfileManager.lua`
-- `ABProfileManager/Modules/TemplateSyncManager.lua`
-- `ABProfileManager/Modules/TemplateTransfer.lua`
-- `ABProfileManager/Modules/UndoManager.lua`
-- `ABProfileManager/Modules/GhostManager.lua`
+- `ABProfileManager/UI/ItemLevelOverlay.lua`
+- `ABProfileManager/UI/BISOverlay.lua`
+- `ABProfileManager/UI/MythicPlusRecordOverlay.lua`
+- `ABProfileManager/Data/ItemLevelTable.lua`
+- `ABProfileManager/Data/BISData.lua`
+- `ABProfileManager/Data/BISData_Method.lua`
 
-### profession / 지도
+### profession / 지도 / 설정
 
 - `ABProfileManager/Modules/ProfessionKnowledgeTracker.lua`
 - `ABProfileManager/Modules/TomTomBridge.lua`
 - `ABProfileManager/Modules/CombatTextManager.lua`
-- `ABProfileManager/Data/ProfessionKnowledge.lua`
-- `ABProfileManager/Data/ProfessionKnowledgeWaypoints.lua`
-- `ABProfileManager/Data/SilvermoonMapData.lua`
 - `ABProfileManager/UI/ProfessionPanel.lua`
 - `ABProfileManager/UI/ProfessionKnowledgeOverlay.lua`
 - `ABProfileManager/UI/SilvermoonMapOverlay.lua`
 - `ABProfileManager/UI/MapPanel.lua`
-- `ABProfileManager/UI/Typography.lua`
-
-### 퀘스트 / 스탯 / 설정 / 편의기능
-
-- `ABProfileManager/Modules/QuestManager.lua`
-- `ABProfileManager/UI/QuestPanel.lua`
-- `ABProfileManager/UI/StatsOverlay.lua`
 - `ABProfileManager/UI/ConfigPanel.lua`
-- `ABProfileManager/UI/AddonSettingsPages.lua`
 - `ABProfileManager/UI/UtilityPanel.lua`
 
-### 드랍/아이템레벨/BIS 오버레이
-
-- `ABProfileManager/Modules/BlizzardFrameManager.lua` — 블리자드 UI 창 이동/복원
-- `ABProfileManager/UI/ItemLevelOverlay.lua` — 드랍템 레벨 참조 오버레이 (파티찾기창 연동, 4열 표 + 우측 `나의 문장` 패널)
-- `ABProfileManager/Data/ItemLevelTable.lua` — 쐐기/레이드/구렁 ilvl 데이터 (Midnight 시즌 1)
-- `ABProfileManager/UI/BISOverlay.lua` — BIS 인던 드랍 정보 오버레이 (전 클래스/특성)
-- `ABProfileManager/Data/BISData.lua` — specID 키 BIS 아이템 목록
-- `ABProfileManager/Data/BISData_Method.lua` — Method.gg 기반 BIS 보강 데이터
-
-### 비활성 모듈 (코드 유지, 초기화 비활성)
-
-- `ABProfileManager/Modules/MerchantHelper.lua` — 상점 도안/장난감 음영 (Midnight API 불일치)
-- `ABProfileManager/Modules/MailHistory.lua` — 우편 수신자 히스토리 (WoW taint)
-- `ABProfileManager/UI/WorldEventOverlay.lua` — 월드이벤트 오버레이 (스케줄 미확정)
-- `ABProfileManager/Data/WorldEventSchedule.lua` — Midnight 이벤트 스케줄 데이터
-
-## 검증 습관
+## 5. 검증 습관
 
 - 먼저 `luaparser` 전체 파싱
 - 그 다음 `git diff --check`
 - 릴리스 작업이면 그 다음 패키징
-- 마지막에 푸시, 필요할 때만 릴리스
+- 마지막에 푸시, 필요 시 GitHub release
 
 인게임 회귀 포인트:
 
 - profession 카드 폭과 체크박스 레이아웃
 - profession overlay 상세/요약/최소
 - 전투메시지 설정 체크박스와 `위로 / 아래로 / 부채꼴` 버튼 선택 상태
-- 지도 오버레이 외부 월드맵만 표시되는지
-- 퀘스트 ID 링크 클릭
-- 스탯 overlay drag/hitbox
-- BIS 오버레이 아이템 행 클릭 → 모험 안내서 열림 확인
-- 드랍템 레벨 오버레이 우측 `나의 문장` 패널의 수치/"?" 여부 확인
+- 지도 오버레이가 외부 월드맵에서만 표시되는지
+- BIS 오버레이 드랍 출처 클릭 → 모험 안내서 loot 탭 랜딩
+- BIS 필터 on/off와 열 가림 여부
+- 드랍템 레벨 오버레이 우측 `나의 문장` / `나의 열쇠` 패널 수치 확인
+- 시즌 최고기록 오버레이의 `평점 / 던전명` 위치와 줄바꿈 확인
 
-## 미완성 기능 — 추후 작업 예정
+## 6. 다음 작업자에게
 
-### 스탯 오버레이 쐐기(M+) 우선순위 모드
-
-- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.5). 기능 자체는 DB/Locale/ConfigPanel에 구현이 남아 있음.
-- **이유**: 인게임 테스트에서 동작 불안정 확인. 탱커 6종 M+ 데이터는 정상이나 UI 토글이 일관되게 반응하지 않는 경우 발생.
-- **재개 시 작업 위치**: `UI/ConfigPanel.lua` (`mythicPlusCheck:Hide()` 제거 후 다시 노출), `UI/StatsOverlay.lua` (`BuildSnapshot`의 `isMplus` 분기), `DB.lua` (`IsStatsOverlayMythicPlusMode`), `Data/StatPriorities.lua` (`ns.Data.StatPrioritiesMythicPlus`).
-
-### BIS 오버레이 Midnight 신규 던전 EJ instanceID
-
-- 마이사라 동굴 / 공결점 제나스 / 윈드러너 첨탑의 EJ instanceID 미확인
-- `UI/BISOverlay.lua` 상단 `DUNGEON_EJ_IDS` 테이블에 nil 로 마킹됨
-- 인게임에서 `/dump EJ_GetCurrentInstance()` 또는 Wowhead에서 확인 후 채워 넣으면 됨
-
-### 드랍 문장 통화 ID 검증
-
-- `UI/ItemLevelOverlay.lua`의 `CREST_ID_BY_GRADE` 테이블
-- 영웅 새벽 문장(3345) 외 나머지 4종은 연속값 추정 → 인게임 `/dump C_CurrencyInfo.GetCurrencyInfo(3342)` 등으로 검증 필요
-
-### 경매장 현행 확장팩 필터 자동 선택
-
-- **상태**: 설정 탭 체크박스 UI 숨김 처리 (v1.4.6). WoW 보안 시스템 taint 문제로 동작 불가.
-
-## 문서 위치
-
-- 루트 사용자 문서: `README.md`
-- 배포용 소개 텍스트: `ABProfileManager/ADDON_INTRO.txt`
-- 기술 문서 색인: `DOC/README.md`
-- 아키텍처: `DOC/ARCHITECTURE.md`
-- 보안 검토: `DOC/SECURITY_REVIEW.md`
-- 배포 절차: `DOC/RELEASE_PROCESS.md`
-
-## 다음 작업자에게
-
-- TomTom waypoint는 현재 동작 설명까지 정리된 상태이므로, 회귀 제보가 오면 먼저 지역 진입 여부와 map lineage부터 확인하는 것이 맞다.
 - UI 퍼블리싱은 이미 사용자가 맞춘 상태를 선호하므로, overflow 보정이나 안전장치 위주로만 접근하는 편이 안전하다.
-- BIS 데이터는 수기 데이터와 Method.gg 보강 데이터를 함께 사용하므로, 시즌 변경 시 source 던전/slot/itemID를 같이 재검증해야 한다.
-- 문장 컬럼의 통화 ID는 추정값 포함이므로 인게임에서 "?" 표시 시 통화 ID를 수정해야 한다.
+- BIS 데이터는 Method 시즌 데이터와 수기 fallback을 함께 쓰므로, 시즌 변경 시 source 던전 / slot / itemID / sourceType을 같이 재검증해야 한다.
+- 일부 신규 던전 direct ID가 비어 있으므로, 사용자 제보가 오면 먼저 인게임 Encounter Journal 이름과 instanceID부터 확인하는 게 맞다.

@@ -68,8 +68,8 @@ ns.Data.Defaults = {
                 locked  = false,
                 sources = {
                     mythicplus = true,
-                    raid = false,
-                    crafted = false,
+                    raid = true,
+                    crafted = true,
                 },
             },
             mythicPlusRecordOverlay = {

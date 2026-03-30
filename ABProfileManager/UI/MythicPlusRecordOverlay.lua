@@ -6,8 +6,60 @@ ns.UI.MythicPlusRecordOverlay = MythicPlusRecordOverlay
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FONT_FLAGS = "OUTLINE"
 
-local function getScoreColor(level)
+local function unpackColor(color)
+    if not color then
+        return nil
+    end
+    if type(color.GetRGB) == "function" then
+        return color:GetRGB()
+    end
+    if color.r and color.g and color.b then
+        return color.r, color.g, color.b
+    end
+    return nil
+end
+
+local function getScoreColor(score, level)
+    score = tonumber(score) or 0
     level = tonumber(level) or 0
+
+    if C_ChallengeMode then
+        local color
+
+        if score > 0 and type(C_ChallengeMode.GetSpecificDungeonOverallScoreRarityColor) == "function" then
+            local ok, result = pcall(C_ChallengeMode.GetSpecificDungeonOverallScoreRarityColor, score)
+            if ok and result then
+                color = result
+            end
+        end
+
+        if (not color) and score > 0 and type(C_ChallengeMode.GetSpecificDungeonScoreRarityColor) == "function" then
+            local ok, result = pcall(C_ChallengeMode.GetSpecificDungeonScoreRarityColor, score)
+            if ok and result then
+                color = result
+            end
+        end
+
+        if (not color) and score > 0 and type(C_ChallengeMode.GetDungeonScoreRarityColor) == "function" then
+            local ok, result = pcall(C_ChallengeMode.GetDungeonScoreRarityColor, score)
+            if ok and result then
+                color = result
+            end
+        end
+
+        if (not color) and level > 0 and type(C_ChallengeMode.GetKeystoneLevelRarityColor) == "function" then
+            local ok, result = pcall(C_ChallengeMode.GetKeystoneLevelRarityColor, level)
+            if ok and result then
+                color = result
+            end
+        end
+
+        local r, g, b = unpackColor(color)
+        if r and g and b then
+            return r, g, b
+        end
+    end
+
     if level >= 10 then
         return 0.78, 0.45, 1.00
     end
@@ -63,6 +115,24 @@ local function getBestDuration(mapID)
     return bestDuration
 end
 
+local DUNGEON_NAME_OVERRIDES = {
+    ["윈드러너첨탑"] = "윈드러너\n첨탑",
+    ["삼두정의권좌"] = "삼두정의\n권좌",
+    ["공결탑제나스"] = "공결탑\n제나스",
+    ["사론의구덩이"] = "사론의\n구덩이",
+    ["마법학자의정원"] = "마법학자의\n정원",
+    ["마이사라동굴"] = "마이사라\n동굴",
+    ["알게타르대학"] = "알케타르\n대학",
+}
+
+local function formatDungeonDisplayName(name)
+    local compact = tostring(name or ""):gsub("%s+", "")
+    if compact == "" then
+        return ""
+    end
+    return DUNGEON_NAME_OVERRIDES[compact] or compact:gsub("/", "\n")
+end
+
 local function ensureDisplay(iconFrame)
     if iconFrame.ABPMRecordOverlay then
         iconFrame.ABPMRecordOverlay:SetFrameLevel((iconFrame:GetFrameLevel() or 1) + 8)
@@ -72,13 +142,13 @@ local function ensureDisplay(iconFrame)
     local holder = CreateFrame("Frame", nil, iconFrame)
     holder:SetFrameStrata(iconFrame:GetFrameStrata())
     holder:SetFrameLevel((iconFrame:GetFrameLevel() or 1) + 8)
-    holder:SetPoint("BOTTOMLEFT", iconFrame, "BOTTOMLEFT", 2, 4)
-    holder:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", -2, 4)
-    holder:SetHeight(26)
+    holder:SetPoint("BOTTOMLEFT", iconFrame, "BOTTOMLEFT", 2, 1)
+    holder:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", -2, 1)
+    holder:SetHeight(44)
 
     holder.levelScore = holder:CreateFontString(nil, "OVERLAY")
-    holder.levelScore:SetPoint("BOTTOM", holder, "BOTTOM", 0, 11)
-    holder.levelScore:SetFont(FONT_PATH, 13, FONT_FLAGS)
+    holder.levelScore:SetPoint("BOTTOM", holder, "BOTTOM", 0, 24)
+    holder.levelScore:SetFont(FONT_PATH, 14, FONT_FLAGS)
     holder.levelScore:SetTextColor(1.00, 1.00, 1.00, 1)
     if holder.levelScore.SetShadowOffset then
         holder.levelScore:SetShadowOffset(1, -1)
@@ -92,6 +162,22 @@ local function ensureDisplay(iconFrame)
     if holder.timeText.SetShadowOffset then
         holder.timeText:SetShadowOffset(1, -1)
         holder.timeText:SetShadowColor(0, 0, 0, 0.95)
+    end
+    holder.timeText:Hide()
+
+    holder.dungeonName = holder:CreateFontString(nil, "OVERLAY")
+    holder.dungeonName:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", -2, 0)
+    holder.dungeonName:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 2, 0)
+    holder.dungeonName:SetFont(FONT_PATH, 11, FONT_FLAGS)
+    holder.dungeonName:SetJustifyH("CENTER")
+    holder.dungeonName:SetWordWrap(true)
+    if holder.dungeonName.SetSpacing then
+        holder.dungeonName:SetSpacing(0)
+    end
+    holder.dungeonName:SetTextColor(0.92, 0.96, 1.00, 1)
+    if holder.dungeonName.SetShadowOffset then
+        holder.dungeonName:SetShadowOffset(1, -1)
+        holder.dungeonName:SetShadowColor(0, 0, 0, 0.95)
     end
 
     iconFrame.ABPMRecordOverlay = holder
@@ -112,14 +198,27 @@ function MythicPlusRecordOverlay:RefreshIcon(icon)
     end
 
     local bestInfo = getSeasonBestInfo(icon.mapID)
-    local bestDuration = getBestDuration(icon.mapID)
     overlay = ensureDisplay(icon)
     if bestInfo and (bestInfo.level or 0) > 0 then
-        local score = math.floor((bestInfo.dungeonScore or 0) + 0.5)
-        local r, g, b = getScoreColor(bestInfo.level)
+        local mapName
+        if C_ChallengeMode and type(C_ChallengeMode.GetMapUIInfo) == "function" then
+            local ok, resolvedName = pcall(C_ChallengeMode.GetMapUIInfo, icon.mapID)
+            if ok and type(resolvedName) == "string" and resolvedName ~= "" then
+                mapName = formatDungeonDisplayName(resolvedName)
+            end
+        end
+        local rawScore = tonumber(bestInfo.dungeonScore) or 0
+        local score = math.floor(rawScore + 0.5)
+        local r, g, b = getScoreColor(rawScore, bestInfo.level)
+        overlay.dungeonName:SetText(mapName or "")
+        if mapName and mapName ~= "" then
+            overlay.dungeonName:Show()
+        else
+            overlay.dungeonName:Hide()
+        end
         overlay.levelScore:SetText(tostring(score))
         overlay.levelScore:SetTextColor(r, g, b, 1)
-        overlay.timeText:SetText(formatDuration(bestDuration or bestInfo.durationSec))
+        overlay.timeText:Hide()
         overlay:Show()
     else
         overlay:Hide()

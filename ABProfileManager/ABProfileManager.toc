@@ -1,8 +1,8 @@
 ## Interface: 120001
 ## Title: ABProfileManager
-## Notes: Action-bar template manager with compare, undo, import/export, and quest cleanup for Retail.
+## Notes: Action-bar, profession, BIS/item-level, and Mythic+ record overlay manager for Retail.
 ## Author: 밍밍이와코코
-## Version: 1.5.7
+## Version: 1.5.8
 ## IconTexture: Interface\Icons\INV_Inscription_ScrollOfWisdom_01
 ## SavedVariables: ABPM_DB
 

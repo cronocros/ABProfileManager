@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.5.7 기반)`
+버전 기준: `main (v1.5.8 기반)`
 
 ## 목적
 
@@ -14,9 +14,9 @@
 - 캐릭터 스탯 오버레이
 - 한밤(Midnight) 지도 오버레이
 - 전체 typography 슬라이더
-- 드랍템 레벨 참조 오버레이 (쐐기/레이드/구렁/기타, 4열 표 + 우측 `나의 문장` / `나의 열쇠` 패널)
-- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 부위별 정렬, 모험 안내서 loot 탭 연동, 쐐기/레이드/제작 필터, 소스 타입 컬럼)
-- 파티찾기 시즌 최고기록 아이콘 오버레이 (`ChallengesFrame` 아이콘 위 `평점 / 시간`)
+- 드랍템 레벨 참조 오버레이
+- BIS 인던 드랍 정보 오버레이
+- 파티찾기 시즌 최고기록 아이콘 오버레이
 
 핵심 원칙:
 
@@ -65,74 +65,55 @@
 - `Modules/GhostManager.lua`
   - 누락 액션 고스트 표시
 
-### 퀘스트
-
-- `Modules/QuestManager.lua`
-  - 안전 정리 대상 계산
-  - 전체 포기 대상 계산
-  - 퀘스트 ID 링크 포맷
-
-### 전문기술
+### profession / 지도 / 설정
 
 - `Modules/ProfessionKnowledgeTracker.lua`
   - profession별 획득원 집계
   - 완료 퀘스트/숨은 퀘스트 기반 추적
   - 카드/오버레이/툴팁 데이터 제공
+- `Modules/CombatTextManager.lua`
+  - Midnight 최신 전투메시지 `_v2` CVar와 구형 이름 fallback을 함께 관리
+- `Modules/TomTomBridge.lua`
+  - TomTom 선택적 연동
+  - 하란다르/공허폭풍 일부 1회성 보물은 해당 지역 진입 후 waypoint 생성
 - `UI/ProfessionKnowledgeOverlay.lua`
   - 상단 요약은 문장형 안내와 정확한 주간 리셋 잔여 시간 표시를 사용
   - tooltip은 범례, 완료/미완료 색상, source별 요약 규칙, TomTom 안내를 함께 노출
-- `Modules/CombatTextManager.lua`
-  - Midnight 최신 전투메시지 `_v2` CVar와 구형 이름 fallback을 함께 관리
-  - 현재 클라이언트 값을 읽어 초기 스냅샷을 만들고, 사용자가 켠 표출 방식만 다시 적용
 - `UI/ConfigPanel.lua`
-  - 일반 설정, typography 슬라이더, 개요, 전투메시지 표출 방식 설정을 담당
+  - 일반 설정, typography 슬라이더, 개요, 전투메시지 표출 방식 설정
 - `UI/MapPanel.lua`
   - 지도 오버레이 전용 탭
   - 지도 글자 크기 슬라이더와 카테고리 필터 제공
-- `Modules/TomTomBridge.lua`
-  - TomTom 선택적 연동
-  - 하란다르/공허폭풍 일부 1회성 보물은 해당 지역 진입 후 waypoint 생성 안내를 포함
 
-### 드랍/아이템 레벨 오버레이
+### 드랍 / BIS / 시즌 최고기록
 
 - `UI/ItemLevelOverlay.lua`
   - 파티찾기(PVEFrame) 열릴 때 옆에 표시
   - 탭: 개요 / 쐐기 / 구렁 / 레이드 / 기타
-  - 각 행: 단/난이도 | 클리어보상(ilvl+등급) | 드랍문장 | 위대한 금고
-  - 우측 고정 패널에 `CREST_ID_BY_GRADE` 기반 현재 문장 보유량 통합 표시
-  - `나의 열쇠` 패널에 오늘의 풍요 4개 / 열쇠 파편 / 복원된 열쇠 표시
-  - 쐐기 섹션 헤더에 챔피언/영웅/신화 최고 강화 레벨 요약 표시
-  - 마우스 휠 스케일 조절
-- `Data/ItemLevelTable.lua`
-  - 쐐기(endOfDungeon, heroic, mythic0), 레이드(normal/heroic/mythic), 구렁(12단계), 제작, PvP 데이터
-  - Midnight 시즌 1 실측 기준
-
-### BIS 인던 드랍 정보 오버레이
-
+  - 각 행: `단/난이도 | 클리어보상 | 드랍문장 | 위대한 금고`
+  - 우측 고정 패널에 현재 문장 보유량과 `오늘의 풍요 4개 / 열쇠 파편 / 복원된 열쇠` 표시
+  - `CREST_ID_BY_GRADE = { adv=3383, vet=3341, chmp=3343, hero=3345, myth=3347 }`
+  - `DELVE_RESTORED_KEY_CURRENCY_ID = 3028`
 - `UI/BISOverlay.lua`
-  - 플레이어 클래스의 전 특성 탭 (spec icon 탭 클릭으로 전환)
-  - 부위별 섹션 아래 아이템 목록 렌더
-  - 아이템 아이콘 + 이름 + 출처 + BIS/대체/3순 배지 + 타입(쐐기/레이드/제작)
-  - 아이템 행 클릭 → `openEncounterJournal()` → 모험 안내서 자동 열기
-  - Encounter Journal preview loot는 `itemID` 우선, `아이템명` fallback 순으로 다시 매칭
-  - 아이템 툴팁: 한밤 시즌 1 preview link + 던전 트랙 요약(`클리어 보상` / `위대한 금고`)을 커스텀 표시
-  - 헤더 영역 마우스 휠: 스케일 0.5~2.0x 조절
-  - 잠금/접기: UtilityPanel bisLockCheck / 오버레이 우상단 −/+ 버튼
+  - 현재 캐릭터 클래스의 전 특성 탭과 부위별 BIS 리스트 렌더
+  - `아이템명 / 드랍 출처 / 유형 / BIS 여부` 열 구성
+  - 체크박스형 `쐐기 / 레이드 / 제작` 필터
+  - 헤더에 `참고용, 실제 템은 직접 확인` 안내 문구 노출
+  - 드랍 출처 클릭 시 가능한 경우 Encounter Journal loot 탭 랜딩
+  - 제작 / 촉매 항목은 Encounter Journal 랜딩 대상에서 제외
+  - 행 hover 툴팁은 현재 비활성화
+  - 헤더 마우스 휠로 0.5~2.0배 스케일 조절
 - `UI/MythicPlusRecordOverlay.lua`
-  - `ChallengesFrame.DungeonIcons` 위에 `단수 / 평점 / 최고기록 시간` 오버레이
+  - `ChallengesFrame.DungeonIcons` 위에 `평점 + 던전명` 표시
+  - 시간 라인은 사용하지 않음
+  - 긴 한글 던전명은 별도 줄바꿈 규칙 적용
   - Utility 탭 체크박스로 on/off
-- `Data/BISData.lua`
-  - 키: specID (전사 71~73, 성기사 65/66/70, ... 용기사 1467/1468/1473)
-  - 값: `{ dungeon, boss, itemID, slot, note }` 배열
-  - note: `"BIS"` / `"대체재"` / `"2순위"`
-- `Data/BISData_Method.lua`
-  - Method.gg Midnight Season 1 가이드 표에서 추출한 던전 BIS 보강 데이터
-  - 기존 수기 BIS 데이터에 itemID 기준으로 병합
 
 ## 데이터 계층
 
 - `Data/Defaults.lua`
   - SavedVariables 기본값
+  - BIS source filter 기본값은 `mythicplus/raid/crafted` 전부 on
 - `Data/ProfessionKnowledge.lua`
   - profession별 획득원 정의
 - `Data/ProfessionKnowledgeWaypoints.lua`
@@ -144,7 +125,11 @@
 - `Data/ItemLevelTable.lua`
   - 컨텐츠별 드랍 아이템 레벨 테이블
 - `Data/BISData.lua`
-  - 전 클래스/특성 BIS 아이템 목록 (M+ 신화+ 기준)
+  - 전 클래스/특성 수기 BIS / 대체재 데이터
+- `Data/BISData_Method.lua`
+  - Method.gg 현 시즌 overall BIS 데이터를 우선 적용
+  - 기존 수기 던전 데이터는 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합
+  - slot + itemID 중복은 제거
 
 ## UI 계층
 
@@ -176,16 +161,10 @@
   - 드랍 아이템 레벨 참조 오버레이
 - `UI/BISOverlay.lua`
   - BIS 인던 드랍 정보 오버레이
+- `UI/MythicPlusRecordOverlay.lua`
+  - 시즌 최고기록 아이콘 오버레이
 - `UI/UtilityPanel.lua`
-  - 편의기능 탭 (오버레이 on/off, 잠금, BlizzardFrameManager 설정)
-- `UI/TransferDialog.lua`
-  - import/export 대화상자
-- `UI/ConfirmDialogs.lua`
-  - 확인 모달
-- `UI/MinimapButton.lua`
-  - 미니맵 버튼
-- `UI/Widgets.lua`
-  - 공용 위젯
+  - 편의기능 탭
 
 ## 저장 구조
 
@@ -195,8 +174,8 @@
   - 언어
   - 확인창
   - 디버그
-  - 오버레이 표시 여부 (statsOverlay, professionKnowledgeOverlay, silvermoonMapOverlay, itemLevelOverlay, bisOverlay)
-  - bisOverlay.locked — BIS 오버레이 드래그 잠금
+  - 오버레이 표시 여부
+  - BIS source filter / 잠금 상태
   - typography 도메인별 오프셋
   - 지도 라벨 카테고리 필터
   - 마우스 이동 자동 복구
@@ -208,6 +187,7 @@
   - profession 오버레이 위치/모드/scale
   - stats 오버레이 위치/scale
   - itemLevelOverlay 위치/scale/currentTab/collapsed/anchorMode
+  - bisOverlay 위치/scale/collapsed
 
 ### 캐릭터별
 
@@ -224,7 +204,7 @@
 2. DB 초기화
 3. 모듈 초기화
 4. `PLAYER_LOGIN`
-5. profession/stats UI refresh
+5. profession/stats/UI refresh
 6. 필요 시 `autoInteract` 복구
 7. 필요 시 전투메시지 표출 방식 재적용
 
@@ -242,66 +222,62 @@
 
 1. 현재 지도 mapID 확인
 2. 내부 인스턴스/마이크로맵 차단
-3. exact map과 제한된 alias만 조회하고, 지원하지 않는 child/detail map fallback은 차단
+3. exact map과 제한된 alias만 조회
 4. 라벨 줄바꿈/오프셋/카테고리 필터/지도 글자 크기 반영
 5. WorldMap에 텍스트 오버레이 렌더
 
 ### BIS 오버레이
 
-1. `EnsureFrame()` — BackdropTemplate 프레임, 스크롤, 스펙 탭 생성
-2. `EnsureTabs()` — 현재 캐릭터 클래스의 specID별 탭 아이콘 생성
-3. `RebuildContent()` — 선택된 specID의 BISData를 부위→아이템 순서로 렌더
-4. `GET_ITEM_INFO_RECEIVED` → 0.3초 디바운스 `scheduleRebuild()` → `_isItemLoadRebuild=true` → 스크롤 위치 유지 rebuild
-5. 아이템 행 클릭 → `openEncounterJournal(dungeonName)` → EJ 열기
+1. `EnsureFrame()`으로 프레임, 스크롤, spec/filter UI 생성
+2. `EnsureTabs()`로 현재 클래스 spec icon 탭 생성
+3. `RebuildContent()`로 선택된 specID의 BISData를 부위→아이템 순서로 렌더
+4. `GET_ITEM_INFO_RECEIVED`는 전체 rebuild 대신 디바운스된 `RefreshVisibleItemRows()`만 실행
+5. `Refresh()`는 anchor target이나 render signature가 바뀐 경우에만 full rebuild 수행
+6. 드랍 출처 클릭 시 `openEncounterJournalForEntry()`로 Encounter Journal loot 탭 랜딩 시도
+
+### 시즌 최고기록 오버레이
+
+1. `ChallengesFrame.DungeonIcons` 아이콘 프레임 재사용
+2. `ensureDisplay()`로 아이콘별 overlay fontstring 생성
+3. `RefreshIcon()`에서 점수와 던전명을 계산해 하단 정렬
+4. `formatDungeonDisplayName()`에서 긴 한글 던전명 강제 줄바꿈
 
 ## 성능 및 GC 최적화 패턴
 
-### SilvermoonMapOverlay — LayoutPoints hot path (250ms OnUpdate 드라이버)
+### SilvermoonMapOverlay
 
-`LayoutPoints`는 250ms 주기로 반복 호출되므로 테이블 할당을 최소화한다.
+- `LayoutPoints`는 250ms 주기로 반복 호출되므로 모듈 레벨 재사용 버퍼를 유지한다.
+- `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool`, `_candidateBuf`, `_mapInfoCache` 등을 함수 내부로 옮기면 GC spike가 재발한다.
 
-- **모듈 레벨 재사용 버퍼** (파일 최상단 선언):
-  - `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool` — 포인트/엔트리/배치 결과 재사용
-  - `_scoreRect`, `_bestRect` — 충돌 감지 rect 재사용
-  - `_candidateBuf[16]` — 후보 오프셋 16슬롯 사전 할당
-  - `_mapInfoCache[mapID]` — `C_Map.GetMapInfo` pcall 결과 세션 영구 캐시
-- `fillCandidateOffsets(_candidateBuf, n, ...)` — `_candidateBuf`를 in-place로 채우고 신규 테이블 0개 생성
-- 베스트 후보 저장: `candidate` 레퍼런스가 아닌 `bestOffsetX/Y` 값으로 저장 (다음 호출 시 덮어쓰기 방지)
-- 결과: 호출당 신규 테이블 0개 → GC spike 제거
+### StatsOverlay
 
-### StatsOverlay — BuildSnapshotSignature
+- `BuildSnapshotSignature`는 모듈 레벨 `_snapshotParts` 재사용 버퍼를 사용한다.
 
-- 모듈 레벨 `_snapshotParts = {}` 재사용 버퍼
-- 호출마다 `wipe(_snapshotParts)` 후 `..` 연산자로 문자열 연결
-- 기존 패턴(내부 익명 테이블 + `table.concat`) 대비 GC 부담 감소
+### BISOverlay
 
-### QuestPanel — QUEST_LOG_UPDATE 디바운스
+- item info 지연 수신 시 전체 컨텐츠를 다시 만들지 않는다.
+- visible row만 갱신하고, anchor target이 바뀌지 않으면 `ClearAllPoints/SetPoint`를 스킵한다.
+- Encounter Journal live scan은 Journal이 열린 상태나 직후에는 보수적으로 제한한다.
 
-`QUEST_LOG_UPDATE`는 전투 중/퀘스트 진행 중 초당 수백 회 발화 가능하다.
+### QuestPanel
 
-- `Events.lua`: `refreshQuestPanel()` — 0.15초 내 중복 호출을 1회로 합산
-- `QuestPanel.RefreshInternal`: `IsVisible()` 가드 — 탭이 보이지 않으면 `QuestManager:Scan` 실행 건너뜀
-
-### BlizzardFrameManager — SetUserPlaced 주의 사항
-
-- `SetUserPlaced(true)`는 `uiPanel=true` 프레임(CharacterFrame, QuestLogFrame 등)에만 적용한다.
-- WorldMapFrame에 `SetUserPlaced(true)` 적용 시 WoW가 compact/customized 모드로 전환 → 오른쪽 퀘스트 목록 패널 숨겨짐.
-- `UpdateUIPanelPositions` 훅은 `uiPanel=true` 프레임만 대상으로 해야 한다. 전체 프레임에 적용 시 WorldMapFrame에 반복 `ClearAllPoints`가 발생 → 지도 퀘스트 목록 주기적 소실.
+- `QUEST_LOG_UPDATE`는 `Events.lua`에서 0.15초 디바운스
+- `QuestPanel.RefreshInternal`은 `IsVisible()` 가드 사용
 
 ## 안정성 메모
 
 - profession/TomTom 연동은 메인 기능에 영향을 주지 않도록 선택 기능으로 유지한다.
-- profession/quest refresh는 내부 예외가 나도 전체 UI를 깨뜨리지 않도록 보수적으로 처리한다.
-- 지도 오버레이는 refresh 중 예외가 나도 메인 UI를 깨뜨리지 않게 방어한다.
 - 지도 오버레이는 지원하지 않는 child/detail map에서 부모 지도 라벨을 억지로 보여주지 않는다.
 - 와우 `설정 > 애드온`은 메인 창 재사용이 아니라 경량 패널만 사용한다.
 - 대규모 UI 리디자인보다 현재 배치 유지와 overflow 방지 보정을 우선한다.
-- BIS/ItemLevelOverlay는 `pcall` 보호 하에 실행되어 오류 시 메인 UI 영향 없음.
+- BIS / ItemLevel / MythicPlusRecord 오버레이는 오류가 나도 메인 UI 전체를 깨뜨리지 않도록 보수적으로 감싼다.
 
 ## 현재 운영 메모
 
 - TomTom 1회성 waypoint는 하란다르/공허폭풍 일부 보물에서 별도 지역 지도 컨텍스트를 사용하므로, 해당 지역에 들어간 뒤 생성된다.
 - 지도 좌표는 패치 후 수동 보정이 필요할 수 있다.
 - 제작 주문, catch-up 같은 profession 예외 획득원은 아직 별도 자동 집계하지 않는다.
-- BIS 아이템 데이터는 Midnight 시즌 1 M+ 신화+ 기준이며, 패치 후 변경 시 `Data/BISData.lua`만 수정하면 된다.
-- 문장 컬럼의 통화 ID는 추정값 포함 — "?" 표시 시 `CREST_ID_BY_GRADE` 테이블에서 수정.
+- BIS 랜딩 direct ID 확인값:
+  - `공결탑 제나스 = tier 13 / instanceID 1314`
+  - `알게타르 대학 = instanceID 2526`
+- `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 추가 확인이 필요하다.
