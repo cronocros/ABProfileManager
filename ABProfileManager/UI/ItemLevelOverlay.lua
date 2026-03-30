@@ -17,19 +17,22 @@ local TAB_GAP    = 2
 
 -- 4열: 단(label) | 클리어보상(drop) | 드랍문장(crest) | 위대한금고(vault)
 -- 우측에는 나의 문장을 고정 패널로 1회만 표시한다.
-local CREST_PANEL_W = 78
+local CREST_PANEL_W = 92
 local TABLE_GAP     = 0
 local CONTENT_W     = FRAME_W - 8
 local TABLE_W       = CONTENT_W - CREST_PANEL_W - TABLE_GAP
-local COL_DROP_X    = 72
-local COL_CREST_X   = 174
-local COL_VAULT_X   = 248
+local COL_DROP_X    = 78
+local COL_CREST_X   = 172
+local COL_VAULT_X   = 258
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
 local SCALE_MAX  = 2.00
 
 local TAB_KEYS = { "overview", "mythicplus", "delves", "raid", "other" }
+local DELVE_RESTORED_KEY_CURRENCY_ID = 3028
+local DELVE_KEY_FRAGMENT_ITEM_ID = nil
+local DELVE_MAP_IDS = { 2395, 2413, 2405, 2437, 1270 }
 
 -- Midnight 시즌 1 Dawncrest 통화 ID — 등급별 보유량 조회용
 -- 인게임 확인 결과와 현 시즌 애드온 데이터 기준으로 보정한 값이다.
@@ -163,6 +166,23 @@ local function getMyCount(grade)
     return info and info.quantity
 end
 
+local function getCurrencyCount(id)
+    if not id then return nil end
+    local info = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo(id)
+    return info and info.quantity or nil
+end
+
+local function getItemCountByID(itemID)
+    if not itemID or not C_Item or not C_Item.GetItemCount then
+        return nil
+    end
+    local ok, count = pcall(C_Item.GetItemCount, itemID, false, false, false, false)
+    if ok then
+        return count
+    end
+    return nil
+end
+
 local function crestCountStr(grade)
     local qty = getMyCount(grade)
     if qty == nil then return "" end
@@ -172,11 +192,11 @@ local function crestCountStr(grade)
     return inlineColor(hex, name) .. " " .. tostring(qty)
 end
 
-local function mythicPlusSummaryText()
+local function sectionSummaryParts()
     local tbl = ns.Data and ns.Data.ItemLevelTable
     local gradeMax = tbl and tbl.gradeMax
     if not gradeMax then
-        return ns.L("ilvl_section_mythicplus")
+        return {}
     end
 
     local parts = {}
@@ -190,11 +210,57 @@ local function mythicPlusSummaryText()
         end
     end
 
+    return parts
+end
+
+local function sectionSummaryText(label)
+    local parts = sectionSummaryParts()
     if #parts == 0 then
-        return ns.L("ilvl_section_mythicplus")
+        return label
+    end
+    return tostring(label) .. "  " .. table.concat(parts, "  ")
+end
+
+local function mythicPlusSummaryText()
+    return sectionSummaryText(ns.L("ilvl_section_mythicplus"))
+end
+
+local function getBestEffortBountifulDelveName()
+    if C_GossipInfo and C_GossipInfo.GetActiveDelveGossip then
+        local active = C_GossipInfo.GetActiveDelveGossip()
+        if active and active.name and active.name ~= "" then
+            return active.name
+        end
     end
 
-    return ns.L("ilvl_section_mythicplus") .. "  " .. table.concat(parts, "  ")
+    if C_AreaPoiInfo and C_AreaPoiInfo.GetDelvesForMap and C_AreaPoiInfo.GetAreaPOIInfo then
+        for _, mapID in ipairs(DELVE_MAP_IDS) do
+            local delveIds = C_AreaPoiInfo.GetDelvesForMap(mapID)
+            if delveIds then
+                for _, areaPoiID in ipairs(delveIds) do
+                    local ok, info = pcall(C_AreaPoiInfo.GetAreaPOIInfo, mapID, areaPoiID)
+                    local atlasName = ok and info and string.lower(tostring(info.atlasName or "")) or ""
+                    if atlasName ~= "" and string.find(atlasName, "bountiful", 1, true) then
+                        if info.name and info.name ~= "" then
+                            return info.name
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return ns.L("ilvl_key_unknown")
+end
+
+local function getMyKeyLines()
+    local restored = getCurrencyCount(DELVE_RESTORED_KEY_CURRENCY_ID)
+    local fragments = DELVE_KEY_FRAGMENT_ITEM_ID and getItemCountByID(DELVE_KEY_FRAGMENT_ITEM_ID) or nil
+    return {
+        string.format("%s %s", ns.L("ilvl_key_bountiful"), getBestEffortBountifulDelveName()),
+        string.format("%s %s", ns.L("ilvl_key_fragments"), fragments ~= nil and tostring(fragments) or "-"),
+        string.format("%s %s", ns.L("ilvl_key_restored"), restored ~= nil and tostring(restored) or "0"),
+    }
 end
 
 -- 열 헤더: 단 | 클리어보상 | 드랍문장 | 위대한금고
@@ -240,8 +306,8 @@ end
 local function delveRow(label, e, avgIlvl)
     return {
         label      = label,
-        dropStr    = clearRewardStr(e.ilvl, e.grade, nil, nil, true),
-        vaultStr   = vaultClearStr(e.vault, e.vaultGrade, nil, nil, true),
+        dropStr    = clearRewardStr(e.ilvl, e.grade),
+        vaultStr   = vaultClearStr(e.vault, e.vaultGrade),
         crestDrop  = e.crestDrop,
         grade      = e.grade,
         vaultGrade = e.vaultGrade,
@@ -254,6 +320,7 @@ local function buildOverviewRows(avgIlvl)
     local tbl = ns.Data and ns.Data.ItemLevelTable
     if not tbl then return {} end
     local rows = {}
+    rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_tab_overview")) }
     local function spacer()
         if #rows > 0 then
             rows[#rows+1] = { isSpacer=true }
@@ -320,6 +387,7 @@ local function buildDelveRows(avgIlvl)
     local tbl = ns.Data and ns.Data.ItemLevelTable
     if not tbl or not tbl.delves then return {} end
     local rows = {}
+    rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_delves")) }
     rows[#rows+1] = colHeader("ilvl_col_tier", "ilvl_col_drop", "ilvl_col_vault", "ilvl_col_crest")
     for _, e in ipairs(tbl.delves) do
         rows[#rows+1] = delveRow(tostring(e.tier).."단계", e, avgIlvl)
@@ -347,6 +415,7 @@ local function buildRaidRows(avgIlvl)
     local tbl = ns.Data and ns.Data.ItemLevelTable
     if not tbl or not tbl.raid then return {} end
     local rows = {}
+    rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_raid")) }
     rows[#rows+1] = colHeader("ilvl_col_difficulty", "ilvl_col_drop", "ilvl_col_vault", "ilvl_col_crest")
     for _, key in ipairs({ "normal", "heroic", "mythic" }) do
         local e = tbl.raid[key]
@@ -372,6 +441,7 @@ local function buildOtherRows(avgIlvl)
     local tbl = ns.Data and ns.Data.ItemLevelTable
     if not tbl then return {} end
     local rows = {}
+    rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_tab_other")) }
     local function spacer()
         if #rows > 0 then
             rows[#rows+1] = { isSpacer=true }
@@ -556,23 +626,42 @@ function ItemLevelOverlay:EnsureFrame()
     end
     frame.crestPanel = crestPanel
 
-    local crestTitle = makeFS(crestPanel, 11, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
-    crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 5, -46)
+    local crestTitle = makeFS(crestPanel, 12, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
+    crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 5, -66)
     crestTitle:SetJustifyH("LEFT")
     crestTitle:SetText(ns.L("ilvl_col_my_crest"))
     frame.crestTitle = crestTitle
 
     frame.crestLines = {}
     for i, _ in ipairs(CREST_PANEL_GRADES) do
-        local fs = makeFS(crestPanel, 12, 1, 1, 1)
+        local fs = makeFS(crestPanel, 13, 1, 1, 1)
         if i == 1 then
-            fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -7)
+            fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -6)
         else
-            fs:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -2)
+            fs:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -1)
         end
         fs:SetWidth(CREST_PANEL_W - 6)
         fs:SetJustifyH("LEFT")
         frame.crestLines[i] = fs
+    end
+
+    local keyTitle = makeFS(crestPanel, 12, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
+    keyTitle:SetPoint("TOPLEFT", frame.crestLines[#frame.crestLines], "BOTTOMLEFT", 0, -12)
+    keyTitle:SetJustifyH("LEFT")
+    keyTitle:SetText(ns.L("ilvl_col_my_key"))
+    frame.keyTitle = keyTitle
+
+    frame.keyLines = {}
+    for i = 1, 3 do
+        local fs = makeFS(crestPanel, 12, 1, 1, 1)
+        if i == 1 then
+            fs:SetPoint("TOPLEFT", keyTitle, "BOTTOMLEFT", 0, -6)
+        else
+            fs:SetPoint("TOPLEFT", frame.keyLines[i-1], "BOTTOMLEFT", 0, -1)
+        end
+        fs:SetWidth(CREST_PANEL_W - 6)
+        fs:SetJustifyH("LEFT")
+        frame.keyLines[i] = fs
     end
 
     local tableArea = CreateFrame("Frame", nil, content)
@@ -611,24 +700,36 @@ function ItemLevelOverlay:EnsureRow(index)
     row.label:SetPoint("LEFT", row, "LEFT", 4, 0)
     row.label:SetWidth(COL_DROP_X - 6)
     row.label:SetJustifyH("LEFT")
+    if row.label.SetWordWrap then
+        row.label:SetWordWrap(false)
+    end
 
     -- 열2: 클리어 보상 (ilvl + 등급 + rank)
     row.drop = makeFS(row, 10, 0.96, 0.86, 0.60)
     row.drop:SetPoint("LEFT", row, "LEFT", COL_DROP_X, 0)
     row.drop:SetWidth(COL_CREST_X - COL_DROP_X - 2)
     row.drop:SetJustifyH("LEFT")
+    if row.drop.SetWordWrap then
+        row.drop:SetWordWrap(false)
+    end
 
     -- 열3: 드랍 문장
     row.crest = makeFS(row, 10, 0.70, 0.70, 0.80)
     row.crest:SetPoint("LEFT", row, "LEFT", COL_CREST_X, 0)
     row.crest:SetWidth(COL_VAULT_X - COL_CREST_X - 2)
     row.crest:SetJustifyH("LEFT")
+    if row.crest.SetWordWrap then
+        row.crest:SetWordWrap(false)
+    end
 
     -- 열4: 위대한 금고
     row.vault = makeFS(row, 10, 0.55, 0.85, 0.55)
     row.vault:SetPoint("LEFT", row, "LEFT", COL_VAULT_X, 0)
     row.vault:SetWidth(TABLE_W - COL_VAULT_X - 4)
     row.vault:SetJustifyH("LEFT")
+    if row.vault.SetWordWrap then
+        row.vault:SetWordWrap(false)
+    end
 
     self.frame.rows[index] = row
     return row
@@ -691,6 +792,9 @@ function ItemLevelOverlay:RebuildContent()
     if frame.crestTitle then
         frame.crestTitle:SetText(ns.L("ilvl_col_my_crest"))
     end
+    if frame.keyTitle then
+        frame.keyTitle:SetText(ns.L("ilvl_col_my_key"))
+    end
     if frame.crestPanel then
         for i, grade in ipairs(CREST_PANEL_GRADES) do
             local fs = frame.crestLines and frame.crestLines[i]
@@ -699,7 +803,11 @@ function ItemLevelOverlay:RebuildContent()
                 fs:SetText(text ~= "" and text or ((ns.L("ilvl_crest_"..grade) or grade) .. " -"))
             end
         end
-        local crestPanelH = 72 + (#CREST_PANEL_GRADES * 18)
+        local keyLines = getMyKeyLines()
+        for i, fs in ipairs(frame.keyLines or {}) do
+            fs:SetText(keyLines[i] or "")
+        end
+        local crestPanelH = 108 + (#CREST_PANEL_GRADES * 18) + (#(frame.keyLines or {}) * 17)
         frame.crestPanel:SetHeight(crestPanelH)
     end
 
@@ -792,7 +900,7 @@ function ItemLevelOverlay:RebuildContent()
     end
 
     local crestPanelH = frame.crestPanel and frame.crestPanel:GetHeight() or 0
-    self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + math.max(yOffset, crestPanelH + 2) + PADDING
+    self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + math.max(yOffset, crestPanelH + 4) + PADDING
     self:UpdateLayout()
 end
 

@@ -512,14 +512,19 @@ function ConfigPanel:BuildControlSet(parent, options)
     end
 
     refs.combatTextManageCheck = widgets.CreateCheckButton(refs.combatTextBox, "")
-    refs.combatTextManageCheck:SetPoint("TOPLEFT", refs.combatTextHint, "BOTTOMLEFT", -4, -10)
+    if options.showCombatTextHint == false then
+        refs.combatTextHint:Hide()
+        refs.combatTextManageCheck:SetPoint("TOPLEFT", refs.combatTextBox.title, "BOTTOMLEFT", -4, -8)
+    else
+        refs.combatTextManageCheck:SetPoint("TOPLEFT", refs.combatTextHint, "BOTTOMLEFT", -4, -10)
+    end
     refs.combatTextDirectionalCheck = widgets.CreateCheckButton(refs.combatTextBox, "")
     refs.combatTextDirectionalCheck:SetPoint("TOPLEFT", refs.combatTextManageCheck, "BOTTOMLEFT", 0, -8)
     refs.combatTextModeLabel = widgets.CreateLabel(refs.combatTextBox, "", refs.combatTextDirectionalCheck, 4, -12, "GameFontHighlight")
 
     refs.combatTextModeButtons = {}
     local previousModeButton = nil
-    local modeButtonWidth = math.max(72, math.floor((contentWidth - 12) / 3))
+    local modeButtonWidth = math.max(options.combatTextModeButtonMinWidth or 72, math.floor((contentWidth - 12) / 3))
     for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
         local button = widgets.CreateButton(refs.combatTextBox, "", modeButtonWidth, 24)
         if previousModeButton then
@@ -572,14 +577,16 @@ function ConfigPanel:RegisterSettingsCategory()
         self.settingsRefs = self:BuildControlSet(panel, {
             titleY = -16,
             showOpenButton = true,
-            columnWidth = 300,
+            columnWidth = 296,
             columnGap = 12,
             helpWidth = 612,
             generalHeight = 318,
             overlayHeight = 324,
             overviewHeight = 174,
             overviewTextHeight = 100,
-            combatTextHeight = 248,
+            combatTextHeight = 212,
+            showCombatTextHint = false,
+            combatTextModeButtonMinWidth = 60,
         })
 
         panel:SetScript("OnShow", function()

@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.5.4`
+- `v1.5.5`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.4/ABProfileManager-v1.5.4.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.5.4.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.4.md](./RELEASE_NOTES_v1.5.4.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.5/ABProfileManager-v1.5.5.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.5.5.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.5.md](./RELEASE_NOTES_v1.5.5.md)
 
 ## 요약
 
@@ -22,8 +22,8 @@
 - 지도 전용 탭과 전체 UI 글자 크기 슬라이더 제공
 - profession 오버레이 상세 간격, 범례 한 줄 표기, token 색상 정리
 - 설정 탭에서 전투메시지 표출 방식만 관리
-- 전클래스/전특성 BIS 인던 드랍 정보 오버레이 (부위별 정리, 던전 클릭 → 모험 안내서 연동)
-- 던전/레이드/M+/제작 드랍 아이템 레벨 표 + 위대한 금고 컬럼 + 우측 `나의 문장` 통합 패널
+- 전클래스/전특성 BIS 인던 드랍 정보 오버레이 (부위별 정리, 던전 클릭 → 모험 안내서 loot 탭 연동, 쐐기/레이드/제작 소스 필터)
+- 던전/레이드/M+/제작 드랍 아이템 레벨 표 + 위대한 금고 컬럼 + 우측 `나의 문장` / `나의 열쇠` 패널
 
 ## 핵심 기능
 

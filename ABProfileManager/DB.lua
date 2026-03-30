@@ -854,6 +854,11 @@ end
 function DB:GetBISOverlaySettings()
     local settings = self:GetGlobalSettings()
     settings.bisOverlay = settings.bisOverlay or { enabled = false }
+    settings.bisOverlay.sources = settings.bisOverlay.sources or {
+        mythicplus = true,
+        raid = false,
+        crafted = false,
+    }
     return settings.bisOverlay
 end
 

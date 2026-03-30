@@ -11,6 +11,8 @@ local professionRefreshPending = false
 local professionRefreshForceScan = false
 local professionRefreshReason = nil
 local professionFollowUpToken = 0
+local ITEM_LEVEL_OVERLAY_REFRESH_DELAY = 0.15
+local itemLevelOverlayRefreshPending = false
 
 -- UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE 등 고주기 이벤트 디바운싱
 -- 0.15초 내 중복 발화를 하나로 합침
@@ -39,6 +41,11 @@ local function _statsRefreshCallback()
     ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
 end
 
+local function _itemLevelOverlayRefreshCallback()
+    itemLevelOverlayRefreshPending = false
+    ns:SafeCall(ns.UI.ItemLevelOverlay, "Refresh")
+end
+
 local function refreshQuestPanel()
     if questPanelRefreshPending then return end
     questPanelRefreshPending = true
@@ -52,6 +59,15 @@ local function refreshStatsOverlay()
     if statsRefreshPending then return end
     statsRefreshPending = true
     C_Timer.After(STATS_REFRESH_DELAY, _statsRefreshCallback)
+end
+
+local function refreshItemLevelOverlay()
+    if itemLevelOverlayRefreshPending then
+        return
+    end
+
+    itemLevelOverlayRefreshPending = true
+    C_Timer.After(ITEM_LEVEL_OVERLAY_REFRESH_DELAY, _itemLevelOverlayRefreshCallback)
 end
 
 local function runProfessionKnowledgeRefresh(forceScan, reason)
@@ -203,6 +219,9 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("BAG_UPDATE_DELAYED")
     frame:RegisterEvent("BAG_NEW_ITEMS_UPDATED")
     frame:RegisterEvent("LOOT_CLOSED")
+    frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+    frame:RegisterEvent("ACTIVE_DELVE_DATA_UPDATE")
+    frame:RegisterEvent("AREA_POIS_UPDATED")
     -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight API 미확인)
     -- frame:RegisterEvent("MERCHANT_SHOW")
     -- frame:RegisterEvent("MERCHANT_UPDATE")
@@ -275,6 +294,7 @@ end
 
 function Events:PLAYER_EQUIPMENT_CHANGED()
     refreshStatsOverlay()
+    refreshItemLevelOverlay()
 end
 
 function Events:COMBAT_RATING_UPDATE()
@@ -343,6 +363,18 @@ end
 function Events:LOOT_CLOSED()
     refreshProfessionKnowledgeViews(true, "LOOT_CLOSED")
     scheduleProfessionFollowUpRefresh("LOOT_CLOSED")
+end
+
+function Events:CURRENCY_DISPLAY_UPDATE()
+    refreshItemLevelOverlay()
+end
+
+function Events:ACTIVE_DELVE_DATA_UPDATE()
+    refreshItemLevelOverlay()
+end
+
+function Events:AREA_POIS_UPDATED()
+    refreshItemLevelOverlay()
 end
 
 -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight spellID API 부정확)

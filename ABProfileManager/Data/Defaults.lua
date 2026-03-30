@@ -66,6 +66,11 @@ ns.Data.Defaults = {
             bisOverlay = {
                 enabled = false,
                 locked  = false,
+                sources = {
+                    mythicplus = true,
+                    raid = false,
+                    crafted = false,
+                },
             },
             worldEventOverlay = {
                 enabled = false,
