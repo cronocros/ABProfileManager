@@ -944,7 +944,7 @@ local function isEnglishOnlyLabel(label)
     return type(label) == "string" and label:find("[A-Za-z]") ~= nil and label:find("[가-힣]") == nil
 end
 
-local function isCraftingSourceLabel(label)
+isCraftingSourceLabel = function(label)
     local normalized = normalizeCompareText(label)
     return normalized == normalizeCompareText("Crafting")
         or normalized == normalizeCompareText("Tailoring")

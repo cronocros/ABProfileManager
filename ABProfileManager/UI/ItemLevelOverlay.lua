@@ -64,6 +64,14 @@ local CREST_COLORS = {
     myth = { 1.00, 0.20, 0.20 },  -- 빨강 (신화)
 }
 
+local PADDED_CREST_LABELS_KOKR = {
+    adv = "모험가 ",
+    vet = "노련가 ",
+    chmp = "챔피언",
+    hero = "영웅  ",
+    myth = "신화  ",
+}
+
 local function colorHex(r, g, b)
     return string.format("%02X%02X%02X",
         math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
@@ -188,6 +196,10 @@ local function crestCountStr(grade)
     local cc = CREST_COLORS[grade] or { 0.85, 0.85, 0.85 }
     local hex = colorHex(cc[1], cc[2], cc[3])
     local name = ns.L("ilvl_crest_"..grade) or grade
+    if ns.DB and ns.Constants and ns.DB.GetLanguage
+    and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN then
+        name = PADDED_CREST_LABELS_KOKR[grade] or name
+    end
     return inlineColor(hex, name) .. " " .. tostring(qty)
 end
 
@@ -683,8 +695,15 @@ function ItemLevelOverlay:EnsureFrame()
         frame.crestLines[i] = fs
     end
 
+    local keyDivider = crestPanel:CreateTexture(nil, "ARTWORK")
+    keyDivider:SetHeight(1)
+    keyDivider:SetPoint("TOPLEFT", frame.crestLines[#frame.crestLines], "BOTTOMLEFT", 0, -6)
+    keyDivider:SetPoint("TOPRIGHT", crestPanel, "TOPRIGHT", -6, -6)
+    keyDivider:SetColorTexture(0.28, 0.34, 0.46, 0.80)
+    frame.keyDivider = keyDivider
+
     local keyTitle = makeFS(crestPanel, 13, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
-    keyTitle:SetPoint("TOPLEFT", frame.crestLines[#frame.crestLines], "BOTTOMLEFT", 0, -10)
+    keyTitle:SetPoint("TOPLEFT", keyDivider, "BOTTOMLEFT", 0, -6)
     keyTitle:SetJustifyH("LEFT")
     keyTitle:SetText(ns.L("ilvl_col_my_key"))
     frame.keyTitle = keyTitle
@@ -696,7 +715,7 @@ function ItemLevelOverlay:EnsureFrame()
         if i == 1 then
             fs:SetPoint("TOPLEFT", keyTitle, "BOTTOMLEFT", 0, -6)
         else
-            fs:SetPoint("TOPLEFT", frame.keyLines[i-1], "BOTTOMLEFT", 0, -2)
+            fs:SetPoint("TOPLEFT", frame.keyLines[i-1], "BOTTOMLEFT", 0, -3)
         end
         fs:SetWidth(CREST_PANEL_W - 10)
         fs:SetJustifyH("LEFT")

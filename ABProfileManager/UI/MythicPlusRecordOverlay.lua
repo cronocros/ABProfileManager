@@ -6,6 +6,17 @@ ns.UI.MythicPlusRecordOverlay = MythicPlusRecordOverlay
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FONT_FLAGS = "OUTLINE"
 
+local function getScoreColor(level)
+    level = tonumber(level) or 0
+    if level >= 10 then
+        return 0.78, 0.45, 1.00
+    end
+    if level >= 7 then
+        return 0.32, 0.72, 1.00
+    end
+    return 0.38, 0.95, 0.46
+end
+
 local function formatDuration(seconds)
     seconds = tonumber(seconds) or 0
     if seconds <= 0 then
@@ -63,11 +74,11 @@ local function ensureDisplay(iconFrame)
     holder:SetFrameLevel((iconFrame:GetFrameLevel() or 1) + 8)
     holder:SetPoint("BOTTOMLEFT", iconFrame, "BOTTOMLEFT", 2, 4)
     holder:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", -2, 4)
-    holder:SetHeight(24)
+    holder:SetHeight(26)
 
     holder.levelScore = holder:CreateFontString(nil, "OVERLAY")
-    holder.levelScore:SetPoint("BOTTOM", holder, "BOTTOM", 0, 9)
-    holder.levelScore:SetFont(FONT_PATH, 12, FONT_FLAGS)
+    holder.levelScore:SetPoint("BOTTOM", holder, "BOTTOM", 0, 11)
+    holder.levelScore:SetFont(FONT_PATH, 13, FONT_FLAGS)
     holder.levelScore:SetTextColor(1.00, 1.00, 1.00, 1)
     if holder.levelScore.SetShadowOffset then
         holder.levelScore:SetShadowOffset(1, -1)
@@ -105,8 +116,10 @@ function MythicPlusRecordOverlay:RefreshIcon(icon)
     overlay = ensureDisplay(icon)
     if bestInfo and (bestInfo.level or 0) > 0 then
         local score = math.floor((bestInfo.dungeonScore or 0) + 0.5)
+        local r, g, b = getScoreColor(bestInfo.level)
         overlay.levelScore:SetText(tostring(score))
-        overlay.timeText:SetText((ns.L("mplus_record_best_time") or "최고기록") .. " " .. formatDuration(bestDuration or bestInfo.durationSec))
+        overlay.levelScore:SetTextColor(r, g, b, 1)
+        overlay.timeText:SetText(formatDuration(bestDuration or bestInfo.durationSec))
         overlay:Show()
     else
         overlay:Hide()
