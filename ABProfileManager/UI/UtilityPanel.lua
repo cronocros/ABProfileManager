@@ -15,7 +15,7 @@ end
 local COL_W   = 406   -- 열 폭 (852 - 40gap) / 2 ≈ 406
 local COL_GAP = 20    -- 열 사이 간격
 local FULL_W  = COL_W * 2 + COL_GAP  -- ~832 (블리자드 박스 전체 폭)
-local ROW1_H  = 240   -- 1행 박스 높이
+local ROW1_H  = 264   -- 1행 박스 높이
 local ROW2_H  = 210   -- 2행 박스 높이
 local BF_H    = 145   -- 블리자드 박스 높이
 local ROW_GAP = 10    -- 행 사이 간격
@@ -88,6 +88,9 @@ function UtilityPanel:Create(parent)
     local bisLockCheck = makeCheck(overlayBox, widgets, bisCheck)
     frame.bisLockCheck = bisLockCheck
 
+    local mplusRecordCheck = makeCheck(overlayBox, widgets, bisLockCheck)
+    frame.mplusRecordCheck = mplusRecordCheck
+
     -- ═══════════════════════════════════════════════════════════
     -- 1행 우: 스탯 오버레이
     -- ═══════════════════════════════════════════════════════════
@@ -150,6 +153,7 @@ function UtilityPanel:Create(parent)
         { ilLockCheck,    cW },
         { bisCheck,       cW },
         { bisLockCheck,   cW },
+        { mplusRecordCheck, cW },
         { statsCheck,     cW },
         { tankCheck,      cW },
         { statsLockCheck, cW },
@@ -192,6 +196,12 @@ function UtilityPanel:BindControls(refs)
         ns.DB:SetBISOverlayLocked(chk:GetChecked())
         ns:RefreshUI()
         setStatus(ns.L("config_saved_bis_overlay_locked", on(chk:GetChecked())))
+    end)
+
+    refs.mplusRecordCheck:SetScript("OnClick", function(chk)
+        ns.DB:SetMythicPlusRecordOverlayEnabled(chk:GetChecked())
+        ns:RefreshUI()
+        setStatus(ns.L("config_saved_mplus_record_overlay", on(chk:GetChecked())))
     end)
 
     refs.statsCheck:SetScript("OnClick", function(chk)
@@ -256,10 +266,12 @@ function UtilityPanel:Refresh()
     refs.ilLockCheck.Text:SetText(ns.L("config_item_level_overlay_lock"))
     refs.bisCheck.Text:SetText(ns.L("config_bis_overlay_show"))
     refs.bisLockCheck.Text:SetText(ns.L("config_bis_overlay_lock"))
+    refs.mplusRecordCheck.Text:SetText(ns.L("config_mplus_record_overlay_show"))
     refs.ilCheck:SetChecked(ns.DB:IsItemLevelOverlayEnabled())
     refs.ilLockCheck:SetChecked(ns.DB:IsItemLevelOverlayLocked())
     refs.bisCheck:SetChecked(ns.DB:IsBISOverlayEnabled())
     refs.bisLockCheck:SetChecked(ns.DB:IsBISOverlayLocked())
+    refs.mplusRecordCheck:SetChecked(ns.DB:IsMythicPlusRecordOverlayEnabled())
 
     refs.statsBox.title:SetText(ns.L("utility_section_stats_overlay"))
     refs.statsHint:SetText(ns.L("utility_stats_hint"))

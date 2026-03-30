@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.5.5 기반)`
+버전 기준: `main (v1.5.6 기반)`
 
 ## 목적
 
@@ -15,7 +15,8 @@
 - 한밤(Midnight) 지도 오버레이
 - 전체 typography 슬라이더
 - 드랍템 레벨 참조 오버레이 (쐐기/레이드/구렁/기타, 4열 표 + 우측 `나의 문장` / `나의 열쇠` 패널)
-- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 부위별 정렬, 모험 안내서 loot 탭 연동, 쐐기/레이드/제작 필터)
+- BIS 인던 드랍 정보 오버레이 (전 클래스/특성, 부위별 정렬, 모험 안내서 loot 탭 연동, 쐐기/레이드/제작 필터, 소스 타입 컬럼)
+- 파티찾기 시즌 최고기록 아이콘 오버레이 (`ChallengesFrame` 아이콘 위 `단수 / 평점 / 시간`)
 
 핵심 원칙:
 
@@ -99,6 +100,7 @@
   - 탭: 개요 / 쐐기 / 구렁 / 레이드 / 기타
   - 각 행: 단/난이도 | 클리어보상(ilvl+등급) | 드랍문장 | 위대한 금고
   - 우측 고정 패널에 `CREST_ID_BY_GRADE` 기반 현재 문장 보유량 통합 표시
+  - `나의 열쇠` 패널에 오늘의 풍요 4개 / 열쇠 파편 / 복원된 열쇠 표시
   - 쐐기 섹션 헤더에 챔피언/영웅/신화 최고 강화 레벨 요약 표시
   - 마우스 휠 스케일 조절
 - `Data/ItemLevelTable.lua`
@@ -110,12 +112,15 @@
 - `UI/BISOverlay.lua`
   - 플레이어 클래스의 전 특성 탭 (spec icon 탭 클릭으로 전환)
   - 부위별 섹션 아래 아이템 목록 렌더
-  - 아이템 아이콘 + 이름 + 던전 출처 + BIS/대체/3순 배지
+  - 아이템 아이콘 + 이름 + 출처 + BIS/대체/3순 배지 + 타입(쐐기/레이드/제작)
   - 아이템 행 클릭 → `openEncounterJournal()` → 모험 안내서 자동 열기
-  - `DUNGEON_EJ_IDS` 테이블: returning 던전은 instanceID 확인, Midnight 신규 던전은 nil
-  - 아이템 툴팁: 한밤 시즌 1 던전 트랙 요약(`클리어 보상` / `위대한 금고`)을 커스텀 표시
+  - Encounter Journal preview loot는 `itemID` 우선, `아이템명` fallback 순으로 다시 매칭
+  - 아이템 툴팁: 한밤 시즌 1 preview link + 던전 트랙 요약(`클리어 보상` / `위대한 금고`)을 커스텀 표시
   - 헤더 영역 마우스 휠: 스케일 0.5~2.0x 조절
   - 잠금/접기: UtilityPanel bisLockCheck / 오버레이 우상단 −/+ 버튼
+- `UI/MythicPlusRecordOverlay.lua`
+  - `ChallengesFrame.DungeonIcons` 위에 `단수 / 평점 / 최고기록 시간` 오버레이
+  - Utility 탭 체크박스로 on/off
 - `Data/BISData.lua`
   - 키: specID (전사 71~73, 성기사 65/66/70, ... 용기사 1467/1468/1473)
   - 값: `{ dungeon, boss, itemID, slot, note }` 배열

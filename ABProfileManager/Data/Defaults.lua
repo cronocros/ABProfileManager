@@ -72,6 +72,9 @@ ns.Data.Defaults = {
                     crafted = false,
                 },
             },
+            mythicPlusRecordOverlay = {
+                enabled = false,
+            },
             worldEventOverlay = {
                 enabled = false,
             },

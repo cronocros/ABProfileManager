@@ -155,6 +155,9 @@ function DB:GetGlobalSettings()
         itemLevelOverlay = {
             enabled = false,
         },
+        mythicPlusRecordOverlay = {
+            enabled = false,
+        },
         worldEventOverlay = {
             enabled = false,
         },
@@ -878,4 +881,23 @@ end
 function DB:SetBISOverlayLocked(locked)
     self:GetBISOverlaySettings().locked = locked and true or false
     return self:IsBISOverlayLocked()
+end
+
+-- ============================================================
+-- MythicPlusRecordOverlay
+-- ============================================================
+
+function DB:GetMythicPlusRecordOverlaySettings()
+    local settings = self:GetGlobalSettings()
+    settings.mythicPlusRecordOverlay = settings.mythicPlusRecordOverlay or { enabled = false }
+    return settings.mythicPlusRecordOverlay
+end
+
+function DB:IsMythicPlusRecordOverlayEnabled()
+    return self:GetMythicPlusRecordOverlaySettings().enabled and true or false
+end
+
+function DB:SetMythicPlusRecordOverlayEnabled(enabled)
+    self:GetMythicPlusRecordOverlaySettings().enabled = enabled and true or false
+    return self:IsMythicPlusRecordOverlayEnabled()
 end

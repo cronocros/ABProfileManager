@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.5.5`
+- `v1.5.6`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.5/ABProfileManager-v1.5.5.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.5.5.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.5.md](./RELEASE_NOTES_v1.5.5.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.6/ABProfileManager-v1.5.6.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.5.6.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.6.md](./RELEASE_NOTES_v1.5.6.md)
 
 ## 요약
 
@@ -22,8 +22,9 @@
 - 지도 전용 탭과 전체 UI 글자 크기 슬라이더 제공
 - profession 오버레이 상세 간격, 범례 한 줄 표기, token 색상 정리
 - 설정 탭에서 전투메시지 표출 방식만 관리
-- 전클래스/전특성 BIS 인던 드랍 정보 오버레이 (부위별 정리, 던전 클릭 → 모험 안내서 loot 탭 연동, 쐐기/레이드/제작 소스 필터)
+- 전클래스/전특성 BIS 인던 드랍 정보 오버레이 (부위별 정리, 던전 클릭 → 모험 안내서 loot 탭 연동, 쐐기/레이드/제작 소스 필터, 소스 타입 컬럼)
 - 던전/레이드/M+/제작 드랍 아이템 레벨 표 + 위대한 금고 컬럼 + 우측 `나의 문장` / `나의 열쇠` 패널
+- 파티찾기 신화+ 시즌 최고기록 던전 아이콘에 `단수 + 평점 + 최고기록 시간` 오버레이 표시
 
 ## 핵심 기능
 
@@ -74,14 +75,19 @@
 - BIS 인던 드랍 정보 오버레이
   - 전클래스/전특성(39개 스펙) BIS 아이템 표시
   - 부위별 섹션 안에 BIS / 대체 / 3순 우선순위로 정렬
+  - 아이템명 / 드랍 출처 / BIS 여부 / 쐐기·레이드·제작 타입 컬럼 표시
   - 아이템 행 클릭 시 WoW 모험 안내서(Encounter Journal) 연동
-  - 툴팁에 한밤 시즌 1 던전 트랙 요약 표시
+  - 툴팁에 한밤 시즌 1 기준 preview 툴팁과 던전 트랙 요약 표시
   - 마우스 휠 스케일 조절 (0.5×~2.0×)
 - 드랍 아이템 레벨 오버레이
   - 던전 / 레이드 / M+ / 제작 탭별 드랍 템렙 표
   - 위대한 금고 컬럼
   - 우측 고정 `나의 문장` 패널로 현재 보유량 통합 표시
+  - `나의 열쇠` 패널에서 오늘의 풍요 구렁 4개, 열쇠 파편, 복원된 열쇠 확인
   - 쐐기 섹션 헤더에 챔피언/영웅/신화 최고 강화 레벨 요약 표시
+- 파티찾기 시즌 최고기록 아이콘 오버레이
+  - 신화+ 던전 탭의 시즌 최고기록 아이콘 위에 `단수 / 평점 / 최고기록 시간` 표시
+  - Utility 탭 체크박스로 on/off
 
 ## 설치
 
@@ -116,6 +122,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `지도`
 - `설정`
 - `퀘스트`
+- `편의기능`
 
 설정은 와우 `설정 > 애드온 > ABProfileManager` 아래에서도 경량 하위 페이지로 접근할 수 있습니다.
 
@@ -146,8 +153,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 전체 퀘스트 포기는 포기 가능한 퀘스트만 대상으로 합니다.
 - 제작 주문, catch-up 같은 일부 profession 예외 획득원은 아직 별도 자동 집계하지 않습니다.
 - 전투메시지 설정은 기본 WoW 전투메시지 on/off를 대신하지 않습니다. 기본 표시 여부는 와우 설정에서 켜고, 여기서는 표출 방식만 조정합니다.
-- BIS 오버레이에서 Midnight 신규 던전(마이사라 동굴, 공결점 제나스, 윈드러너 첨탑)의 모험 안내서 이동은 ID 확인 후 지원 예정입니다.
-- 문장(Crest) 컬럼의 일부 통화 ID는 추정값이며, "?"로 표시될 수 있습니다.
+- 일부 구던전 BIS 아이템은 Encounter Journal 시즌 preview link를 받지 못하면 원본 아이템 툴팁으로 fallback 할 수 있습니다.
+- `열쇠 파편`은 Blizzard API에서 안전한 itemID가 확정되지 않아 `-`로 표시될 수 있습니다.
 
 ## 문서
 

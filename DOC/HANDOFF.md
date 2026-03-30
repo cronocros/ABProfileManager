@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.5.5 기반)`
+버전 기준: `main (v1.5.6 기반)`
 
 ## 현재 상태
 
@@ -35,7 +35,16 @@
 
 ## 운영 메모
 
-### 0. v1.5.5 QA 반영 메모
+### 0. v1.5.6 QA 반영 메모
+
+- `Data/BISData_Method.lua`는 이제 Method.gg current overall BIS를 기준으로 raid/crafted/mythicplus `sourceType`와 `sourceLabel`을 함께 넣는다. 기존 `Data/BISData.lua` 수기 쐐기 데이터는 load 시 각 부위 `대체재 / 2순위`로 병합된다.
+- `UI/BISOverlay.lua`는 오래된 던전 BIS 아이템을 시즌 preview loot와 `itemID` 우선, `아이템명` fallback 순으로 다시 매칭한다. 구던전 툴팁 회귀가 나면 `getPreviewMythicPlusLootContext()`와 `showSeasonItemTooltip()`를 같이 본다.
+- BIS 리스트는 `아이템명 / 출처 / BIS 여부 / 타입` 컬럼 구조다. 제작/레이드/쐐기 필터가 비어 보이면 데이터 파일의 `sourceType` 누락부터 확인한다.
+- BIS 아이템 클릭은 `EncounterJournal_OpenJournal()` 뒤 delayed `lootTab.Click()`까지 태운다. 클릭 랜딩이 다시 summary 탭으로 빠지면 `openEncounterJournal()` delayed block을 우선 본다.
+- `UI/ItemLevelOverlay.lua` 우측 패널은 `나의 문장` + `나의 열쇠`이며, `나의 열쇠`는 `오늘의 풍요 4개 + 열쇠 파편 + 복원된 열쇠` 7줄 구조다.
+- `UI/MythicPlusRecordOverlay.lua`는 `ChallengesFrame.DungeonIcons` 위에 `단수 / 평점 / 최고기록 시간`을 직접 덧씌운다. 별도 프레임 이동형 오버레이가 아니므로 설정은 Utility 탭 체크박스만 갖는다.
+
+### 1. v1.5.5 QA 반영 메모
 
 - BIS 시즌 툴팁은 더 이상 오래된 던전의 고정 EJ ID를 우선 사용하지 않는다. `UI/BISOverlay.lua`는 던전명으로 Encounter Journal tier 후보를 최신 순으로 수집하고, 실제 시즌 preview loot link를 찾은 candidate를 우선 사용한다.
 - BIS 아이템 클릭 시 가능하면 `EncounterJournal_OpenJournal()`로 바로 해당 던전 loot 탭까지 연다. 이 경로를 다시 건드릴 때는 `openEncounterJournal()`과 `getPreviewMythicPlusLootContext()`를 같이 본다.

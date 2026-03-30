@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `ABProfileManager`는 WoW Retail (Interface 120001 = Patch 12.0.1, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 인던 드랍 정보 오버레이 등을 한 애드온으로 처리한다.
 
-**현재 기준**: main (v1.5.5 기반)
+**현재 기준**: main (v1.5.6 기반)
 
 ## 검증 명령어
 
@@ -64,8 +64,9 @@ ABProfileManager/
 5. **고스트 드래그 / 전투 중 대기열** — 항상 보수적으로 처리
 6. **BlizzardFrameManager** — `SetUserPlaced(true)`는 `uiPanel=true` 프레임에만 적용. WorldMapFrame에 적용 시 WoW compact 모드 전환 → 지도 오른쪽 퀘스트 목록 패널 숨겨짐. `UpdateUIPanelPositions` 훅도 `uiPanel=true` 프레임만 대상으로 해야 함 — 전체 적용 시 WorldMapFrame `ClearAllPoints` 반복으로 퀘스트 목록 주기적 소실.
 7. **GC 최적화 버퍼** — `SilvermoonMapOverlay.lua`와 `StatsOverlay.lua`에 모듈 레벨 재사용 버퍼 선언. 이 버퍼들(`_layoutPoints`, `_candidateBuf`, `_snapshotParts` 등)을 제거하거나 함수 내부로 이동하면 GC spike 재발.
-8. **BIS 오버레이 시즌 요약 툴팁** — 베이스 `SetItemByID` 툴팁 대신 한밤 시즌 1 던전 트랙 요약을 커스텀 표시한다. 부위/출처/우선순위/클리어보상/위대한 금고 줄을 같이 봐야 한다.
-9. **문장 패널 통화 ID** — `UI/ItemLevelOverlay.lua`의 `CREST_ID_BY_GRADE` 테이블. 영웅(3345) 확인, 나머지 추정. 우측 `나의 문장` 패널에 "?" 표시 시 인게임 `/dump C_CurrencyInfo.GetCurrencyInfo(ID)` 로 확인 후 수정.
+8. **BIS 오버레이 시즌 preview 툴팁** — `UI/BISOverlay.lua`는 Encounter Journal preview loot를 `itemID` 우선, `아이템명` fallback으로 찾는다. 구던전 BIS 아이템 툴팁 회귀가 나면 `getPreviewMythicPlusLootContext()`, `showSeasonItemTooltip()`, `openEncounterJournal()` 세 군데를 같이 봐야 한다.
+9. **문장 / 열쇠 패널 통화 ID** — `UI/ItemLevelOverlay.lua`의 `CREST_ID_BY_GRADE`와 `DELVE_RESTORED_KEY_CURRENCY_ID`. `열쇠 파편`은 아직 안전한 itemID가 확정되지 않아 `-` fallback이 남아 있다.
+10. **파티찾기 시즌 최고기록 아이콘 오버레이** — `UI/MythicPlusRecordOverlay.lua`는 이동형 프레임이 아니라 `ChallengesFrame.DungeonIcons` 위에 붙는 표시다. 위치/숨김 버그가 나면 `ChallengesFrame:Update()` 훅과 icon frame 재사용 경로를 먼저 확인한다.
 
 인게임 회귀 체크리스트:
 - profession 카드 폭과 체크박스 레이아웃
@@ -75,8 +76,9 @@ ABProfileManager/
 - 지도를 열었을 때 오른쪽 퀘스트 목록이 정상 표시되는지
 - 퀘스트 ID 링크 클릭 동작
 - 스탯 overlay drag/hitbox
-- BIS 오버레이 아이템 행 클릭 → 모험 안내서 열림
-- 드랍템 레벨 오버레이 우측 `나의 문장` 패널의 "?" 여부 확인
+- BIS 오버레이 아이템 행 클릭 → 모험 안내서 loot 탭 랜딩
+- 드랍템 레벨 오버레이 우측 `나의 문장` / `나의 열쇠` 패널 표시 확인
+- 파티찾기 시즌 최고기록 아이콘 오버레이의 `단수 / 평점 / 시간` 표시 확인
 
 ## 주요 서브시스템 작동 방식
 
@@ -102,12 +104,12 @@ ABProfileManager/
 새 이벤트 핸들러 추가 시 비활성 상태 early return과 디바운스 패턴 함께 적용할 것.
 
 ### BIS 인던 드랍 오버레이
-`UI/BISOverlay.lua`. 전클래스/전특성(39개 스펙) BIS 인던 드랍 아이템을 부위별 섹션으로 표시한다. `Data/BISData.lua` 수기 데이터와 `Data/BISData_Method.lua` 보강 데이터를 함께 사용한다. 아이템 행 클릭 시 WoW 모험 안내서(EncounterJournal) 열기(`DUNGEON_EJ_IDS` 테이블). 툴팁은 시즌 1 던전 트랙 요약 커스텀 툴팁을 사용한다. 마우스 휠 스케일 지원.
-- Midnight 신규 던전 EJ ID 미확인: `마이사라 동굴`, `공결점 제나스`, `윈드러너 첨탑` → `nil`로 마킹, 인게임 확인 후 수정
+`UI/BISOverlay.lua`. 전클래스/전특성 BIS 아이템을 부위별 섹션으로 표시한다. `Data/BISData_Method.lua`는 current overall BIS 기준 raid/crafted/mythicplus `sourceType/sourceLabel`을 갖고, `Data/BISData.lua` 수기 쐐기 데이터는 load 시 각 부위 `대체재 / 2순위`로 병합된다. 아이템 행 클릭 시 WoW 모험 안내서(EncounterJournal) loot 탭까지 랜딩을 시도한다. 툴팁은 시즌 1 preview hyperlink + 던전 트랙 요약을 함께 사용한다. 마우스 휠 스케일 지원.
 
-### 아이템 레벨 오버레이 + 문장 패널
-`UI/ItemLevelOverlay.lua`. 던전/레이드/M+/제작 탭별 드랍 템렙 표 + 위대한 금고 컬럼. 쐐기/구렁/레이드/종합 표는 4열(`단/난이도`, `클리어보상`, `드랍문장`, `위대한 금고`)로 렌더되고, 우측 고정 패널에 `C_CurrencyInfo.GetCurrencyInfo(id)` 기반 현재 문장 보유량을 통합 표시한다. 쐐기 헤더에는 챔피언/영웅/신화 최고 강화 레벨 요약이 붙는다.
-- `CREST_ID_BY_GRADE` 테이블: 영웅(3345) 확인, 나머지 3342~3346 추정 — "?" 표시 시 인게임 `/dump` 로 확인
+### 아이템 레벨 오버레이 + 문장/열쇠 패널
+`UI/ItemLevelOverlay.lua`. 던전/레이드/M+/제작 탭별 드랍 템렙 표 + 위대한 금고 컬럼. 쐐기/구렁/레이드/종합 표는 4열(`단/난이도`, `클리어보상`, `드랍문장`, `위대한 금고`)로 렌더되고, 우측 고정 패널에 `C_CurrencyInfo.GetCurrencyInfo(id)` 기반 현재 문장 보유량과 `오늘의 풍요 4개 / 열쇠 파편 / 복원된 열쇠`를 함께 표시한다. 구렁 탭에는 `풍요 열쇠 사용` 별도 행이 추가되어 있다.
+- `CREST_ID_BY_GRADE` 테이블: 영웅(3345) 확인, 나머지 3341~3347 보정 사용
+- `열쇠 파편`은 안전한 itemID 미확정으로 `-` fallback 가능
 
 ## 숨겨진 미완성 기능
 

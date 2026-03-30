@@ -524,11 +524,12 @@ function ConfigPanel:BuildControlSet(parent, options)
 
     refs.combatTextModeButtons = {}
     local previousModeButton = nil
-    local modeButtonWidth = math.max(options.combatTextModeButtonMinWidth or 72, math.floor((contentWidth - 12) / 3))
+    local modeButtonGap = options.combatTextModeButtonGap or 4
+    local modeButtonWidth = math.max(options.combatTextModeButtonMinWidth or 72, math.floor((contentWidth - (modeButtonGap * 2)) / 3))
     for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
         local button = widgets.CreateButton(refs.combatTextBox, "", modeButtonWidth, 24)
         if previousModeButton then
-            button:SetPoint("LEFT", previousModeButton, "RIGHT", 6, 0)
+            button:SetPoint("LEFT", previousModeButton, "RIGHT", modeButtonGap, 0)
         else
             button:SetPoint("TOPLEFT", refs.combatTextModeLabel, "BOTTOMLEFT", 0, -8)
         end
@@ -584,9 +585,10 @@ function ConfigPanel:RegisterSettingsCategory()
             overlayHeight = 324,
             overviewHeight = 174,
             overviewTextHeight = 100,
-            combatTextHeight = 212,
+            combatTextHeight = 194,
             showCombatTextHint = false,
-            combatTextModeButtonMinWidth = 60,
+            combatTextModeButtonMinWidth = 52,
+            combatTextModeButtonGap = 4,
         })
 
         panel:SetScript("OnShow", function()
@@ -646,7 +648,8 @@ function ConfigPanel:Create(parent)
         overlayHeight = 324,
         overviewHeight = 194,
         overviewTextHeight = 128,
-        combatTextHeight = 218,
+        combatTextHeight = 202,
+        combatTextModeButtonGap = 4,
     })
 
     self.title = self.mainRefs.title
