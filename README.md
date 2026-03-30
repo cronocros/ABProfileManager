@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.5.6`
+- `v1.5.7`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.6/ABProfileManager-v1.5.6.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.5.6.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.6.md](./RELEASE_NOTES_v1.5.6.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.7/ABProfileManager-v1.5.7.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.5.7.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.7.md](./RELEASE_NOTES_v1.5.7.md)
 
 ## 요약
 
@@ -24,7 +24,7 @@
 - 설정 탭에서 전투메시지 표출 방식만 관리
 - 전클래스/전특성 BIS 인던 드랍 정보 오버레이 (부위별 정리, 던전 클릭 → 모험 안내서 loot 탭 연동, 쐐기/레이드/제작 소스 필터, 소스 타입 컬럼)
 - 던전/레이드/M+/제작 드랍 아이템 레벨 표 + 위대한 금고 컬럼 + 우측 `나의 문장` / `나의 열쇠` 패널
-- 파티찾기 신화+ 시즌 최고기록 던전 아이콘에 `단수 + 평점 + 최고기록 시간` 오버레이 표시
+- 파티찾기 신화+ 시즌 최고기록 던전 아이콘에 `평점 + 최고기록 시간` 오버레이 표시
 
 ## 핵심 기능
 

@@ -13,7 +13,7 @@ local ROW_H        = 19
 local SECTION_H    = 24
 local ICON_SIZE    = 15
 local TAB_SIZE     = 24
-local TABS_H       = 44              -- spec tabs + source filter row
+local TABS_H       = 54              -- spec tabs + source filter row
 local TITLE_H      = 26
 local MAX_SCROLL_H = 340
 local FONT_PATH    = "Fonts\\2002.TTF"
@@ -39,16 +39,16 @@ local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local COL_ICON    = ICON_SIZE + 5
-local COL_NAME    = 120
-local COL_SLOT    = 112
-local COL_NOTE    = 34
-local COL_TYPE    = 44
-local SPEC_PICKER_W = 148
-local SPEC_PICKER_BTN_H = 20
+local COL_NAME    = 108
+local COL_SLOT    = 150
+local COL_NOTE    = 54
+local COL_TYPE    = 60
+local SPEC_PICKER_W = 154
+local SPEC_PICKER_BTN_H = 22
 local SPEC_PICKER_ROW_H = 20
 local SPEC_PICKER_MAX_VISIBLE = 12
-local FILTER_BTN_W = 42
-local FILTER_BTN_H = 18
+local FILTER_BTN_W = 44
+local FILTER_BTN_H = 20
 
 local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted" }
 local BIS_SOURCE_DEFAULTS = {
@@ -138,9 +138,14 @@ local SOURCE_TYPE_COLOR = {
 local DUNGEON_EJ_IDS = {}
 local EJ_INSTANCE_CACHE = {}
 local EJ_CANDIDATE_CACHE = {}
+local EJ_RAID_CANDIDATES_CACHE = nil
 local EJ_PREVIEW_LINK_CACHE = {}
 local EJ_PREVIEW_CONTEXT_CACHE = {}
 local getEntrySourceType
+local getSeasonalMythicPlusRange
+local getSeasonalRaidRange
+local localizeSourceLabel
+local resolveSeasonDungeonName
 
 -- ============================================================
 -- Helper 함수들
@@ -177,6 +182,15 @@ local function getSeasonPreviewKeyLevel()
         end
     end
     return 10
+end
+
+local function getRaidPreviewDifficultyID()
+    if DifficultyUtil and DifficultyUtil.ID then
+        return DifficultyUtil.ID.PrimaryRaidMythic
+            or DifficultyUtil.ID.RaidMythic
+            or DifficultyUtil.ID.Raid25Heroic
+    end
+    return 16
 end
 
 local function getDungeonCandidates(dungeonName)
@@ -230,6 +244,48 @@ local function getDungeonCandidates(dungeonName)
     if found[1] then
         DUNGEON_EJ_IDS[dungeonName] = found[1].instanceID
     end
+    return found
+end
+
+local function getRaidCandidates()
+    if EJ_RAID_CANDIDATES_CACHE ~= nil then
+        return EJ_RAID_CANDIDATES_CACHE or {}
+    end
+    if not ensureEncounterJournalLoaded() then
+        EJ_RAID_CANDIDATES_CACHE = false
+        return {}
+    end
+
+    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
+    local tierCount = EJ_GetNumTiers and (EJ_GetNumTiers() or 0) or 0
+    local found = {}
+    local seen = {}
+
+    for tier = tierCount, 1, -1 do
+        pcall(EJ_SelectTier, tier)
+        local index = 1
+        while true do
+            local instanceID, instanceName = EJ_GetInstanceByIndex(index, true)
+            if not instanceID then
+                break
+            end
+            if not seen[instanceID] then
+                seen[instanceID] = true
+                found[#found + 1] = {
+                    instanceID = instanceID,
+                    tier = tier,
+                    name = instanceName,
+                }
+            end
+            index = index + 1
+        end
+    end
+
+    if savedTier then
+        pcall(EJ_SelectTier, savedTier)
+    end
+
+    EJ_RAID_CANDIDATES_CACHE = #found > 0 and found or false
     return found
 end
 
@@ -317,6 +373,9 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
                             instanceID = candidate.instanceID,
                             tier = candidate.tier,
                             difficulty = 23,
+                            encounterID = info.encounterID,
+                            displaySeasonID = info.displaySeasonID,
+                            itemQuality = info.itemQuality,
                         }
                         break
                     end
@@ -349,6 +408,149 @@ end
 local function getPreviewMythicPlusLootLink(dungeonName, itemID)
     local context = getPreviewMythicPlusLootContext(dungeonName, itemID)
     return context and context.link or nil
+end
+
+local function getPreviewRaidLootContext(itemID, fallbackName)
+    if (not itemID or itemID <= 0) and (not fallbackName or fallbackName == "") then
+        return nil
+    end
+
+    local targetName = fallbackName
+    if (not targetName or targetName == "") and itemID then
+        targetName = select(1, GetItemInfo(itemID))
+    end
+    local normalizedTargetName = normalizeCompareText(targetName)
+    local cacheKey = string.format("raid:%s:%s", tostring(itemID or 0), normalizedTargetName)
+    if EJ_PREVIEW_CONTEXT_CACHE[cacheKey] ~= nil then
+        return EJ_PREVIEW_CONTEXT_CACHE[cacheKey] or nil
+    end
+    if not ensureEncounterJournalLoaded() then
+        EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
+        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
+        return nil
+    end
+
+    local candidates = getRaidCandidates()
+    if not candidates or #candidates == 0 then
+        EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
+        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
+        return nil
+    end
+
+    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
+    local savedInstance = EJ_GetCurrentInstance and EJ_GetCurrentInstance() or nil
+    local savedDifficulty = EJ_GetDifficulty and EJ_GetDifficulty() or nil
+    local difficultyID = getRaidPreviewDifficultyID()
+    local foundContext
+
+    for _, candidate in ipairs(candidates) do
+        if candidate.tier then
+            pcall(EJ_SelectTier, candidate.tier)
+        end
+        if EJ_SetDifficulty then
+            pcall(EJ_SetDifficulty, difficultyID)
+        end
+        if pcall(EJ_SelectInstance, candidate.instanceID)
+        and C_EncounterJournal and C_EncounterJournal.GetLootInfoByIndex then
+            local lootCount = EJ_GetNumLoot and (EJ_GetNumLoot() or 0) or 0
+            for i = 1, lootCount do
+                local ok, info = pcall(C_EncounterJournal.GetLootInfoByIndex, i)
+                local matched = false
+                if ok and info then
+                    if itemID and info.itemID == itemID then
+                        matched = true
+                    elseif normalizedTargetName ~= "" then
+                        local previewName = info.name or select(1, GetItemInfo(info.link or info.itemLink or info.itemID or 0))
+                        matched = normalizeCompareText(previewName) == normalizedTargetName
+                    end
+                end
+                if matched then
+                    local foundLink = info.link or info.itemLink or info.hyperlink
+                    if foundLink then
+                        foundContext = {
+                            link = foundLink,
+                            itemID = info.itemID,
+                            instanceID = candidate.instanceID,
+                            tier = candidate.tier,
+                            difficulty = difficultyID,
+                            encounterID = info.encounterID,
+                            itemQuality = info.itemQuality,
+                        }
+                        break
+                    end
+                end
+            end
+        end
+        if foundContext then
+            break
+        end
+    end
+
+    if savedTier then
+        pcall(EJ_SelectTier, savedTier)
+    end
+    if savedInstance then
+        pcall(EJ_SelectInstance, savedInstance)
+    end
+    if savedDifficulty and EJ_SetDifficulty then
+        pcall(EJ_SetDifficulty, savedDifficulty)
+    end
+
+    EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = foundContext or false
+    EJ_PREVIEW_LINK_CACHE[cacheKey] = foundContext and foundContext.link or false
+    return foundContext
+end
+
+local function getTooltipCompareFilter(useSpec)
+    local classID, specID
+    if useSpec then
+        if EJ_GetLootFilter then
+            classID, specID = EJ_GetLootFilter()
+        end
+        if specID == 0 and C_SpecializationInfo and C_SpecializationInfo.GetSpecialization then
+            local spec = C_SpecializationInfo.GetSpecialization()
+            if spec and classID == select(3, UnitClass("player")) then
+                specID = C_SpecializationInfo.GetSpecializationInfo(spec, nil, nil, nil, UnitSex("player"))
+            else
+                specID = -1
+            end
+        end
+    end
+    return classID, specID
+end
+
+local function processEncounterJournalTooltip(tooltip, link, useSpec)
+    if not tooltip or not link then
+        return false
+    end
+
+    if type(CreateBaseTooltipInfo) == "function" and type(tooltip.ProcessInfo) == "function" then
+        local classID, specID = getTooltipCompareFilter(useSpec)
+        local ok, tooltipInfo = pcall(CreateBaseTooltipInfo, "GetHyperlink", link, classID, specID)
+        if ok and tooltipInfo then
+            tooltipInfo.compareItem = true
+            local processed = pcall(tooltip.ProcessInfo, tooltip, tooltipInfo)
+            if processed then
+                return true
+            end
+        end
+    end
+
+    if type(EncounterJournal_SetTooltipWithCompare) == "function" then
+        local ok = pcall(EncounterJournal_SetTooltipWithCompare, tooltip, link, useSpec)
+        if ok then
+            return true
+        end
+    end
+
+    if tooltip.SetHyperlink then
+        local ok = pcall(tooltip.SetHyperlink, tooltip, link)
+        if ok then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function getClassColorRGB(classFile)
@@ -446,12 +648,50 @@ local function getPlayerSpecID()
     return nil
 end
 
+local function getEncounterJournalContextForEntry(entry, itemID)
+    if not entry then
+        return nil
+    end
+
+    local sourceType = getEntrySourceType(entry)
+    local fallbackName = itemID and select(1, GetItemInfo(itemID)) or nil
+    if sourceType == "mythicplus" then
+        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
+        if not dungeonName then
+            return nil
+        end
+        return getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName)
+    end
+    if sourceType == "raid" then
+        return getPreviewRaidLootContext(itemID, fallbackName)
+    end
+    return nil
+end
+
 -- 모험 안내서 열기 (safe — pcall 보호)
-local function openEncounterJournal(dungeonName, itemID)
-    local context = itemID and getPreviewMythicPlusLootContext(dungeonName, itemID, select(1, GetItemInfo(itemID))) or nil
-    local instanceID = context and context.instanceID or getDungeonInstanceID(dungeonName)
+local function openEncounterJournalForEntry(entry, itemID)
+    if not entry then
+        return
+    end
+
+    local sourceType = getEntrySourceType(entry)
+    if sourceType == "crafted" then
+        return
+    end
+
+    local context = getEncounterJournalContextForEntry(entry, itemID)
+    local instanceID = context and context.instanceID or nil
     local tier = context and context.tier or nil
     local journalItemID = context and context.itemID or itemID
+    local encounterID = context and context.encounterID or nil
+    local difficultyID = context and context.difficulty
+        or (sourceType == "raid" and getRaidPreviewDifficultyID() or 23)
+
+    if not instanceID and sourceType == "mythicplus" then
+        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
+        instanceID = getDungeonInstanceID(dungeonName)
+    end
+
     pcall(function()
         if not ensureEncounterJournalLoaded() then
             return
@@ -465,7 +705,7 @@ local function openEncounterJournal(dungeonName, itemID)
                 end
             end
             if instanceID and type(EncounterJournal_OpenJournal) == "function" then
-                pcall(EncounterJournal_OpenJournal, 23, instanceID, nil, nil, nil, journalItemID, tier)
+                pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, journalItemID, tier)
             end
             if instanceID then
                 C_Timer.After(0.1, function()
@@ -473,12 +713,16 @@ local function openEncounterJournal(dungeonName, itemID)
                         pcall(EJ_SelectTier, tier)
                     end
                     if EJ_SetDifficulty then
-                        pcall(EJ_SetDifficulty, 23)
+                        pcall(EJ_SetDifficulty, difficultyID)
                     end
-                    if C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
+                    if sourceType == "mythicplus"
+                    and C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
                         pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, getSeasonPreviewKeyLevel())
                     end
                     pcall(EJ_SelectInstance, instanceID)
+                    if encounterID and EJ_SelectEncounter then
+                        pcall(EJ_SelectEncounter, encounterID)
+                    end
                     local lootTab = EncounterJournal
                         and EncounterJournal.encounter
                         and EncounterJournal.encounter.info
@@ -515,8 +759,16 @@ end
 
 getEntrySourceType = function(entry)
     local sourceType = entry and entry.sourceType
-    if sourceType == "raid" or sourceType == "crafted" then
-        return sourceType
+    local sourceLabel = entry and (entry.sourceLabel or entry.dungeon or entry.boss) or nil
+
+    if sourceType == "crafted" or isCraftingSourceLabel(sourceLabel) then
+        return "crafted"
+    end
+    if resolveSeasonDungeonName(entry and entry.dungeon or sourceLabel) then
+        return "mythicplus"
+    end
+    if sourceType == "raid" then
+        return "raid"
     end
     return "mythicplus"
 end
@@ -557,16 +809,31 @@ local function getDisplaySourceLabel(entry)
 
     local sourceType = getEntrySourceType(entry)
     if sourceType == "mythicplus" then
-        return localizeDungeon(entry.dungeon or entry.sourceLabel)
+        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
+        return localizeDungeon(dungeonName or entry.dungeon or entry.sourceLabel)
     end
     if sourceType == "crafted" then
         local label = entry.sourceLabel
-        if not label or label == "" or label == "Crafting" then
+        if not label or label == "" or isCraftingSourceLabel(label) then
             return ns.L("bis_source_crafted")
         end
-        return label
+        return localizeSourceLabel(label)
     end
-    return entry.sourceLabel or entry.boss or localizeSourceType(sourceType)
+    local rawLabel = entry.sourceLabel or entry.boss or localizeSourceType(sourceType)
+    local localized = localizeSourceLabel(rawLabel)
+    if isEnglishOnlyLabel(localized) and type(rawLabel) == "string" then
+        for token in string.gmatch(rawLabel, "[^,/|]+") do
+            local trimmed = token:match("^%s*(.-)%s*$")
+            local partial = localizeSourceLabel(trimmed)
+            if partial and partial ~= "" and not isEnglishOnlyLabel(partial) then
+                return partial
+            end
+        end
+    end
+    if isEnglishOnlyLabel(localized) then
+        return localizeSourceType(sourceType)
+    end
+    return localized
 end
 
 normalizeCompareText = function(text)
@@ -575,6 +842,220 @@ normalizeCompareText = function(text)
     text = text:gsub("|r", "")
     text = text:gsub("[%s%p%c]+", "")
     return text
+end
+
+local ITEM_LEVEL_TOKEN = normalizeCompareText(ITEM_LEVEL or "Item Level")
+
+local SOURCE_LABEL_KOKR = {
+    [normalizeCompareText("Crafting")] = "제작",
+    [normalizeCompareText("Alchemy")] = "연금술",
+    [normalizeCompareText("Blacksmithing")] = "대장기술",
+    [normalizeCompareText("Enchanting")] = "마법부여",
+    [normalizeCompareText("Engineering")] = "기계공학",
+    [normalizeCompareText("Inscription")] = "주문각인",
+    [normalizeCompareText("Jewelcrafting")] = "보석세공",
+    [normalizeCompareText("Leatherworking")] = "가죽세공",
+    [normalizeCompareText("Tailoring")] = "재봉",
+    [normalizeCompareText("Catalyst")] = "촉매",
+    [normalizeCompareText("Catalyse charge")] = "촉매 충전",
+    [normalizeCompareText("Tier")] = "티어",
+    [normalizeCompareText("Tier Set")] = "티어 세트",
+    [normalizeCompareText("Tier item")] = "티어 아이템",
+    [normalizeCompareText("Tier set")] = "티어 세트",
+    [normalizeCompareText("Tier Chest")] = "티어 가슴",
+    [normalizeCompareText("Tier Gloves")] = "티어 장갑",
+    [normalizeCompareText("Tier Helmet")] = "티어 머리",
+    [normalizeCompareText("Tier Legs")] = "티어 다리",
+    [normalizeCompareText("Catalyst/Tier")] = "촉매 / 티어",
+    [normalizeCompareText("Catalyst/Raid")] = "촉매 / 레이드",
+    [normalizeCompareText("Catalyst / Raid / Vault")] = "촉매 / 레이드 / 금고",
+    [normalizeCompareText("Catalyst / Raid /Vault")] = "촉매 / 레이드 / 금고",
+    [normalizeCompareText("Raid / Catalyst")] = "레이드 / 촉매",
+    [normalizeCompareText("Raid | Catalyst | Vault")] = "레이드 / 촉매 / 금고",
+    [normalizeCompareText("Raid/Vault/Catalyst")] = "레이드 / 금고 / 촉매",
+    [normalizeCompareText("Midnight Falls")] = "한밤 폭포",
+    [normalizeCompareText("Midnight Falls (Raid)")] = "한밤 폭포",
+    [normalizeCompareText("March on Quel’Danas")] = "쿠엘다나스 진격로",
+    [normalizeCompareText("March on Quel'danas")] = "쿠엘다나스 진격로",
+    [normalizeCompareText("March on Quel’danas, Midnight Falls")] = "쿠엘다나스 진격로",
+    [normalizeCompareText("The Voidspire")] = "공허 첨탑",
+    [normalizeCompareText("The Dreamrift")] = "꿈의균열",
+    [normalizeCompareText("Dreamrift")] = "꿈의균열",
+    [normalizeCompareText("Voidscar Arena")] = "공허흉터 투기장",
+    [normalizeCompareText("Murder Row")] = "죽음의 골목",
+    [normalizeCompareText("Den of Nalorakk")] = "날로라크의 소굴",
+    [normalizeCompareText("Windrunner Spire (M+)")] = "윈드러너 첨탑",
+    [normalizeCompareText("Windrunner Spire")] = "윈드러너 첨탑",
+    [normalizeCompareText("Seat of the Triumvirate (M+)")] = "삼두정의 권좌",
+    [normalizeCompareText("Seat of the Triumvirate")] = "삼두정의 권좌",
+    [normalizeCompareText("Magister Terrace")] = "마법학자의 정원",
+    [normalizeCompareText("Magisters' Terrace")] = "마법학자의 정원",
+    [normalizeCompareText("Magisters’ Terrace (Degentrius)")] = "마법학자의 정원",
+    [normalizeCompareText("Maisara Caverns")] = "마이사라 동굴",
+    [normalizeCompareText("Nexus-Point")] = "공결점 제나스",
+    [normalizeCompareText("Nexus-Point Xenas")] = "공결점 제나스",
+    [normalizeCompareText("Nexus-Point Xenas Belo'ren")] = "공결점 제나스",
+    [normalizeCompareText("Pit of Saron")] = "사론의 구덩이",
+    [normalizeCompareText("Algethar’s Academy")] = "알게타르 아카데미",
+    [normalizeCompareText("Algethar Academy")] = "알게타르 아카데미",
+    [normalizeCompareText("Alhgeth’ar Academy")] = "알게타르 아카데미",
+    [normalizeCompareText("Skyreach")] = "하늘탑",
+    [normalizeCompareText("Skyreach / Vaelgor & Ezzorak")] = "하늘탑",
+    [normalizeCompareText("Fallen King Salhadaar")] = "공허 첨탑",
+    [normalizeCompareText("Fallen-King Salhadaar")] = "공허 첨탑",
+    [normalizeCompareText("Lightblinded Vanguard")] = "공허 첨탑",
+    [normalizeCompareText("Crown of the Cosmos")] = "공허 첨탑",
+    [normalizeCompareText("Crown of the cosmos")] = "공허 첨탑",
+    [normalizeCompareText("Imperator Averzian")] = "공허 첨탑",
+    [normalizeCompareText("Belo'ren")] = "공허 첨탑",
+    [normalizeCompareText("Belo’ren")] = "공허 첨탑",
+    [normalizeCompareText("Belo’ren (Raid)")] = "공허 첨탑",
+    [normalizeCompareText("Belo'ren, Child of Al'ar")] = "공허 첨탑",
+    [normalizeCompareText("Belo’ren, Child of Al’ar")] = "공허 첨탑",
+    [normalizeCompareText("Vaelgor")] = "공허 첨탑",
+    [normalizeCompareText("Vaelgor & Ezzorak")] = "공허 첨탑",
+    [normalizeCompareText("Vaelgor & Ezzorak (Raid)")] = "공허 첨탑",
+    [normalizeCompareText("Vaelgor and Ezzorak")] = "공허 첨탑",
+    [normalizeCompareText("Vorasius")] = "공허 첨탑",
+    [normalizeCompareText("Chimaerus")] = "꿈의균열",
+    [normalizeCompareText("Chimaerus (Raid)")] = "꿈의균열",
+    [normalizeCompareText("Chimaerus the Undreamt God")] = "꿈의균열",
+    [normalizeCompareText("Chimareus, the Undreamt God")] = "꿈의균열",
+    [normalizeCompareText("L’ura")] = "꿈의균열",
+    [normalizeCompareText("Alleria Windrunner")] = "쿠엘다나스 진격로",
+}
+
+localizeSourceLabel = function(label)
+    if not label or label == "" then
+        return label
+    end
+    if ns.DB and ns.Constants and ns.DB.GetLanguage
+        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN then
+        local localized = SOURCE_LABEL_KOKR[normalizeCompareText(label)]
+        if localized and localized ~= "" then
+            return localized
+        end
+    end
+    return label
+end
+
+local function isEnglishOnlyLabel(label)
+    return type(label) == "string" and label:find("[A-Za-z]") ~= nil and label:find("[가-힣]") == nil
+end
+
+local function isCraftingSourceLabel(label)
+    local normalized = normalizeCompareText(label)
+    return normalized == normalizeCompareText("Crafting")
+        or normalized == normalizeCompareText("Tailoring")
+        or normalized == normalizeCompareText("Leatherworking")
+        or normalized == normalizeCompareText("Blacksmithing")
+        or normalized == normalizeCompareText("Engineering")
+        or normalized == normalizeCompareText("Jewelcrafting")
+        or normalized == normalizeCompareText("Enchanting")
+        or normalized == normalizeCompareText("Inscription")
+        or normalized == normalizeCompareText("Alchemy")
+end
+
+resolveSeasonDungeonName = function(label)
+    if not label or label == "" then
+        return nil
+    end
+
+    if DUNGEON_LOCALE_KEYS[label] then
+        return label
+    end
+
+    local localized = localizeSourceLabel(label)
+    if localized and DUNGEON_LOCALE_KEYS[localized] then
+        return localized
+    end
+
+    local normalized = normalizeCompareText(label)
+    for dungeonName, localeKey in pairs(DUNGEON_LOCALE_KEYS) do
+        if normalized == normalizeCompareText(dungeonName) then
+            return dungeonName
+        end
+        local englishName = ns.L(localeKey)
+        if englishName and normalized == normalizeCompareText(englishName) then
+            return dungeonName
+        end
+    end
+
+    return nil
+end
+
+local function extractTooltipItemLevel(tooltipData)
+    if type(tooltipData) ~= "table" then
+        return nil
+    end
+
+    local overrideItemLevel = tonumber(tooltipData.overrideItemLevel)
+    if overrideItemLevel and overrideItemLevel > 0 then
+        return math.floor(overrideItemLevel + 0.5)
+    end
+
+    for _, line in ipairs(tooltipData.lines or {}) do
+        for _, field in ipairs({ line.leftText, line.rightText, line.text }) do
+            local text = tostring(field or "")
+            local normalized = normalizeCompareText(text)
+            if normalized ~= "" and normalized:find(ITEM_LEVEL_TOKEN, 1, true) then
+                local itemLevel = tonumber(text:match("(%d%d%d)"))
+                if itemLevel then
+                    return itemLevel
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function validatePreviewTooltip(previewContext)
+    if not previewContext or not previewContext.link
+        or not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
+        return nil
+    end
+
+    local classID, specID = getTooltipCompareFilter(true)
+    local ok, tooltipData = pcall(C_TooltipInfo.GetHyperlink, previewContext.link, classID, specID, true)
+    if not ok or not tooltipData then
+        return nil
+    end
+
+    local itemLevel = extractTooltipItemLevel(tooltipData)
+    local minIlvl, maxIlvl = getSeasonalMythicPlusRange()
+    local trusted = itemLevel ~= nil and minIlvl ~= nil and maxIlvl ~= nil
+        and itemLevel >= minIlvl and itemLevel <= maxIlvl
+
+    return {
+        trusted = trusted and true or false,
+        itemLevel = itemLevel,
+        tooltipData = tooltipData,
+    }
+end
+
+local function validateRaidPreviewTooltip(previewContext)
+    if not previewContext or not previewContext.link
+        or not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
+        return nil
+    end
+
+    local classID, specID = getTooltipCompareFilter(true)
+    local ok, tooltipData = pcall(C_TooltipInfo.GetHyperlink, previewContext.link, classID, specID, true)
+    if not ok or not tooltipData then
+        return nil
+    end
+
+    local itemLevel = extractTooltipItemLevel(tooltipData)
+    local minIlvl, maxIlvl = getSeasonalRaidRange()
+    local trusted = itemLevel ~= nil and minIlvl ~= nil and maxIlvl ~= nil
+        and itemLevel >= minIlvl and itemLevel <= maxIlvl
+
+    return {
+        trusted = trusted and true or false,
+        itemLevel = itemLevel,
+        tooltipData = tooltipData,
+    }
 end
 
 local function canonicalNote(note)
@@ -686,11 +1167,64 @@ local function getSeasonalMythicPlusSummary(kind)
     )
 end
 
-local function getSeasonalMythicPlusRange()
+getSeasonalMythicPlusRange = function()
     local tbl = ns.Data and ns.Data.ItemLevelTable
     local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
     if not entries or #entries == 0 then return nil, nil end
     return entries[1].ilvl, entries[#entries].ilvl
+end
+
+getSeasonalRaidRange = function()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local raid = tbl and tbl.raid
+    if not raid or not raid.normal or not raid.mythic then
+        return nil, nil
+    end
+    return raid.normal.min, raid.mythic.max
+end
+
+local function getSeasonalRaidSummaryLines()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local raid = tbl and tbl.raid
+    if not raid then
+        return {}
+    end
+
+    local order = { "normal", "heroic", "mythic" }
+    local lines = {}
+    for _, key in ipairs(order) do
+        local entry = raid[key]
+        if entry then
+            lines[#lines + 1] = {
+                label = ns.L(entry.labelKey) or key,
+                text = string.format("%d~%d", entry.min or 0, entry.max or 0),
+            }
+        end
+    end
+    return lines
+end
+
+local function getSeasonalCraftedSummaryLines()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local crafted = tbl and tbl.crafted
+    if not crafted then
+        return {}
+    end
+
+    local lines = {}
+    if crafted.base and crafted.base.ilvl then
+        lines[#lines + 1] = {
+            label = ns.L(crafted.base.labelKey) or "Crafted",
+            text = tostring(crafted.base.ilvl),
+        }
+    end
+    if crafted.r5 and crafted.r5.ilvl then
+        lines[#lines + 1] = {
+            label = ns.L(crafted.r5.labelKey) or "Crafted (Max)",
+            text = tostring(crafted.r5.ilvl),
+        }
+    end
+    return lines
 end
 
 local function slotSortValue(slotName)
@@ -974,7 +1508,7 @@ function BISOverlay:EnsureFrame()
 
     frame.specPickerBtn = CreateFrame("Button", nil, frame.tabsFrame, "BackdropTemplate")
     frame.specPickerBtn:SetSize(SPEC_PICKER_W, SPEC_PICKER_BTN_H)
-    frame.specPickerBtn:SetPoint("TOPRIGHT", frame.tabsFrame, "TOPRIGHT", 0, -1)
+    frame.specPickerBtn:SetPoint("BOTTOMRIGHT", frame.tabsFrame, "BOTTOMRIGHT", 0, 0)
     if frame.specPickerBtn.SetBackdrop then
         frame.specPickerBtn:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -1369,7 +1903,7 @@ function BISOverlay:EnsureTabs()
     for i, spec in ipairs(specs) do
         local tab = CreateFrame("Button", nil, frame.tabsFrame)
         tab:SetSize(TAB_SIZE, TAB_SIZE)
-        tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 6), -6)
+        tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 6), -2)
 
         -- 아이콘
         tab.icon = tab:CreateTexture(nil, "ARTWORK")
@@ -1459,10 +1993,20 @@ local function showSeasonItemTooltip(owner, row)
     local noteIndex = row._displayNoteIndex or 3
     local previewLevel = getSeasonPreviewKeyLevel()
     local fallbackName = select(1, GetItemInfo(row.itemID))
-    local previewContext = sourceType == "mythicplus"
-        and getPreviewMythicPlusLootContext(entry.dungeon, row.itemID, fallbackName)
-        or nil
+    local previewContext
+    if sourceType == "mythicplus" then
+        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
+        previewContext = dungeonName and getPreviewMythicPlusLootContext(dungeonName, row.itemID, fallbackName) or nil
+    elseif sourceType == "raid" then
+        previewContext = getPreviewRaidLootContext(row.itemID, fallbackName)
+    end
     local previewLink = previewContext and previewContext.link or nil
+    local previewValidation
+    if sourceType == "mythicplus" then
+        previewValidation = validatePreviewTooltip(previewContext)
+    elseif sourceType == "raid" then
+        previewValidation = validateRaidPreviewTooltip(previewContext)
+    end
     local tooltipLink = previewLink
     local itemName
     local quality
@@ -1480,14 +2024,10 @@ local function showSeasonItemTooltip(owner, row)
 
     local hasBaseTooltip = false
 
-    if tooltipLink and GameTooltip.SetHyperlink then
-        local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, tooltipLink)
-        hasBaseTooltip = ok
-    end
-
-    if not hasBaseTooltip and GameTooltip.SetItemByID then
-        local ok = pcall(GameTooltip.SetItemByID, GameTooltip, row.itemID)
-        hasBaseTooltip = ok
+    if (sourceType == "mythicplus" or sourceType == "raid")
+    and previewLink and previewValidation and previewValidation.trusted then
+        hasBaseTooltip = processEncounterJournalTooltip(GameTooltip, previewLink, true)
+        tooltipLink = previewLink
     end
 
     if not hasBaseTooltip then
@@ -1506,16 +2046,17 @@ local function showSeasonItemTooltip(owner, row)
     end
 
     GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
-    if sourceType == "mythicplus" and previewLink then
-        GameTooltip:AddLine(ns.L("bis_tooltip_preview_key", previewLevel), 0.38, 0.88, 1.00, true)
-    elseif sourceType == "mythicplus" and scaledMinIlvl and scaledMaxIlvl then
-        GameTooltip:AddLine(ns.L("bis_tooltip_item_level_scaled", scaledMinIlvl, scaledMaxIlvl), 0.38, 0.88, 1.00, true)
-    end
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
 
     if sourceType == "mythicplus" then
+        if previewValidation and previewValidation.trusted then
+            GameTooltip:AddLine(ns.L("bis_tooltip_preview_key", previewLevel), 0.38, 0.88, 1.00, true)
+        elseif scaledMinIlvl and scaledMaxIlvl then
+            GameTooltip:AddLine(ns.L("bis_tooltip_item_level_scaled", scaledMinIlvl, scaledMaxIlvl), 0.38, 0.88, 1.00, true)
+            GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.72, 0.42, true)
+        end
         local runTrack = getSeasonalMythicPlusSummary("run")
         if runTrack ~= "" then
             GameTooltip:AddDoubleLine(ns.L("bis_tooltip_end_of_run"), runTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
@@ -1524,9 +2065,30 @@ local function showSeasonItemTooltip(owner, row)
         if vaultTrack ~= "" then
             GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
         end
+    elseif sourceType == "raid" then
+        if previewValidation and previewValidation.trusted then
+            GameTooltip:AddLine(ns.L("bis_tooltip_raid_preview"), 0.38, 0.88, 1.00, true)
+        else
+            GameTooltip:AddLine(ns.L("bis_tooltip_raid_fallback"), 1.00, 0.72, 0.42, true)
+        end
+        for _, line in ipairs(getSeasonalRaidSummaryLines()) do
+            GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+        end
+    elseif sourceType == "crafted" then
+        GameTooltip:AddLine(ns.L("bis_tooltip_crafted_fallback"), 1.00, 0.72, 0.42, true)
+        for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
+            GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+        end
     end
 
-    if getDungeonInstanceID(entry.dungeon) then
+    local canOpenJournal = false
+    if sourceType ~= "crafted" then
+        canOpenJournal = (previewContext and previewContext.instanceID) and true or false
+        if not canOpenJournal and sourceType == "mythicplus" then
+            canOpenJournal = getDungeonInstanceID(resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)) and true or false
+        end
+    end
+    if canOpenJournal then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end
@@ -1600,9 +2162,9 @@ local function ensureRow(frame, index)
     row.tooltipRegion:RegisterForClicks("LeftButtonUp")
     row.tooltipRegion:SetScript("OnClick", function()
         if row._sectionDungeon then
-            openEncounterJournal(row._sectionDungeon)
-        elseif row._entry and row._entry.dungeon then
-            openEncounterJournal(row._entry.dungeon, row.itemID)
+            openEncounterJournalForEntry({ dungeon = row._sectionDungeon, sourceType = "mythicplus" })
+        elseif row._entry then
+            openEncounterJournalForEntry(row._entry, row.itemID)
         end
     end)
     row.tooltipRegion:SetScript("OnEnter", function(self2)

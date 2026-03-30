@@ -36,39 +36,81 @@ local function getSeasonBestInfo(mapID)
     return bestInfo
 end
 
+local function getBestDuration(mapID)
+    if not mapID or not C_MythicPlus or not C_MythicPlus.GetSeasonBestAffixScoreInfoForMap then
+        return nil
+    end
+
+    local affixScores = C_MythicPlus.GetSeasonBestAffixScoreInfoForMap(mapID)
+    local bestDuration
+    for _, info in ipairs(affixScores or {}) do
+        local duration = tonumber(info and info.durationSec)
+        if duration and duration > 0 and (not bestDuration or duration < bestDuration) then
+            bestDuration = duration
+        end
+    end
+    return bestDuration
+end
+
 local function ensureDisplay(iconFrame)
     if iconFrame.ABPMRecordOverlay then
+        iconFrame.ABPMRecordOverlay:SetFrameLevel((iconFrame:GetFrameLevel() or 1) + 8)
         return iconFrame.ABPMRecordOverlay
     end
 
-    local holder = CreateFrame("Frame", nil, iconFrame, "BackdropTemplate")
-    holder:SetPoint("BOTTOMLEFT", iconFrame, "BOTTOMLEFT", 3, 3)
-    holder:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", -3, 3)
+    local holder = CreateFrame("Frame", nil, iconFrame)
+    holder:SetFrameStrata(iconFrame:GetFrameStrata())
+    holder:SetFrameLevel((iconFrame:GetFrameLevel() or 1) + 8)
+    holder:SetPoint("BOTTOMLEFT", iconFrame, "BOTTOMLEFT", 2, 4)
+    holder:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", -2, 4)
     holder:SetHeight(24)
-    if holder.SetBackdrop then
-        holder:SetBackdrop({
-            bgFile = "Interface\\Buttons\\WHITE8X8",
-            edgeFile = "Interface\\Buttons\\WHITE8X8",
-            tile = false,
-            edgeSize = 1,
-            insets = { left = 0, right = 0, top = 0, bottom = 0 },
-        })
-        holder:SetBackdropColor(0.03, 0.05, 0.09, 0.88)
-        holder:SetBackdropBorderColor(0.22, 0.30, 0.42, 0.92)
-    end
 
     holder.levelScore = holder:CreateFontString(nil, "OVERLAY")
-    holder.levelScore:SetPoint("TOP", holder, "TOP", 0, -2)
-    holder.levelScore:SetFont(FONT_PATH, 9, FONT_FLAGS)
-    holder.levelScore:SetTextColor(1.00, 0.86, 0.48, 1)
+    holder.levelScore:SetPoint("BOTTOM", holder, "BOTTOM", 0, 9)
+    holder.levelScore:SetFont(FONT_PATH, 11, FONT_FLAGS)
+    holder.levelScore:SetTextColor(1.00, 1.00, 1.00, 1)
+    if holder.levelScore.SetShadowOffset then
+        holder.levelScore:SetShadowOffset(1, -1)
+        holder.levelScore:SetShadowColor(0, 0, 0, 0.95)
+    end
 
     holder.timeText = holder:CreateFontString(nil, "OVERLAY")
     holder.timeText:SetPoint("TOP", holder.levelScore, "BOTTOM", 0, -1)
     holder.timeText:SetFont(FONT_PATH, 8, FONT_FLAGS)
-    holder.timeText:SetTextColor(0.72, 0.88, 1.00, 1)
+    holder.timeText:SetTextColor(0.92, 0.96, 1.00, 1)
+    if holder.timeText.SetShadowOffset then
+        holder.timeText:SetShadowOffset(1, -1)
+        holder.timeText:SetShadowColor(0, 0, 0, 0.95)
+    end
 
     iconFrame.ABPMRecordOverlay = holder
     return holder
+end
+
+function MythicPlusRecordOverlay:RefreshIcon(icon)
+    if not icon then
+        return
+    end
+
+    local overlay = icon.ABPMRecordOverlay
+    if not ns.DB or not ns.DB:IsMythicPlusRecordOverlayEnabled() or not icon.mapID then
+        if overlay then
+            overlay:Hide()
+        end
+        return
+    end
+
+    local bestInfo = getSeasonBestInfo(icon.mapID)
+    local bestDuration = getBestDuration(icon.mapID)
+    overlay = ensureDisplay(icon)
+    if bestInfo and (bestInfo.level or 0) > 0 then
+        local score = math.floor((bestInfo.dungeonScore or 0) + 0.5)
+        overlay.levelScore:SetText(tostring(score))
+        overlay.timeText:SetText(formatDuration(bestDuration or bestInfo.durationSec))
+        overlay:Show()
+    else
+        overlay:Hide()
+    end
 end
 
 function MythicPlusRecordOverlay:HideAll()
@@ -97,19 +139,8 @@ function MythicPlusRecordOverlay:Refresh()
     end
 
     for _, icon in ipairs(frame.DungeonIcons) do
-        if icon and icon:IsShown() and icon.mapID then
-            local bestInfo = getSeasonBestInfo(icon.mapID)
-            local overlay = ensureDisplay(icon)
-            if bestInfo and (bestInfo.level or 0) > 0 then
-                local score = math.floor((bestInfo.dungeonScore or 0) + 0.5)
-                overlay.levelScore:SetText(string.format("+%d  %d", bestInfo.level or 0, score))
-                overlay.timeText:SetText(formatDuration(bestInfo.durationSec))
-                overlay:Show()
-            else
-                overlay:Hide()
-            end
-        elseif icon and icon.ABPMRecordOverlay then
-            icon.ABPMRecordOverlay:Hide()
+        if icon then
+            self:RefreshIcon(icon)
         end
     end
 end
@@ -125,6 +156,11 @@ function MythicPlusRecordOverlay:Initialize()
             return self._hooksReady and true or false
         end
 
+        if ChallengesDungeonIconMixin and type(ChallengesDungeonIconMixin.SetUp) == "function" then
+            hooksecurefunc(ChallengesDungeonIconMixin, "SetUp", function(icon)
+                MythicPlusRecordOverlay:RefreshIcon(icon)
+            end)
+        end
         ChallengesFrame:HookScript("OnShow", function()
             MythicPlusRecordOverlay:Refresh()
         end)

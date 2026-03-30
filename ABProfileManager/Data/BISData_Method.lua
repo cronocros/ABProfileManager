@@ -1,7 +1,8 @@
 local _, ns = ...
 
 -- Method.gg Midnight Season 1 overall BIS dataset
--- Generated from current gearing guides and merged with the local Mythic+ list at load time.
+-- Generated from current gearing guides. This file is treated as the
+-- authoritative current-season source for BISOverlay.
 ns.Data = ns.Data or {}
 ns.Data.BISItems = ns.Data.BISItems or {}
 
@@ -679,33 +680,15 @@ local overallOverrides = {
 }
 
 for specID, overallItems in pairs(overallOverrides) do
-    local merged = {}
-    local seenItemIDs = {}
-    local slotCounts = {}
+    local sanitized = {}
     for _, entry in ipairs(overallItems) do
-        merged[#merged + 1] = entry
-        if entry.itemID then seenItemIDs[entry.itemID] = true end
-        slotCounts[entry.slot] = (slotCounts[entry.slot] or 0) + 1
-    end
-
-    local baseItems = ns.Data.BISItems[specID] or {}
-    local extraRankBySlot = {}
-    for _, entry in ipairs(baseItems) do
-        if entry.itemID and not seenItemIDs[entry.itemID] then
-            local slot = entry.slot or "기타"
-            local extraRank = (extraRankBySlot[slot] or 0) + 1
-            extraRankBySlot[slot] = extraRank
-            local copy = {}
-            for key, value in pairs(entry) do
-                copy[key] = value
-            end
-            copy.sourceType = copy.sourceType or "mythicplus"
-            copy.sourceLabel = copy.sourceLabel or copy.dungeon or copy.boss or nil
-            copy.note = extraRank == 1 and "대체재" or "2순위"
-            merged[#merged + 1] = copy
-            seenItemIDs[copy.itemID] = true
-            slotCounts[slot] = (slotCounts[slot] or 0) + 1
+        local copy = {}
+        for key, value in pairs(entry) do
+            copy[key] = value
         end
+        copy.sourceType = copy.sourceType or "mythicplus"
+        copy.sourceLabel = copy.sourceLabel or copy.dungeon or copy.boss or nil
+        sanitized[#sanitized + 1] = copy
     end
-    ns.Data.BISItems[specID] = merged
+    ns.Data.BISItems[specID] = sanitized
 end

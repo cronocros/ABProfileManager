@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.5.6 기반)`
+버전 기준: `main (v1.5.7 기반)`
 
 ## 현재 상태
 
@@ -35,12 +35,20 @@
 
 ## 운영 메모
 
-### 0. v1.5.6 QA 반영 메모
+### 0. v1.5.7 QA 반영 메모
 
-- `Data/BISData_Method.lua`는 이제 Method.gg current overall BIS를 기준으로 raid/crafted/mythicplus `sourceType`와 `sourceLabel`을 함께 넣는다. 기존 `Data/BISData.lua` 수기 쐐기 데이터는 load 시 각 부위 `대체재 / 2순위`로 병합된다.
+- `Data/BISData_Method.lua`는 이제 기존 `Data/BISData.lua` 수기 쐐기 대체재를 뒤에서 병합하지 않는다. 현 시즌 BIS 오염이 다시 생기면 먼저 이 파일 하단에 base merge가 재도입됐는지 본다.
+- `UI/BISOverlay.lua`는 `sourceType`를 그대로 믿지 않고 `sourceLabel`을 다시 해석한다. 던전명이 섞인 `raid` 행은 현재 시즌 M+ 경로로 재분류하고, 영문 source label은 한글 또는 소스 타입명으로 정규화한다.
+- BIS 툴팁은 `mythicplus`/`raid`에서 Encounter Journal preview link가 시즌 범위 안에 들어올 때만 실제 tooltip을 쓰고, 그렇지 않으면 현재 시즌 요약만 보여준다. 저레벨 `44` tooltip 회귀가 나오면 `validatePreviewTooltip()`, `validateRaidPreviewTooltip()`, `showSeasonItemTooltip()`를 같이 본다.
+- BIS 클릭은 던전명 하드코딩보다 `itemID -> instanceID/encounterID` 검색을 우선한다. 레이드가 다시 최근 페이지로만 열리면 `getPreviewRaidLootContext()`와 `openEncounterJournalForEntry()`를 먼저 본다.
+- `UI/MythicPlusRecordOverlay.lua`는 더 이상 아웃박스를 쓰지 않고, 던전 아이콘 위에 `평점 / 최고기록 시간`만 텍스트로 덧씌운다.
+
+### 1. v1.5.6 QA 반영 메모
+
+- `Data/BISData_Method.lua`는 이제 Method.gg current overall BIS를 기준으로 raid/crafted/mythicplus `sourceType`와 `sourceLabel`을 함께 넣는다.
 - `UI/BISOverlay.lua`는 오래된 던전 BIS 아이템을 시즌 preview loot와 `itemID` 우선, `아이템명` fallback 순으로 다시 매칭한다. 구던전 툴팁 회귀가 나면 `getPreviewMythicPlusLootContext()`와 `showSeasonItemTooltip()`를 같이 본다.
 - BIS 리스트는 `아이템명 / 출처 / BIS 여부 / 타입` 컬럼 구조다. 제작/레이드/쐐기 필터가 비어 보이면 데이터 파일의 `sourceType` 누락부터 확인한다.
-- BIS 아이템 클릭은 `EncounterJournal_OpenJournal()` 뒤 delayed `lootTab.Click()`까지 태운다. 클릭 랜딩이 다시 summary 탭으로 빠지면 `openEncounterJournal()` delayed block을 우선 본다.
+- BIS 아이템 클릭은 `EncounterJournal_OpenJournal()` 뒤 delayed `lootTab.Click()`까지 태운다. 클릭 랜딩이 다시 summary 탭으로 빠지면 `openEncounterJournalForEntry()` delayed block을 우선 본다.
 - `UI/ItemLevelOverlay.lua` 우측 패널은 `나의 문장` + `나의 열쇠`이며, `나의 열쇠`는 `오늘의 풍요 4개 + 열쇠 파편 + 복원된 열쇠` 7줄 구조다.
 - `UI/MythicPlusRecordOverlay.lua`는 `ChallengesFrame.DungeonIcons` 위에 `단수 / 평점 / 최고기록 시간`을 직접 덧씌운다. 별도 프레임 이동형 오버레이가 아니므로 설정은 Utility 탭 체크박스만 갖는다.
 

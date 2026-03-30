@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `ABProfileManager`는 WoW Retail (Interface 120001 = Patch 12.0.1, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 인던 드랍 정보 오버레이 등을 한 애드온으로 처리한다.
 
-**현재 기준**: main (v1.5.6 기반)
+**현재 기준**: main (v1.5.7 기반)
 
 ## 검증 명령어
 

@@ -5,7 +5,7 @@ ns.UI.ItemLevelOverlay = ItemLevelOverlay
 
 local FONT_PATH  = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FONT_FLAGS = "OUTLINE"
-local FRAME_W    = 432
+local FRAME_W    = 448
 local TITLE_H    = 22
 local TAB_H      = 18
 local ROW_H      = 17
@@ -16,13 +16,13 @@ local TAB_GAP    = 2
 
 -- 4열: 단(label) | 클리어보상(drop) | 드랍문장(crest) | 위대한금고(vault)
 -- 우측에는 나의 문장을 고정 패널로 1회만 표시한다.
-local CREST_PANEL_W = 108
+local CREST_PANEL_W = 100
 local TABLE_GAP     = 0
 local CONTENT_W     = FRAME_W - 8
 local TABLE_W       = CONTENT_W - CREST_PANEL_W - TABLE_GAP
-local COL_DROP_X    = 90
-local COL_CREST_X   = 186
-local COL_VAULT_X   = 240
+local COL_DROP_X    = 80
+local COL_CREST_X   = 168
+local COL_VAULT_X   = 218
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
@@ -266,16 +266,23 @@ local function getMyKeyLines()
     local restored = getCurrencyCount(DELVE_RESTORED_KEY_CURRENCY_ID)
     local fragments = DELVE_KEY_FRAGMENT_ITEM_ID and getItemCountByID(DELVE_KEY_FRAGMENT_ITEM_ID) or nil
     local bountifulNames = getBestEffortBountifulDelveNames()
+    local titleHex = colorHex(0.68, 0.82, 1.00)
+    local entryHex = colorHex(0.92, 0.94, 1.00)
+    local valueHex = colorHex(1.00, 0.84, 0.46)
     local lines = {
-        ns.L("ilvl_key_bountiful"),
+        inlineColor(titleHex, ns.L("ilvl_key_bountiful")),
     }
 
     for i = 1, 4 do
-        lines[#lines + 1] = string.format("%d. %s", i, bountifulNames[i] or "-")
+        lines[#lines + 1] = string.format("%d. %s", i, inlineColor(entryHex, bountifulNames[i] or "-"))
     end
 
-    lines[#lines + 1] = string.format("%s  %s", ns.L("ilvl_key_fragments"), fragments ~= nil and tostring(fragments) or "-")
-    lines[#lines + 1] = string.format("%s  %s", ns.L("ilvl_key_restored"), restored ~= nil and tostring(restored) or "0")
+    lines[#lines + 1] = string.format("%s  %s",
+        ns.L("ilvl_key_fragments"),
+        inlineColor(valueHex, fragments ~= nil and tostring(fragments) or "-"))
+    lines[#lines + 1] = string.format("%s  %s",
+        ns.L("ilvl_key_restored"),
+        inlineColor(valueHex, restored ~= nil and tostring(restored) or "0"))
     return lines
 end
 
@@ -657,7 +664,7 @@ function ItemLevelOverlay:EnsureFrame()
     end
     frame.crestPanel = crestPanel
 
-    local crestTitle = makeFS(crestPanel, 12, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
+    local crestTitle = makeFS(crestPanel, 13, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
     crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -84)
     crestTitle:SetJustifyH("LEFT")
     crestTitle:SetText(ns.L("ilvl_col_my_crest"))
@@ -665,7 +672,7 @@ function ItemLevelOverlay:EnsureFrame()
 
     frame.crestLines = {}
     for i, _ in ipairs(CREST_PANEL_GRADES) do
-        local fs = makeFS(crestPanel, 13, 1, 1, 1)
+        local fs = makeFS(crestPanel, 14, 1, 1, 1)
         if i == 1 then
             fs:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -6)
         else
@@ -676,7 +683,7 @@ function ItemLevelOverlay:EnsureFrame()
         frame.crestLines[i] = fs
     end
 
-    local keyTitle = makeFS(crestPanel, 12, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
+    local keyTitle = makeFS(crestPanel, 13, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
     keyTitle:SetPoint("TOPLEFT", frame.crestLines[#frame.crestLines], "BOTTOMLEFT", 0, -10)
     keyTitle:SetJustifyH("LEFT")
     keyTitle:SetText(ns.L("ilvl_col_my_key"))
@@ -684,7 +691,7 @@ function ItemLevelOverlay:EnsureFrame()
 
     frame.keyLines = {}
     for i = 1, 7 do
-        local fontSize = i == 1 and 12 or 11
+        local fontSize = i == 1 and 11 or 10
         local fs = makeFS(crestPanel, fontSize, 1, 1, 1)
         if i == 1 then
             fs:SetPoint("TOPLEFT", keyTitle, "BOTTOMLEFT", 0, -6)
@@ -838,6 +845,13 @@ function ItemLevelOverlay:RebuildContent()
         local keyLines = getMyKeyLines()
         for i, fs in ipairs(frame.keyLines or {}) do
             fs:SetText(keyLines[i] or "")
+            if i == 1 then
+                fs:SetTextColor(0.70, 0.84, 1.00, 1)
+            elseif i <= 5 then
+                fs:SetTextColor(0.92, 0.94, 1.00, 1)
+            else
+                fs:SetTextColor(1.00, 0.84, 0.46, 1)
+            end
         end
         local crestPanelH = 146 + (#CREST_PANEL_GRADES * 18) + (#(frame.keyLines or {}) * 16)
         frame.crestPanel:SetHeight(crestPanelH)
