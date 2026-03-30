@@ -691,7 +691,7 @@ function ItemLevelOverlay:EnsureFrame()
 
     frame.keyLines = {}
     for i = 1, 7 do
-        local fontSize = i == 1 and 11 or 10
+        local fontSize = (i >= 2 and i <= 5) and 9 or 10
         local fs = makeFS(crestPanel, fontSize, 1, 1, 1)
         if i == 1 then
             fs:SetPoint("TOPLEFT", keyTitle, "BOTTOMLEFT", 0, -6)

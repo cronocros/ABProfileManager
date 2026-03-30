@@ -144,6 +144,7 @@ local EJ_PREVIEW_CONTEXT_CACHE = {}
 local getEntrySourceType
 local getSeasonalMythicPlusRange
 local getSeasonalRaidRange
+local isCraftingSourceLabel
 local localizeSourceLabel
 local resolveSeasonDungeonName
 
