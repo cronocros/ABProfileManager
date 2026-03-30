@@ -235,6 +235,9 @@ end
 
 local function getDungeonInstanceID(dungeonName)
     local candidates = getDungeonCandidates(dungeonName)
+    if not candidates or #candidates == 0 then
+        return nil
+    end
     return candidates[1] and candidates[1].instanceID or nil
 end
 
