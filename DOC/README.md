@@ -10,7 +10,7 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [../RELEASE_NOTES_v1.5.8.md](../RELEASE_NOTES_v1.5.8.md)
+- [../RELEASE_NOTES_v1.5.9.md](../RELEASE_NOTES_v1.5.9.md)
   - 최신 릴리스 노트
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름

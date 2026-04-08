@@ -70,6 +70,26 @@ local function refreshItemLevelOverlay()
     C_Timer.After(ITEM_LEVEL_OVERLAY_REFRESH_DELAY, _itemLevelOverlayRefreshCallback)
 end
 
+local function refreshCharacterContextUI()
+    ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+    ns:SafeCall(ns.UI.ItemLevelOverlay, "Refresh")
+    ns:SafeCall(ns.UI.BISOverlay, "Refresh")
+    ns:SafeCall(ns.UI.MythicPlusRecordOverlay, "Refresh")
+
+    local mainWindow = ns.UI and ns.UI.MainWindow
+    if mainWindow and mainWindow.frame and mainWindow.frame:IsShown() then
+        ns:SafeCall(ns.UI.ProfilePanel, "Refresh")
+        ns:SafeCall(ns.UI.ProfessionPanel, "Refresh")
+        ns:SafeCall(ns.UI.UtilityPanel, "Refresh")
+        ns:SafeCall(ns.UI.MainWindow, "RefreshStatus")
+    end
+
+    local configPanel = ns.UI and ns.UI.ConfigPanel
+    if configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown() then
+        ns:SafeCall(ns.UI.ConfigPanel, "Refresh")
+    end
+end
+
 local function runProfessionKnowledgeRefresh(forceScan, reason)
     local ok, err = pcall(function()
         if forceScan then
@@ -289,13 +309,13 @@ function Events:PLAYER_SPECIALIZATION_CHANGED()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     refreshProfessionKnowledgeViews(true, "PLAYER_SPECIALIZATION_CHANGED")
-    ns:RefreshUI()
+    refreshCharacterContextUI()
 end
 
 function Events:SKILL_LINES_CHANGED()
     ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     refreshProfessionKnowledgeViews(true, "SKILL_LINES_CHANGED")
-    ns:RefreshUI()
+    refreshCharacterContextUI()
 end
 
 function Events:PLAYER_EQUIPMENT_CHANGED()

@@ -155,6 +155,29 @@ local function setScale(frame, delta)
     frame:SetScale(cur)
 end
 
+local function applyOverlayPoint(frame, anchorTarget)
+    if not frame then
+        return
+    end
+
+    local config = getConfig()
+    local mode = config and config.anchorMode or "mythicplus"
+
+    frame:ClearAllPoints()
+    if mode == "mythicplus" and anchorTarget and anchorTarget:IsShown() then
+        frame:SetPoint("TOPLEFT", anchorTarget, "TOPRIGHT", 10, 0)
+        return
+    end
+
+    frame:SetPoint(
+        config.point or "CENTER",
+        UIParent,
+        config.relativePoint or "CENTER",
+        config.x or 350,
+        config.y or -100
+    )
+end
+
 -- ============================================================
 -- 행 데이터 빌더
 -- ============================================================
@@ -556,19 +579,8 @@ function ItemLevelOverlay:EnsureFrame()
         frame:SetBackdropBorderColor(0.4, 0.4, 0.5, 0.80)
     end
 
-    local mode = config.anchorMode or "mythicplus"
-    if mode == "mythicplus" then
-        local kf = KeystoneFrame or ChallengesFrame
-        if kf and kf:IsShown() then
-            frame:SetPoint("TOPLEFT", kf, "TOPRIGHT", 10, 0)
-        else
-            frame:SetPoint(config.point or "CENTER", UIParent,
-                config.relativePoint or "CENTER", config.x or 350, config.y or -100)
-        end
-    else
-        frame:SetPoint(config.point or "CENTER", UIParent,
-            config.relativePoint or "CENTER", config.x or 350, config.y or -100)
-    end
+    local kf = KeystoneFrame or ChallengesFrame
+    applyOverlayPoint(frame, kf)
 
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -1079,8 +1091,7 @@ function ItemLevelOverlay:Initialize()
             if not ns.DB or not ns.DB:IsItemLevelOverlayEnabled() then return end
             self:EnsureFrame()
             if self.frame then
-                self.frame:ClearAllPoints()
-                self.frame:SetPoint("TOPLEFT", pve, "TOPRIGHT", 10, 0)
+                applyOverlayPoint(self.frame, pve)
                 self:Refresh()
             end
         end)
@@ -1092,8 +1103,7 @@ function ItemLevelOverlay:Initialize()
         if pve:IsShown() and ns.DB and ns.DB:IsItemLevelOverlayEnabled() then
             self:EnsureFrame()
             if self.frame then
-                self.frame:ClearAllPoints()
-                self.frame:SetPoint("TOPLEFT", pve, "TOPRIGHT", 10, 0)
+                applyOverlayPoint(self.frame, pve)
                 self:Refresh()
             end
         end

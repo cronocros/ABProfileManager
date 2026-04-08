@@ -6,7 +6,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 `ABProfileManager`는 WoW Retail (Interface 120001 = Patch 12.0.1, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 인던 드랍 정보 오버레이, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: main (v1.5.8 기반)
+**현재 기준**: main (v1.5.9 기반)
 
 ## 검증 명령어
 
@@ -64,7 +64,7 @@ ABProfileManager/
 5. **고스트 드래그 / 전투 중 대기열** — 항상 보수적으로 처리
 6. **BlizzardFrameManager** — `SetUserPlaced(true)`는 `uiPanel=true` 프레임에만 적용. WorldMapFrame에 적용 시 WoW compact 모드 전환 → 지도 오른쪽 퀘스트 목록 패널 숨겨짐. `UpdateUIPanelPositions` 훅도 `uiPanel=true` 프레임만 대상으로 해야 함
 7. **GC 최적화 버퍼** — `SilvermoonMapOverlay.lua`와 `StatsOverlay.lua`의 모듈 레벨 재사용 버퍼(`_layoutPoints`, `_candidateBuf`, `_snapshotParts` 등)를 함수 내부로 옮기면 GC spike 재발
-8. **BIS 오버레이 refresh / 랜딩** — `UI/BISOverlay.lua`는 item info 지연 수신 시 visible row만 갱신한다. 깜빡임/랜딩 회귀가 나면 `scheduleRebuild()`, `RefreshVisibleItemRows()`, `Refresh()`, `openEncounterJournalForEntry()`를 같이 본다. BIS row hover 툴팁은 현재 비활성화 상태다.
+8. **BIS 오버레이 refresh / 랜딩** — `UI/BISOverlay.lua`는 item info 지연 수신 시 visible row만 갱신한다. 깜빡임/랜딩 회귀가 나면 `scheduleRebuild()`, `RefreshVisibleItemRows()`, `Refresh()`, `openEncounterJournalForEntry()`를 같이 본다. `반지 / 장신구` 공동 BIS 표시와 hover 시즌 preview 툴팁이 다시 켜져 있으므로 row mouse script 회귀도 같이 확인한다.
 9. **문장 / 열쇠 패널 통화 ID** — `UI/ItemLevelOverlay.lua`의 `CREST_ID_BY_GRADE = { adv=3383, vet=3341, chmp=3343, hero=3345, myth=3347 }`, `DELVE_RESTORED_KEY_CURRENCY_ID = 3028`. `열쇠 파편`은 아직 안전한 itemID가 확정되지 않아 `-` fallback이 남아 있다.
 10. **파티찾기 시즌 최고기록 아이콘 오버레이** — `UI/MythicPlusRecordOverlay.lua`는 이동형 프레임이 아니라 `ChallengesFrame.DungeonIcons` 위에 붙는 표시다. 현재는 `평점 / 던전명`만 표시한다.
 
@@ -109,15 +109,17 @@ ABProfileManager/
 - `QUEST_LOG_UPDATE` → `refreshQuestPanel()`
 - `UNIT_AURA/STATS/COMBAT_RATING_UPDATE` 등 → `refreshStatsOverlay()`
 
+`PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`는 전체 `ns:RefreshUI()` 대신 관련 overlay/panel만 부분 갱신하도록 줄였다.
+
 새 이벤트 핸들러 추가 시 비활성 상태 early return과 디바운스 패턴 함께 적용할 것.
 
 ### BIS 인던 드랍 오버레이
 
-`UI/BISOverlay.lua`. 전클래스/전특성 BIS 아이템을 부위별 섹션으로 표시한다. `Data/BISData_Method.lua`는 current overall BIS 기준 `sourceType/sourceLabel`을 갖고, `Data/BISData.lua` 수기 쐐기 데이터는 load 시 각 부위 fallback `대체재 / 2순위 / 3순위`로 병합된다. 드랍 출처 클릭 시 WoW 모험 안내서(EncounterJournal) loot 탭까지 랜딩을 시도한다. 제작/촉매는 랜딩 대상이 아니며, hover 툴팁은 현재 사용하지 않는다. 마우스 휠 스케일 지원.
+`UI/BISOverlay.lua`. 전클래스/전특성 BIS 아이템을 부위별 섹션으로 표시한다. `Data/BISData_Method.lua`는 Wowhead `current Overall BiS` 기준 `sourceType/sourceLabel`을 갖고, `Data/BISData.lua` 수기 쐐기 데이터는 top BIS가 `mythicplus`가 아닌 슬롯에만 fallback `대체재 / 2순위 / 3순위`로 병합된다. `반지 / 장신구`는 상위 2개를 공동 BIS로 표시한다. 드랍 출처 클릭 시 WoW 모험 안내서(EncounterJournal) loot 탭까지 랜딩을 시도한다. 제작/촉매는 랜딩 대상이 아니며, hover 툴팁은 시즌 preview 경로를 사용한다. 마우스 휠 스케일과 위치 저장을 지원한다.
 
 ### 아이템 레벨 오버레이 + 문장/열쇠 패널
 
-`UI/ItemLevelOverlay.lua`. 던전/레이드/M+/제작 탭별 드랍 템렙 표 + 위대한 금고 컬럼. 쐐기/구렁/레이드/종합 표는 4열(`단/난이도`, `클리어보상`, `드랍문장`, `위대한 금고`)로 렌더되고, 우측 고정 패널에 `C_CurrencyInfo.GetCurrencyInfo(id)` 기반 현재 문장 보유량과 `오늘의 풍요 4개 / 열쇠 파편 / 복원된 열쇠`를 함께 표시한다.
+`UI/ItemLevelOverlay.lua`. 던전/레이드/M+/제작 탭별 드랍 템렙 표 + 위대한 금고 컬럼. 쐐기/구렁/레이드/종합 표는 4열(`단/난이도`, `클리어보상`, `드랍문장`, `위대한 금고`)로 렌더되고, 우측 고정 패널에 `C_CurrencyInfo.GetCurrencyInfo(id)` 기반 현재 문장 보유량과 `오늘의 풍요 4개 / 열쇠 파편 / 복원된 열쇠`를 함께 표시한다. 구렁 탭 보조 행 표기는 `보물지도 사용` 기준이다. 위치 저장 후 재오픈 복원을 지원한다.
 
 ### 파티찾기 시즌 최고기록 오버레이
 

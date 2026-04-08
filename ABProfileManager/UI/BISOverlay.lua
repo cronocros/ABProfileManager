@@ -24,6 +24,10 @@ local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
 local SCALE_MAX  = 2.00
 local _bisScale  = 1.0
+local SHARED_BIS_LIMIT_BY_SLOT = {
+    ["반지"] = 2,
+    ["장신구"] = 2,
+}
 
 -- 커스텀 스크롤바 치수
 local SB_W   = 7    -- 스크롤바 폭
@@ -984,6 +988,38 @@ local function getAverageItemLevel()
     return 0
 end
 
+local function getOverlayConfig()
+    return ns.DB and ns.DB.GetBISOverlayConfig and ns.DB:GetBISOverlayConfig()
+        or (ns.Data and ns.Data.Defaults and ns.Data.Defaults.ui and ns.Data.Defaults.ui.bisOverlay)
+        or {
+            point = "CENTER",
+            relativePoint = "CENTER",
+            x = 806,
+            y = -100,
+            scale = 1,
+            collapsed = false,
+            anchorMode = "itemlevel",
+        }
+end
+
+local function getOverlayScale()
+    return ns.DB and ns.DB.GetBISOverlayScale and ns.DB:GetBISOverlayScale() or _bisScale or 1
+end
+
+local function setOverlayScale(frame, delta)
+    local nextScale = getOverlayScale() + delta
+    if ns.DB and ns.DB.SetBISOverlayScale then
+        nextScale = ns.DB:SetBISOverlayScale(nextScale)
+    else
+        nextScale = math.max(SCALE_MIN, math.min(SCALE_MAX, nextScale))
+    end
+    _bisScale = nextScale
+    if frame then
+        frame:SetScale(nextScale)
+    end
+    return nextScale
+end
+
 local function getSourceFilters()
     local settings = ns.DB and ns.DB:GetBISOverlaySettings()
     if not settings then
@@ -1568,15 +1604,16 @@ local function groupBySlot(items)
         end)
 
         for index, entry in ipairs(entries) do
-            if index == 1 then
+            local bisLimit = SHARED_BIS_LIMIT_BY_SLOT[slotName] or 1
+            if index <= bisLimit then
                 entry._displayNoteKind = "bis"
-                entry._displayNoteIndex = 1
-            elseif index == 2 then
+                entry._displayNoteIndex = index
+            elseif index == bisLimit + 1 then
                 entry._displayNoteKind = "alt"
-                entry._displayNoteIndex = 2
-            elseif index == 3 then
+                entry._displayNoteIndex = index
+            elseif index == bisLimit + 2 then
                 entry._displayNoteKind = "third"
-                entry._displayNoteIndex = 3
+                entry._displayNoteIndex = index
             else
                 entry._displayNoteKind = "rank"
                 entry._displayNoteIndex = index
@@ -1684,6 +1721,8 @@ end
 function BISOverlay:ApplyCollapse()
     local frame = self.frame
     if not frame then return end
+    local config = getOverlayConfig()
+    config.collapsed = self._collapsed and true or false
     if self._collapsed then
         if frame.specPicker then frame.specPicker:Hide() end
         frame.scrollFrame:Hide()
@@ -1765,11 +1804,14 @@ end
 function BISOverlay:EnsureFrame()
     if self.frame then return self.frame end
 
+    local config = getOverlayConfig()
+    _bisScale = tonumber(config.scale) or getOverlayScale() or 1
     local frame = CreateFrame("Frame", "ABPMBISOverlay", UIParent, "BackdropTemplate")
     frame:SetFrameStrata("DIALOG")
     frame:SetFrameLevel(100)
     frame:SetClampedToScreen(true)
     frame:SetSize(FRAME_W, HEADER_H + 60)
+    frame:SetScale(_bisScale)
 
     if frame.SetBackdrop then
         frame:SetBackdrop({
@@ -1789,16 +1831,20 @@ function BISOverlay:EnsureFrame()
     frame:RegisterForDrag("LeftButton")
     -- 헤더 영역(스크롤프레임 밖)에서 마우스 휠 → 스케일 조절
     frame:SetScript("OnMouseWheel", function(f, delta)
-        _bisScale = math.max(SCALE_MIN, math.min(SCALE_MAX,
-            _bisScale + delta * SCALE_STEP))
-        _bisScale = math.floor(_bisScale * 100 + 0.5) / 100
-        f:SetScale(_bisScale)
+        setOverlayScale(f, delta * SCALE_STEP)
     end)
     frame:SetScript("OnDragStart", function(f)
         if ns.DB and ns.DB:IsBISOverlayLocked() then return end
         f:StartMoving()
     end)
-    frame:SetScript("OnDragStop",  function(f) f:StopMovingOrSizing() end)
+    frame:SetScript("OnDragStop", function(f)
+        f:StopMovingOrSizing()
+        local currentConfig = getOverlayConfig()
+        currentConfig.anchorMode = "overlay"
+        if ns.DB and ns.DB.SaveBISOverlayPosition then
+            ns.DB:SaveBISOverlayPosition(f)
+        end
+    end)
     frame:SetScript("OnHide",      function(f)
         f:StopMovingOrSizing()
         if f.specPicker then f.specPicker:Hide() end
@@ -2097,6 +2143,7 @@ function BISOverlay:EnsureFrame()
     end)
 
     frame.rows = {}
+    self._collapsed = config.collapsed and true or false
     self.frame = frame
     return frame
 end
@@ -2602,7 +2649,11 @@ local function ensureRow(frame, index)
             end
         end
     end)
-    row.tooltipRegion:SetScript("OnEnter", nil)
+    row.tooltipRegion:SetScript("OnEnter", function(self2)
+        if row._entry then
+            showSeasonItemTooltip(self2, row)
+        end
+    end)
     row.tooltipRegion:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     frame.rows[index] = row
@@ -2837,14 +2888,30 @@ function BISOverlay:Refresh()
     self:EnsureTabs()
     self:UpdateSourceFilterButtons()
     self:UpdateSpecPickerButton()
+    self.frame:SetScale(getOverlayScale())
+    self:ApplyCollapse()
 
     -- 앵커 대상이 바뀌었을 때만 ClearAllPoints/SetPoint 호출 (깜박임 방지)
+    local config = getOverlayConfig()
     local ilFrame = ns.UI.ItemLevelOverlay and ns.UI.ItemLevelOverlay.frame
+    local useStoredPoint = (config.anchorMode or "itemlevel") == "overlay"
     local anchorTarget = (ilFrame and ilFrame:IsShown()) and ilFrame or pve
-    if self._lastAnchorTarget ~= anchorTarget then
+    if useStoredPoint then
+        anchorTarget = nil
+    end
+    if self._lastAnchorTarget ~= anchorTarget or self._lastAnchorMode ~= (config.anchorMode or "itemlevel") then
         self._lastAnchorTarget = anchorTarget
+        self._lastAnchorMode = config.anchorMode or "itemlevel"
         self.frame:ClearAllPoints()
-        if anchorTarget == ilFrame then
+        if useStoredPoint then
+            self.frame:SetPoint(
+                config.point or "CENTER",
+                UIParent,
+                config.relativePoint or "CENTER",
+                config.x or 806,
+                config.y or -100
+            )
+        elseif anchorTarget == ilFrame then
             self.frame:SetPoint("TOPLEFT", ilFrame, "TOPRIGHT", 6, 0)
         else
             self.frame:SetPoint("TOPLEFT", pve, "TOPRIGHT", 10, 0)

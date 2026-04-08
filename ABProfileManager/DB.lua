@@ -788,6 +788,41 @@ function DB:SaveItemLevelOverlayPosition(frame)
     config.y = y or 0
 end
 
+function DB:GetBISOverlayConfig()
+    if not ns.db then
+        return ns.Data.Defaults.ui.bisOverlay
+    end
+
+    ns.db.ui = ns.db.ui or {}
+    ns.db.ui.bisOverlay = ns.db.ui.bisOverlay
+        or ns.Utils.DeepCopy(ns.Data.Defaults.ui.bisOverlay)
+    ns.db.ui.bisOverlay.scale = clampOverlayScale(ns.db.ui.bisOverlay.scale)
+    return ns.db.ui.bisOverlay
+end
+
+function DB:GetBISOverlayScale()
+    return clampOverlayScale(self:GetBISOverlayConfig().scale)
+end
+
+function DB:SetBISOverlayScale(scale)
+    local config = self:GetBISOverlayConfig()
+    config.scale = clampOverlayScale(scale)
+    return config.scale
+end
+
+function DB:SaveBISOverlayPosition(frame)
+    if not frame or not frame.GetPoint then
+        return
+    end
+
+    local point, _, relativePoint, x, y = frame:GetPoint(1)
+    local config = self:GetBISOverlayConfig()
+    config.point = point or config.point
+    config.relativePoint = relativePoint or config.relativePoint
+    config.x = x or 0
+    config.y = y or 0
+end
+
 -- ============================================================
 -- WorldEventOverlay
 -- ============================================================

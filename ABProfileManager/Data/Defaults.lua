@@ -116,6 +116,15 @@ ns.Data.Defaults = {
             scale = 1,
             anchorMode = "mythicplus",
         },
+        bisOverlay = {
+            point = "CENTER",
+            relativePoint = "CENTER",
+            x = 806,
+            y = -100,
+            collapsed = false,
+            scale = 1,
+            anchorMode = "itemlevel",
+        },
         worldEventOverlay = {
             point = "CENTER",
             relativePoint = "CENTER",

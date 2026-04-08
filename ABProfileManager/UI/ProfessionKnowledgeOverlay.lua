@@ -549,7 +549,17 @@ function ProfessionKnowledgeOverlay:Initialize()
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
+    frame:EnableMouseWheel(true)
     frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnMouseWheel", function(currentFrame, delta)
+        if not ns.DB then
+            return
+        end
+        local newScale = ns.DB:SetProfessionKnowledgeOverlayScale(
+            (ns.DB:GetProfessionKnowledgeOverlayScale() or 1) + (delta * 0.05)
+        )
+        currentFrame:SetScale(newScale)
+    end)
     frame:SetScript("OnDragStart", function(currentFrame)
         if ns.DB and ns.DB:IsProfessionKnowledgeOverlayLocked() then return end
         currentFrame:StartMoving()

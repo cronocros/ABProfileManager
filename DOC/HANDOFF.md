@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.5.8 기반)`
+버전 기준: `main (v1.5.9 기반)`
 
 ## 현재 상태
 
@@ -22,28 +22,39 @@
 - 블리자드 기본 UI 창 이동 자유화
 - 편의기능 탭 통합
 
-## 0. v1.5.8 QA 반영 메모
+## 0. v1.5.9 오버레이 / BIS / CPU 메모
 
-- `Data/BISData_Method.lua`는 이제 Method.gg current overall BIS를 먼저 넣고, 기존 `Data/BISData.lua` 수기 던전 데이터를 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합한다.
+- `Data/BISData_Method.lua`는 이제 Wowhead `current Overall BiS` 39 spec 데이터를 먼저 넣고, 기존 `Data/BISData.lua` 수기 던전 데이터를 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합한다.
+- 단, 수기 던전 fallback은 top BIS가 `mythicplus`가 아닌 슬롯에만 붙인다.
+- `UI/BISOverlay.lua`는 `반지 / 장신구`를 상위 2개 공동 BIS로 표시한다.
 - `UI/BISOverlay.lua`는 `GET_ITEM_INFO_RECEIVED`마다 전체 리스트를 다시 그리지 않고 `RefreshVisibleItemRows()`만 태운다. 깜빡임 회귀가 나오면 `scheduleRebuild()`, `RefreshVisibleItemRows()`, `Refresh()`의 render signature 분기를 먼저 본다.
 - BIS source filter 기본값은 `mythicplus / raid / crafted` 전부 on이고, 예전 `쐐기만 on` 저장값은 DB migration으로 1회 승격된다.
 - BIS 필터 버튼은 체크박스형 compact UI다. 드루이드 4특성처럼 헤더가 빡빡한 클래스 레이아웃 기준으로 맞춘 상태라 폭을 크게 다시 키우면 겹침이 쉽게 재발한다.
 - BIS 헤더에는 `참고용, 실제 템은 직접 확인` 안내가 들어간다.
-- BIS 아이템 hover 툴팁은 현재 의도적으로 비활성화했다. preview tooltip 회귀를 잡는 방향이 아니라, 현재는 hover 자체를 다시 켜지 않는 쪽이 안전하다.
+- BIS 아이템 hover 툴팁은 시즌 preview 경로로 다시 연결됐다. hover 회귀가 나오면 `showSeasonItemTooltip()`, `tooltipRegion` mouse script, preview validation 분기를 같이 본다.
 - BIS 랜딩은 드랍 출처 클릭 기준이다. 제작과 촉매 항목은 Encounter Journal 랜딩 대상이 아니다.
+- BIS 오버레이는 위치 / scale / collapsed / anchorMode를 저장한다. 사용자가 한 번 드래그하면 이후 재오픈은 저장 좌표를 우선한다.
 - 던전명 direct 보정:
   - `공결탑 제나스 = tier 13 / instanceID 1314`
   - 사용자 인게임 출력에서 `tier 12 / instanceID 1316` 후보도 확인됨
   - `알게타르 대학 = instanceID 2526`
 - `공결점 제나스`는 잘못된 한글명이었고, 현재 표시/랜딩 기준은 `공결탑 제나스`다.
 - `알게타르 아카데미`는 현재 한국어 표기상 `알게타르 대학` alias를 같이 쓴다.
+- `정기 주술사(262)`는 이전 누락 항목이었고, 지금은 Wowhead 기준으로 반영되어 있다.
 - `UI/MythicPlusRecordOverlay.lua`는 이제 `평점 + 던전명`만 표시한다. 시간 라인은 사용하지 않는다.
 - 긴 한글 던전명은 강제 줄바꿈 override를 사용한다.
 - `ABProfileManager.toc`는 현재 비활성/미완성 상태인 `WorldEventSchedule`, `MerchantHelper`, `MailHistory`, `WorldEventOverlay`를 런타임 로드 대상에서 제외한다. 소스 파일은 저장소에 남아 있지만 메모리 절감을 위해 게임 내에서는 불러오지 않는다.
 - `UI/ItemLevelOverlay.lua`는 `currentTab + avgIlvl + language` 시그니처가 바뀔 때만 본문 표를 다시 구성한다. `CURRENCY_DISPLAY_UPDATE` 류의 잦은 이벤트에서는 우측 패널만 갱신하고, 풍요 구렁 이름 스캔은 캐시 후 `ACTIVE_DELVE_DATA_UPDATE`, `AREA_POIS_UPDATED`에서만 무효화한다.
+- `UI/ItemLevelOverlay.lua`는 사용자가 드래그한 뒤 `anchorMode = overlay`를 저장하고, 닫았다가 다시 열어도 저장 위치를 우선 복원한다.
+- 구렁 탭 보조 문구는 `보물지도 사용`으로 바뀌었다.
 - `Modules/ProfessionKnowledgeTracker.lua`는 profession 정의와 현재 보유 profession 목록을 캐시한다. `PLAYER_LOGIN`, `PLAYER_ENTERING_WORLD`, `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`에서만 profession 목록 캐시를 무효화한다.
 - `UI/ProfessionKnowledgeOverlay.lua`는 profession hover 툴팁을 매 refresh마다 전부 만들지 않고, 실제 hover 시점에만 지연 생성한다.
+- `UI/ProfessionKnowledgeOverlay.lua`와 `UI/StatsOverlay.lua`는 마우스 휠 scale 저장을 지원한다.
 - `Core.lua`의 `RefreshUI()`는 이제 메인 창이 닫혀 있을 때 내부 탭 패널 전체를 refresh하지 않는다. 메인 창 탭 전환도 현재 탭만 refresh하는 경로로 바뀌었으므로, 패널 stale 제보가 오면 `Core.lua`, `UI/MainWindow.lua`를 함께 본다.
+- 상시 CPU 점유 원인으로는 `StatsOverlay`와 `SilvermoonMapOverlay`가 1순위였다.
+  - `StatsOverlay`는 raw state signature가 같으면 `BuildSnapshot()`을 생략한다.
+  - `SilvermoonMapOverlay`는 상시 0.5초 polling 대신 월드맵 상호작용 시점의 짧은 burst refresh만 유지한다.
+  - `Events.lua`의 `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`는 전역 `ns:RefreshUI()` 대신 관련 UI만 부분 갱신한다.
 
 ## 1. 회귀 민감 메모
 
@@ -193,5 +204,5 @@
 ## 6. 다음 작업자에게
 
 - UI 퍼블리싱은 이미 사용자가 맞춘 상태를 선호하므로, overflow 보정이나 안전장치 위주로만 접근하는 편이 안전하다.
-- BIS 데이터는 Method 시즌 데이터와 수기 fallback을 함께 쓰므로, 시즌 변경 시 source 던전 / slot / itemID / sourceType을 같이 재검증해야 한다.
+- BIS 데이터는 Wowhead `current Overall BiS`와 수기 fallback을 함께 쓰므로, 시즌 변경 시 source 던전 / slot / itemID / sourceType을 같이 재검증해야 한다.
 - 일부 신규 던전 direct ID가 비어 있으므로, 사용자 제보가 오면 먼저 인게임 Encounter Journal 이름과 instanceID부터 확인하는 게 맞다.

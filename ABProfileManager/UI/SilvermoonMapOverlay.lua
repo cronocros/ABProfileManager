@@ -5,6 +5,7 @@ ns.UI.SilvermoonMapOverlay = SilvermoonMapOverlay
 
 local FONT_PATH = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local REFRESH_INTERVAL = 0.5
+local DRIVER_BURST_DURATION = 1.5
 
 -- LayoutPoints 핫패스 재사용 버퍼 — GC 스파이크 방지
 -- 레이아웃 실행 시마다 테이블을 새로 만들지 않고 이 버퍼를 wipe 후 재사용
@@ -100,6 +101,13 @@ local function roundToStep(value, step)
     end
 
     return math.floor((value / step) + 0.5) * step
+end
+
+local function getNow()
+    if type(GetTime) == "function" then
+        return GetTime()
+    end
+    return 0
 end
 
 local function getPointColor(category)
@@ -706,6 +714,9 @@ function SilvermoonMapOverlay:HandleDriverUpdate(elapsed)
 
     self.elapsed = 0
     self:Refresh()
+    if self.driverBurstUntil and getNow() >= self.driverBurstUntil then
+        self:SetDriverActive(false)
+    end
 end
 
 function SilvermoonMapOverlay:SetDriverActive(active)
@@ -726,8 +737,14 @@ function SilvermoonMapOverlay:SetDriverActive(active)
             self:HandleDriverUpdate(elapsed)
         end)
     else
+        self.driverBurstUntil = nil
         self.driver:SetScript("OnUpdate", nil)
     end
+end
+
+function SilvermoonMapOverlay:RequestRefreshBurst(duration)
+    self.driverBurstUntil = math.max(self.driverBurstUntil or 0, getNow() + (duration or DRIVER_BURST_DURATION))
+    self:SetDriverActive(true)
 end
 
 function SilvermoonMapOverlay:EnsureHooks()
@@ -737,6 +754,7 @@ function SilvermoonMapOverlay:EnsureHooks()
 
     WorldMapFrame:HookScript("OnShow", function()
         self.lastLayoutKey = nil
+        self:RequestRefreshBurst()
         self:Refresh()
     end)
 
@@ -748,8 +766,38 @@ function SilvermoonMapOverlay:EnsureHooks()
     if type(WorldMapFrame.SetMapID) == "function" then
         hooksecurefunc(WorldMapFrame, "SetMapID", function()
             self.lastLayoutKey = nil
+            self:RequestRefreshBurst()
             self:Refresh()
         end)
+    end
+
+    local scrollContainer = WorldMapFrame.ScrollContainer
+    if scrollContainer then
+        if scrollContainer.HookScript then
+            scrollContainer:HookScript("OnMouseWheel", function()
+                self:RequestRefreshBurst()
+                self:Refresh()
+            end)
+            scrollContainer:HookScript("OnSizeChanged", function()
+                self.lastLayoutKey = nil
+                self:RequestRefreshBurst()
+                self:Refresh()
+            end)
+        end
+        if type(scrollContainer.SetCanvasScale) == "function" then
+            hooksecurefunc(scrollContainer, "SetCanvasScale", function()
+                self.lastLayoutKey = nil
+                self:RequestRefreshBurst()
+                self:Refresh()
+            end)
+        end
+        if type(scrollContainer.SetCanvasZoomPercent) == "function" then
+            hooksecurefunc(scrollContainer, "SetCanvasZoomPercent", function()
+                self.lastLayoutKey = nil
+                self:RequestRefreshBurst()
+                self:Refresh()
+            end)
+        end
     end
 
     self.hooksReady = true
@@ -982,8 +1030,6 @@ function SilvermoonMapOverlay:RefreshInternal()
         return
     end
 
-    self:SetDriverActive(true)
-
     local width = parent:GetWidth() or 0
     local height = parent:GetHeight() or 0
     local language = ns.DB and ns.DB:GetLanguage() or "?"
@@ -1012,6 +1058,7 @@ function SilvermoonMapOverlay:RefreshInternal()
     if layoutKey ~= self.lastLayoutKey then
         self.lastLayoutKey = layoutKey
         self:LayoutPoints(parent, mapData)
+        self:RequestRefreshBurst()
     end
 
     frame:Show()

@@ -21,6 +21,7 @@ local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 
 -- BuildSnapshotSignature 재사용 버퍼: 매 호출마다 table 생성 방지
 local _snapshotParts = {}
+local _stateSignatureParts = {}
 -- BuildSnapshot 재사용 버퍼: 매 Refresh 마다 snapshot/entry 테이블 생성 방지
 local _snapshot = {}
 local _entryPool = {}
@@ -83,6 +84,10 @@ end
 
 local function formatPercent(value)
     return string.format("%.2f%%", safeNumber(value))
+end
+
+local function signaturePercent(value)
+    return math.floor((safeNumber(value) * 100) + 0.5)
 end
 
 local function formatSplitStatPercent(value)
@@ -630,10 +635,18 @@ function StatsOverlay:Initialize()
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
+    frame:EnableMouseWheel(true)
     frame:RegisterForDrag("LeftButton")
     if frame.SetHitRectInsets then
         frame:SetHitRectInsets(0, 0, 0, 0)
     end
+    frame:SetScript("OnMouseWheel", function(currentFrame, delta)
+        if not ns.DB then
+            return
+        end
+        local newScale = ns.DB:SetStatsOverlayScale((ns.DB:GetStatsOverlayScale() or 1) + (delta * 0.05))
+        currentFrame:SetScale(newScale)
+    end)
     frame:SetScript("OnDragStart", function(currentFrame)
         if ns.DB and ns.DB:IsStatsOverlayLocked() then return end
         currentFrame:StartMoving()
@@ -736,6 +749,41 @@ function StatsOverlay:BuildSnapshot()
     end
 
     return snapshot
+end
+
+function StatsOverlay:BuildStateSignature()
+    wipe(_stateSignatureParts)
+
+    local specIndex = getCurrentSpecIndex()
+    local classTag = getCurrentClassTag() or ""
+    local showTankStats = shouldShowTankDefensiveStats(specIndex)
+    local typographyOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("statsOverlay") or 0
+    local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or ""
+    local isMplus = ns.DB and ns.DB.IsStatsOverlayMythicPlusMode and ns.DB:IsStatsOverlayMythicPlusMode() and 1 or 0
+
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(language)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(typographyOffset)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(classTag)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(specIndex or 0)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(isMplus)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getEquippedItemLevel() or 0)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(CRIT_RATING_INDEX))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(GetCritChance and GetCritChance() or 0))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(CRIT_RATING_INDEX)))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(HASTE_RATING_INDEX))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getHastePercent()))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(HASTE_RATING_INDEX)))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(MASTERY_RATING_INDEX))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getMasteryPercent()))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(MASTERY_RATING_INDEX)))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(VERSATILITY_RATING_INDEX))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getVersatilityPercent()))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(VERSATILITY_RATING_INDEX)))
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getDodgePercent()) or 0)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getParryPercent()) or 0)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getBlockPercent()) or 0)
+
+    return table.concat(_stateSignatureParts, "\030")
 end
 
 function StatsOverlay:BuildSnapshotSignature(snapshot)
@@ -889,9 +937,15 @@ function StatsOverlay:RefreshStats()
         return
     end
 
+    local stateSignature = self:BuildStateSignature()
+    if stateSignature == self.lastStateSignature then
+        return
+    end
+
     local snapshot = self:BuildSnapshot()
     local snapshotSignature = self:BuildSnapshotSignature(snapshot)
     if snapshotSignature == self.lastSnapshotSignature then
+        self.lastStateSignature = stateSignature
         return
     end
 
@@ -916,6 +970,7 @@ function StatsOverlay:RefreshStats()
     end
 
     self.lastSnapshotSignature = snapshotSignature
+    self.lastStateSignature = stateSignature
 end
 
 function StatsOverlay:Refresh()

@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.5.8 기반)`
+버전 기준: `main (v1.5.9 기반)`
 
 ## 목적
 
@@ -93,17 +93,21 @@
   - 탭: 개요 / 쐐기 / 구렁 / 레이드 / 기타
   - 각 행: `단/난이도 | 클리어보상 | 드랍문장 | 위대한 금고`
   - 우측 고정 패널에 현재 문장 보유량과 `오늘의 풍요 4개 / 열쇠 파편 / 복원된 열쇠` 표시
+  - 구렁 표 보조 행은 `보물지도 사용` 문구를 사용
+  - 위치 저장 뒤 재오픈 시 저장 좌표를 우선 복원
   - `CREST_ID_BY_GRADE = { adv=3383, vet=3341, chmp=3343, hero=3345, myth=3347 }`
   - `DELVE_RESTORED_KEY_CURRENCY_ID = 3028`
 - `UI/BISOverlay.lua`
   - 현재 캐릭터 클래스의 전 특성 탭과 부위별 BIS 리스트 렌더
   - `아이템명 / 드랍 출처 / 유형 / BIS 여부` 열 구성
   - 체크박스형 `쐐기 / 레이드 / 제작` 필터
+  - `반지 / 장신구`는 상위 2개 공동 BIS 표시
   - 헤더에 `참고용, 실제 템은 직접 확인` 안내 문구 노출
   - 드랍 출처 클릭 시 가능한 경우 Encounter Journal loot 탭 랜딩
   - 제작 / 촉매 항목은 Encounter Journal 랜딩 대상에서 제외
-  - 행 hover 툴팁은 현재 비활성화
+  - 행 hover는 시즌 preview 기반 아이템 툴팁 경로 사용
   - 헤더 마우스 휠로 0.5~2.0배 스케일 조절
+  - 위치 / 스케일 / 접기 상태를 저장하고 재오픈 시 복원
 - `UI/MythicPlusRecordOverlay.lua`
   - `ChallengesFrame.DungeonIcons` 위에 `평점 + 던전명` 표시
   - 시간 라인은 사용하지 않음
@@ -128,8 +132,8 @@
 - `Data/BISData.lua`
   - 전 클래스/특성 수기 BIS / 대체재 데이터
 - `Data/BISData_Method.lua`
-  - Method.gg 현 시즌 overall BIS 데이터를 우선 적용
-  - 기존 수기 던전 데이터는 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합
+  - Wowhead `current Overall BiS` 39 spec 데이터를 우선 적용
+  - 기존 수기 던전 데이터는 top BIS가 `mythicplus`가 아닌 슬롯에만 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합
   - slot + itemID 중복은 제거
 
 ## UI 계층
@@ -188,7 +192,7 @@
   - profession 오버레이 위치/모드/scale
   - stats 오버레이 위치/scale
   - itemLevelOverlay 위치/scale/currentTab/collapsed/anchorMode
-  - bisOverlay 위치/scale/collapsed
+  - bisOverlay 위치/scale/collapsed/anchorMode
 
 ### 캐릭터별
 
@@ -247,12 +251,14 @@
 
 ### SilvermoonMapOverlay
 
-- `LayoutPoints`는 250ms 주기로 반복 호출되므로 모듈 레벨 재사용 버퍼를 유지한다.
+- `LayoutPoints`는 월드맵 상호작용 시 burst refresh 동안 반복 호출되므로 모듈 레벨 재사용 버퍼를 유지한다.
 - `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool`, `_candidateBuf`, `_mapInfoCache` 등을 함수 내부로 옮기면 GC spike가 재발한다.
+- 상시 polling 대신 `OnShow`, `SetMapID`, `CanvasScale/Zoom`, `MouseWheel`, `SizeChanged`에 맞춘 짧은 driver burst만 유지한다.
 
 ### StatsOverlay
 
 - `BuildSnapshotSignature`는 모듈 레벨 `_snapshotParts` 재사용 버퍼를 사용한다.
+- 고빈도 aura/stat 이벤트에서는 raw state signature가 같으면 `BuildSnapshot()` 자체를 건너뛴다.
 
 ### BISOverlay
 

@@ -1,6 +1,6 @@
 # ABProfileManager Security Review
 
-검토 기준일: `2026-03-30`
+검토 기준일: `2026-04-08`
 
 ## 범위
 
@@ -58,9 +58,10 @@
 ### BIS 인던 드랍 정보 오버레이
 
 - 외부 입력 없이 내장 데이터 + Blizzard Encounter Journal API만 사용
-- BIS 행 hover 툴팁은 현재 비활성화되어, preview hyperlink 관련 예기치 않은 tooltip 경로를 줄였다
+- BIS 행 hover 툴팁은 시즌 preview hyperlink 검증 경로를 사용하지만, 외부 입력을 실행하지 않고 실패 시 기본 item tooltip로만 fallback 한다
 - 제작 / 촉매 항목은 Encounter Journal 랜딩 대상에서 제외해 잘못된 랜딩과 UI 흔들림 가능성을 줄였다
 - 아이템 캐시 수신 시 visible row만 갱신하고 전체 rebuild를 피하도록 보수적으로 조정했다
+- BIS / ItemLevel / Stats / Profession overlay의 위치·scale 저장은 로컬 SavedVariables만 사용한다
 
 ### 드랍템 레벨 / 시즌 최고기록 오버레이
 
