@@ -21,6 +21,9 @@
 - [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)
   - 패키징, 커밋, 푸시, GitHub 릴리스 절차
 
+참고:
+- BIS 데이터 재생성 스크립트는 `../scripts/refresh_wowhead_bis.py`, `../scripts/refresh_wowhead_mplus_fallbacks.py`를 사용한다.
+
 ## 보관 문서
 
 - [archive/release-notes](./archive/release-notes)

@@ -24,8 +24,9 @@
 
 ## 0. v1.5.9 오버레이 / BIS / CPU 메모
 
-- `Data/BISData_Method.lua`는 이제 Wowhead `current Overall BiS` 39 spec 데이터를 먼저 넣고, 기존 `Data/BISData.lua` 수기 던전 데이터를 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합한다.
-- 단, 수기 던전 fallback은 top BIS가 `mythicplus`가 아닌 슬롯에만 붙인다.
+- `Data/BISData_Method.lua`는 이제 Wowhead `current Overall BiS` 39 spec 데이터를 먼저 넣고, `Data/BISData.lua` M+ fallback 데이터를 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합한다.
+- `Data/BISData.lua`는 더 이상 단순 수기 파일이 아니라 Wowhead `Best Gear from Mythic+` 후보와 기존 seed fallback을 합친 생성 결과다.
+- 단, M+ fallback은 top BIS가 `mythicplus`가 아닌 슬롯에만 붙인다.
 - `UI/BISOverlay.lua`는 `반지 / 장신구`를 상위 2개 공동 BIS로 표시한다.
 - `UI/BISOverlay.lua`는 `GET_ITEM_INFO_RECEIVED`마다 전체 리스트를 다시 그리지 않고 `RefreshVisibleItemRows()`만 태운다. 깜빡임 회귀가 나오면 `scheduleRebuild()`, `RefreshVisibleItemRows()`, `Refresh()`의 render signature 분기를 먼저 본다.
 - BIS source filter 기본값은 `mythicplus / raid / crafted` 전부 on이고, 예전 `쐐기만 on` 저장값은 DB migration으로 1회 승격된다.
@@ -50,10 +51,11 @@
 - `Modules/ProfessionKnowledgeTracker.lua`는 profession 정의와 현재 보유 profession 목록을 캐시한다. `PLAYER_LOGIN`, `PLAYER_ENTERING_WORLD`, `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`에서만 profession 목록 캐시를 무효화한다.
 - `UI/ProfessionKnowledgeOverlay.lua`는 profession hover 툴팁을 매 refresh마다 전부 만들지 않고, 실제 hover 시점에만 지연 생성한다.
 - `UI/ProfessionKnowledgeOverlay.lua`와 `UI/StatsOverlay.lua`는 마우스 휠 scale 저장을 지원한다.
+- `scripts/refresh_wowhead_bis.py`는 `Data/BISData_Method.lua`를, `scripts/refresh_wowhead_mplus_fallbacks.py`는 `Data/BISData.lua`를 재생성한다.
 - `Core.lua`의 `RefreshUI()`는 이제 메인 창이 닫혀 있을 때 내부 탭 패널 전체를 refresh하지 않는다. 메인 창 탭 전환도 현재 탭만 refresh하는 경로로 바뀌었으므로, 패널 stale 제보가 오면 `Core.lua`, `UI/MainWindow.lua`를 함께 본다.
 - 상시 CPU 점유 원인으로는 `StatsOverlay`와 `SilvermoonMapOverlay`가 1순위였다.
-  - `StatsOverlay`는 raw state signature가 같으면 `BuildSnapshot()`을 생략한다.
-  - `SilvermoonMapOverlay`는 상시 0.5초 polling 대신 월드맵 상호작용 시점의 짧은 burst refresh만 유지한다.
+  - `StatsOverlay`는 raw state signature가 같으면 `BuildSnapshot()`을 생략하고, `UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE` 계열은 느린 throttle로 분리한다.
+  - `SilvermoonMapOverlay`는 상시 0.5초 polling 대신 월드맵 상호작용 시점의 짧은 burst refresh만 유지하고, 안정된 layoutKey가 확인되면 driver를 바로 내린다.
   - `Events.lua`의 `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`는 전역 `ns:RefreshUI()` 대신 관련 UI만 부분 갱신한다.
 
 ## 1. 회귀 민감 메모

@@ -5,7 +5,7 @@ ns.UI.SilvermoonMapOverlay = SilvermoonMapOverlay
 
 local FONT_PATH = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local REFRESH_INTERVAL = 0.5
-local DRIVER_BURST_DURATION = 1.5
+local DRIVER_BURST_DURATION = 1.0
 
 -- LayoutPoints 핫패스 재사용 버퍼 — GC 스파이크 방지
 -- 레이아웃 실행 시마다 테이블을 새로 만들지 않고 이 버퍼를 wipe 후 재사용
@@ -69,6 +69,7 @@ local MAP_DENSITY_SCALE = {
 local LAYOUT_PADDING = 8
 local ZOOM_BUCKET_STEP = 0.02
 local CANVAS_BUCKET_STEP = 0.02
+local SIZE_BUCKET_STEP = 8
 local CROWD_RADIUS_PERCENT = 7
 local MAP_TYPE_DUNGEON = (Enum and Enum.UIMapType and Enum.UIMapType.Dungeon) or 4
 
@@ -713,7 +714,15 @@ function SilvermoonMapOverlay:HandleDriverUpdate(elapsed)
     end
 
     self.elapsed = 0
+    local previousLayoutKey = self.lastLayoutKey
     self:Refresh()
+    if not self.driverActive then
+        return
+    end
+    if self.driverBurstUntil and not self._layoutChangedOnLastRefresh and previousLayoutKey == self.lastLayoutKey then
+        self:SetDriverActive(false)
+        return
+    end
     if self.driverBurstUntil and getNow() >= self.driverBurstUntil then
         self:SetDriverActive(false)
     end
@@ -747,6 +756,20 @@ function SilvermoonMapOverlay:RequestRefreshBurst(duration)
     self:SetDriverActive(true)
 end
 
+function SilvermoonMapOverlay:HandleScrollContainerSizeChanged(width, height)
+    local widthBucket = roundToStep(width or 0, SIZE_BUCKET_STEP)
+    local heightBucket = roundToStep(height or 0, SIZE_BUCKET_STEP)
+    if self.lastSizeWidthBucket == widthBucket and self.lastSizeHeightBucket == heightBucket then
+        return
+    end
+
+    self.lastSizeWidthBucket = widthBucket
+    self.lastSizeHeightBucket = heightBucket
+    self.lastLayoutKey = nil
+    self:RequestRefreshBurst()
+    self:Refresh()
+end
+
 function SilvermoonMapOverlay:EnsureHooks()
     if self.hooksReady or not WorldMapFrame then
         return
@@ -778,10 +801,8 @@ function SilvermoonMapOverlay:EnsureHooks()
                 self:RequestRefreshBurst()
                 self:Refresh()
             end)
-            scrollContainer:HookScript("OnSizeChanged", function()
-                self.lastLayoutKey = nil
-                self:RequestRefreshBurst()
-                self:Refresh()
+            scrollContainer:HookScript("OnSizeChanged", function(_, width, height)
+                self:HandleScrollContainerSizeChanged(width, height)
             end)
         end
         if type(scrollContainer.SetCanvasScale) == "function" then
@@ -852,6 +873,7 @@ end
 function SilvermoonMapOverlay:HideAll()
     self:SetDriverActive(false)
     self.lastLayoutKey = nil
+    self._layoutChangedOnLastRefresh = false
 
     if not self.overlayFrame then
         return
@@ -1005,6 +1027,7 @@ end
 
 function SilvermoonMapOverlay:RefreshInternal()
     self:EnsureHooks()
+    self._layoutChangedOnLastRefresh = false
 
     if not ns.DB or not ns.DB:IsSilvermoonMapOverlayEnabled() then
         self:HideAll()
@@ -1056,6 +1079,7 @@ function SilvermoonMapOverlay:RefreshInternal()
         .. ":" .. tostring(canvasBucket or 0)
 
     if layoutKey ~= self.lastLayoutKey then
+        self._layoutChangedOnLastRefresh = true
         self.lastLayoutKey = layoutKey
         self:LayoutPoints(parent, mapData)
         self:RequestRefreshBurst()

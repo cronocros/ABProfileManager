@@ -62,6 +62,7 @@
 - 제작 / 촉매 항목은 Encounter Journal 랜딩 대상에서 제외해 잘못된 랜딩과 UI 흔들림 가능성을 줄였다
 - 아이템 캐시 수신 시 visible row만 갱신하고 전체 rebuild를 피하도록 보수적으로 조정했다
 - BIS / ItemLevel / Stats / Profession overlay의 위치·scale 저장은 로컬 SavedVariables만 사용한다
+- BIS 데이터 재생성 스크립트는 릴리스 준비용 repo 도구일 뿐 게임 런타임에 포함되지 않는다
 
 ### 드랍템 레벨 / 시즌 최고기록 오버레이
 

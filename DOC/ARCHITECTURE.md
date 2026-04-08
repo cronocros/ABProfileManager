@@ -130,10 +130,14 @@
 - `Data/ItemLevelTable.lua`
   - 컨텐츠별 드랍 아이템 레벨 테이블
 - `Data/BISData.lua`
-  - 전 클래스/특성 수기 BIS / 대체재 데이터
+  - Wowhead `Best Gear from Mythic+` 후보와 seed fallback을 합친 M+ 대체재 데이터
+- `scripts/refresh_wowhead_bis.py`
+  - Wowhead `current Overall BiS` 39 spec 데이터를 `Data/BISData_Method.lua`로 재생성
+- `scripts/refresh_wowhead_mplus_fallbacks.py`
+  - Wowhead M+ 추천 후보를 `Data/BISData.lua` fallback으로 재생성
 - `Data/BISData_Method.lua`
   - Wowhead `current Overall BiS` 39 spec 데이터를 우선 적용
-  - 기존 수기 던전 데이터는 top BIS가 `mythicplus`가 아닌 슬롯에만 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합
+  - `Data/BISData.lua` fallback은 top BIS가 `mythicplus`가 아닌 슬롯에만 `대체재 / 2순위 / 3순위`로 뒤에 병합
   - slot + itemID 중복은 제거
 
 ## UI 계층
@@ -239,6 +243,7 @@
 4. `GET_ITEM_INFO_RECEIVED`는 전체 rebuild 대신 디바운스된 `RefreshVisibleItemRows()`만 실행
 5. `Refresh()`는 anchor target이나 render signature가 바뀐 경우에만 full rebuild 수행
 6. 드랍 출처 클릭 시 `openEncounterJournalForEntry()`로 Encounter Journal loot 탭 랜딩 시도
+7. `반지 / 장신구`는 display-only 공동 BIS 규칙으로 상위 2개 배지를 유지
 
 ### 시즌 최고기록 오버레이
 
@@ -254,10 +259,12 @@
 - `LayoutPoints`는 월드맵 상호작용 시 burst refresh 동안 반복 호출되므로 모듈 레벨 재사용 버퍼를 유지한다.
 - `_layoutPoints`, `_layoutEntries`, `_layoutPlaced`, `_layoutPlacedPool`, `_candidateBuf`, `_mapInfoCache` 등을 함수 내부로 옮기면 GC spike가 재발한다.
 - 상시 polling 대신 `OnShow`, `SetMapID`, `CanvasScale/Zoom`, `MouseWheel`, `SizeChanged`에 맞춘 짧은 driver burst만 유지한다.
+- size bucket이 변하지 않으면 `OnSizeChanged`가 다시 burst를 arm하지 않고, 안정된 layoutKey가 한 번 확인되면 driver를 즉시 내린다.
 
 ### StatsOverlay
 
 - `BuildSnapshotSignature`는 모듈 레벨 `_snapshotParts` 재사용 버퍼를 사용한다.
+- `BuildStateSignature`는 `_stateSignatureParts` 버퍼를 재사용하고, 고빈도 aura/stat 이벤트는 `Events.lua`에서 느린 throttle로 분리한다.
 - 고빈도 aura/stat 이벤트에서는 raw state signature가 같으면 `BuildSnapshot()` 자체를 건너뛴다.
 
 ### BISOverlay

@@ -12,13 +12,13 @@
 
 주요 변경:
 - Wowhead `current Overall BiS` 39 spec 기준을 유지하면서 `반지 / 장신구`는 상위 2개를 공동 BIS로 표시하도록 정리
-- top BIS가 `mythicplus`가 아닌 슬롯만 기존 수기 `Data/BISData.lua` M+ fallback을 뒤에 붙이도록 병합 정책을 보강
+- top BIS가 `mythicplus`가 아닌 슬롯만 Wowhead `Best Gear from Mythic+` 후보와 seed fallback을 합친 `Data/BISData.lua` M+ fallback을 뒤에 붙이도록 병합 정책을 보강
 - BIS hover 툴팁을 기존 시즌 preview 경로로 복원하고, 제작/촉매 비랜딩 및 source-column Encounter Journal 랜딩 규칙은 유지
 - `BISOverlay`와 `ItemLevelOverlay`는 위치 저장 뒤 재오픈 시 저장 좌표를 우선 복원하도록 정리
 - `StatsOverlay`, `ProfessionKnowledgeOverlay`, `BISOverlay`는 마우스 휠 scale 저장을 지원
 - `ItemLevelOverlay` 구렁 탭 문구를 `보물지도 사용`으로 교체
-- `StatsOverlay`는 raw state signature가 같으면 snapshot 재구성을 생략해 aura/stat 이벤트 idle CPU 비용을 줄임
-- `SilvermoonMapOverlay`는 상시 0.5초 polling 대신 월드맵 상호작용 시점의 짧은 burst refresh만 유지하도록 바꿔 map idle CPU를 완화
+- `StatsOverlay`는 raw state signature가 같으면 snapshot 재구성을 생략하고 `UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE` 계열을 느린 throttle로 분리해 idle CPU 비용을 줄임
+- `SilvermoonMapOverlay`는 상시 0.5초 polling 대신 월드맵 상호작용 시점의 짧은 burst refresh만 유지하고, 안정된 layoutKey가 확인되면 driver를 바로 내려 map idle CPU를 완화
 - `Events.lua`의 `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`는 전역 `RefreshUI()` 대신 관련 UI만 부분 갱신
 - `README`, `AGENTS`, `ADDON_INTRO`, `DOC/ARCHITECTURE`, `DOC/HANDOFF`, `DOC/SECURITY_REVIEW`, `DOC/README`, 릴리스 노트를 `v1.5.9` 기준으로 갱신
 - 릴리스 메타데이터를 `v1.5.9`로 올리고 패키징 경로/다운로드 링크를 함께 갱신

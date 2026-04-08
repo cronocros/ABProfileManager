@@ -27,7 +27,7 @@
 
 - `드랍템 레벨정보 오버레이`가 `4열 표 + 우측 나의 문장 / 나의 열쇠 패널` 구조로 확장되었습니다.
 - `BIS 인던 드랍 정보`가 전특성 부위별 `BIS / 대체 / 3순위` 구조, `쐐기 / 레이드 / 제작` 필터, `드랍 출처 / 유형 / BIS 여부` 열, Encounter Journal 랜딩까지 포함하는 실사용 오버레이로 정리되었습니다.
-- Wowhead `current Overall BiS` 39 spec 데이터를 1순위로 쓰고, 기존 수기 던전 데이터를 부위별 fallback으로 함께 보여주도록 바뀌었습니다.
+- Wowhead `current Overall BiS` 39 spec 데이터를 1순위로 쓰고, Wowhead `Best Gear from Mythic+` 후보와 기존 seed fallback을 합친 M+ 대체재를 부위별 fallback으로 함께 보여주도록 바뀌었습니다.
 - `반지 / 장신구`는 상위 2개를 공동 BIS로 표시하고, 상단 BIS가 레이드/제작인 슬롯만 기존 수기 M+ fallback을 붙이도록 보강했습니다.
 - BIS hover 툴팁, BIS/드랍템 위치 복원, Stats/전문기술/BIS 마우스 휠 스케일 저장이 반영되었습니다.
 - 파티찾기 신화+ 시즌 최고기록 던전 아이콘에 `평점 + 던전명`을 직접 표시하는 `MythicPlusRecordOverlay`가 추가되었습니다.
@@ -134,12 +134,13 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - BIS 기준 소스는 Wowhead `current Overall BiS`이며, 39개 spec 전체를 반영합니다.
 - `반지 / 장신구`는 상위 2개를 공동 BIS로 표시합니다.
 - BIS 행 hover 툴팁은 현재 시즌 preview 경로를 다시 사용합니다.
-- 상단 BIS가 `mythicplus`가 아닌 슬롯만 기존 수기 M+ fallback을 붙입니다.
+- 상단 BIS가 `mythicplus`가 아닌 슬롯만 Wowhead `Best Gear from Mythic+` 후보 기반 M+ fallback을 붙입니다.
 - 제작과 촉매 항목은 Encounter Journal 랜딩 대상이 아닙니다.
 - `공결탑 제나스`, `알게타르 대학`은 직접 ID 보정이 들어가 있습니다.
 - `정기 주술사(262)` 누락은 현재 해소되었습니다.
 - `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 확정 전까지 안내서만 열리고 특정 던전으로 바로 이동하지 않을 수 있습니다.
 - BIS 아이템 캐시가 늦게 들어와도 전체 오버레이를 다시 그리지 않고, 보이는 행만 갱신하도록 조정되어 있습니다.
+- BIS 갱신 스크립트는 `scripts/refresh_wowhead_bis.py`, M+ fallback 갱신 스크립트는 `scripts/refresh_wowhead_mplus_fallbacks.py`를 사용합니다.
 
 ## 현재 제약
 

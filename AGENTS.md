@@ -110,12 +110,20 @@ ABProfileManager/
 - `UNIT_AURA/STATS/COMBAT_RATING_UPDATE` 등 → `refreshStatsOverlay()`
 
 `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`는 전체 `ns:RefreshUI()` 대신 관련 overlay/panel만 부분 갱신하도록 줄였다.
+`UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE` 계열은 느린 throttle로 분리해 idle CPU를 낮췄다.
 
 새 이벤트 핸들러 추가 시 비활성 상태 early return과 디바운스 패턴 함께 적용할 것.
 
 ### BIS 인던 드랍 오버레이
 
-`UI/BISOverlay.lua`. 전클래스/전특성 BIS 아이템을 부위별 섹션으로 표시한다. `Data/BISData_Method.lua`는 Wowhead `current Overall BiS` 기준 `sourceType/sourceLabel`을 갖고, `Data/BISData.lua` 수기 쐐기 데이터는 top BIS가 `mythicplus`가 아닌 슬롯에만 fallback `대체재 / 2순위 / 3순위`로 병합된다. `반지 / 장신구`는 상위 2개를 공동 BIS로 표시한다. 드랍 출처 클릭 시 WoW 모험 안내서(EncounterJournal) loot 탭까지 랜딩을 시도한다. 제작/촉매는 랜딩 대상이 아니며, hover 툴팁은 시즌 preview 경로를 사용한다. 마우스 휠 스케일과 위치 저장을 지원한다.
+`UI/BISOverlay.lua`. 전클래스/전특성 BIS 아이템을 부위별 섹션으로 표시한다. `Data/BISData_Method.lua`는 Wowhead `current Overall BiS` 기준 `sourceType/sourceLabel`을 갖고, `Data/BISData.lua`는 Wowhead `Best Gear from Mythic+` 후보와 seed fallback을 합친 M+ 대체재 데이터다. top BIS가 `mythicplus`가 아닌 슬롯에만 fallback `대체재 / 2순위 / 3순위`로 병합된다. `반지 / 장신구`는 상위 2개를 공동 BIS로 표시한다. 드랍 출처 클릭 시 WoW 모험 안내서(EncounterJournal) loot 탭까지 랜딩을 시도한다. 제작/촉매는 랜딩 대상이 아니며, hover 툴팁은 시즌 preview 경로를 사용한다. 마우스 휠 스케일과 위치 저장을 지원한다.
+
+### BIS 데이터 재생성 스크립트
+
+- `scripts/refresh_wowhead_bis.py`
+  - Wowhead `current Overall BiS` 39 spec 데이터를 `Data/BISData_Method.lua`로 재생성
+- `scripts/refresh_wowhead_mplus_fallbacks.py`
+  - Wowhead `Best Gear from Mythic+` 후보와 seed fallback을 `Data/BISData.lua`로 재생성
 
 ### 아이템 레벨 오버레이 + 문장/열쇠 패널
 

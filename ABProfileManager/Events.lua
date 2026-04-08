@@ -15,9 +15,12 @@ local ITEM_LEVEL_OVERLAY_REFRESH_DELAY = 0.15
 local itemLevelOverlayRefreshPending = false
 
 -- UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE 등 고주기 이벤트 디바운싱
--- 0.15초 내 중복 발화를 하나로 합침
+-- 빠른 갱신(장비/주문 변화)과 느린 갱신(오라/전투수치 변화)을 분리한다.
 local STATS_REFRESH_DELAY = 0.15
+local STATS_SLOW_REFRESH_DELAY = 0.45
 local statsRefreshPending = false
+local statsRefreshDelay = nil
+local statsRefreshToken = 0
 
 -- QUEST_LOG_UPDATE 디바운싱: 퀘스트 진행 중 고빈도 발화를 하나로 합침
 -- QuestManager:Scan 은 퀘스트당 5+ WoW API 호출 → 디바운스 없이 초당 수백 번 호출 가능
@@ -36,11 +39,6 @@ local function _questPanelRefreshCallback()
     ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
 end
 
-local function _statsRefreshCallback()
-    statsRefreshPending = false
-    ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
-end
-
 local function _itemLevelOverlayRefreshCallback()
     itemLevelOverlayRefreshPending = false
     ns:SafeCall(ns.UI.ItemLevelOverlay, "Refresh")
@@ -52,13 +50,46 @@ local function refreshQuestPanel()
     C_Timer.After(QUEST_PANEL_REFRESH_DELAY, _questPanelRefreshCallback)
 end
 
-local function refreshStatsOverlay()
+local function scheduleStatsOverlayRefresh(delay)
     if not ns.DB or not ns.DB:IsStatsOverlayEnabled() then
         return
     end
-    if statsRefreshPending then return end
+    delay = delay or STATS_REFRESH_DELAY
+    if statsRefreshPending and statsRefreshDelay and statsRefreshDelay <= delay then
+        return
+    end
+
+    statsRefreshToken = statsRefreshToken + 1
+    local token = statsRefreshToken
     statsRefreshPending = true
-    C_Timer.After(STATS_REFRESH_DELAY, _statsRefreshCallback)
+    statsRefreshDelay = delay
+
+    if not C_Timer or type(C_Timer.After) ~= "function" then
+        if token ~= statsRefreshToken then
+            return
+        end
+        statsRefreshPending = false
+        statsRefreshDelay = nil
+        ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+        return
+    end
+
+    C_Timer.After(delay, function()
+        if token ~= statsRefreshToken then
+            return
+        end
+        statsRefreshPending = false
+        statsRefreshDelay = nil
+        ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+    end)
+end
+
+local function refreshStatsOverlay()
+    scheduleStatsOverlayRefresh(STATS_REFRESH_DELAY)
+end
+
+local function refreshStatsOverlaySlow()
+    scheduleStatsOverlayRefresh(STATS_SLOW_REFRESH_DELAY)
 end
 
 local function refreshItemLevelOverlay()
@@ -88,6 +119,12 @@ local function refreshCharacterContextUI()
     if configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown() then
         ns:SafeCall(ns.UI.ConfigPanel, "Refresh")
     end
+end
+
+local function refreshWorldEntryUI()
+    refreshCharacterContextUI()
+    ns:SafeCall(ns.UI.MinimapButton, "Refresh")
+    ns:SafeCall(ns.UI.SilvermoonMapOverlay, "Refresh")
 end
 
 local function runProfessionKnowledgeRefresh(forceScan, reason)
@@ -276,7 +313,7 @@ function Events:PLAYER_ENTERING_WORLD()
     ensureCombatTextSettings()
     refreshGhostsAndRetries()
     runProfessionKnowledgeRefresh(true, "PLAYER_ENTERING_WORLD")
-    ns:RefreshUI()
+    refreshWorldEntryUI()
 end
 
 function Events:SPELLS_CHANGED()
@@ -324,19 +361,19 @@ function Events:PLAYER_EQUIPMENT_CHANGED()
 end
 
 function Events:COMBAT_RATING_UPDATE()
-    refreshStatsOverlay()
+    refreshStatsOverlaySlow()
 end
 
 function Events:MASTERY_UPDATE()
-    refreshStatsOverlay()
+    refreshStatsOverlaySlow()
 end
 
 function Events:PLAYER_DAMAGE_DONE_MODS()
-    refreshStatsOverlay()
+    refreshStatsOverlaySlow()
 end
 
 function Events:SPELL_POWER_CHANGED()
-    refreshStatsOverlay()
+    refreshStatsOverlaySlow()
 end
 
 function Events:UNIT_ATTACK_POWER(unitToken)
@@ -344,7 +381,7 @@ function Events:UNIT_ATTACK_POWER(unitToken)
         return
     end
 
-    refreshStatsOverlay()
+    refreshStatsOverlaySlow()
 end
 
 function Events:UNIT_AURA(unitToken)
@@ -352,7 +389,7 @@ function Events:UNIT_AURA(unitToken)
         return
     end
 
-    refreshStatsOverlay()
+    refreshStatsOverlaySlow()
 end
 
 function Events:UNIT_STATS(unitToken)
@@ -360,7 +397,7 @@ function Events:UNIT_STATS(unitToken)
         return
     end
 
-    refreshStatsOverlay()
+    refreshStatsOverlaySlow()
 end
 
 function Events:QUEST_LOG_UPDATE()
