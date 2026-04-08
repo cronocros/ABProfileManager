@@ -603,40 +603,6 @@ local function getTooltipCompareFilter(useSpec)
     return classID, specID
 end
 
-local function processEncounterJournalTooltip(tooltip, link, useSpec)
-    if not tooltip or not link then
-        return false
-    end
-
-    if type(CreateBaseTooltipInfo) == "function" and type(tooltip.ProcessInfo) == "function" then
-        local classID, specID = getTooltipCompareFilter(useSpec)
-        local ok, tooltipInfo = pcall(CreateBaseTooltipInfo, "GetHyperlink", link, classID, specID)
-        if ok and tooltipInfo then
-            tooltipInfo.compareItem = true
-            local processed = pcall(tooltip.ProcessInfo, tooltip, tooltipInfo)
-            if processed then
-                return true
-            end
-        end
-    end
-
-    if type(EncounterJournal_SetTooltipWithCompare) == "function" then
-        local ok = pcall(EncounterJournal_SetTooltipWithCompare, tooltip, link, useSpec)
-        if ok then
-            return true
-        end
-    end
-
-    if tooltip.SetHyperlink then
-        local ok = pcall(tooltip.SetHyperlink, tooltip, link)
-        if ok then
-            return true
-        end
-    end
-
-    return false
-end
-
 local function getClassColorRGB(classFile)
     local color = classFile and C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(classFile)
     if color then
@@ -1007,15 +973,36 @@ local function getOverlayScale()
 end
 
 local function setOverlayScale(frame, delta)
-    local nextScale = getOverlayScale() + delta
+    local oldScale = getOverlayScale()
+    local nextScale = oldScale + delta
     if ns.DB and ns.DB.SetBISOverlayScale then
         nextScale = ns.DB:SetBISOverlayScale(nextScale)
     else
         nextScale = math.max(SCALE_MIN, math.min(SCALE_MAX, nextScale))
     end
     _bisScale = nextScale
-    if frame then
-        frame:SetScale(nextScale)
+    if frame and oldScale ~= nextScale then
+        local left = frame:GetLeft()
+        local top = frame:GetTop()
+        if left and top then
+            local w, h = frame:GetWidth(), frame:GetHeight()
+            local cx = left + (w * oldScale) / 2
+            local cy = top  - (h * oldScale) / 2
+            frame:SetScale(nextScale)
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT",
+                cx / nextScale - w / 2,
+                cy / nextScale + h / 2)
+            local config = getOverlayConfig()
+            if config then
+                config.anchorMode = "overlay"
+            end
+            if ns.DB and ns.DB.SaveBISOverlayPosition then
+                ns.DB:SaveBISOverlayPosition(frame)
+            end
+        else
+            frame:SetScale(nextScale)
+        end
     end
     return nextScale
 end
@@ -1337,7 +1324,7 @@ local function extractTooltipItemLevel(tooltipData)
             local text = tostring(field or "")
             local normalized = normalizeCompareText(text)
             if normalized ~= "" and normalized:find(ITEM_LEVEL_TOKEN, 1, true) then
-                local itemLevel = tonumber(text:match("(%d%d%d)"))
+                local itemLevel = tonumber(text:match("(%d+)"))
                 if itemLevel then
                     return itemLevel
                 end
@@ -1346,54 +1333,6 @@ local function extractTooltipItemLevel(tooltipData)
     end
 
     return nil
-end
-
-local function validatePreviewTooltip(previewContext)
-    if not previewContext or not previewContext.link
-        or not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
-        return nil
-    end
-
-    local classID, specID = getTooltipCompareFilter(true)
-    local ok, tooltipData = pcall(C_TooltipInfo.GetHyperlink, previewContext.link, classID, specID, true)
-    if not ok or not tooltipData then
-        return nil
-    end
-
-    local itemLevel = extractTooltipItemLevel(tooltipData)
-    local minIlvl, maxIlvl = getSeasonalMythicPlusRange()
-    local trusted = itemLevel ~= nil and minIlvl ~= nil and maxIlvl ~= nil
-        and itemLevel >= minIlvl and itemLevel <= maxIlvl
-
-    return {
-        trusted = trusted and true or false,
-        itemLevel = itemLevel,
-        tooltipData = tooltipData,
-    }
-end
-
-local function validateRaidPreviewTooltip(previewContext)
-    if not previewContext or not previewContext.link
-        or not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
-        return nil
-    end
-
-    local classID, specID = getTooltipCompareFilter(true)
-    local ok, tooltipData = pcall(C_TooltipInfo.GetHyperlink, previewContext.link, classID, specID, true)
-    if not ok or not tooltipData then
-        return nil
-    end
-
-    local itemLevel = extractTooltipItemLevel(tooltipData)
-    local minIlvl, maxIlvl = getSeasonalRaidRange()
-    local trusted = itemLevel ~= nil and minIlvl ~= nil and maxIlvl ~= nil
-        and itemLevel >= minIlvl and itemLevel <= maxIlvl
-
-    return {
-        trusted = trusted and true or false,
-        itemLevel = itemLevel,
-        tooltipData = tooltipData,
-    }
 end
 
 local function canonicalNote(note)
@@ -1878,7 +1817,7 @@ function BISOverlay:EnsureFrame()
 
     frame.avgLabel = frame:CreateFontString(nil, "OVERLAY")
     frame.avgLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
-    frame.avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -(PADDING + 16), 0)
+    frame.avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -(PADDING + 60), 0)
     frame.avgLabel:SetJustifyH("RIGHT")
     frame.avgLabel:SetTextColor(0.82, 0.86, 0.94, 1)
     frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", "?"))
@@ -1901,6 +1840,55 @@ function BISOverlay:EnsureFrame()
         BISOverlay:ApplyCollapse()
     end)
     frame.collapseBtn = collapseBtn
+
+    -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
+    local lockBtn = CreateFrame("Button", nil, frame)
+    lockBtn:SetSize(18, 18)
+    lockBtn:SetPoint("RIGHT", collapseBtn, "LEFT", -2, 0)
+    lockBtn.label = lockBtn:CreateFontString(nil, "OVERLAY")
+    lockBtn.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
+    lockBtn.label:SetAllPoints()
+    lockBtn.label:SetJustifyH("CENTER")
+    lockBtn.label:SetJustifyV("MIDDLE")
+    local function updateBISLockVisual()
+        local locked = ns.DB and ns.DB:IsBISOverlayLocked()
+        lockBtn.label:SetText(locked and "L" or "U")
+        lockBtn.label:SetTextColor(locked and 1 or 0.70, locked and 0.60 or 0.70, locked and 0.60 or 0.80, 1)
+    end
+    updateBISLockVisual()
+    lockBtn:SetScript("OnClick", function()
+        if ns.DB then
+            ns.DB:SetBISOverlayLocked(not ns.DB:IsBISOverlayLocked())
+        end
+        updateBISLockVisual()
+    end)
+    frame.lockBtn = lockBtn
+
+    -- ─── 위치 초기화 버튼 ─────────────────────────────────────
+    local resetBtn = CreateFrame("Button", nil, frame)
+    resetBtn:SetSize(18, 18)
+    resetBtn:SetPoint("RIGHT", lockBtn, "LEFT", -2, 0)
+    resetBtn.label = resetBtn:CreateFontString(nil, "OVERLAY")
+    resetBtn.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
+    resetBtn.label:SetAllPoints()
+    resetBtn.label:SetJustifyH("CENTER")
+    resetBtn.label:SetJustifyV("MIDDLE")
+    resetBtn.label:SetText("R")
+    resetBtn.label:SetTextColor(0.70, 0.70, 0.80, 1)
+    resetBtn:SetScript("OnClick", function()
+        local defaults = ns.Data and ns.Data.Defaults and ns.Data.Defaults.ui and ns.Data.Defaults.ui.bisOverlay
+        if not defaults then return end
+        local config = getOverlayConfig()
+        config.anchorMode = defaults.anchorMode or "itemlevel"
+        config.point = defaults.point
+        config.relativePoint = defaults.relativePoint
+        config.x = defaults.x
+        config.y = defaults.y
+        BISOverlay._lastAnchorTarget = nil
+        BISOverlay._lastAnchorMode = nil
+        BISOverlay:Refresh()
+    end)
+    frame.resetBtn = resetBtn
 
     -- ─── 구분선 1 ───────────────────────────────────────────
     local sep1 = frame:CreateTexture(nil, "ARTWORK")
@@ -2430,92 +2418,32 @@ local function showSeasonItemTooltip(owner, row)
     local sourceLabel = getDisplaySourceLabel(entry)
     local noteKind = row._displayNoteKind or canonicalNote(entry.note)
     local noteIndex = row._displayNoteIndex or 3
-    local previewLevel = getSeasonPreviewKeyLevel()
-    local fallbackName = select(1, GetItemInfo(row.itemID))
-    local previewContext
-    if sourceType == "mythicplus" then
-        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
-        previewContext = dungeonName and getPreviewMythicPlusLootContext(dungeonName, row.itemID, fallbackName) or nil
-    elseif sourceType == "raid" then
-        previewContext = getPreviewRaidLootContext(row.itemID, fallbackName)
+
+    -- 아이템 이름/품질 (GetItemInfo 캐시 히트 시 즉시, 아닐 경우 비동기 요청)
+    local itemName, _, quality = GetItemInfo(row.itemID)
+    if not itemName then
+        requestItemData(row.itemID)
     end
-    local previewLink = previewContext and previewContext.link or nil
-    local _, baseTooltipLink, baseQuality = GetItemInfo(row.itemID)
-    local previewValidation
-    if sourceType == "mythicplus" then
-        previewValidation = validatePreviewTooltip(previewContext)
-    elseif sourceType == "raid" then
-        previewValidation = validateRaidPreviewTooltip(previewContext)
-    end
-    local tooltipLink = previewLink
-    local itemName
-    local quality
-    if previewLink then
-        itemName, _, quality = GetItemInfo(previewLink)
-    end
-    if not quality then
-        itemName = itemName or fallbackName
-        tooltipLink = baseTooltipLink
-        quality = baseQuality
-    end
-    tooltipLink = previewLink or tooltipLink
-    local scaledMinIlvl, scaledMaxIlvl = getSeasonalMythicPlusRange()
+    local displayName = itemName or ("Item #" .. tostring(row.itemID))
+    local qc = getQualityColor(quality)
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:ClearLines()
 
-    local hasBaseTooltip = false
-    local usedBaseTooltipFallback = false
+    -- 아이템명 (품질 색상)
+    GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
 
-    if (sourceType == "mythicplus" or sourceType == "raid")
-    and previewLink and previewValidation and previewValidation.trusted then
-        hasBaseTooltip = processEncounterJournalTooltip(GameTooltip, previewLink, true)
-        tooltipLink = previewLink
-    end
-
-    if not hasBaseTooltip then
-        requestItemData(row.itemID)
-        if baseTooltipLink and GameTooltip.SetHyperlink then
-            local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, baseTooltipLink)
-            hasBaseTooltip = ok and true or false
-            usedBaseTooltipFallback = hasBaseTooltip
-        end
-        if not hasBaseTooltip and GameTooltip.SetItemByID then
-            local ok = pcall(GameTooltip.SetItemByID, GameTooltip, row.itemID)
-            hasBaseTooltip = ok and true or false
-            usedBaseTooltipFallback = hasBaseTooltip
-        end
-        if not hasBaseTooltip then
-            local ok, resolvedName, _, fallbackQuality = pcall(GetItemInfo, row.itemID)
-            local displayName = itemName or (ok and resolvedName) or ("Item #" .. tostring(row.itemID))
-            quality = quality or fallbackQuality
-            local qc = getQualityColor(quality)
-            GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
-        end
-    else
-        local nameFS = _G.GameTooltipTextLeft1
-        local qc = getQualityColor(quality)
-        if nameFS then
-            nameFS:SetTextColor(qc[1], qc[2], qc[3], 1)
-        end
-    end
-
+    -- 시즌 정보 헤더
     GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
+
+    -- 정적 BIS 정보 (entry 데이터 기반, API 호출 없음)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
 
+    -- 시즌 아이템 레벨 범위 (ItemLevelTable 정적 데이터)
     if sourceType == "mythicplus" then
-        if previewValidation and previewValidation.trusted then
-            GameTooltip:AddLine(ns.L("bis_tooltip_preview_key", previewLevel), 0.38, 0.88, 1.00, true)
-        elseif scaledMinIlvl and scaledMaxIlvl then
-            GameTooltip:AddLine(ns.L("bis_tooltip_item_level_scaled", scaledMinIlvl, scaledMaxIlvl), 0.38, 0.88, 1.00, true)
-            GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.72, 0.42, true)
-            if usedBaseTooltipFallback then
-                GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.58, 0.30, true)
-            end
-        end
         local runTrack = getSeasonalMythicPlusSummary("run")
         if runTrack ~= "" then
             GameTooltip:AddDoubleLine(ns.L("bis_tooltip_end_of_run"), runTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
@@ -2525,32 +2453,17 @@ local function showSeasonItemTooltip(owner, row)
             GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
         end
     elseif sourceType == "raid" then
-        if previewValidation and previewValidation.trusted then
-            GameTooltip:AddLine(ns.L("bis_tooltip_raid_preview"), 0.38, 0.88, 1.00, true)
-        else
-            GameTooltip:AddLine(ns.L("bis_tooltip_raid_fallback"), 1.00, 0.72, 0.42, true)
-            if usedBaseTooltipFallback then
-                GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.58, 0.30, true)
-            end
-        end
         for _, line in ipairs(getSeasonalRaidSummaryLines()) do
             GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
         end
     elseif sourceType == "crafted" then
-        GameTooltip:AddLine(ns.L("bis_tooltip_crafted_fallback"), 1.00, 0.72, 0.42, true)
         for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
             GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
         end
     end
 
-    local canOpenJournal = false
+    -- 모험 안내서 열기 힌트 (crafted 제외)
     if sourceType ~= "crafted" then
-        canOpenJournal = (previewContext and previewContext.instanceID) and true or false
-        if not canOpenJournal and sourceType == "mythicplus" then
-            canOpenJournal = getDungeonInstanceID(resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)) and true or false
-        end
-    end
-    if canOpenJournal then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end

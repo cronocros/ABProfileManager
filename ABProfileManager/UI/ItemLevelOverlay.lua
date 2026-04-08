@@ -148,11 +148,30 @@ end
 local function setScale(frame, delta)
     local cfg = getConfig()
     if not cfg then return end
-    local cur = cfg.scale or 1
-    cur = math.max(SCALE_MIN, math.min(SCALE_MAX, cur + delta))
+    local oldScale = cfg.scale or 1
+    local cur = math.max(SCALE_MIN, math.min(SCALE_MAX, oldScale + delta))
     cur = math.floor(cur * 100 + 0.5) / 100
     cfg.scale = cur
-    frame:SetScale(cur)
+    if oldScale ~= cur then
+        local left = frame:GetLeft()
+        local top = frame:GetTop()
+        if left and top then
+            local w, h = frame:GetWidth(), frame:GetHeight()
+            local cx = left + (w * oldScale) / 2
+            local cy = top  - (h * oldScale) / 2
+            frame:SetScale(cur)
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT",
+                cx / cur - w / 2,
+                cy / cur + h / 2)
+            cfg.anchorMode = "overlay"
+            if ns.DB and ns.DB.SaveItemLevelOverlayPosition then
+                ns.DB:SaveItemLevelOverlayPosition(frame)
+            end
+        else
+            frame:SetScale(cur)
+        end
+    end
 end
 
 local function applyOverlayPoint(frame, anchorTarget)
@@ -623,7 +642,7 @@ function ItemLevelOverlay:EnsureFrame()
     frame.hintText = hintText
 
     local avgLabel = makeFS(frame, 10, 0.70, 0.70, 0.80)
-    avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -24, 0)
+    avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -66, 0)
     avgLabel:SetText("")
     frame.avgLabel = avgLabel
 
@@ -633,6 +652,54 @@ function ItemLevelOverlay:EnsureFrame()
     makeBtnText(toggleBtn, 12, 0.80, 0.80, 1.00)
     toggleBtn:SetText("-")
     frame.toggleBtn = toggleBtn
+
+    -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
+    local lockBtn = CreateFrame("Button", nil, frame)
+    lockBtn:SetSize(18, 18)
+    lockBtn:SetPoint("RIGHT", toggleBtn, "LEFT", -2, 0)
+    lockBtn.label = lockBtn:CreateFontString(nil, "OVERLAY")
+    lockBtn.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
+    lockBtn.label:SetAllPoints()
+    lockBtn.label:SetJustifyH("CENTER")
+    lockBtn.label:SetJustifyV("MIDDLE")
+    local function updateILLockVisual()
+        local locked = ns.DB and ns.DB:IsItemLevelOverlayLocked()
+        lockBtn.label:SetText(locked and "L" or "U")
+        lockBtn.label:SetTextColor(locked and 1 or 0.70, locked and 0.60 or 0.70, locked and 0.60 or 0.80, 1)
+    end
+    updateILLockVisual()
+    lockBtn:SetScript("OnClick", function()
+        if ns.DB then
+            ns.DB:SetItemLevelOverlayLocked(not ns.DB:IsItemLevelOverlayLocked())
+        end
+        updateILLockVisual()
+    end)
+    frame.lockBtn = lockBtn
+
+    -- ─── 위치 초기화 버튼 ─────────────────────────────────────
+    local resetBtn = CreateFrame("Button", nil, frame)
+    resetBtn:SetSize(18, 18)
+    resetBtn:SetPoint("RIGHT", lockBtn, "LEFT", -2, 0)
+    resetBtn.label = resetBtn:CreateFontString(nil, "OVERLAY")
+    resetBtn.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
+    resetBtn.label:SetAllPoints()
+    resetBtn.label:SetJustifyH("CENTER")
+    resetBtn.label:SetJustifyV("MIDDLE")
+    resetBtn.label:SetText("R")
+    resetBtn.label:SetTextColor(0.70, 0.70, 0.80, 1)
+    resetBtn:SetScript("OnClick", function()
+        local defaults = ns.Data and ns.Data.Defaults and ns.Data.Defaults.ui and ns.Data.Defaults.ui.itemLevelOverlay
+        if not defaults then return end
+        local config = ns.DB and ns.DB:GetItemLevelOverlayConfig()
+        if not config then return end
+        config.anchorMode = defaults.anchorMode or "mythicplus"
+        config.point = defaults.point
+        config.relativePoint = defaults.relativePoint
+        config.x = defaults.x
+        config.y = defaults.y
+        ItemLevelOverlay:Refresh()
+    end)
+    frame.resetBtn = resetBtn
 
     -- 탭 행
     local tabRow = CreateFrame("Frame", nil, frame)
