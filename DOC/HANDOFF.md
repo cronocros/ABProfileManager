@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.5.9 기반)`
+버전 기준: `main (v1.6.0 기반)`
 
 ## 현재 상태
 
@@ -22,7 +22,14 @@
 - 블리자드 기본 UI 창 이동 자유화
 - 편의기능 탭 통합
 
-## 0. v1.5.9 오버레이 / BIS / CPU 메모
+## 0. v1.6.0 오버레이 UX 핫픽스 메모
+
+- `UI/BISOverlay.lua`와 `UI/ItemLevelOverlay.lua`의 마우스 휠 스케일링 기준점을 타이틀바(TOPLEFT)로 고정했다. 수식: `left * oldScale / newScale`. `GetLeft()/GetTop()`은 WoW 12.0에서 raw offset을 반환하므로 `oldScale`을 곱해 화면 좌표로 변환 후 `newScale`로 나눈다.
+- `UI/MainWindow.lua`의 `RefreshLocale()`에서 `SetText()` 후 `applyTabSelectionStyles()`를 재호출해 탭 텍스트 색상 소실을 방지한다. 드루이드(4특성) 등에서 발생하던 문제.
+- `UI/BISOverlay.lua`의 `Refresh()`에서 `RebuildContent()` 직후 접힌 상태면 `ApplyCollapse()`를 다시 호출해 프레임 높이를 복원한다.
+- `UI/BISOverlay.lua`와 `UI/ItemLevelOverlay.lua`의 FrameStrata를 `DIALOG` → `MEDIUM`으로 변경했다. PVEFrame과 같은 레이어에 위치시켜 캐릭터창/스킬창 등 상위 strata 창에 자연스럽게 가려지도록 한다.
+
+## 0-prev. v1.5.9 오버레이 / BIS / CPU 메모
 
 - `Data/BISData_Method.lua`는 이제 Wowhead `current Overall BiS` 39 spec 데이터를 먼저 넣고, `Data/BISData.lua` M+ fallback 데이터를 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합한다.
 - `Data/BISData.lua`는 더 이상 단순 수기 파일이 아니라 Wowhead `Best Gear from Mythic+` 후보와 기존 seed fallback을 합친 생성 결과다.

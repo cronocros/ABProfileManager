@@ -156,14 +156,11 @@ local function setScale(frame, delta)
         local left = frame:GetLeft()
         local top = frame:GetTop()
         if left and top then
-            local w, h = frame:GetWidth(), frame:GetHeight()
-            local cx = left + (w * oldScale) / 2
-            local cy = top  - (h * oldScale) / 2
             frame:SetScale(cur)
             frame:ClearAllPoints()
             frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT",
-                cx / cur - w / 2,
-                cy / cur + h / 2)
+                left * oldScale / cur,
+                top * oldScale / cur)
             cfg.anchorMode = "overlay"
             if ns.DB and ns.DB.SaveItemLevelOverlayPosition then
                 ns.DB:SaveItemLevelOverlayPosition(frame)
@@ -583,7 +580,7 @@ function ItemLevelOverlay:EnsureFrame()
     local config = getConfig()
 
     local frame = CreateFrame("Frame", "ABPMItemLevelOverlay", UIParent, "BackdropTemplate")
-    frame:SetFrameStrata("DIALOG")
+    frame:SetFrameStrata("MEDIUM")
     frame:SetClampedToScreen(true)
     frame:SetSize(FRAME_W, TITLE_H + 6)
 

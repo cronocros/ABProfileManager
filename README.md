@@ -7,12 +7,12 @@
 
 ## 현재 버전
 
-- `v1.5.9`
+- `v1.6.0`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.5.9/ABProfileManager-v1.5.9.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.5.9.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.5.9.md](./RELEASE_NOTES_v1.5.9.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.6.0/ABProfileManager-v1.6.0.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.6.0.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.6.0.md](./RELEASE_NOTES_v1.6.0.md)
 
 ## 요약
 
@@ -32,6 +32,13 @@
 - BIS hover 툴팁, BIS/드랍템 위치 복원, Stats/전문기술/BIS 마우스 휠 스케일 저장이 반영되었습니다.
 - 파티찾기 신화+ 시즌 최고기록 던전 아이콘에 `평점 + 던전명`을 직접 표시하는 `MythicPlusRecordOverlay`가 추가되었습니다.
 - BIS 랜딩 이름 보정, 필터 기본값 마이그레이션, visible-row 갱신 기반 깜빡임 완화, Stats/지도 오버레이 idle CPU 완화가 반영되었습니다.
+
+## v1.5.9 이후 수정
+
+- 오버레이 스크롤 스케일링 기준점이 타이틀바(TOPLEFT)로 고정됩니다.
+- 메인 UI 탭 텍스트가 드루이드 등 특정 캐릭터에서 보이지 않던 문제를 수정했습니다.
+- BIS 오버레이를 접은 상태로 닫았다가 다시 열 때 접힌 상태가 올바르게 복원됩니다.
+- BIS/드랍템 오버레이가 던전/공격대 창과 같은 레이어에 위치하도록 변경해 캐릭터창 등에 가려지지 않습니다.
 
 ## 핵심 기능
 

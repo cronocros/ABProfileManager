@@ -985,14 +985,11 @@ local function setOverlayScale(frame, delta)
         local left = frame:GetLeft()
         local top = frame:GetTop()
         if left and top then
-            local w, h = frame:GetWidth(), frame:GetHeight()
-            local cx = left + (w * oldScale) / 2
-            local cy = top  - (h * oldScale) / 2
             frame:SetScale(nextScale)
             frame:ClearAllPoints()
             frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT",
-                cx / nextScale - w / 2,
-                cy / nextScale + h / 2)
+                left * oldScale / nextScale,
+                top * oldScale / nextScale)
             local config = getOverlayConfig()
             if config then
                 config.anchorMode = "overlay"
@@ -1746,7 +1743,7 @@ function BISOverlay:EnsureFrame()
     local config = getOverlayConfig()
     _bisScale = tonumber(config.scale) or getOverlayScale() or 1
     local frame = CreateFrame("Frame", "ABPMBISOverlay", UIParent, "BackdropTemplate")
-    frame:SetFrameStrata("DIALOG")
+    frame:SetFrameStrata("MEDIUM")
     frame:SetFrameLevel(100)
     frame:SetClampedToScreen(true)
     frame:SetSize(FRAME_W, HEADER_H + 60)
@@ -2856,6 +2853,9 @@ function BISOverlay:Refresh()
     local ok, err = pcall(function() self:RebuildContent() end)
     if not ok then
         ns.Utils.Debug("[BISOverlay] RebuildContent 오류: " .. tostring(err))
+    end
+    if self._collapsed then
+        self:ApplyCollapse()
     end
     self.frame:Show()
 end

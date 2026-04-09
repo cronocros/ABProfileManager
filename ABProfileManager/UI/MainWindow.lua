@@ -74,6 +74,7 @@ function MainWindow:RefreshLocale()
     self.frame.questsTab:SetText(ns.L("tab_quests"))
     self.frame.configTab:SetText(ns.L("tab_config"))
     self.frame.utilityTab:SetText(ns.L("tab_utility"))
+    applyTabSelectionStyles(self.frame)
 end
 
 function MainWindow:Initialize()
