@@ -10,6 +10,7 @@ local MAP_FILTER_OPTIONS = {
     { key = "renown", labelKey = "config_silvermoon_filter_renown" },
     { key = "dungeons", labelKey = "config_silvermoon_filter_dungeons" },
     { key = "delves", labelKey = "config_silvermoon_filter_delves" },
+    { key = "beasts", labelKey = "config_silvermoon_filter_beasts" },
 }
 
 local function setStatus(panel, message)

@@ -31,6 +31,7 @@ local CATEGORY_COLORS = {
     delve = { 0.82, 0.74, 1.00 },
     raid = { 1.00, 0.56, 0.30 },
     renown = { 1.00, 0.78, 0.54 },
+    beast = { 0.56, 1.00, 0.44 },
 }
 local CATEGORY_SIZE_SCALE = {
     service = 1.10,
@@ -41,6 +42,7 @@ local CATEGORY_SIZE_SCALE = {
     delve = 1.18,
     raid = 1.24,
     renown = 1.10,
+    beast = 1.12,
 }
 local CATEGORY_PRIORITY = {
     raid = 10,
@@ -51,6 +53,7 @@ local CATEGORY_PRIORITY = {
     travel = 60,
     profession = 70,
     service = 80,
+    beast = 35,
 }
 local CATEGORY_MARKER_RADIUS = {
     service = 9,
@@ -61,6 +64,7 @@ local CATEGORY_MARKER_RADIUS = {
     delve = 12,
     raid = 13,
     renown = 10,
+    beast = 10,
 }
 local MAP_DENSITY_SCALE = {
     dense = 1.00,
@@ -139,6 +143,9 @@ local function getFilterKey(point)
     end
     if point.category == "delve" then
         return "delves"
+    end
+    if point.category == "beast" then
+        return "beasts"
     end
 
     return "facilities"

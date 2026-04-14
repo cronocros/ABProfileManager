@@ -80,6 +80,7 @@ ns.Data.SilvermoonMapData = {
                 { key = "windrunner_spire", labelKey = "map_label_windrunner_spire", x = 35.63, y = 78.87, category = "dungeon", size = 15, priority = 12, offsetY = -6 },
                 { key = "shadow_enclave", labelKey = "map_label_shadow_enclave", x = 45.55, y = 86.31, category = "delve", size = 15, priority = 18, offsetY = -4 },
                 { key = "atal_aman_eversong", labelKey = "map_label_atal_aman", x = 63.00, y = 79.00, category = "delve", size = 15, priority = 18, offsetY = -4 },
+                { key = "bait_eversong", labelKey = "map_label_bait_eversong", x = 42.00, y = 80.00, category = "beast", size = 14, priority = 36, offsetY = -4 },
             },
         },
         [2413] = {
@@ -92,6 +93,7 @@ ns.Data.SilvermoonMapData = {
                 { key = "grudge_pit", labelKey = "map_label_grudge_pit", x = 70.00, y = 67.00, category = "delve", size = 15, priority = 18, offsetX = -6, offsetY = 12, preferBelow = true },
                 { key = "gulf_of_memory", labelKey = "map_label_gulf_of_memory", x = 36.70, y = 49.60, category = "delve", size = 15, priority = 18, offsetY = -6 },
                 { key = "dreamrift", labelKey = "map_label_dreamrift", x = 61.00, y = 65.00, category = "raid", size = 15, priority = 10, offsetY = -4, noWrap = true },
+                { key = "bait_harandar", labelKey = "map_label_bait_harandar", x = 66.00, y = 48.00, category = "beast", size = 14, priority = 36, offsetY = -4 },
             },
         },
         [2405] = {
@@ -105,6 +107,9 @@ ns.Data.SilvermoonMapData = {
                 { key = "nexus_point_xenas", labelKey = "map_label_nexus_point_xenas", x = 64.70, y = 61.77, category = "dungeon", size = 15, priority = 12, offsetY = -4 },
                 { key = "voidscar_arena", labelKey = "map_label_voidscar_arena", x = 51.00, y = 19.00, category = "dungeon", size = 15, priority = 12, offsetX = 2, offsetY = -4 },
                 { key = "voidspire", labelKey = "map_label_voidspire", x = 45.40, y = 64.00, category = "raid", size = 15, priority = 10, offsetY = -6 },
+                { key = "torments_rise", labelKey = "map_label_torments_rise", x = 61.00, y = 70.00, category = "delve", size = 15, priority = 18, offsetY = -4 },
+                { key = "bait_voidstorm", labelKey = "map_label_bait_voidstorm", x = 54.00, y = 65.00, category = "beast", size = 14, priority = 36, offsetY = -4 },
+                { key = "bait_great_beast", labelKey = "map_label_bait_great_beast", x = 42.00, y = 83.00, category = "beast", size = 14, priority = 36, offsetY = -4 },
             },
         },
         [2437] = {
@@ -115,6 +120,7 @@ ns.Data.SilvermoonMapData = {
                 { key = "den_of_nalorakk", labelKey = "map_label_den_of_nalorakk", x = 29.99, y = 84.45, category = "dungeon", size = 15, priority = 12, offsetX = 12, offsetY = -4 },
                 { key = "atal_aman", labelKey = "map_label_atal_aman", x = 25.00, y = 52.00, category = "delve", size = 15, priority = 18, offsetY = -4 },
                 { key = "maisara_caverns", labelKey = "map_label_maisara_caverns", x = 44.00, y = 40.00, category = "dungeon", size = 15, priority = 11, offsetX = 2, offsetY = -4, manualWrap = true },
+                { key = "bait_zulaman", labelKey = "map_label_bait_zulaman", x = 47.00, y = 54.00, category = "beast", size = 14, priority = 36, offsetY = -4 },
             },
         },
         [1270] = {

@@ -2,7 +2,7 @@
 ## Title: ABProfileManager
 ## Notes: Action-bar, profession, BIS/item-level, and Mythic+ record overlay manager for Retail.
 ## Author: 밍밍이와코코
-## Version: 1.6.0
+## Version: 1.6.1
 ## IconTexture: Interface\Icons\INV_Inscription_ScrollOfWisdom_01
 ## SavedVariables: ABPM_DB
 
