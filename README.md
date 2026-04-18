@@ -12,6 +12,7 @@
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
 - 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.0/ABProfileManager-v1.7.0.zip`
 - 로컬 패키지: `dist/ABProfileManager-v1.7.0.zip`
+- 이전 로컬 패키지: `dist/archive/`
 - 최신 릴리스 노트: [RELEASE_NOTES_v1.7.0.md](./RELEASE_NOTES_v1.7.0.md)
 - 영문 릴리스 노트: [RELEASE_NOTES_v1.7.0_EN.md](./RELEASE_NOTES_v1.7.0_EN.md)
 

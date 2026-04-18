@@ -10,8 +10,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package_release.ps1
 
 ```text
 dist\ABProfileManager-v<version>.zip
+dist\archive\ABProfileManager-v<older>.zip
 backups\source\ABProfileManager-source-v<version>-<timestamp>.zip
 ```
+
+- `dist` 루트에는 최신 패키지만 유지한다.
+- 이전 로컬 패키지는 `dist\archive\`로 이동한다.
 
 ## 기본 검증
 
@@ -68,4 +72,4 @@ gh release edit v<version> --notes-file "RELEASE_NOTES_v<version>.md"
 - 중복 TODO 문서와 플레이스홀더 문서는 장기 유지 대상이 아님
 - 최신 릴리스 노트만 루트에 유지
 - 이전 릴리스 노트는 `DOC/archive/release-notes/`로 이동
-- 바이너리 백업 ZIP은 로컬/릴리스 자산으로 관리하고 git에는 포함하지 않음
+- 로컬 패키지 ZIP은 `dist` 최신 1개 + `dist/archive` 보관본 구조로 관리하고 git에는 포함하지 않음
