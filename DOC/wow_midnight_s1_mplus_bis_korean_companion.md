@@ -1,210 +1,205 @@
 # WoW Midnight 시즌 1 — 아이템 한글명 보조판
 
 기준일: 2026-04-18
-기준: **wow_midnight_s1_mplus_bis_final.md**의 아이템명을 읽기 쉽게 정리한 **한글명 보조판**
-주의: 이 문서는 **공식 KR DB를 전 항목 1:1로 전부 검증한 문서가 아니다.** 공식 한국어 표기를 확인한 항목은 반영했고, 나머지는 **영문 원문을 유지하기 위한 보조용 한글 번역/음역명**이다. 최종 식별은 반드시 **영문 원문**을 기준으로 해야 한다.
+기준: **wow_midnight_s1_mplus_bis_final.md**와 현재 BIS 오버레이 카탈로그를 기준으로 정리한 **한글명 보조판**
+주의: 이 문서는 **현재 오버레이 카탈로그의 koKR / enUS / itemID 기준값**을 함께 싣는다. 최종 식별은 반드시 **itemID + 영문 원문**을 기준으로 한다.
 
 ## 아이템 한글명 매핑
 
-- **라덴의 선택받은 자의 무시무시한 안면** (Fearsome Visage of Ra-den's Chosen)
-- **라덴의 선택받은 자의 오라스톤** (Aurastones of Ra-den's Chosen)
-- **라덴의 선택받은 자의 전투복** (Battle Garb of Ra-den's Chosen)
-- **라덴의 선택받은 자의 싹쓸이 바지** (Swiftsweepers of Ra-den's Chosen)
-- **배신자의 갈퀴발톱** (Traitor's Talon)
-- **그림자베기 절단도** (그림자베기 절단도)
-- **바람의 심장** (Heart of Wind)
-- **알게타르 수수께끼 상자** (Algeth'ar Puzzle Box)
-- **가시 돋친 이미르하임 초커** (Barbed Ymirheim Choker)
-- **빛의 생략** (Omission of Light)
-- **로아 숭배자의 고리** (Loa Worshiper's Band)
-- **덩굴죔 허리띠** (Snapvine Cinch)
-- **광분뿌리 소매장식** (Frenzyroot Cuffs)
-- **암흑 장막의 장갑** (Gloves of the Dark Shroud)
-- **라덴의 선택받은 자의 바람두르개** (Windwrap of Ra-den's Chosen)
-- **라덴의 선택받은 자의 폭풍파쇄자** (Storm Crashers of Ra-den's Chosen)
-- **라덴의 선택받은 자의 천둥주먹** (Thunderfists of Ra-den's Chosen)
-- **흑요석 골텐딩 첨탑** (Obsidian Goaltending Spire)
-- **공포철퇴 곤봉** (Dreadflail Bludgeon)
-- **영혼역병 식칼** (Soulblight Cleaver)
-- **태양섬광 프리즘** (Solarflare Prism)
-- **공허 추적자의 계약** (Void Stalker's Contract)
-- **썩어가는 점액구** (Rotting Globule)
-- **순수한 공허의 앰풀** (Ampoule of Pure Void)
-- **대가의 신도레이 아뮬렛** (Masterwork Sin'dorei Amulet)
-- **에레다스 귀족의 인장** (Eredath Seal of Nobility)
-- **씹힌 가죽 손목보호대** (Chewed Leather Wristguards)
-- **영혼사냥꾼의 가면** (Soulhunter's Mask)
-- **전이 추적자 가죽 바지** (Shifting Stalker Hide Pants)
-- **스며드는 공포의 발보호구** (Footpads of Seeping Dread)
-- **대현자의 비전서** (Arcanic of the High Sage)
-- **벡사무스의 추방 지팡이** (Vexamus' Expulsion Rod)
-- **불씨날개 깃털** (Emberwing Feather)
-- **쑤시는 슬픔의 펜던트** (Pendant of Aching Grief)
-- **삼두정의 반지** (Band of the Triumvirate)
-- **매사냥꾼의 허리띠** (Falconer's Cinch)
-- **식의 에스파드리유** (Eclipse Espadrilles)
-- **신봉자의 비단 수의** (Adherent's Silken Shroud)
-- **실버문 요원의 손목보호대** (Silvermoon Agent's Deflectors)
-- **무자비한 기수의 왕관** (Relentless Rider's Crown)
-- **무자비한 기수의 공포가시** (Relentless Rider's Dreadthorns)
-- **무자비한 기수의 흉갑** (Relentless Rider's Cuirass)
-- **무자비한 기수의 다리보호구** (Relentless Rider's Legguards)
-- **공허발톱 건틀릿** (Voidclaw Gauntlets)
-- **생명절단자의 커틀러스** (Liferipper's Cutlass)
-- **공허의 차폐** (Occlusion of Void)
-- **휘어진 금 허리띠** (Bent Gold Belt)
-- **트롤사냥꾼의 손목띠** (Trollhunter's Bands)
-- **빛흉터 다리갑옷** (Lightscarred Cuisses)
-- **격노한 복수의 발덮개** (Sabatons of Furious Revenge)
-- **반항하는 수호자의 휘장망토** (Defiant Defender's Drape)
-- **탐식하는 파괴자의 흡입구** (Devouring Reaver's Intake)
-- **탐식하는 파괴자의 배기판** (Devouring Reaver's Exhaustplates)
-- **탐식하는 파괴자의 정수 장갑** (Devouring Reaver's Essence Grips)
-- **탐식하는 파괴자의 피스톤** (Devouring Reaver's Pistons)
-- **미스타크리아의 수확기** (Mystakria's Harvester)
-- **주문파괴자의 전투쌍날검** (Spellbreaker's Warglaive)
-- **뒤틀린 공허의 목걸이** (Necklace of the Twisting Void)
-- **훔쳐낸 결혼 반지** (Purloined Wedding Ring)
-- **말레딕트 조끼** (Maledict Vest)
-- **광휘의 평결의 흔들림 없는 시선** (Luminant Verdict's Unwavering Gaze)
-- **광휘의 평결의 섭리의 감시** (Luminant Verdict's Providence Watch)
-- **광휘의 평결의 성스러운 판금갑옷** (Luminant Verdict's Divine Warplate)
-- **광휘의 평결의 경갑** (Luminant Verdict's Greaves)
-- **주문파멸자 커틀러스** (Spellbane Cutlass)
-- **주문파괴자의 수호물** (Ward of the Spellbreaker)
-- **그림자분할 요대** (Shadowsplit Girdle)
-- **주문파괴자의 팔보호구** (Spellbreaker's Bracers)
-- **불운의 발싸개** (Footwraps of Ill-Fate)
-- **타락한 추기경의 망토** (Cloak of the Fallen Cardinal)
-- **밤끝의 엄니** (Night Ender's Tusks)
-- **밤끝의 견갑** (Night Ender's Pauldrons)
-- **밤끝의 흉갑** (Night Ender's Breastplate)
-- **밤끝의 쇠사슬 바지** (Night Ender's Chausses)
-- **끝없는 밤의 홀** (Scepter of the Endless Night)
-- **찢개갈고리 방패** (Riphook Defender)
-- **밤끝의 대장화** (Night Ender's Greatboots)
-- **탐식하는 파괴자의 엔진** (Devouring Reaver's Engine)
-- **광휘 꽃의 가지** (Branches of the Luminous Bloom)
-- **광휘 꽃의 줄기** (Trunk of the Luminous Bloom)
-- **광휘 꽃의 체관 수의** (Phloemwraps of the Luminous Bloom)
-- **보금자리지기의 나뭇가지** (Roostwarden's Bough)
-- **알느하라의 장창지팡이** (Aln'hara Pikestaff)
-- **가죽벗기는 자의 검은 허리띠** (Flayer's Black Belt)
-- **불타는 집중의 장화** (Boots of Burning Focus)
-- **원시 핵의 중심** (Locus of the Primal Core)
-- **원시 핵의 폭풍** (Tempests of the Primal Core)
-- **원시 핵의 포옹** (Embrace of the Primal Core)
-- **원시 핵의 대지손아귀** (Earthgrips of the Primal Core)
-- **이글거리는 태양발톱** (Blazing Sunclaws)
-- **원정순찰자의 도끼** (Farstrider's Chopper)
-- **딱지 낀 좀비가죽 허리띠** (Scabrous Zombie Leather Belt)
-- **호박가지 팔보호구** (Amberfrond Bracers)
-- **신성한 기만의 경갑** (Greaves of the Divine Guile)
-- **채찍코일 발덮개** (Whipcoil Sabatons)
-- **광휘 꽃의 씨앗 꼬투리** (Seedpods of the Luminous Bloom)
-- **광휘 꽃의 나무지기** (Arbortenders of the Luminous Bloom)
-- **분기 반지** (Bifurcation Band)
-- **광휘의 평결의 건틀릿** (Luminant Verdict's Gauntlets)
-- **주문축복 세이버** (Spellboon Saber)
-- **비릭스의 불굴의 방벽** (Viryx's Indomitable Bulwark)
-- **에메랄드 마부의 호루라기** (Emerald Coach's Whistle)
-- **그림자수호병의 요대** (Girdle of the Shadowguard)
-- **맹세의 날개 달린 관** (Blind Oath's Winged Crest)
-- **맹세의 예복** (Blind Oath's Raiment)
-- **맹세의 손길** (Blind Oath's Touch)
-- **맹세의 다리보호구** (Blind Oath's Leggings)
-- **의식용 주술검** (Ceremonial Hexblade)
-- **알느하라의 등불** (Aln'hara Lantern)
-- **니사라의 망토** (Nysarra's Mantle)
-- **지하 이끼의 손목보호대** (Wristguards of Subterranean Moss)
-- **빛결속자의 신발** (Lightbinder Treads)
-- **비전매듭 끈** (Arcanoweave Cord)
-- **맹세의 천사수호구** (Blind Oath's Seraphguards)
-- **알느하라의 지팡이** (Aln'hara Cane)
-- **사프리쉬의 응시의 마법봉** (Wand of Saprish's Gaze)
-- **쉴 새 없는 심장의 인장** (Sigil of the Restless Heart)
-- **이글거리는 빛의 팔보호구** (Bracers of Blazing Light)
-- **밤사냥 추적자** (Nightprey Stalkers)
-- **백금별 고리** (Platinum Star Band)
-- **공허파괴자의 장막** (Voidbreaker's Veil)
-- **공허파괴자의 지맥 연결점** (Voidbreaker's Leyline Nexi)
-- **공허파괴자의 로브** (Voidbreaker's Robe)
-- **공허파괴자의 장갑** (Voidbreaker's Gloves)
-- **하늘파괴자의 검** (Skybreaker's Blade)
-- **격노한 피조물의 첨탑** (Spire of the Furious Construct)
-- **창백뼈 로브** (Palebone Robes)
-- **루크란의 태양 성물함** (Rukhran's Solar Reliquary)
-- **핵불꽃 다목적 도구** (Corespark Multitool)
-- **벨고르의 최후의 응시** (Vaelgor's Final Stare)
-- **어두운 헌신의 어깨덧옷** (Mantle of Dark Devotion)
-- **단단한 비늘 대망토** (Rigid Scale Greatcloak)
-- **순교자의 속박** (Martyr's Bindings)
-- **얼음에 절인 샌들** (Ice-Steeped Sandals)
-- **발굴용 곤봉** (Excavating Cudgel)
-- **어둠송곳니 비늘 손목보호대** (Darkfang Scale Wristguards)
-- **세상돌봄이의 나무껍질 잠금쇠** (World Tender's Barkclasp)
-- **세상돌봄이의 뿌리덧신** (World Tender's Rootslippers)
-- **무자비한 기수의 뼈손아귀** (Relentless Rider's Bonegrasps)
-- **벨라미의 최후의 심판** (Bellamy's Final Judgement)
+- **라덴에게 선택받은 자의 무시무시한 안면** (Fearsome Visage of Ra-den's Chosen) — itemID: 250015
+- **라덴에게 선택받은 자의 기의 돌** (Aurastones of Ra-den's Chosen) — itemID: 250013
+- **라덴에게 선택받은 자의 전투복** (Battle Garb of Ra-den's Chosen) — itemID: 250018
+- **라덴에게 선택받은 자의 싹쓸이 바지** (Swiftsweepers of Ra-den's Chosen) — itemID: 250014
+- **배신자의 갈퀴발톱** (Traitor's Talon) — itemID: 251162
+- **어둠칼날 절단기** (Shadowslash Slicer) — itemID: 251122
+- **바람의 심장** (Heart of Wind) — itemID: 250256
+- **알게타르 수수께끼 상자** (Algeth'ar Puzzle Box) — itemID: 193701
+- **뾰족한 이미르하임 목장식** (Barbed Ymirheim Choker) — itemID: 50228
+- **소외된 빛** (Omission of Light) — itemID: 251093
+- **로아 신봉자의 고리** (Loa Worshiper's Band) — itemID: 251513
+- **치악덩굴 허리끈** (Snapvine Cinch) — itemID: 251082
+- **광분뿌리 소매장식** (Frenzyroot Cuffs) — itemID: 193714
+- **암흑 구름의 장갑** (Gloves of the Dark Shroud) — itemID: 151318
+- **라덴에게 선택받은 자의 바람포** (Windwrap of Ra-den's Chosen) — itemID: 250010
+- **라덴에게 선택받은 자의 폭풍추적화** (Storm Crashers of Ra-den's Chosen) — itemID: 250017
+- **라덴에게 선택받은 자의 천둥주먹** (Thunderfists of Ra-den's Chosen) — itemID: 250016
+- **흑요석 골대지킴이 뾰족지팡이** (Obsidian Goaltending Spire) — itemID: 193723
+- **공포도리깨 곤봉** (Dreadflail Bludgeon) — itemID: 251207
+- **영혼역병 가로날도끼** (Soulblight Cleaver) — itemID: 251175
+- **태양섬광 분광경** (Solarflare Prism) — itemID: 252420
+- **공허 추적자의 계약** (Void Stalker's Contract) — itemID: 151307
+- **썩어가는 방울** (Rotting Globule) — itemID: 252421
+- **순수한 공허의 유리병** (Ampoule of Pure Void) — itemID: 151312
+- **걸작 신도레이 아뮬렛** (Masterwork Sin'dorei Amulet) — itemID: 240950
+- **에레다스 귀족의 인장** (Eredath Seal of Nobility) — itemID: 151308
+- **물어뜯긴 가죽 손목보호구** (Chewed Leather Wristguards) — itemID: 50264
+- **영혼사냥꾼의 장막** (Shroud of the Soulhunter) — itemID: 251161
+- **변화의 추적자 가죽 바지** (Shifting Stalker Hide Pants) — itemID: 151314
+- **스며드는 공포의 발보호구** (Footpads of Seeping Dread) — itemID: 151317
+- **대현자의 비전** (Arcanic of the High Sage) — itemID: 110033
+- **벡사무스의 배출 마법봉** (Vexamus' Expulsion Rod) — itemID: 193709
+- **잿불날개 깃털** (Emberwing Feather) — itemID: 250144
+- **괴로운 비탄의 펜던트** (Pendant of Aching Grief) — itemID: 251096
+- **삼두정의 고리** (Band of the Triumvirate) — itemID: 151311
+- **매사냥꾼의 허리끈** (Falconer's Cinch) — itemID: 251166
+- **일월식 발목화** (Eclipse Espadrilles) — itemID: 251210
+- **신봉자의 비단 수의** (Adherent's Silken Shroud) — itemID: 239656
+- **실버문 요원의 굴절보호대** (Silvermoon Agent's Deflectors) — itemID: 244576
+- **가혹한 기수의 왕관** (Relentless Rider's Crown) — itemID: 249970
+- **가혹한 기수의 공포가시** (Relentless Rider's Dreadthorns) — itemID: 249968
+- **가혹한 기수의 흉갑** (Relentless Rider's Cuirass) — itemID: 249973
+- **가혹한 기수의 다리보호대** (Relentless Rider's Legguards) — itemID: 249969
+- **공허발톱 건틀릿** (Voidclaw Gauntlets) — itemID: 151332
+- **생명 약탈자의 커틀라스** (Liferipper's Cutlass) — itemID: 251168
+- **공허의 맞물림** (Occlusion of Void) — itemID: 251217
+- **구부러진 황금띠** (Bent Gold Belt) — itemID: 49808
+- **트롤사냥꾼의 손목매듭** (Trollhunter's Bands) — itemID: 263193
+- **빛흉터 다리가리개** (Lightscarred Cuisses) — itemID: 251208
+- **격노한 복수의 발덮개** (Sabatons of Furious Revenge) — itemID: 251091
+- **저항하는 수호자의 외투** (Defiant Defender's Drape) — itemID: 260312
+- **포식의 파괴자 유입구** (Devouring Reaver's Intake) — itemID: 250033
+- **포식의 파괴자 배출장갑** (Devouring Reaver's Exhaustplates) — itemID: 250031
+- **포식의 파괴자 정수 손장갑** (Devouring Reaver's Essence Grips) — itemID: 250034
+- **포식의 파괴자 피스톤** (Devouring Reaver's Pistons) — itemID: 250032
+- **미스타크리아의 수확기** (Mystakria's Harvester) — itemID: 193717
+- **주문파괴자의 전투검** (Spellbreaker's Warglaive) — itemID: 237840
+- **뒤틀리는 공허의 목걸이** (Necklace of the Twisting Void) — itemID: 151309
+- **훔친 결혼반지** (Purloined Wedding Ring) — itemID: 49812
+- **악독한 조끼** (Maledict Vest) — itemID: 251216
+- **빛나는 선고의 흔들림 없는 시선** (Luminant Verdict's Unwavering Gaze) — itemID: 249961
+- **빛나는 선고의 섭리의 경계** (Luminant Verdict's Providence Watch) — itemID: 249959
+- **빛나는 선고의 신성 전쟁판금** (Luminant Verdict's Divine Warplate) — itemID: 249964
+- **빛나는 선고의 경갑** (Luminant Verdict's Greaves) — itemID: 249960
+- **주문파멸 커틀라스** (Spellbane Cutlass) — itemID: 193711
+- **주문파괴자의 수호물** (Ward of the Spellbreaker) — itemID: 251105
+- **어둠분열 요대** (Shadowsplit Girdle) — itemID: 251112
+- **주문파괴자의 팔보호구** (Spellbreaker's Bracers) — itemID: 237834
+- **불길한 운명의 발등싸개** (Footwraps of Ill-Fate) — itemID: 251169
+- **쓰러진 추기경의 망토** (Cloak of the Fallen Cardinal) — itemID: 49823
+- **밤의 종결자의 엄니** (Night Ender's Tusks) — itemID: 249952
+- **밤의 종결자의 견갑** (Night Ender's Pauldrons) — itemID: 249950
+- **밤의 종결자의 가슴보호갑** (Night Ender's Breastplate) — itemID: 249955
+- **밤의 종결자의 정강이싸개** (Night Ender's Chausses) — itemID: 249951
+- **끝없는 밤의 홀** (Scepter of the Endless Night) — itemID: 258525
+- **갈퀴올가미 수호자** (Riphook Defender) — itemID: 251086
+- **밤의 종결자의 철갑장화** (Night Ender's Greatboots) — itemID: 249954
+- **포식의 파괴자 동력장치** (Devouring Reaver's Engine) — itemID: 250036
+- **영롱한 꽃의 나뭇가지** (Branches of the Luminous Bloom) — itemID: 250024
+- **영롱한 꽃의 밑동** (Trunk of the Luminous Bloom) — itemID: 250027
+- **영롱한 꽃의 체관싸개** (Phloemwraps of the Luminous Bloom) — itemID: 250023
+- **뿌리감시관의 가지** (Roostwarden's Bough) — itemID: 251077
+- **알른하라의 창지팡이** (Aln'hara Pikestaff) — itemID: 245771
+- **바위갈퀴의 검은띠** (Flayer's Black Belt) — itemID: 49806
+- **타오르는 집중의 장화** (Boots of Burning Focus) — itemID: 109787
+- **원시 핵의 집중점** (Locus of the Primal Core) — itemID: 249979
+- **원시 핵의 돌개바람** (Tempests of the Primal Core) — itemID: 249977
+- **원시 핵의 포옹** (Embrace of the Primal Core) — itemID: 249982
+- **원시 핵의 대지손아귀** (Earthgrips of the Primal Core) — itemID: 249980
+- **타오르는 태양발톱** (Blazing Sunclaws) — itemID: 258438
+- **원정순찰대원의 절단도끼** (Farstrider's Chopper) — itemID: 237850
+- **거친 좀비 허리띠** (Scabrous Zombie Belt) — itemID: 49810
+- **호박석잎 팔보호구** (Amberfrond Bracers) — itemID: 251079
+- **천상의 기만의 경갑** (Greaves of the Divine Guile) — itemID: 251215
+- **채찍뱀 발덮개** (Whipcoil Sabatons) — itemID: 251084
+- **영롱한 꽃의 씨앗 깍지** (Seedpods of the Luminous Bloom) — itemID: 250022
+- **영롱한 꽃의 나무지기** (Arbortenders of the Luminous Bloom) — itemID: 250025
+- **분기점의 고리** (Bifurcation Band) — itemID: 251115
+- **빛나는 선고의 건틀릿** (Luminant Verdict's Gauntlets) — itemID: 249962
+- **주문은총 사브르** (Spellboon Saber) — itemID: 193710
+- **비릭스의 불굴의 보루 방패** (Viryx's Indomitable Bulwark) — itemID: 110034
+- **에메랄드 감독의 호루라기** (Emerald Coach's Whistle) — itemID: 193718
+- **어둠수호병의 요대** (Girdle of the Shadowguard) — itemID: 151327
+- **맹목적인 맹세의 날개 달린 문장** (Blind Oath's Winged Crest) — itemID: 250051
+- **맹목적인 맹세의 예복** (Blind Oath's Raiment) — itemID: 250054
+- **맹목적인 맹세의 손길** (Blind Oath's Touch) — itemID: 250052
+- **맹목적인 맹세의 다리보호구** (Blind Oath's Leggings) — itemID: 250050
+- **의식용 사술칼날** (Ceremonial Hexblade) — itemID: 251178
+- **알른하라의 등불** (Aln'hara Lantern) — itemID: 245769
+- **니사라의 어깨덧옷** (Nysarra's Mantle) — itemID: 251213
+- **땅속 이끼의 손목보호구** (Wristguards of Subterranean Moss) — itemID: 49809
+- **빛의 결속자 발보호대** (Lightbinder Treads) — itemID: 258584
+- **비전매듭 장식끈** (Arcanoweave Cord) — itemID: 239664
+- **맹목적인 맹세의 대천사보호대** (Blind Oath's Seraphguards) — itemID: 250049
+- **알른하라의 지팡이** (Aln'hara Cane) — itemID: 245770
+- **사프리쉬의 시선 마법봉** (Wand of Saprish's Gaze) — itemID: 258516
+- **잠 못 드는 심장의 인장** (Sigil of the Restless Heart) — itemID: 251094
+- **작열하는 빛의 팔보호구** (Bracers of Blazing Light) — itemID: 258580
+- **밤사냥감 추적자** (Nightprey Stalkers) — itemID: 251167
+- **백금 별의 고리** (Platinum Star Band) — itemID: 193708
+- **공허파괴자의 면사포** (Voidbreaker's Veil) — itemID: 250060
+- **공허파괴자의 지맥 연결체** (Voidbreaker's Leyline Nexi) — itemID: 250058
+- **공허파괴자의 로브** (Voidbreaker's Robe) — itemID: 250063
+- **공허파괴자의 장갑** (Voidbreaker's Gloves) — itemID: 250061
+- **하늘파괴자의 칼날** (Skybreaker's Blade) — itemID: 258218
+- **격노한 피조물의 척추** (Spire of the Furious Construct) — itemID: 110031
+- **창백한 뼈 로브** (Palebone Robes) — itemID: 49825
+- **루크란의 태양 성물함** (Rukhran's Solar Reliquary) — itemID: 258472
+- **핵심불꽃 다용도 도구** (Corespark Multitool) — itemID: 251201
+- **바엘고어의 마지막 시선** (Vaelgor's Final Stare) — itemID: 249346
+- **어둠의 헌신의 어깨덧옷** (Mantle of Dark Devotion) — itemID: 251085
+- **강도 높은 미늘 큰망토** (Rigid Scale Greatcloak) — itemID: 258575
+- **순교자의 손목띠** (Martyr's Bindings) — itemID: 239648
+- **얼음둘레 덧신** (Ice-Steeped Sandals) — itemID: 49805
+- **발굴용 곤봉** (Excavating Cudgel) — itemID: 251083
+- **검은송곳니 비늘 손목보호구** (Darkfang Scale Wristguards) — itemID: 151321
+- **세계지기의 껍질죔쇠띠** (World Tender's Barkclasp) — itemID: 244611
+- **세계지기의 뿌리끌신** (World Tender's Rootslippers) — itemID: 244610
+- **가혹한 기수의 해골손아귀** (Relentless Rider's Bonegrasps) — itemID: 249971
+- **벨라미의 마지막 심판** (Bellamy's Final Judgement) — itemID: 249277
 - **공허첨탑(The Voidspire)** (공허첨탑(The Voidspire))
-- **마지막 황혼의 칼날** (Blade of the Final Twilight)
-- **주문파괴자의 최후통첩** (Spellbreaker's Ultimatum)
-- **알른선견자의 응시** (Gaze of the Alnseer)
+- **마지막 황혼의 칼날** (Blade of the Final Twilight) — itemID: 249281
+- **주문파괴자의 최후통첩** (Spellbreaker's Ultimatum) — itemID: 237841
+- **알른 선견자의 응시** (Gaze of the Alnseer) — itemID: 249343
 - **꿈의 균열(The Dreamrift)** (꿈의 균열(The Dreamrift))
-- **광명 중대의 기돈** (Light Company Guidon)
-- **심연의 찬가 아뮬렛** (Amulet of the Abyssal Hymn)
+- **빛의 부대기** (Light Company Guidon) — itemID: 249344
+- **심연의 찬가의 아뮬렛** (Amulet of the Abyssal Hymn) — itemID: 250247
 - **쿠엘다나스 행군(March on Quel'Danas)** (쿠엘다나스 행군(March on Quel'Danas))
-- **신도레이의 희망 반지** (Sin'dorei Band of Hope)
-- **증오로 묶인 허리사슬** (Hate-Tied Waistchain)
-- **미형성체의 경갑** (Greaves of the Unformed)
-- **서약수행자의 발구르개** (Oathsworn Stompers)
-- **부서진 발톱 벨로멜로른** (Belo'melorn, the Shattered Talon)
-- **알른의 경멸받은 후회의 고서** (Tome of Alnscorned Regret)
-- **불협화 애가의 화로** (Brazier of the Dissonant Dirge)
-- **영혼포획자의 부적** (Soulcatcher's Charm)
-- **천상 진혼곡의 그림자** (Shadow of the Empyrean Requiem)
-- **영원의 공허노래 사슬** (Eternal Voidsong Chain)
-- **한밤의 눈** (Eye of Midnight)
-- **용족 무효화 망토** (Draconic Nullcape)
-- **사악한 저주의 결속** (Vilehex Bonds)
-- **검은 발톱의 뿔투구** (Hornhelm of the Black Talon)
-- **검은 발톱의 봉화** (Beacons of the Black Talon)
-- **검은 발톱의 광분수호구** (Frenzyward of the Black Talon)
-- **검은 발톱의 경갑** (Greaves of the Black Talon)
-- **검은 발톱의 집행관 장갑** (Enforcer's Grips of the Black Talon)
-- **주라알의 암영 첨탑** (Umbral Spire of Zuraal)
-- **발굴용 곤봉 / 불씨날개 깃털 / 바람의 심장** (Excavating Cudgel / Emberwing Feather / Heart of Wind)
-- **최종 성적 / 에메랄드 마부의 호루라기** (Final Grade / Emerald Coach's Whistle)
-- **빛의 결속** (Bond of Light)
-- **유동직조 망토** (Fluxweave Cloak)
-- **소용돌이 안면** (Vortex Visage)
-- **휘몰아치는 공허절단기** (Whirling Voidcleaver)
-- **혈기사의 추진력** (Blood Knight's Impetus)
-- **고대 굶주림의 심장** (Heart of Ancient Hunger)
-- **남아도는 황혼의 다리갑옷** (Legplates of Lingering Dusk)
-- **어두운 손길의 흉갑** (Breastplate of the Dark Touch)
-- **원시 감시자의 아가리** (Primal Sentry's Maw)
-- **원시 감시자의 비늘갑옷** (Primal Sentry's Scaleplate)
-- **원시 감시자의 발톱수호구** (Primal Sentry's Talonguards)
-- **원시 감시자의 다리보호구** (Primal Sentry's Legguards)
-- **기만자의 썩은활** (Deceiver's Rotbow)
-- **공허 사냥꾼의 견갑** (Pauldrons of the Void Hunter)
-- **피할 수 없는 손길** (Inescapable Reach)
-- **굶주린 승리** (Hungering Victory)
-- **벨로렌의 날랜 발톱** (Belo'ren's Swift Talon)
-- **얼어붙은 피의 어깨판금** (Shoulderplates of Frozen Blood)
-- **갈라진 장막의 침** (Splitshroud Stinger)
-- **최종 BiS 장화** (최종 BiS 장화)
-- **크릭의 딱정벌레 찌르개** (Krick's Beetle Stabber)
-- **하늘탑** (Skyreach)
-- **윈드러너 첨탑** (Windrunner Spire)
-- **불타는 태양의 칼날** (Edge of the Burning Sun)
-- **실버문 요원의 실용 허리띠** (Silvermoon Agent's Utility Belt)
-- **거친 웜가죽 다리보호구** (Shaggy Wyrmleather Leggings)
-- **날카로운눈의 광채** (Sharpeye Gleam)
-- **단단한 비늘 장화** (Rigid Scale Boots)
-- **변덕스러운 에너지의 도가니** (Crucible of Erratic Energies)
-- **복종의 잠금쇠** (Clasp of Compliance)
-- **현실 해체의 끈** (Cord of Unraveling Reality)
-- **고통받는 영혼의 그릇** (Vessel of Tortured Souls)
-- **가프로스트의 2톤 망치** (Garfrost's Two-Ton Hammer)
+- **희망의 신도레이 고리** (Sin'dorei Band of Hope) — itemID: 249919
+- **증오매듭 허리사슬** (Hate-Tied Waistchain) — itemID: 249380
+- **형성되지 않은 자의 경갑** (Greaves of the Unformed) — itemID: 249381
+- **서약신도 디딤장화** (Oathsworn Stompers) — itemID: 251107
+- **벨로멜로른 - 으스러진 갈퀴발톱** (Belo'melorn, the Shattered Talon) — itemID: 249283
+- **알른멸시 회한의 고서** (Tome of Alnscorned Regret) — itemID: 249922
+- **불협의 진혼곡 화로** (Brazier of the Dissonant Dirge) — itemID: 249286
+- **영혼포획자의 부적** (Soulcatcher's Charm) — itemID: 250223
+- **드높은 진혼곡의 그림자** (Shadow of the Empyrean Requiem) — itemID: 249810
+- **영원한 공허노래 사슬** (Eternal Voidsong Chain) — itemID: 249368
+- **한밤의 눈** (Eye of Midnight) — itemID: 249920
+- **용족 무위단망토** (Draconic Nullcape) — itemID: 249370
+- **부정사술 결속대** (Vilehex Bonds) — itemID: 251172
+- **검은 갈퀴발톱의 뿔투구** (Hornhelm of the Black Talon) — itemID: 249997
+- **검은 갈퀴발톱의 봉화** (Beacons of the Black Talon) — itemID: 249995
+- **검은 갈퀴발톱의 광란수호물** (Frenzyward of the Black Talon) — itemID: 250000
+- **검은 갈퀴발톱의 경갑** (Greaves of the Black Talon) — itemID: 249996
+- **검은 갈퀴발톱의 집행자 손아귀** (Enforcer's Grips of the Black Talon) — itemID: 249998
+- **주라알의 암영 뾰족지팡이** (Umbral Spire of Zuraal) — itemID: 258514
+- **빛의 결속** (Bond of Light) — itemID: 249369
+- **융제매듭 망토** (Fluxweave Cloak) — itemID: 251206
+- **회오리의 안면** (Vortex Visage) — itemID: 251119
+- **소용돌이 공허절단기** (Whirling Voidcleaver) — itemID: 251117
+- **혈기사의 자극** (Blood Knight's Impetus) — itemID: 237847
+- **고대의 허기 심장** (Heart of Ancient Hunger) — itemID: 249342
+- **잔존하는 암흑의 다리갑옷** (Legplates of Lingering Dusk) — itemID: 251118
+- **어둠의 손길 가슴보호갑** (Breastplate of the Dark Touch) — itemID: 151329
+- **원시 파수꾼의 아귀** (Primal Sentry's Maw) — itemID: 249988
+- **원시 파수꾼의 비늘판금** (Primal Sentry's Scaleplate) — itemID: 249991
+- **원시 파수꾼의 갈퀴보호대** (Primal Sentry's Talonguards) — itemID: 249989
+- **원시 파수꾼의 다리보호대** (Primal Sentry's Legguards) — itemID: 249987
+- **기만자의 부식활** (Deceiver's Rotbow) — itemID: 251174
+- **공허 사냥꾼의 견갑** (Pauldrons of the Void Hunter) — itemID: 151323
+- **피할 수 없는 손아귀** (Inescapable Reach) — itemID: 249302
+- **굶주린 승리** (Hungering Victory) — itemID: 249925
+- **벨로렌의 날렵한 갈퀴발톱** (Belo'ren's Swift Talon) — itemID: 249284
+- **얼어붙은 피의 어깨철갑** (Shoulderplates of Frozen Blood) — itemID: 50234
+- **갈라진 장막의 쐐기** (Splitshroud Stinger) — itemID: 251111
+- **크리크의 딱정벌레 단도** (Krick's Beetle Stabber) — itemID: 133491
+- **불타는 태양의 칼날** (Edge of the Burning Sun) — itemID: 258436
+- **실버문 요원의 연장허리띠** (Silvermoon Agent's Utility Belt) — itemID: 244573
+- **털이 많은 고룡가죽 다리보호구** (Shaggy Wyrmleather Leggings) — itemID: 49817
+- **뾰족눈 광투구** (Sharpeye Gleam) — itemID: 109981
+- **강도 높은 미늘 장화** (Rigid Scale Boots) — itemID: 258582
+- **뒤틀린 마력의 도가니** (Crucible of Erratic Energies) — itemID: 264507
+- **순응의 죔쇠띠** (Clasp of Compliance) — itemID: 251102
+- **무너지는 현실의 장식끈** (Cord of Unraveling Reality) — itemID: 151302
+- **괴로워하는 영혼의 그릇** (Vessel of Tortured Souls) — itemID: 250258
+- **가프로스트의 2톤 망치** (Garfrost's Two-Ton Hammer) — itemID: 49802

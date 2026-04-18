@@ -72,7 +72,7 @@ DOC_SLOT_RE = re.compile(r"^###\s+(.+)$")
 DOC_BOLD_SOURCE_RE = re.compile(
     r"^- (?:[^*]*?)\*\*([^*]+)\*\*(?:\s*/\s*\*\*([^*]+)\*\*)?\s*[-—]\s*(.+)$"
 )
-DOC_TIER_LINE_RE = re.compile(r"^- ([^:]+):\s*\*\*([^*]+)\*\*$")
+DOC_TIER_LINE_RE = re.compile(r"^- ([^:]+):\s*\*\*([^*]+)\*\*(?:\s*[-—]\s*itemID:\s*\d+)?$")
 COMPANION_RE = re.compile(r"^- \*\*([^*]+)\*\* \(([^)]+)\)")
 
 DUNGEON_DATA = {

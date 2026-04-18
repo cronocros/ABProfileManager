@@ -1,5 +1,7 @@
 backups/source/
 .claude/
+__pycache__/
+*.pyc
 *.zip
 *.log
 *.tmp
