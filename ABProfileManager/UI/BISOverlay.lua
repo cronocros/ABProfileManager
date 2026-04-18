@@ -7,7 +7,7 @@ ns.UI.BISOverlay = BISOverlay
 -- 레이아웃 상수
 -- ============================================================
 
-local FRAME_W      = 434
+local FRAME_W      = 480
 local PADDING      = 6
 local ROW_H        = 19
 local SECTION_H    = 24
@@ -43,7 +43,7 @@ local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local COL_ICON    = ICON_SIZE + 5
-local COL_NAME    = 200
+local COL_NAME    = 220
 local COL_SLOT    = 104
 local COL_TYPE    = 40
 local COL_NOTE    = 34

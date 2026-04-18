@@ -18,7 +18,7 @@ ns.Data.ItemLevelTable = {
 
     -- 구렁 (단계별 드랍 / 주간보상) — Midnight 시즌 1 실측 기준
     -- crestDrop: 해당 단계 클리어 시 드랍되는 문장 등급
-    -- ※ 아이템 레벨은 8단계(250/챔피언)에서 상한 고정; 11~12단계는 신화 문장(황금 보물상자)만 추가
+    -- ※ 아이템 레벨은 8단계(250/챔피언)에서 상한 고정; 11단계는 신화 문장(황금 보물상자)만 추가
     delves = {
         { tier=1,  ilvl=220, grade="adv",  maxilvl=237, vault=233, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
         { tier=2,  ilvl=224, grade="adv",  maxilvl=237, vault=237, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
@@ -31,7 +31,6 @@ ns.Data.ItemLevelTable = {
         { tier=9,  ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
         { tier=10, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
         { tier=11, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="myth" },
-        { tier=12, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="myth" },
     },
 
     -- 5인 던전 + 쐐기
