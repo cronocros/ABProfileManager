@@ -264,26 +264,26 @@ local function getSeasonPreviewKeyLevel()
     local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
     if entries then
         for _, entry in ipairs(entries) do
-            if entry.key == 2 then
-                return 2
+            if entry.grade == "hero" and entry.key then
+                return entry.key
             end
         end
-        if entries[#entries] and entries[#entries].key then
+        if entries[1] and entries[1].key then
             return entries[1].key
         end
     end
-    return 2
+    return 6
 end
 
 local function getRaidPreviewDifficultyID()
     if DifficultyUtil and DifficultyUtil.ID then
-        return DifficultyUtil.ID.PrimaryRaidNormal
+        return DifficultyUtil.ID.PrimaryRaidHeroic
+            or DifficultyUtil.ID.RaidHeroic
+            or DifficultyUtil.ID.PrimaryRaidNormal
             or DifficultyUtil.ID.RaidNormal
-            or DifficultyUtil.ID.PrimaryRaidMythic
-            or DifficultyUtil.ID.RaidMythic
             or DifficultyUtil.ID.Raid25Heroic
     end
-    return 14
+    return 15
 end
 
 local function getDungeonCandidates(dungeonName)
@@ -756,7 +756,7 @@ local function getEncounterJournalContextForEntry(entry, itemID)
         end
         return getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName)
     end
-    if sourceType == "raid" then
+    if sourceType == "raid" or sourceType == "tier" then
         return getPreviewRaidLootContext(itemID, fallbackName)
     end
     return nil
@@ -1145,16 +1145,25 @@ local function getSourceBasisLabel(sourceType)
     local tbl = ns.Data and ns.Data.ItemLevelTable
     if sourceType == "mythicplus" then
         local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-        local entry = entries and entries[1]
+        local entry = nil
+        if entries then
+            for _, candidate in ipairs(entries) do
+                if candidate.grade == "hero" then
+                    entry = candidate
+                    break
+                end
+            end
+            entry = entry or entries[1]
+        end
         if entry and entry.key and entry.ilvl then
             return string.format("+%d %d", entry.key, entry.ilvl)
         end
         return ns.L("bis_basis_mplus")
     end
     if sourceType == "raid" then
-        local normal = tbl and tbl.raid and tbl.raid.normal
-        if normal and normal.min and normal.max then
-            return string.format("%d~%d", normal.min, normal.max)
+        local heroic = tbl and tbl.raid and tbl.raid.heroic
+        if heroic and heroic.min and heroic.max then
+            return string.format("%d~%d", heroic.min, heroic.max)
         end
         return ns.L("bis_basis_raid")
     end
@@ -2668,18 +2677,55 @@ local function showSeasonItemTooltip(owner, row)
         shown = tryShowTooltipItemID(row.itemID)
     end
     if not shown then
+        local itemName, _, quality = GetItemInfo(row.itemID)
+        if not itemName then
+            requestItemData(row.itemID)
+        end
+        local displayName = getEntryLocalizedName(entry) or itemName or ("Item #" .. tostring(row.itemID))
+        local qc = getQualityColor(quality or getEntryQuality(entry))
+
+        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+        sourceType = appendSeasonTooltipMeta()
+        appendSeasonTooltipRanges(sourceType)
+        if sourceType == "mythicplus" or sourceType == "raid" then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+        end
+        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
+        GameTooltip:Show()
         return
     end
 
     GameTooltip:AddLine(" ")
-    appendSeasonTooltipMeta()
     if context and context.link then
         if sourceType == "mythicplus" then
+            GameTooltip:AddDoubleLine(
+                ns.L("bis_tooltip_basis"),
+                getSourceBasisLabel(sourceType),
+                0.65, 0.72, 0.82, 0.90, 0.94, 1.00
+            )
             GameTooltip:AddLine(ns.L("bis_tooltip_preview_key", getSeasonPreviewKeyLevel()), 0.60, 0.86, 1.00, true)
-        elseif sourceType == "raid" then
+        elseif sourceType == "raid" or sourceType == "tier" then
+            GameTooltip:AddDoubleLine(
+                ns.L("bis_tooltip_basis"),
+                getSourceBasisLabel("raid"),
+                0.65, 0.72, 0.82, 0.90, 0.94, 1.00
+            )
             GameTooltip:AddLine(ns.L("bis_tooltip_raid_preview"), 0.60, 0.86, 1.00, true)
         end
     else
+        GameTooltip:AddDoubleLine(
+            ns.L("bis_tooltip_source"),
+            getDisplaySourceLabel(entry),
+            0.65, 0.72, 0.82, 0.90, 0.94, 1.00
+        )
+        GameTooltip:AddDoubleLine(
+            ns.L("bis_tooltip_basis"),
+            getSourceBasisLabel(sourceType),
+            0.65, 0.72, 0.82, 0.90, 0.94, 1.00
+        )
         if sourceType == "mythicplus" then
             GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.80, 0.46, true)
         elseif sourceType == "raid" then
@@ -2691,7 +2737,9 @@ local function showSeasonItemTooltip(owner, row)
         end
         GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.45, 0.45, true)
     end
-    appendSeasonTooltipRanges(sourceType)
+    if not context or not context.link then
+        appendSeasonTooltipRanges(sourceType)
+    end
     if sourceType == "mythicplus" or sourceType == "raid" then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
