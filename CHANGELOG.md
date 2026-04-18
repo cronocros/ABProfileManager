@@ -6,6 +6,19 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.7.0 - 2026-04-18
+
+한밤 시즌 1 BIS 오버레이를 runtime merge 방식에서 source-aware 정적 카탈로그 방식으로 전환한 릴리스.
+
+주요 변경:
+- `Data/BISCatalog.lua`를 런타임 단일 BIS 데이터 소스로 추가하고, 게임 안에서는 더 이상 `BISData_Method.lua + BISData.lua` runtime 병합을 하지 않도록 정리
+- `scripts/build_bis_catalog.py`를 추가해 `DOC` seed, Wowhead 가이드, Wago DB2 검증 데이터를 합쳐 한밤 시즌 1 카탈로그를 생성하도록 구성
+- Wowhead seed 갱신 스크립트를 40 spec 기준으로 정리하고 `포식자 악마사냥꾼(1382)` 누락을 해소
+- BIS 필터를 `쐐기 / 레이드 / 제작 / 티어` 4개 sourceGroup으로 확장하고, 필터 적용 후 visible list 기준으로 `1순위 / 2순위 / 3순위+`를 다시 번호 매기도록 변경
+- `koKR/enUS` 아이템명과 source label을 분리 저장해 locale 누수 위험을 줄이고, 생성 단계에서 itemID/locale/source canonicalization 검증을 수행
+- `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외하고, `mythicplus`, `raid`만 가능한 경우 기존 랜딩을 유지
+- TOC 버전과 문서 버전을 `v1.7.0`으로 통일하고, README / ADDON_INTRO / ARCHITECTURE / HANDOFF / SECURITY_REVIEW / DOC index / 릴리스 노트를 동기화
+
 ## 1.5.9 - 2026-04-08
 
 오버레이 UX, BIS 표시 규칙, idle CPU hot path, 릴리스 문서 최신화를 함께 묶은 릴리스.

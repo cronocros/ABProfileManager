@@ -896,6 +896,7 @@ function DB:GetBISOverlaySettings()
         mythicplus = true,
         raid = true,
         crafted = true,
+        tier = true,
     }
     if settings.bisOverlay._allSourcesMigrationV1 ~= true then
         local sources = settings.bisOverlay.sources
@@ -907,6 +908,13 @@ function DB:GetBISOverlaySettings()
             sources.crafted = true
         end
         settings.bisOverlay._allSourcesMigrationV1 = true
+    end
+    if settings.bisOverlay._allSourcesMigrationV2 ~= true then
+        local sources = settings.bisOverlay.sources
+        if type(sources.tier) ~= "boolean" then
+            sources.tier = true
+        end
+        settings.bisOverlay._allSourcesMigrationV2 = true
     end
     return settings.bisOverlay
 end

@@ -1,6 +1,6 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.6.0 기반)`
+버전 기준: `main (v1.7.0 기반)`
 
 ## 현재 상태
 
@@ -17,63 +17,41 @@
 - 지도 전용 탭과 typography 슬라이더
 - 와우 `설정 > 애드온` 경량 하위 페이지
 - 드랍템 레벨정보 오버레이
-- BIS 인던 드랍 정보 오버레이
+- BIS 추천 장비 카탈로그 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
 - 블리자드 기본 UI 창 이동 자유화
 - 편의기능 탭 통합
 
-## 0. v1.6.0 오버레이 UX 핫픽스 메모
+## 0. v1.7.0 BIS 카탈로그 재정비 메모
 
-- `UI/BISOverlay.lua`와 `UI/ItemLevelOverlay.lua`의 마우스 휠 스케일링 기준점을 타이틀바(TOPLEFT)로 고정했다. 수식: `left * oldScale / newScale`. `GetLeft()/GetTop()`은 WoW 12.0에서 raw offset을 반환하므로 `oldScale`을 곱해 화면 좌표로 변환 후 `newScale`로 나눈다.
-- `UI/MainWindow.lua`의 `RefreshLocale()`에서 `SetText()` 후 `applyTabSelectionStyles()`를 재호출해 탭 텍스트 색상 소실을 방지한다. 드루이드(4특성) 등에서 발생하던 문제.
+- `Data/BISCatalog.lua`가 BIS 런타임 단일 데이터 소스다. `Data/BISData_Method.lua`, `Data/BISData.lua`는 생성기 입력으로만 쓴다.
+- spec 기준은 **40 spec 전체**다. 누락이 나면 먼저 `scripts/refresh_wowhead_bis.py`, `scripts/build_bis_catalog.py` 검증 실패부터 확인한다.
+- 새 sourceGroup은 `mythicplus / raid / crafted / tier` 4개다. DB 기본값과 migration도 이 4개를 전제로 한다.
+- 필터 적용 후 visible list 기준으로 `1순위 / 2순위 / 3순위+`를 다시 번호 매긴다. 예전처럼 전체 rank를 고정 노출하는 구조가 아니다.
+- `레이드 off + 쐐기만 on` 상태에서도 각 부위의 쐐기 드랍템과 인던이 남아야 한다. 이 조건이 깨지면 release blocker로 본다.
+- locale은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 그대로 쓴다. 런타임 번역 fallback을 넣지 않는 편이 안전하다.
+- 한글명은 `공식 KR 표기 > Wowhead koKR > DOC companion 검증 통과값` 우선순위로 생성한다.
+- `제나스 지점`, `알게타르 대학` 같은 alias는 생성기에서 canonical name으로 정규화한다. 런타임에서는 canonical label만 읽는다.
+- 오버레이 open/spec/filter 전환은 단일 rebuild 경로를 유지한다. `GET_ITEM_INFO_RECEIVED`는 visible row patch만 처리한다.
+- crafted/tier는 Encounter Journal 랜딩 대상이 아니다. `mythicplus/raid`만 랜딩을 유지한다.
+- `마이사라 동굴`, `윈드러너 첨탑` direct EJ ID는 아직 미확정이다.
+
+## 0-prev. v1.6.0 오버레이 UX 핫픽스 메모
+
+- `UI/BISOverlay.lua`와 `UI/ItemLevelOverlay.lua`의 마우스 휠 스케일링 기준점을 타이틀바(TOPLEFT)로 고정했다. 수식: `left * oldScale / newScale`.
+- `UI/MainWindow.lua`의 `RefreshLocale()`에서 `SetText()` 후 `applyTabSelectionStyles()`를 재호출해 탭 텍스트 색상 소실을 방지한다.
 - `UI/BISOverlay.lua`의 `Refresh()`에서 `RebuildContent()` 직후 접힌 상태면 `ApplyCollapse()`를 다시 호출해 프레임 높이를 복원한다.
 - `UI/BISOverlay.lua`와 `UI/ItemLevelOverlay.lua`의 FrameStrata를 `DIALOG` → `MEDIUM`으로 변경했다. PVEFrame과 같은 레이어에 위치시켜 캐릭터창/스킬창 등 상위 strata 창에 자연스럽게 가려지도록 한다.
 
-## 0-prev. v1.5.9 오버레이 / BIS / CPU 메모
-
-- `Data/BISData_Method.lua`는 이제 Wowhead `current Overall BiS` 39 spec 데이터를 먼저 넣고, `Data/BISData.lua` M+ fallback 데이터를 같은 슬롯의 fallback `대체재 / 2순위 / 3순위`로 뒤에 병합한다.
-- `Data/BISData.lua`는 더 이상 단순 수기 파일이 아니라 Wowhead `Best Gear from Mythic+` 후보와 기존 seed fallback을 합친 생성 결과다.
-- 단, M+ fallback은 top BIS가 `mythicplus`가 아닌 슬롯에만 붙인다.
-- `UI/BISOverlay.lua`는 `반지 / 장신구`를 상위 2개 공동 BIS로 표시한다.
-- `UI/BISOverlay.lua`는 `GET_ITEM_INFO_RECEIVED`마다 전체 리스트를 다시 그리지 않고 `RefreshVisibleItemRows()`만 태운다. 깜빡임 회귀가 나오면 `scheduleRebuild()`, `RefreshVisibleItemRows()`, `Refresh()`의 render signature 분기를 먼저 본다.
-- BIS source filter 기본값은 `mythicplus / raid / crafted` 전부 on이고, 예전 `쐐기만 on` 저장값은 DB migration으로 1회 승격된다.
-- BIS 필터 버튼은 체크박스형 compact UI다. 드루이드 4특성처럼 헤더가 빡빡한 클래스 레이아웃 기준으로 맞춘 상태라 폭을 크게 다시 키우면 겹침이 쉽게 재발한다.
-- BIS 헤더에는 `참고용, 실제 템은 직접 확인` 안내가 들어간다.
-- BIS 아이템 hover 툴팁은 시즌 preview 경로로 다시 연결됐다. hover 회귀가 나오면 `showSeasonItemTooltip()`, `tooltipRegion` mouse script, preview validation 분기를 같이 본다.
-- BIS 랜딩은 드랍 출처 클릭 기준이다. 제작과 촉매 항목은 Encounter Journal 랜딩 대상이 아니다.
-- BIS 오버레이는 위치 / scale / collapsed / anchorMode를 저장한다. 사용자가 한 번 드래그하면 이후 재오픈은 저장 좌표를 우선한다.
-- 던전명 direct 보정:
-  - `공결탑 제나스 = tier 13 / instanceID 1314`
-  - 사용자 인게임 출력에서 `tier 12 / instanceID 1316` 후보도 확인됨
-  - `알게타르 대학 = instanceID 2526`
-- `공결점 제나스`는 잘못된 한글명이었고, 현재 표시/랜딩 기준은 `공결탑 제나스`다.
-- `알게타르 아카데미`는 현재 한국어 표기상 `알게타르 대학` alias를 같이 쓴다.
-- `정기 주술사(262)`는 이전 누락 항목이었고, 지금은 Wowhead 기준으로 반영되어 있다.
-- `UI/MythicPlusRecordOverlay.lua`는 이제 `평점 + 던전명`만 표시한다. 시간 라인은 사용하지 않는다.
-- 긴 한글 던전명은 강제 줄바꿈 override를 사용한다.
-- `ABProfileManager.toc`는 현재 비활성/미완성 상태인 `WorldEventSchedule`, `MerchantHelper`, `MailHistory`, `WorldEventOverlay`를 런타임 로드 대상에서 제외한다. 소스 파일은 저장소에 남아 있지만 메모리 절감을 위해 게임 내에서는 불러오지 않는다.
-- `UI/ItemLevelOverlay.lua`는 `currentTab + avgIlvl + language` 시그니처가 바뀔 때만 본문 표를 다시 구성한다. `CURRENCY_DISPLAY_UPDATE` 류의 잦은 이벤트에서는 우측 패널만 갱신하고, 풍요 구렁 이름 스캔은 캐시 후 `ACTIVE_DELVE_DATA_UPDATE`, `AREA_POIS_UPDATED`에서만 무효화한다.
-- `UI/ItemLevelOverlay.lua`는 사용자가 드래그한 뒤 `anchorMode = overlay`를 저장하고, 닫았다가 다시 열어도 저장 위치를 우선 복원한다.
-- 구렁 탭 보조 문구는 `보물지도 사용`으로 바뀌었다.
-- `Modules/ProfessionKnowledgeTracker.lua`는 profession 정의와 현재 보유 profession 목록을 캐시한다. `PLAYER_LOGIN`, `PLAYER_ENTERING_WORLD`, `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`에서만 profession 목록 캐시를 무효화한다.
-- `UI/ProfessionKnowledgeOverlay.lua`는 profession hover 툴팁을 매 refresh마다 전부 만들지 않고, 실제 hover 시점에만 지연 생성한다.
-- `UI/ProfessionKnowledgeOverlay.lua`와 `UI/StatsOverlay.lua`는 마우스 휠 scale 저장을 지원한다.
-- `scripts/refresh_wowhead_bis.py`는 `Data/BISData_Method.lua`를, `scripts/refresh_wowhead_mplus_fallbacks.py`는 `Data/BISData.lua`를 재생성한다.
-- `Core.lua`의 `RefreshUI()`는 이제 메인 창이 닫혀 있을 때 내부 탭 패널 전체를 refresh하지 않는다. 메인 창 탭 전환도 현재 탭만 refresh하는 경로로 바뀌었으므로, 패널 stale 제보가 오면 `Core.lua`, `UI/MainWindow.lua`를 함께 본다.
-- 상시 CPU 점유 원인으로는 `StatsOverlay`와 `SilvermoonMapOverlay`가 1순위였다.
-  - `StatsOverlay`는 raw state signature가 같으면 `BuildSnapshot()`을 생략하고, `UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE` 계열은 느린 throttle로 분리한다.
-  - `SilvermoonMapOverlay`는 상시 0.5초 polling 대신 월드맵 상호작용 시점의 짧은 burst refresh만 유지하고, 안정된 layoutKey가 확인되면 driver를 바로 내린다.
-  - `Events.lua`의 `PLAYER_SPECIALIZATION_CHANGED`, `SKILL_LINES_CHANGED`는 전역 `ns:RefreshUI()` 대신 관련 UI만 부분 갱신한다.
-
 ## 1. 회귀 민감 메모
 
-### BIS 인던 드랍 정보 오버레이
+### BIS 추천 장비 오버레이
 
 - `UI/BISOverlay.lua`는 폭/열 간격/스크롤 영역 민감도가 높다. 열 폭만 조정하지 말고 실제 스크롤 thumb와 마지막 열 가림 여부까지 같이 확인해야 한다.
-- `sourceType`를 그대로 믿지 않고 `sourceLabel`도 함께 다시 해석한다. 레이드 only인데 쐐기 행이 남는 회귀가 나면 이 재분류 경로를 먼저 본다.
-- Encounter Journal live scan은 Journal이 열려 있는 동안 보수적으로 제한한다. 다시 무리하게 live preview를 돌리면 모험 안내서 내용이 사라지거나 랜딩 직후 흔들리는 회귀가 난다.
-- 제작 / 촉매는 랜딩하지 않는다. 이 경로를 건드릴 때는 `hasRaidMetaLabel()`과 crafted/sourceType 분기를 같이 본다.
-- 현재 unresolved direct ID:
+- source 판정은 `sourceGroup` 정적 값을 우선 사용한다. 예전 `sourceLabel` 재분류 로직에 다시 기대지 않는 편이 안전하다.
+- `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
+- locale 누수는 build 단계에서 먼저 막고, 런타임에서는 locale별 저장 문자열만 그대로 노출한다.
+- unresolved direct ID:
   - `마이사라 동굴`
   - `윈드러너 첨탑`
 
@@ -96,11 +74,11 @@
 - 줄바꿈 override 대상:
   - `윈드러너 첨탑`
   - `삼두정의 권좌`
-  - `공결탑 제나스`
+  - `제나스 지점`
   - `사론의 구덩이`
   - `마법학자의 정원`
   - `마이사라 동굴`
-  - `알케타르 대학`
+  - `알게타르 대학`
 
 ### BlizzardFrameManager / 지도
 
@@ -115,8 +93,6 @@
 - `QUEST_TURNED_IN`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `LOOT_CLOSED` 뒤 follow-up refresh가 들어간다.
 - `Modules/ProfessionKnowledgeTracker.lua`는 완료 퀘스트 스냅샷이 실제로 바뀐 경우에만 `questCacheGeneration`과 요약 캐시를 무효화한다.
 - `UI/ProfessionKnowledgeOverlay.lua` tooltip 라인은 refresh 때 미리 만들지 않고 hover 시점에만 계산한다.
-- 시체 채집/보물 채집 관련 제보가 오면 `Events.lua`, `UI/ProfessionKnowledgeOverlay.lua`, `UI/ProfessionPanel.lua`, `UI/QuestPanel.lua`를 먼저 본다.
-- `ProfessionKnowledgeTracker:RefreshQuestCache()`는 completed quest 집합이 실제로 바뀐 경우에만 generation/cache를 올린다. profession 툴팁/요약 리빌드가 괜히 반복되면 이 경로를 먼저 본다.
 
 ### 전투메시지 표출 방식
 
@@ -144,8 +120,7 @@
 - 현재 추가 확인이 필요한 던전:
   - `마이사라 동굴`
   - `윈드러너 첨탑`
-- 예전처럼 `EJ_GetCurrentInstance()`를 쓰면 안 된다. 현 클라이언트에서는 제거된 API다.
-- 인게임 확인 시 `EJ_GetInstanceByIndex()` 기반 매크로나 직접 Encounter Journal 출력값을 기준으로 확인하는 편이 안전하다.
+- 현 클라이언트에서는 `EJ_GetInstanceByIndex()` 기반 확인이 더 안전하다.
 
 ### 경매장 현행 확장팩 필터 자동 선택
 
@@ -177,8 +152,12 @@
 - `ABProfileManager/UI/BISOverlay.lua`
 - `ABProfileManager/UI/MythicPlusRecordOverlay.lua`
 - `ABProfileManager/Data/ItemLevelTable.lua`
+- `ABProfileManager/Data/BISCatalog.lua`
 - `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
+- `scripts/build_bis_catalog.py`
+- `scripts/refresh_wowhead_bis.py`
+- `scripts/refresh_wowhead_mplus_fallbacks.py`
 
 ### profession / 지도 / 설정
 
@@ -206,12 +185,14 @@
 - 전투메시지 설정 체크박스와 `위로 / 아래로 / 부채꼴` 버튼 선택 상태
 - 지도 오버레이가 외부 월드맵에서만 표시되는지
 - BIS 오버레이 드랍 출처 클릭 → 모험 안내서 loot 탭 랜딩
-- BIS 필터 on/off와 열 가림 여부
-- 드랍템 레벨 오버레이 우측 `나의 문장` / `나의 열쇠` 패널 수치 확인
+- BIS 필터 on/off와 visible rank 재계산
+- `레이드 off + 쐐기만 on`에서 쐐기 행이 유지되는지
+- `제작 + 티어만 on`에서 잘못된 랜딩이 없는지
+- 드랍템 레벨 오버레이 우측 `나의 문장 / 나의 열쇠` 패널 수치 확인
 - 시즌 최고기록 오버레이의 `평점 / 던전명` 위치와 줄바꿈 확인
 
 ## 6. 다음 작업자에게
 
 - UI 퍼블리싱은 이미 사용자가 맞춘 상태를 선호하므로, overflow 보정이나 안전장치 위주로만 접근하는 편이 안전하다.
-- BIS 데이터는 Wowhead `current Overall BiS`와 수기 fallback을 함께 쓰므로, 시즌 변경 시 source 던전 / slot / itemID / sourceType을 같이 재검증해야 한다.
+- BIS 시즌 변경 시에는 `DOC` seed를 출발점으로 삼되, 최종 truth는 외부 검증 결과와 itemID 확인이다.
 - 일부 신규 던전 direct ID가 비어 있으므로, 사용자 제보가 오면 먼저 인게임 Encounter Journal 이름과 instanceID부터 확인하는 게 맞다.

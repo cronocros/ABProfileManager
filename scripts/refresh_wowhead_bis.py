@@ -79,6 +79,7 @@ SPECS: Sequence[Tuple[int, str]] = (
     (105, "https://www.wowhead.com/ko/guide/classes/druid/restoration/bis-gear"),
     (577, "https://www.wowhead.com/ko/guide/classes/demon-hunter/havoc/bis-gear"),
     (581, "https://www.wowhead.com/ko/guide/classes/demon-hunter/vengeance/bis-gear"),
+    (1382, "https://www.wowhead.com/ko/guide/classes/demon-hunter/devourer/bis-gear"),
     (1467, "https://www.wowhead.com/ko/guide/classes/evoker/devastation/bis-gear"),
     (1468, "https://www.wowhead.com/ko/guide/classes/evoker/preservation/bis-gear"),
     (1473, "https://www.wowhead.com/ko/guide/classes/evoker/augmentation/bis-gear"),
@@ -454,10 +455,12 @@ def update_target_file(rendered_overrides: str) -> None:
 
 
 def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> None:
-    if len(overrides) != 39:
-        raise ValueError(f"Expected 39 specs, got {len(overrides)}")
+    if len(overrides) != len(SPECS):
+        raise ValueError(f"Expected {len(SPECS)} specs, got {len(overrides)}")
     if 262 not in overrides:
         raise ValueError("Elemental Shaman (262) is missing")
+    if 1382 not in overrides:
+        raise ValueError("Devourer Demon Hunter (1382) is missing")
     if total_rows < 600:
         raise ValueError(f"Unexpectedly low row count: {total_rows}")
 
@@ -466,6 +469,7 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
         270: 16,
         263: 16,
         577: 16,
+        1382: 16,
         1473: 16,
     }
     for spec_id, expected_count in representative_counts.items():

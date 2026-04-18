@@ -1,6 +1,6 @@
 # ABProfileManager Security Review
 
-검토 기준일: `2026-04-08`
+검토 기준일: `2026-04-18`
 
 ## 범위
 
@@ -9,7 +9,7 @@
 - 전투메시지 CVar 제어
 - 퀘스트 대량 포기
 - 지도 오버레이와 설정 패널
-- BIS 인던 드랍 정보 오버레이
+- BIS 추천 장비 카탈로그 오버레이
 - 드랍템 레벨 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
 - 선택적 TomTom 연동
@@ -55,14 +55,14 @@
 - 외부 네트워크, 외부 코드 실행, 매크로 주입은 없음
 - `_v2` CVar가 없을 때는 구형 이름으로 fallback 하지만, 적용 범위는 전투메시지 관련 CVar에 한정한다
 
-### BIS 인던 드랍 정보 오버레이
+### BIS 추천 장비 카탈로그 오버레이
 
-- 외부 입력 없이 내장 데이터 + Blizzard Encounter Journal API만 사용
-- BIS 행 hover 툴팁은 시즌 preview hyperlink 검증 경로를 사용하지만, 외부 입력을 실행하지 않고 실패 시 기본 item tooltip로만 fallback 한다
-- 제작 / 촉매 항목은 Encounter Journal 랜딩 대상에서 제외해 잘못된 랜딩과 UI 흔들림 가능성을 줄였다
+- 게임 런타임은 `Data/BISCatalog.lua` 정적 카탈로그만 읽는다
+- 런타임 merge, 런타임 정규화, 런타임 웹 조회를 하지 않는다
+- locale 문자열은 생성 시점에 `koKR/enUS`로 분리 저장되며, 게임 안에서는 해당 locale 필드만 노출한다
+- `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도하고, `crafted`, `tier`는 랜딩 대상에서 제외한다
 - 아이템 캐시 수신 시 visible row만 갱신하고 전체 rebuild를 피하도록 보수적으로 조정했다
-- BIS / ItemLevel / Stats / Profession overlay의 위치·scale 저장은 로컬 SavedVariables만 사용한다
-- BIS 데이터 재생성 스크립트는 릴리스 준비용 repo 도구일 뿐 게임 런타임에 포함되지 않는다
+- `BISData_Method.lua`, `BISData.lua`, `scripts/build_bis_catalog.py`는 릴리스 준비용 repo 도구이며 게임 런타임에 포함된 실행 경로가 아니다
 
 ### 드랍템 레벨 / 시즌 최고기록 오버레이
 
@@ -82,6 +82,7 @@
   - 보안 문제가 아니라 외부 애드온 및 맵 컨텍스트 제약에 가깝다.
 - 정적 좌표 기반 지도 데이터는 패치 후 drift가 생기면 수동 보정이 필요하다.
 - 이 환경은 `lua`/`luac` 대신 `luaparser` 정적 파싱으로 문법 검증을 진행한다.
+- BIS 생성 파이프라인은 빌드 머신에서만 외부 데이터를 조회하며, 결과는 정적 Lua 파일로 고정해 출하한다.
 
 ## 유지 원칙
 

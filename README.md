@@ -1,44 +1,38 @@
 # ABProfileManager
 
-월드 오브 워크래프트 Retail에서 액션바 복구, 전문기술 포인트 점검, 한밤(Midnight) 지역 길찾기, BIS 인던 드랍 정보, 드랍 템렙 표, 파티찾기 시즌 최고기록 확인까지 한 창과 몇 개의 오버레이로 정리하는 애드온입니다.
+월드 오브 워크래프트 Retail에서 액션바 복구, 전문기술 포인트 점검, 한밤(Midnight) 지도 길찾기, BIS 추천 장비 카탈로그, 드랍 템렙 표, 파티찾기 시즌 최고기록 확인까지 한 창과 몇 개의 오버레이로 정리하는 애드온입니다.
 
 제작: `밍밍이와코코`
 연락처: `crono1232@gmail.com`
 
 ## 현재 버전
 
-- `v1.6.0`
+- `v1.7.0`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.6.0/ABProfileManager-v1.6.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.6.0.zip`
-- 최신 릴리스 노트: [RELEASE_NOTES_v1.6.0.md](./RELEASE_NOTES_v1.6.0.md)
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.0/ABProfileManager-v1.7.0.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.7.0.zip`
+- 최신 릴리스 노트: [RELEASE_NOTES_v1.7.0.md](./RELEASE_NOTES_v1.7.0.md)
+- 영문 릴리스 노트: [RELEASE_NOTES_v1.7.0_EN.md](./RELEASE_NOTES_v1.7.0_EN.md)
 
 ## 요약
 
 - 특성 전환이나 캐릭터 변경 뒤 엉킨 액션바를 템플릿으로 복구
 - 전문기술 포인트와 1회성 보물을 자동 추적
 - 한밤(Midnight) 지도에서 포탈, 시설, 던전, 구렁 위치를 텍스트 오버레이로 확인
-- 던전/레이드/M+/제작 드랍 아이템 레벨 표와 우측 `나의 문장` / `나의 열쇠` 패널 제공
-- 전클래스/전특성 BIS 인던 드랍 정보 오버레이 제공
+- 던전/레이드/M+/제작 드랍 아이템 레벨 표와 우측 `나의 문장 / 나의 열쇠` 패널 제공
+- 한밤 시즌 1 기준 전클래스/전특성 `쐐기 / 레이드 / 제작 / 티어` BIS 추천 장비 카탈로그 제공
 - 파티찾기 시즌 최고기록 던전 아이콘 위에 `평점 + 던전명` 오버레이 제공
 
-## v1.4.7 이후 추가/강화
+## v1.7.0 핵심 정리
 
-- `드랍템 레벨정보 오버레이`가 `4열 표 + 우측 나의 문장 / 나의 열쇠 패널` 구조로 확장되었습니다.
-- `BIS 인던 드랍 정보`가 전특성 부위별 `BIS / 대체 / 3순위` 구조, `쐐기 / 레이드 / 제작` 필터, `드랍 출처 / 유형 / BIS 여부` 열, Encounter Journal 랜딩까지 포함하는 실사용 오버레이로 정리되었습니다.
-- Wowhead `current Overall BiS` 39 spec 데이터를 1순위로 쓰고, Wowhead `Best Gear from Mythic+` 후보와 기존 seed fallback을 합친 M+ 대체재를 부위별 fallback으로 함께 보여주도록 바뀌었습니다.
-- `반지 / 장신구`는 상위 2개를 공동 BIS로 표시하고, 상단 BIS가 레이드/제작인 슬롯만 기존 수기 M+ fallback을 붙이도록 보강했습니다.
-- BIS hover 툴팁, BIS/드랍템 위치 복원, Stats/전문기술/BIS 마우스 휠 스케일 저장이 반영되었습니다.
-- 파티찾기 신화+ 시즌 최고기록 던전 아이콘에 `평점 + 던전명`을 직접 표시하는 `MythicPlusRecordOverlay`가 추가되었습니다.
-- BIS 랜딩 이름 보정, 필터 기본값 마이그레이션, visible-row 갱신 기반 깜빡임 완화, Stats/지도 오버레이 idle CPU 완화가 반영되었습니다.
-
-## v1.5.9 이후 수정
-
-- 오버레이 스크롤 스케일링 기준점이 타이틀바(TOPLEFT)로 고정됩니다.
-- 메인 UI 탭 텍스트가 드루이드 등 특정 캐릭터에서 보이지 않던 문제를 수정했습니다.
-- BIS 오버레이를 접은 상태로 닫았다가 다시 열 때 접힌 상태가 올바르게 복원됩니다.
-- BIS/드랍템 오버레이가 던전/공격대 창과 같은 레이어에 위치하도록 변경해 캐릭터창 등에 가려지지 않습니다.
+- BIS 오버레이를 `overall BIS 1개 + runtime fallback` 방식에서 **정적 BIS 카탈로그** 방식으로 전면 교체했습니다.
+- `쐐기 / 레이드 / 제작 / 티어` 4개 sourceGroup이 모두 독립 필터로 동작합니다.
+- 필터 적용 후 남아 있는 후보를 기준으로 **1순위 / 2순위 / 3순위+**를 다시 번호 매깁니다.
+- `레이드 off + 쐐기만 on` 상태에서도 각 부위의 쐐기 드랍 아이템과 인던명이 그대로 남습니다.
+- 한글명은 `공식 KR 표기 > Wowhead koKR > DOC companion 검증값` 우선순위로 고정했고, 영어/한글 locale 누수를 빌드 검증 대상으로 넣었습니다.
+- BIS 런타임은 `Data/BISCatalog.lua`만 읽고, 웹 조회/병합/정규화를 하지 않습니다.
+- spec 수는 기존 39 기준을 정리하고 **40 spec** 전체로 고정했습니다. `포식자 악마사냥꾼(1382)`도 포함됩니다.
 
 ## 핵심 기능
 
@@ -76,15 +70,15 @@
   - 남겨둘 퀘스트
   - 전체 포기 대상
   - 퀘스트 ID 클릭으로 해당 퀘스트 상세 열기
-- BIS 인던 드랍 정보 오버레이
-  - 전클래스/전특성 BIS 아이템 표시
-  - 부위별 `BIS / 대체 / 3순위` 정렬
-  - `반지 / 장신구`는 상위 2개 공동 BIS 표시
-  - `아이템명 / 드랍 출처 / 유형 / BIS 여부` 열 표시
-  - 체크박스형 `쐐기 / 레이드 / 제작` 필터
-  - 드랍 출처 클릭 시 가능한 경우 Encounter Journal loot 탭 랜딩
+- BIS 추천 장비 오버레이
+  - 전클래스/전특성, 한밤 시즌 1 기준 정적 카탈로그 사용
+  - 부위별 `1순위 / 2순위 / 3순위+` 강조
+  - `쐐기 / 레이드 / 제작 / 티어` 필터
+  - 필터 후 살아남은 후보 전체 표시
+  - `아이템명 / 드랍 출처 / 유형 / 우선순위` 중심 렌더
+  - `mythicplus`, `raid`는 가능할 때 Encounter Journal loot 탭 랜딩
+  - `crafted`, `tier`는 랜딩하지 않음
   - 아이템 hover 시 현재 시즌 preview 툴팁 표시
-  - 헤더에 `참고용, 실제 템은 직접 확인` 안내 문구 표시
   - 마우스 휠 스케일 조절과 위치 저장/복원
 - 드랍 아이템 레벨 오버레이
   - 던전 / 레이드 / M+ / 제작 탭별 드랍 템렙 표
@@ -138,16 +132,18 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 ## BIS / 드랍 메모
 
 - BIS 정보는 참고용입니다. 실제 템은 게임 내에서 직접 확인하는 전제를 유지합니다.
-- BIS 기준 소스는 Wowhead `current Overall BiS`이며, 39개 spec 전체를 반영합니다.
-- `반지 / 장신구`는 상위 2개를 공동 BIS로 표시합니다.
-- BIS 행 hover 툴팁은 현재 시즌 preview 경로를 다시 사용합니다.
-- 상단 BIS가 `mythicplus`가 아닌 슬롯만 Wowhead `Best Gear from Mythic+` 후보 기반 M+ fallback을 붙입니다.
-- 제작과 촉매 항목은 Encounter Journal 랜딩 대상이 아닙니다.
-- `공결탑 제나스`, `알게타르 대학`은 직접 ID 보정이 들어가 있습니다.
-- `정기 주술사(262)` 누락은 현재 해소되었습니다.
+- 런타임 데이터는 `Data/BISCatalog.lua` 하나만 사용합니다.
+- 생성 파이프라인은 `DOC` seed + Wowhead + Wago DB2 검증을 거쳐 `koKR/enUS/itemID/sourceGroup/rank`를 고정합니다.
+- `BISData_Method.lua`, `BISData.lua`는 더 이상 런타임 병합 대상이 아니라 생성용 seed 입력입니다.
+- 필터 적용 후 남은 후보만 다시 정렬하므로, `레이드 off`, `쐐기만 on`, `제작 + 티어만 on` 모두 실제 후보 목록이 유지됩니다.
+- `제나스 지점`, `알게타르 대학` 같은 source alias는 생성기에서 canonical name으로 정규화합니다.
+- 제작과 티어 항목은 Encounter Journal 랜딩 대상이 아닙니다.
 - `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 확정 전까지 안내서만 열리고 특정 던전으로 바로 이동하지 않을 수 있습니다.
 - BIS 아이템 캐시가 늦게 들어와도 전체 오버레이를 다시 그리지 않고, 보이는 행만 갱신하도록 조정되어 있습니다.
-- BIS 갱신 스크립트는 `scripts/refresh_wowhead_bis.py`, M+ fallback 갱신 스크립트는 `scripts/refresh_wowhead_mplus_fallbacks.py`를 사용합니다.
+- 갱신 스크립트:
+  - `scripts/refresh_wowhead_bis.py`
+  - `scripts/refresh_wowhead_mplus_fallbacks.py`
+  - `scripts/build_bis_catalog.py`
 
 ## 현재 제약
 

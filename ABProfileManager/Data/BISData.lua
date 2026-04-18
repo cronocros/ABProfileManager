@@ -420,6 +420,11 @@ ns.Data.BISItems = {
         { dungeon = "삼두정의 권좌", boss = "루라", itemID = 151312, slot = "장신구", note = "대체재" },
     },
 
+    [1382] = {
+        { dungeon = "윈드러너 첨탑", boss = "엠버던", itemID = 250144, slot = "장신구", note = "BIS" },
+        { dungeon = "윈드러너 첨탑", boss = "안식 없는 심장", itemID = 250256, slot = "장신구", note = "BIS" },
+    },
+
     [1467] = {
         { dungeon = "공결점 제나스", boss = "코어수호자 니사라", itemID = 251209, slot = "손목", note = "대체재" },
         { dungeon = "마이사라 동굴", boss = "보르다자", itemID = 251170, slot = "다리", note = "대체재" },

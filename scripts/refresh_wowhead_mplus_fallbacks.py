@@ -323,8 +323,8 @@ def main() -> int:
     TARGET_FILE.write_text(rendered, encoding="utf-8")
 
     total_specs = len(updated_entries)
-    if total_specs != 39:
-        raise ValueError(f"Expected 39 specs in fallback file, got {total_specs}")
+    if total_specs != len(overall.SPECS):
+        raise ValueError(f"Expected {len(overall.SPECS)} specs in fallback file, got {total_specs}")
 
     print(f"Updated {TARGET_FILE}")
     print(f"Specs: {total_specs}")

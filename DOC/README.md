@@ -10,8 +10,10 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [../RELEASE_NOTES_v1.5.9.md](../RELEASE_NOTES_v1.5.9.md)
-  - 최신 릴리스 노트
+- [../RELEASE_NOTES_v1.7.0.md](../RELEASE_NOTES_v1.7.0.md)
+  - 최신 한글 릴리스 노트
+- [../RELEASE_NOTES_v1.7.0_EN.md](../RELEASE_NOTES_v1.7.0_EN.md)
+  - 최신 영문 릴리스 노트
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름
 - [HANDOFF.md](./HANDOFF.md)
@@ -22,7 +24,12 @@
   - 패키징, 커밋, 푸시, GitHub 릴리스 절차
 
 참고:
-- BIS 데이터 재생성 스크립트는 `../scripts/refresh_wowhead_bis.py`, `../scripts/refresh_wowhead_mplus_fallbacks.py`를 사용한다.
+
+- BIS 데이터 seed 갱신 스크립트:
+  - `../scripts/refresh_wowhead_bis.py`
+  - `../scripts/refresh_wowhead_mplus_fallbacks.py`
+- BIS 통합 카탈로그 생성 스크립트:
+  - `../scripts/build_bis_catalog.py`
 
 ## 보관 문서
 

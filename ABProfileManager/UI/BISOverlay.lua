@@ -43,27 +43,29 @@ local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local COL_ICON    = ICON_SIZE + 5
-local COL_NAME    = 210
-local COL_SLOT    = 96
-local COL_TYPE    = 34
-local COL_NOTE    = 40
+local COL_NAME    = 200
+local COL_SLOT    = 104
+local COL_TYPE    = 40
+local COL_NOTE    = 34
 local SPEC_PICKER_W = 154
 local SPEC_PICKER_BTN_H = 22
 local SPEC_PICKER_ROW_H = 20
 local SPEC_PICKER_MAX_VISIBLE = 12
-local FILTER_BTN_W = 48
+local FILTER_BTN_W = 44
 local FILTER_BTN_H = 18
 
-local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted" }
+local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted", "tier" }
 local BIS_SOURCE_DEFAULTS = {
     mythicplus = true,
     raid = true,
     crafted = true,
+    tier = true,
 }
 local BIS_SOURCE_LABEL_KEYS = {
     mythicplus = "bis_source_mplus",
     raid = "bis_source_raid",
     crafted = "bis_source_crafted",
+    tier = "bis_source_tier",
 }
 
 -- 아이템 품질 색상
@@ -146,6 +148,7 @@ local SOURCE_TYPE_COLOR = {
     mythicplus = { 0.35, 0.78, 1.00 },
     raid = { 1.00, 0.82, 0.44 },
     crafted = { 0.48, 0.88, 0.58 },
+    tier = { 0.88, 0.58, 1.00 },
 }
 
 -- 던전 → 모험 안내서 instanceID 매핑 (returning 던전 확인값, Midnight 신규 던전은 미확인)
@@ -201,6 +204,45 @@ end
 local function getEnglishLocaleText(key)
     local enUS = ns.Locale and ns.Locale.strings and ns.Locale.strings.enUS
     return enUS and enUS[key] or nil
+end
+
+local function isKoreanLanguageSelected()
+    return ns.DB and ns.DB.GetLanguage and ns.Constants
+        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
+        or false
+end
+
+local function getEntryLocalizedName(entry)
+    if not entry then
+        return nil
+    end
+    if isKoreanLanguageSelected() then
+        return entry.nameKoKR or entry.nameEnUS or nil
+    end
+    return entry.nameEnUS or entry.nameKoKR or nil
+end
+
+local function getEntryIconTexture(entry)
+    local icon = entry and entry.icon
+    if type(icon) == "number" then
+        return icon > 0 and icon or nil
+    end
+    if type(icon) ~= "string" or icon == "" then
+        return nil
+    end
+    local fileID = tonumber(icon)
+    if fileID and fileID > 0 then
+        return fileID
+    end
+    if icon:find("\\", 1, true) or icon:find("/", 1, true) then
+        return icon
+    end
+    return "Interface\\Icons\\" .. icon
+end
+
+local function getEntryQuality(entry)
+    local quality = entry and tonumber(entry.quality) or nil
+    return quality or 4
 end
 
 local function getNow()
@@ -704,7 +746,7 @@ local function getEncounterJournalContextForEntry(entry, itemID)
     end
 
     local sourceType = getEntrySourceType(entry)
-    local fallbackName = itemID and select(1, GetItemInfo(itemID)) or nil
+    local fallbackName = getEntryLocalizedName(entry) or (itemID and select(1, GetItemInfo(itemID)) or nil)
     if sourceType == "mythicplus" then
         local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
         if not dungeonName then
@@ -863,7 +905,7 @@ local function openEncounterJournalForEntry(entry, itemID)
 
     local sourceType = getEntrySourceType(entry)
     local sourceLabel = entry and (entry.sourceLabel or entry.boss or "")
-    if sourceType == "crafted" or hasRaidMetaLabel(sourceLabel) then
+    if sourceType == "crafted" or sourceType == "tier" or hasRaidMetaLabel(sourceLabel) then
         return
     end
 
@@ -1022,17 +1064,22 @@ local function getRenderSignature(specID)
     local filters = getSourceFilters()
     return table.concat({
         tostring(specID or 0),
+        isKoreanLanguageSelected() and "koKR" or "enUS",
         filters.mythicplus and "1" or "0",
         filters.raid and "1" or "0",
         filters.crafted and "1" or "0",
+        filters.tier and "1" or "0",
     }, ":")
 end
 
 getEntrySourceType = function(entry)
-    local sourceType = entry and entry.sourceType
+    local sourceType = entry and (entry.sourceGroup or entry.sourceType)
     local sourceLabel = entry and (entry.sourceLabel or entry.dungeon or entry.boss) or nil
     local resolvedDungeon = resolveSeasonDungeonName(entry and entry.dungeon or sourceLabel)
 
+    if sourceType == "tier" then
+        return "tier"
+    end
     if sourceType == "crafted" or isCraftingSourceLabel(sourceLabel) then
         return "crafted"
     end
@@ -1112,6 +1159,9 @@ local function getSourceBasisLabel(sourceType)
         end
         return ns.L("bis_basis_crafted")
     end
+    if sourceType == "tier" then
+        return ns.L("bis_basis_tier")
+    end
     return localizeSourceType(sourceType)
 end
 
@@ -1125,9 +1175,16 @@ local function getDisplaySourceLabel(entry)
         return "?"
     end
 
+    local preferred = isKoreanLanguageSelected() and entry.displaySourceKoKR or entry.displaySourceEnUS
+    if preferred and preferred ~= "" then
+        return preferred
+    end
+
     local sourceType = getEntrySourceType(entry)
     if sourceType == "mythicplus" then
-        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
+        local dungeonName = resolveSeasonDungeonName(
+            (isKoreanLanguageSelected() and entry.dungeon) or entry.dungeonEnUS or entry.dungeon or entry.sourceLabel
+        )
         return localizeDungeon(dungeonName or entry.dungeon or entry.sourceLabel)
     end
     if sourceType == "crafted" then
@@ -1210,10 +1267,10 @@ local SOURCE_LABEL_KOKR = {
     [normalizeCompareText("Magisters' Terrace")] = "마법학자의 정원",
     [normalizeCompareText("Magisters’ Terrace (Degentrius)")] = "마법학자의 정원",
     [normalizeCompareText("Maisara Caverns")] = "마이사라 동굴",
-    [normalizeCompareText("Nexus-Point")] = "공결탑 제나스",
-    [normalizeCompareText("Nexus-Point Xenas")] = "공결탑 제나스",
-    [normalizeCompareText("Nexus-Point Xenas Belo'ren")] = "공결탑 제나스",
-    [normalizeCompareText("공결점 제나스")] = "공결탑 제나스",
+    [normalizeCompareText("Nexus-Point")] = "제나스 지점",
+    [normalizeCompareText("Nexus-Point Xenas")] = "제나스 지점",
+    [normalizeCompareText("Nexus-Point Xenas Belo'ren")] = "제나스 지점",
+    [normalizeCompareText("공결점 제나스")] = "제나스 지점",
     [normalizeCompareText("Pit of Saron")] = "사론의 구덩이",
     [normalizeCompareText("Algeth'ar Academy")] = "알게타르 대학",
     [normalizeCompareText("Algeth’ar Academy")] = "알게타르 대학",
@@ -1228,21 +1285,22 @@ local SOURCE_LABEL_KOKR = {
     [normalizeCompareText("Lightblinded Vanguard")] = "공허 첨탑",
     [normalizeCompareText("Crown of the Cosmos")] = "공허 첨탑",
     [normalizeCompareText("Crown of the cosmos")] = "공허 첨탑",
-    [normalizeCompareText("Imperator Averzian")] = "공허 첨탑",
-    [normalizeCompareText("Belo'ren")] = "공허 첨탑",
-    [normalizeCompareText("Belo’ren")] = "공허 첨탑",
-    [normalizeCompareText("Belo’ren (Raid)")] = "공허 첨탑",
-    [normalizeCompareText("Belo'ren, Child of Al'ar")] = "공허 첨탑",
-    [normalizeCompareText("Belo’ren, Child of Al’ar")] = "공허 첨탑",
-    [normalizeCompareText("Vaelgor")] = "공허 첨탑",
-    [normalizeCompareText("Vaelgor & Ezzorak")] = "공허 첨탑",
-    [normalizeCompareText("Vaelgor & Ezzorak (Raid)")] = "공허 첨탑",
-    [normalizeCompareText("Vaelgor and Ezzorak")] = "공허 첨탑",
-    [normalizeCompareText("Vorasius")] = "공허 첨탑",
-    [normalizeCompareText("Chimaerus")] = "꿈의균열",
-    [normalizeCompareText("Chimaerus (Raid)")] = "꿈의균열",
-    [normalizeCompareText("Chimaerus the Undreamt God")] = "꿈의균열",
-    [normalizeCompareText("Chimareus, the Undreamt God")] = "꿈의균열",
+    [normalizeCompareText("Imperator Averzian")] = "전제군주 아베르지안",
+    [normalizeCompareText("Belo'ren")] = "벨로렌",
+    [normalizeCompareText("Belo’ren")] = "벨로렌",
+    [normalizeCompareText("Belo’ren (Raid)")] = "벨로렌",
+    [normalizeCompareText("Belo'ren, Child of Al'ar")] = "벨로렌",
+    [normalizeCompareText("Belo’ren, Child of Al’ar")] = "벨로렌",
+    [normalizeCompareText("Vaelgor")] = "바엘고어",
+    [normalizeCompareText("Vaelgor & Ezzorak")] = "바엘고어 & 에조라크",
+    [normalizeCompareText("Vaelgor & Ezzorak (Raid)")] = "바엘고어 & 에조라크",
+    [normalizeCompareText("Vaelgor and Ezzorak")] = "바엘고어 & 에조라크",
+    [normalizeCompareText("Vorasius")] = "보라시우스",
+    [normalizeCompareText("Chimaerus")] = "카이메루스",
+    [normalizeCompareText("Chimaerus (Raid)")] = "카이메루스",
+    [normalizeCompareText("Chimaerus the Undreamt God")] = "카이메루스",
+    [normalizeCompareText("Chimareus, the Undreamt God")] = "카이메루스",
+    [normalizeCompareText("War Chaplain Senn")] = "전투전도사 센",
     [normalizeCompareText("L’ura")] = "꿈의균열",
     [normalizeCompareText("Alleria Windrunner")] = "쿠엘다나스 진격로",
 }
@@ -1354,32 +1412,12 @@ local function notePriority(note)
 end
 
 local function noteBadge(kind, index)
-    local key
-    if kind == "bis" then
-        key = "bis_note_bis"
-    elseif kind == "alt" then
-        key = "bis_note_alt"
-    elseif kind == "third" then
-        key = "bis_note_third"
-    else
-        key = nil
-    end
-
-    local label = key and ns.L(key) or (index and ns.L("bis_note_rank", index) or "")
+    local label = index and ns.L("bis_note_rank", index) or ""
     local color = NOTE_BADGE_COLOR[kind] or NOTE_BADGE_COLOR.rank
     return label ~= "" and ("|c" .. color .. label .. "|r") or ""
 end
 
 local function notePlain(kind, index)
-    if kind == "bis" then
-        return ns.L("bis_note_bis")
-    end
-    if kind == "alt" then
-        return ns.L("bis_note_alt")
-    end
-    if kind == "third" then
-        return ns.L("bis_note_third")
-    end
     return ns.L("bis_note_rank", index or 4)
 end
 
@@ -1527,14 +1565,20 @@ local function groupBySlot(items)
     for _, slotName in ipairs(order) do
         local entries = slots[slotName]
         table.sort(entries, function(a, b)
-            local ap, bp = notePriority(a.note), notePriority(b.note)
+            local ap = tonumber(a.overallRank) or notePriority(a.note)
+            local bp = tonumber(b.overallRank) or notePriority(b.note)
             if ap ~= bp then
                 return ap < bp
             end
-            local aSource = getDisplaySourceLabel(a)
-            local bSource = getDisplaySourceLabel(b)
-            if aSource ~= bSource then
-                return aSource < bSource
+            local aGroup = SOURCE_GROUP_ORDER[getEntrySourceType(a)] or 99
+            local bGroup = SOURCE_GROUP_ORDER[getEntrySourceType(b)] or 99
+            if aGroup ~= bGroup then
+                return aGroup < bGroup
+            end
+            local aSourceRank = tonumber(a.sourceRank) or 99
+            local bSourceRank = tonumber(b.sourceRank) or 99
+            if aSourceRank ~= bSourceRank then
+                return aSourceRank < bSourceRank
             end
             return (a.itemID or 0) < (b.itemID or 0)
         end)
@@ -1584,37 +1628,46 @@ local function refreshItemRowDisplay(row)
         return false
     end
 
+    local entry = row._entry
     row.nameLabel:ClearAllPoints()
     row.nameLabel:SetFont(FONT_PATH, 11, FONT_FLAGS)
 
+    local displayName = getEntryLocalizedName(entry)
+    local displayTexture = getEntryIconTexture(entry)
+    local displayQuality = getEntryQuality(entry)
+
     if row.itemID and row.itemID > 0 then
         local ok, itemName, _, quality, _, _, _, _, _, _, texture = pcall(GetItemInfo, row.itemID)
-        if ok and itemName then
-            if texture then
-                row.icon:SetTexture(texture)
-                row.icon:SetPoint("LEFT", row, "LEFT", 0, 0)
-                row.icon:Show()
-            else
-                row.icon:Hide()
-            end
-
-            local nameX = texture and COL_ICON or 0
-            local nameW = COL_NAME + (texture and 0 or COL_ICON)
-            row.nameLabel:SetPoint("LEFT", row, "LEFT", nameX, 0)
-            row.nameLabel:SetWidth(nameW)
-
-            local qc = getQualityColor(quality)
-            row.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
-            row.nameLabel:SetText(itemName)
-            return true
+        if ok then
+            displayName = displayName or itemName
+            displayQuality = quality or displayQuality
+            displayTexture = texture or displayTexture
         end
-
-        requestItemData(row.itemID)
+        if not itemName then
+            requestItemData(row.itemID)
+        end
     end
 
-    row.icon:Hide()
-    row.nameLabel:SetPoint("LEFT", row, "LEFT", 0, 0)
-    row.nameLabel:SetWidth(COL_NAME + COL_ICON)
+    if displayTexture then
+        row.icon:SetTexture(displayTexture)
+        row.icon:SetPoint("LEFT", row, "LEFT", 0, 0)
+        row.icon:Show()
+    else
+        row.icon:Hide()
+    end
+
+    local nameX = displayTexture and COL_ICON or 0
+    local nameW = COL_NAME + (displayTexture and 0 or COL_ICON)
+    row.nameLabel:SetPoint("LEFT", row, "LEFT", nameX, 0)
+    row.nameLabel:SetWidth(nameW)
+
+    if displayName and displayName ~= "" then
+        local qc = getQualityColor(displayQuality)
+        row.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
+        row.nameLabel:SetText(displayName)
+        return true
+    end
+
     row.nameLabel:SetTextColor(QC[4][1], QC[4][2], QC[4][3], 0.50)
     row.nameLabel:SetText("...")
     return false
@@ -2421,8 +2474,8 @@ local function showSeasonItemTooltip(owner, row)
     if not itemName then
         requestItemData(row.itemID)
     end
-    local displayName = itemName or ("Item #" .. tostring(row.itemID))
-    local qc = getQualityColor(quality)
+    local displayName = getEntryLocalizedName(entry) or itemName or ("Item #" .. tostring(row.itemID))
+    local qc = getQualityColor(quality or getEntryQuality(entry))
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:ClearLines()
@@ -2438,6 +2491,20 @@ local function showSeasonItemTooltip(owner, row)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.70, 0.78, 0.90, 1, 1, 1)
     GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
+    if entry.overallRank then
+        GameTooltip:AddDoubleLine(
+            ns.L("bis_tooltip_overall_rank"),
+            ns.L("bis_note_rank", tonumber(entry.overallRank) or 0),
+            0.70, 0.78, 0.90, 1, 1, 1
+        )
+    end
+    if entry.sourceRank then
+        GameTooltip:AddDoubleLine(
+            ns.L("bis_tooltip_source_rank"),
+            ns.L("bis_note_rank", tonumber(entry.sourceRank) or 0),
+            0.70, 0.78, 0.90, 1, 1, 1
+        )
+    end
 
     -- 시즌 아이템 레벨 범위 (ItemLevelTable 정적 데이터)
     if sourceType == "mythicplus" then
@@ -2453,14 +2520,17 @@ local function showSeasonItemTooltip(owner, row)
         for _, line in ipairs(getSeasonalRaidSummaryLines()) do
             GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
         end
+    elseif sourceType == "tier" then
+        for _, line in ipairs(getSeasonalRaidSummaryLines()) do
+            GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+        end
     elseif sourceType == "crafted" then
         for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
             GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
         end
     end
 
-    -- 모험 안내서 열기 힌트 (crafted 제외)
-    if sourceType ~= "crafted" then
+    if sourceType == "mythicplus" or sourceType == "raid" then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end
