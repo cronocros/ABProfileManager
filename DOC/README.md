@@ -22,6 +22,8 @@
   - 입력 경로, 파괴적 작업, CVar/외부 의존성 검토
 - [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)
   - 패키징, 커밋, 푸시, GitHub 릴리스 절차
+- [archive/legacy-docs](./archive/legacy-docs)
+  - 종료된 핸드오프, 구형 도구 호환 문서, 과거 작업 메모
 
 참고:
 

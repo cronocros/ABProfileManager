@@ -15,6 +15,7 @@
 - 이전 로컬 패키지: `dist/archive/`
 - 최신 릴리스 노트: [RELEASE_NOTES_v1.7.0.md](./RELEASE_NOTES_v1.7.0.md)
 - 영문 릴리스 노트: [RELEASE_NOTES_v1.7.0_EN.md](./RELEASE_NOTES_v1.7.0_EN.md)
+- 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
 
@@ -162,6 +163,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 기본 사용자 안내: 이 문서
 - 배포용 소개 텍스트: [ABProfileManager/ADDON_INTRO.txt](./ABProfileManager/ADDON_INTRO.txt)
 - 에이전트 작업 지침: [AGENTS.md](./AGENTS.md)
+- Claude 호환 안내: [CLAUDE.md](./CLAUDE.md)
 - 문서 색인: [DOC/README.md](./DOC/README.md)
 - 서브 에이전트 팀: [sub/README.md](./sub/README.md)
 - 아키텍처: [DOC/ARCHITECTURE.md](./DOC/ARCHITECTURE.md)
