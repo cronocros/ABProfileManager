@@ -10,9 +10,9 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [../RELEASE_NOTES_v1.7.0.md](../RELEASE_NOTES_v1.7.0.md)
+- [releases/RELEASE_NOTES_v1.7.0.md](./releases/RELEASE_NOTES_v1.7.0.md)
   - 최신 한글 릴리스 노트
-- [../RELEASE_NOTES_v1.7.0_EN.md](../RELEASE_NOTES_v1.7.0_EN.md)
+- [releases/RELEASE_NOTES_v1.7.0_EN.md](./releases/RELEASE_NOTES_v1.7.0_EN.md)
   - 최신 영문 릴리스 노트
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름
@@ -22,6 +22,8 @@
   - 입력 경로, 파괴적 작업, CVar/외부 의존성 검토
 - [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)
   - 패키징, 커밋, 푸시, GitHub 릴리스 절차
+- [releases](./releases)
+  - 현재 활성 릴리스 노트
 - [archive/legacy-docs](./archive/legacy-docs)
   - 종료된 핸드오프, 구형 도구 호환 문서, 과거 작업 메모
 

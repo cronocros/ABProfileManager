@@ -42,14 +42,14 @@ git push origin main
 ## GitHub 릴리스
 
 ```powershell
-gh release create v<version> "dist/ABProfileManager-v<version>.zip" --title "v<version>" --notes-file "RELEASE_NOTES_v<version>.md"
+gh release create v<version> "dist/ABProfileManager-v<version>.zip" --title "v<version>" --notes-file "DOC/releases/RELEASE_NOTES_v<version>.md"
 ```
 
 같은 버전으로 유지보수 재패키징만 다시 하는 경우:
 
 ```powershell
 gh release upload v<version> "dist/ABProfileManager-v<version>.zip" --clobber
-gh release edit v<version> --notes-file "RELEASE_NOTES_v<version>.md"
+gh release edit v<version> --notes-file "DOC/releases/RELEASE_NOTES_v<version>.md"
 ```
 
 - 버전을 올리지 않을 때는 새 릴리스를 만들지 말고 기존 태그/릴리스 자산과 노트를 갱신한다.
@@ -63,13 +63,13 @@ gh release edit v<version> --notes-file "RELEASE_NOTES_v<version>.md"
 - `DOC/HANDOFF.md`
 - `DOC/SECURITY_REVIEW.md`
 - `CHANGELOG.md`
-- `RELEASE_NOTES_v<version>.md`
+- `DOC/releases/RELEASE_NOTES_v<version>.md`
 
 ## 보관 원칙
 
 - 사용자 안내는 루트 `README.md` 하나를 기준으로 유지
 - `ABProfileManager/ADDON_INTRO.txt`는 기술 문서가 아니라 배포 패키지용 소개 자산으로 유지
 - 중복 TODO 문서와 플레이스홀더 문서는 장기 유지 대상이 아님
-- 최신 릴리스 노트만 루트에 유지
+- 최신 릴리스 노트는 `DOC/releases/`에 유지
 - 이전 릴리스 노트는 `DOC/archive/release-notes/`로 이동
 - 로컬 패키지 ZIP은 `dist` 최신 1개 + `dist/archive` 보관본 구조로 관리하고 git에는 포함하지 않음
