@@ -53,6 +53,8 @@ local SPEC_PICKER_ROW_H = 20
 local SPEC_PICKER_MAX_VISIBLE = 12
 local FILTER_BTN_W = 44
 local FILTER_BTN_H = 18
+local TITLE_TOGGLE_W = 56
+local TITLE_TOGGLE_H = 18
 
 local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted", "tier" }
 local BIS_SOURCE_DEFAULTS = {
@@ -1072,6 +1074,10 @@ local function getRenderSignature(specID)
     }, ":")
 end
 
+local function isOverlayItemTooltipEnabled()
+    return ns.DB and ns.DB.IsBISOverlayItemTooltipEnabled and ns.DB:IsBISOverlayItemTooltipEnabled() or false
+end
+
 getEntrySourceType = function(entry)
     local sourceType = entry and (entry.sourceGroup or entry.sourceType)
     local sourceLabel = entry and (entry.sourceLabel or entry.dungeon or entry.boss) or nil
@@ -1867,10 +1873,87 @@ function BISOverlay:EnsureFrame()
 
     frame.avgLabel = frame:CreateFontString(nil, "OVERLAY")
     frame.avgLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
-    frame.avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -(PADDING + 60), 0)
+    frame.avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -(PADDING + 124), 0)
     frame.avgLabel:SetJustifyH("RIGHT")
     frame.avgLabel:SetTextColor(0.82, 0.86, 0.94, 1)
     frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", "?"))
+
+    local itemTooltipBtn = CreateFrame("Button", nil, frame, "BackdropTemplate")
+    itemTooltipBtn:SetSize(TITLE_TOGGLE_W, TITLE_TOGGLE_H)
+    itemTooltipBtn:SetPoint("RIGHT", frame.avgLabel, "LEFT", -8, 0)
+    if itemTooltipBtn.SetBackdrop then
+        itemTooltipBtn:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 8, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+    end
+    itemTooltipBtn.fill = itemTooltipBtn:CreateTexture(nil, "BACKGROUND")
+    itemTooltipBtn.fill:SetPoint("TOPLEFT", itemTooltipBtn, "TOPLEFT", 3, -3)
+    itemTooltipBtn.fill:SetPoint("BOTTOMRIGHT", itemTooltipBtn, "BOTTOMRIGHT", -3, 3)
+    itemTooltipBtn.checkBox = CreateFrame("Frame", nil, itemTooltipBtn, "BackdropTemplate")
+    itemTooltipBtn.checkBox:SetSize(10, 10)
+    itemTooltipBtn.checkBox:SetPoint("LEFT", itemTooltipBtn, "LEFT", 5, 0)
+    if itemTooltipBtn.checkBox.SetBackdrop then
+        itemTooltipBtn.checkBox:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 8, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+    end
+    itemTooltipBtn.checkFill = itemTooltipBtn.checkBox:CreateTexture(nil, "BACKGROUND")
+    itemTooltipBtn.checkFill:SetPoint("TOPLEFT", itemTooltipBtn.checkBox, "TOPLEFT", 2, -2)
+    itemTooltipBtn.checkFill:SetPoint("BOTTOMRIGHT", itemTooltipBtn.checkBox, "BOTTOMRIGHT", -2, 2)
+    itemTooltipBtn.checkMark = itemTooltipBtn.checkBox:CreateFontString(nil, "OVERLAY")
+    itemTooltipBtn.checkMark:SetFont(FONT_PATH, 8, FONT_FLAGS)
+    itemTooltipBtn.checkMark:SetAllPoints()
+    itemTooltipBtn.checkMark:SetJustifyH("CENTER")
+    itemTooltipBtn.checkMark:SetJustifyV("MIDDLE")
+    itemTooltipBtn.label = itemTooltipBtn:CreateFontString(nil, "OVERLAY")
+    itemTooltipBtn.label:SetFont(FONT_PATH, 8, FONT_FLAGS)
+    itemTooltipBtn.label:SetPoint("LEFT", itemTooltipBtn.checkBox, "RIGHT", 3, 0)
+    itemTooltipBtn.label:SetPoint("RIGHT", itemTooltipBtn, "RIGHT", -3, 0)
+    itemTooltipBtn.label:SetJustifyH("LEFT")
+    itemTooltipBtn.label:SetJustifyV("MIDDLE")
+    itemTooltipBtn:SetScript("OnEnter", function(self2)
+        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        GameTooltip:SetText(ns.L("bis_overlay_item_tooltip"), 1, 1, 1, 1, true)
+        GameTooltip:AddLine(ns.L("bis_overlay_item_tooltip_hint"), 0.70, 0.78, 0.90, true)
+        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
+        GameTooltip:Show()
+    end)
+    itemTooltipBtn:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    local function updateBISItemTooltipVisual()
+        local enabled = isOverlayItemTooltipEnabled()
+        itemTooltipBtn.label:SetText(ns.L("bis_overlay_item_tooltip"))
+        if itemTooltipBtn.SetBackdropColor then
+            itemTooltipBtn:SetBackdropColor(enabled and 0.10 or 0.06, enabled and 0.17 or 0.09, enabled and 0.24 or 0.14, 0.98)
+        end
+        if itemTooltipBtn.SetBackdropBorderColor then
+            itemTooltipBtn:SetBackdropBorderColor(enabled and 0.34 or 0.24, enabled and 0.78 or 0.34, enabled and 1.00 or 0.52, 0.92)
+        end
+        itemTooltipBtn.fill:SetColorTexture(enabled and 0.12 or 0.09, enabled and 0.16 or 0.11, enabled and 0.24 or 0.17, 0.94)
+        itemTooltipBtn.checkFill:SetColorTexture(enabled and 0.18 or 0.04, enabled and 0.42 or 0.05, enabled and 0.68 or 0.10, 0.98)
+        if itemTooltipBtn.checkBox and itemTooltipBtn.checkBox.SetBackdropBorderColor then
+            itemTooltipBtn.checkBox:SetBackdropBorderColor(enabled and 0.38 or 0.32, enabled and 0.82 or 0.38, enabled and 1.00 or 0.52, 0.95)
+        end
+        itemTooltipBtn.checkMark:SetText(enabled and "X" or "")
+        itemTooltipBtn.checkMark:SetTextColor(1, 1, 1, enabled and 1 or 0.80)
+        itemTooltipBtn.label:SetTextColor(enabled and 0.92 or 0.82, enabled and 0.96 or 0.86, enabled and 1.00 or 0.94, 1)
+    end
+    itemTooltipBtn:SetScript("OnClick", function()
+        if ns.DB and ns.DB.SetBISOverlayItemTooltipEnabled then
+            ns.DB:SetBISOverlayItemTooltipEnabled(not isOverlayItemTooltipEnabled())
+        end
+        updateBISItemTooltipVisual()
+    end)
+    frame.itemTooltipBtn = itemTooltipBtn
+    frame.updateBISItemTooltipVisual = updateBISItemTooltipVisual
+    updateBISItemTooltipVisual()
 
     -- ─── 접기/펼치기 버튼 ────────────────────────────────────
     local collapseBtn = CreateFrame("Button", nil, frame)
@@ -2464,76 +2547,156 @@ local function showSeasonItemTooltip(owner, row)
     if not row or not row.itemID or row.itemID <= 0 then return end
 
     local entry = row._entry or {}
-    local sourceType = getEntrySourceType(entry)
-    local sourceLabel = getDisplaySourceLabel(entry)
-    local noteKind = row._displayNoteKind or canonicalNote(entry.note)
-    local noteIndex = row._displayNoteIndex or 3
+    local function appendSeasonTooltipMeta()
+        local sourceType = getEntrySourceType(entry)
+        local sourceLabel = getDisplaySourceLabel(entry)
+        local noteKind = row._displayNoteKind or canonicalNote(entry.note)
+        local noteIndex = row._displayNoteIndex or 3
 
-    -- 아이템 이름/품질 (GetItemInfo 캐시 히트 시 즉시, 아닐 경우 비동기 요청)
-    local itemName, _, quality = GetItemInfo(row.itemID)
-    if not itemName then
-        requestItemData(row.itemID)
+        GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.70, 0.78, 0.90, 1, 1, 1)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.70, 0.78, 0.90, 1, 1, 1)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
+        if entry.overallRank then
+            GameTooltip:AddDoubleLine(
+                ns.L("bis_tooltip_overall_rank"),
+                ns.L("bis_note_rank", tonumber(entry.overallRank) or 0),
+                0.70, 0.78, 0.90, 1, 1, 1
+            )
+        end
+        if entry.sourceRank then
+            GameTooltip:AddDoubleLine(
+                ns.L("bis_tooltip_source_rank"),
+                ns.L("bis_note_rank", tonumber(entry.sourceRank) or 0),
+                0.70, 0.78, 0.90, 1, 1, 1
+            )
+        end
+        return sourceType
     end
-    local displayName = getEntryLocalizedName(entry) or itemName or ("Item #" .. tostring(row.itemID))
-    local qc = getQualityColor(quality or getEntryQuality(entry))
+
+    local function appendSeasonTooltipRanges(sourceType)
+        if sourceType == "mythicplus" then
+            local runTrack = getSeasonalMythicPlusSummary("run")
+            if runTrack ~= "" then
+                GameTooltip:AddDoubleLine(ns.L("bis_tooltip_end_of_run"), runTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+            end
+            local vaultTrack = getSeasonalMythicPlusSummary("vault")
+            if vaultTrack ~= "" then
+                GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+            end
+        elseif sourceType == "raid" or sourceType == "tier" then
+            for _, line in ipairs(getSeasonalRaidSummaryLines()) do
+                GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+            end
+        elseif sourceType == "crafted" then
+            for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
+                GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+            end
+        end
+    end
+
+    local function tryShowTooltipHyperlink(link)
+        if not link or link == "" or not GameTooltip or not GameTooltip.SetHyperlink then
+            return false
+        end
+        GameTooltip:ClearLines()
+        local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+        return ok and GameTooltip:NumLines() > 0
+    end
+
+    local function tryShowTooltipItemID(itemID)
+        if not itemID or itemID <= 0 then
+            return false
+        end
+        local _, itemLink = GetItemInfo(itemID)
+        if itemLink and tryShowTooltipHyperlink(itemLink) then
+            return true
+        end
+        if GameTooltip and GameTooltip.SetItemByID then
+            GameTooltip:ClearLines()
+            local ok = pcall(GameTooltip.SetItemByID, GameTooltip, itemID)
+            if ok and GameTooltip:NumLines() > 0 then
+                return true
+            end
+        end
+        if tryShowTooltipHyperlink("item:" .. tostring(itemID)) then
+            return true
+        end
+        requestItemData(itemID)
+        return false
+    end
+
+    local sourceType = getEntrySourceType(entry)
+    if not isOverlayItemTooltipEnabled() then
+        -- 아이템 이름/품질 (GetItemInfo 캐시 히트 시 즉시, 아닐 경우 비동기 요청)
+        local itemName, _, quality = GetItemInfo(row.itemID)
+        if not itemName then
+            requestItemData(row.itemID)
+        end
+        local displayName = getEntryLocalizedName(entry) or itemName or ("Item #" .. tostring(row.itemID))
+        local qc = getQualityColor(quality or getEntryQuality(entry))
+
+        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+        GameTooltip:ClearLines()
+
+        -- 아이템명 (품질 색상)
+        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+        sourceType = appendSeasonTooltipMeta()
+        appendSeasonTooltipRanges(sourceType)
+
+        if sourceType == "mythicplus" or sourceType == "raid" then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+        end
+        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
+        GameTooltip:Show()
+        return
+    end
+
+    local context = (sourceType == "mythicplus" or sourceType == "raid")
+        and getEncounterJournalContextForEntry(entry, row.itemID)
+        or nil
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-    GameTooltip:ClearLines()
 
-    -- 아이템명 (품질 색상)
-    GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
-
-    -- 시즌 정보 헤더
-    GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
-
-    -- 정적 BIS 정보 (entry 데이터 기반, API 호출 없음)
-    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
-    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.70, 0.78, 0.90, 1, 1, 1)
-    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.70, 0.78, 0.90, 1, 1, 1)
-    GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
-    if entry.overallRank then
-        GameTooltip:AddDoubleLine(
-            ns.L("bis_tooltip_overall_rank"),
-            ns.L("bis_note_rank", tonumber(entry.overallRank) or 0),
-            0.70, 0.78, 0.90, 1, 1, 1
-        )
+    local shown = false
+    if context and context.link then
+        shown = tryShowTooltipHyperlink(context.link)
     end
-    if entry.sourceRank then
-        GameTooltip:AddDoubleLine(
-            ns.L("bis_tooltip_source_rank"),
-            ns.L("bis_note_rank", tonumber(entry.sourceRank) or 0),
-            0.70, 0.78, 0.90, 1, 1, 1
-        )
+    if not shown then
+        shown = tryShowTooltipItemID(row.itemID)
+    end
+    if not shown then
+        return
     end
 
-    -- 시즌 아이템 레벨 범위 (ItemLevelTable 정적 데이터)
-    if sourceType == "mythicplus" then
-        local runTrack = getSeasonalMythicPlusSummary("run")
-        if runTrack ~= "" then
-            GameTooltip:AddDoubleLine(ns.L("bis_tooltip_end_of_run"), runTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+    GameTooltip:AddLine(" ")
+    appendSeasonTooltipMeta()
+    if context and context.link then
+        if sourceType == "mythicplus" then
+            GameTooltip:AddLine(ns.L("bis_tooltip_preview_key", getSeasonPreviewKeyLevel()), 0.60, 0.86, 1.00, true)
+        elseif sourceType == "raid" then
+            GameTooltip:AddLine(ns.L("bis_tooltip_raid_preview"), 0.60, 0.86, 1.00, true)
         end
-        local vaultTrack = getSeasonalMythicPlusSummary("vault")
-        if vaultTrack ~= "" then
-            GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+    else
+        if sourceType == "mythicplus" then
+            GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.80, 0.46, true)
+        elseif sourceType == "raid" then
+            GameTooltip:AddLine(ns.L("bis_tooltip_raid_fallback"), 1.00, 0.80, 0.46, true)
+        elseif sourceType == "tier" then
+            GameTooltip:AddLine(ns.L("bis_tooltip_tier_fallback"), 1.00, 0.80, 0.46, true)
+        elseif sourceType == "crafted" then
+            GameTooltip:AddLine(ns.L("bis_tooltip_crafted_fallback"), 1.00, 0.80, 0.46, true)
         end
-    elseif sourceType == "raid" then
-        for _, line in ipairs(getSeasonalRaidSummaryLines()) do
-            GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
-        end
-    elseif sourceType == "tier" then
-        for _, line in ipairs(getSeasonalRaidSummaryLines()) do
-            GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
-        end
-    elseif sourceType == "crafted" then
-        for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
-            GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
-        end
+        GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.45, 0.45, true)
     end
-
+    appendSeasonTooltipRanges(sourceType)
     if sourceType == "mythicplus" or sourceType == "raid" then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end
+    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 
@@ -2698,6 +2861,9 @@ function BISOverlay:RebuildContent()
     end
     if frame.avgLabel then
         frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
+    end
+    if frame.updateBISItemTooltipVisual then
+        frame.updateBISItemTooltipVisual()
     end
     self:UpdateSourceFilterButtons()
 
@@ -2913,6 +3079,9 @@ function BISOverlay:Refresh()
         if self.frame.avgLabel then
             local avgIlvl = getAverageItemLevel()
             self.frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
+        end
+        if self.frame.updateBISItemTooltipVisual then
+            self.frame.updateBISItemTooltipVisual()
         end
         self:RefreshVisibleItemRows()
         self:UpdateScrollThumb()

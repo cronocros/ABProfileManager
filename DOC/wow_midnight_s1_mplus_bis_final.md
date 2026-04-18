@@ -1,6 +1,6 @@
-# WoW Midnight 시즌 1 — 전 클래스 쐐기(Mythic+) 파밍 최종 정리본
+# 한밤 시즌1 쐐기 BIS
 
-기준일: 2026-04-18
+기준일: 2026-04-19
 기준: **Midnight 시즌 1 / Mythic+ 기준**
 참고: 이 문서는 **현재 BIS 오버레이 카탈로그(`ABProfileManager/Data/BISCatalog.lua`)와 동기화된 정리본**이다.
 

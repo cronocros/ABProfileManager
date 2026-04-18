@@ -916,6 +916,9 @@ function DB:GetBISOverlaySettings()
         end
         settings.bisOverlay._allSourcesMigrationV2 = true
     end
+    if type(settings.bisOverlay.itemTooltip) ~= "boolean" then
+        settings.bisOverlay.itemTooltip = false
+    end
     return settings.bisOverlay
 end
 
@@ -935,6 +938,15 @@ end
 function DB:SetBISOverlayLocked(locked)
     self:GetBISOverlaySettings().locked = locked and true or false
     return self:IsBISOverlayLocked()
+end
+
+function DB:IsBISOverlayItemTooltipEnabled()
+    return self:GetBISOverlaySettings().itemTooltip == true
+end
+
+function DB:SetBISOverlayItemTooltipEnabled(enabled)
+    self:GetBISOverlaySettings().itemTooltip = enabled and true or false
+    return self:IsBISOverlayItemTooltipEnabled()
 end
 
 -- ============================================================

@@ -66,10 +66,12 @@ ns.Data.Defaults = {
             bisOverlay = {
                 enabled = false,
                 locked  = false,
+                itemTooltip = false,
                 sources = {
                     mythicplus = true,
                     raid = true,
                     crafted = true,
+                    tier = true,
                 },
             },
             mythicPlusRecordOverlay = {

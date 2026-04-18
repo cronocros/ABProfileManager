@@ -55,10 +55,15 @@ ns.Data.ItemLevelTable = {
     },
 
     -- 레이드 보스 드랍 범위 + 주간 금고 보상
+    -- Wowhead Midnight Season 1 기준:
+    -- Voidspire 246~256 / 259~269 / 272~282
+    -- Dreamrift 250 / 263 / 276
+    -- March on Quel'Danas 253~256 / 266~269 / 279~282
+    -- 오버레이는 시즌 전체 범위를 요약해서 표시한다.
     raid = {
-        normal = { min=233, max=243, grade="vet",  maxilvl=250, vault=246, vaultGrade="chmp", labelKey="ilvl_raid_normal", crestDrop="chmp" },
-        heroic = { min=246, max=256, grade="hero", maxilvl=276, vault=259, vaultGrade="hero", labelKey="ilvl_raid_heroic", crestDrop="hero" },
-        mythic = { min=259, max=272, grade="myth", maxilvl=289, vault=272, vaultGrade="myth", labelKey="ilvl_raid_mythic", crestDrop="myth" },
+        normal = { min=246, max=256, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", labelKey="ilvl_raid_normal", crestDrop="chmp" },
+        heroic = { min=259, max=269, grade="hero", maxilvl=276, vault=272, vaultGrade="myth", labelKey="ilvl_raid_heroic", crestDrop="hero" },
+        mythic = { min=272, max=282, grade="myth", maxilvl=289, vault=285, vaultGrade="myth", labelKey="ilvl_raid_mythic", crestDrop="myth" },
     },
 
     worldBoss = { ilvl=233, grade="vet", maxilvl=250, crestDrop="chmp" },

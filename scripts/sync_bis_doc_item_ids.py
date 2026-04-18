@@ -61,9 +61,9 @@ COMPANION_NAME_ALIASES = {
 }
 
 FINAL_INTRO_LINES = [
-    "# WoW Midnight 시즌 1 — 전 클래스 쐐기(Mythic+) 파밍 최종 정리본",
+    "# 한밤 시즌1 쐐기 BIS",
     "",
-    "기준일: 2026-04-18",
+    "기준일: 2026-04-19",
     "기준: **Midnight 시즌 1 / Mythic+ 기준**",
     "참고: 이 문서는 **현재 BIS 오버레이 카탈로그(`ABProfileManager/Data/BISCatalog.lua`)와 동기화된 정리본**이다.",
     "",
@@ -81,9 +81,9 @@ FINAL_INTRO_LINES = [
 ]
 
 COMPANION_INTRO_LINES = [
-    "# WoW Midnight 시즌 1 — 아이템 한글명 보조판",
+    "# 한밤 시즌1 BIS 한글명",
     "",
-    "기준일: 2026-04-18",
+    "기준일: 2026-04-19",
     "기준: **wow_midnight_s1_mplus_bis_final.md**와 현재 BIS 오버레이 카탈로그를 기준으로 정리한 **한글명 보조판**",
     "주의: 이 문서는 **현재 오버레이 카탈로그의 koKR / enUS / itemID 기준값**을 함께 싣는다. 최종 식별은 반드시 **itemID + 영문 원문**을 기준으로 한다.",
     "",
