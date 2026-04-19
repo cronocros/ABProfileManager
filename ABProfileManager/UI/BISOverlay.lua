@@ -415,7 +415,7 @@ local function getDungeonInstanceID(dungeonName)
     return candidates[1] and candidates[1].instanceID or nil
 end
 
-local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName)
+local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName, allowLiveScan)
     if not dungeonName or (not itemID and not fallbackName) then return nil end
 
     local previewLevel = getSeasonPreviewKeyLevel()
@@ -434,11 +434,12 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
     if EJ_PREVIEW_CONTEXT_CACHE[cacheKey] ~= nil then
         return EJ_PREVIEW_CONTEXT_CACHE[cacheKey] or nil
     end
-    if not BISOverlay._allowLiveJournalScan then
-        local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
-        if journalVisible or isJournalPreviewSuspended() then
-            return nil
-        end
+    if not allowLiveScan then
+        return nil
+    end
+    local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
+    if journalVisible or isJournalPreviewSuspended() then
+        return nil
     end
     if not ensureEncounterJournalLoaded() then
         EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
@@ -487,10 +488,11 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
                     end
                 end
                 if matched then
-                    local foundLink = info.link or info.itemLink or info.hyperlink
+                    local foundLink = info.itemLink or info.hyperlink or info.link
                     if foundLink then
                         foundContext = {
                             link = foundLink,
+                            itemLink = info.itemLink or info.hyperlink or nil,
                             itemID = info.itemID,
                             instanceID = candidate.instanceID,
                             tier = candidate.tier,
@@ -528,11 +530,11 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
 end
 
 local function getPreviewMythicPlusLootLink(dungeonName, itemID)
-    local context = getPreviewMythicPlusLootContext(dungeonName, itemID)
+    local context = getPreviewMythicPlusLootContext(dungeonName, itemID, nil, true)
     return context and context.link or nil
 end
 
-local function getPreviewRaidLootContext(itemID, fallbackName)
+local function getPreviewRaidLootContext(itemID, fallbackName, allowLiveScan)
     if (not itemID or itemID <= 0) and (not fallbackName or fallbackName == "") then
         return nil
     end
@@ -546,11 +548,12 @@ local function getPreviewRaidLootContext(itemID, fallbackName)
     if EJ_PREVIEW_CONTEXT_CACHE[cacheKey] ~= nil then
         return EJ_PREVIEW_CONTEXT_CACHE[cacheKey] or nil
     end
-    if not BISOverlay._allowLiveJournalScan then
-        local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
-        if journalVisible or isJournalPreviewSuspended() then
-            return nil
-        end
+    if not allowLiveScan then
+        return nil
+    end
+    local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
+    if journalVisible or isJournalPreviewSuspended() then
+        return nil
     end
     if not ensureEncounterJournalLoaded() then
         EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
@@ -593,10 +596,11 @@ local function getPreviewRaidLootContext(itemID, fallbackName)
                     end
                 end
                 if matched then
-                    local foundLink = info.link or info.itemLink or info.hyperlink
+                    local foundLink = info.itemLink or info.hyperlink or info.link
                     if foundLink then
                         foundContext = {
                             link = foundLink,
+                            itemLink = info.itemLink or info.hyperlink or nil,
                             itemID = info.itemID,
                             instanceID = candidate.instanceID,
                             tier = candidate.tier,
@@ -742,7 +746,7 @@ local function getPlayerSpecID()
     return nil
 end
 
-local function getEncounterJournalContextForEntry(entry, itemID)
+local function getEncounterJournalContextForEntry(entry, itemID, allowLiveScan)
     if not entry then
         return nil
     end
@@ -754,10 +758,10 @@ local function getEncounterJournalContextForEntry(entry, itemID)
         if not dungeonName then
             return nil
         end
-        return getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName)
+        return getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName, allowLiveScan)
     end
     if sourceType == "raid" or sourceType == "tier" then
-        return getPreviewRaidLootContext(itemID, fallbackName)
+        return getPreviewRaidLootContext(itemID, fallbackName, allowLiveScan)
     end
     return nil
 end
@@ -916,13 +920,13 @@ local function openEncounterJournalForEntry(entry, itemID)
     BISOverlay._journalPreviewSuspendUntil = getNow() + 1.0
 
     local target = resolveFallbackJournalTarget(entry) or {}
-    local context
-    if not target.instanceID then
+    local context = getEncounterJournalContextForEntry(entry, itemID, false)
+    if not context or not context.instanceID or not context.itemID or (sourceType == "raid" and not context.encounterID) then
         local ok, resolvedContext
         BISOverlay._allowLiveJournalScan = true
-        ok, resolvedContext = pcall(getEncounterJournalContextForEntry, entry, itemID)
+        ok, resolvedContext = pcall(getEncounterJournalContextForEntry, entry, itemID, true)
         BISOverlay._allowLiveJournalScan = false
-        if ok then
+        if ok and resolvedContext then
             context = resolvedContext
         end
     end
@@ -2552,6 +2556,65 @@ requestItemData = function(itemID)
     end
 end
 
+local function isItemHyperlink(link)
+    return type(link) == "string"
+        and (link:find("|Hitem:", 1, true) ~= nil or link:find("^item:") ~= nil)
+end
+
+local function getTooltipDataForHyperlink(link)
+    if not isItemHyperlink(link) or not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
+        return nil
+    end
+    local ok, tooltipData = pcall(C_TooltipInfo.GetHyperlink, link)
+    if ok and type(tooltipData) == "table" then
+        return tooltipData
+    end
+    return nil
+end
+
+local function isValidPreviewItemLevel(sourceType, itemLevel)
+    if not itemLevel or itemLevel <= 0 then
+        return false
+    end
+    if sourceType == "mythicplus" then
+        local minRun, maxRun = getSeasonalMythicPlusRange()
+        local tbl = ns.Data and ns.Data.ItemLevelTable
+        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
+        local maxVault = entries and entries[#entries] and entries[#entries].vault or maxRun
+        return minRun and maxVault and itemLevel >= minRun and itemLevel <= maxVault
+    end
+    if sourceType == "raid" or sourceType == "tier" then
+        local minRaid, maxRaid = getSeasonalRaidRange()
+        local tbl = ns.Data and ns.Data.ItemLevelTable
+        local mythicVault = tbl and tbl.raid and tbl.raid.mythic and tbl.raid.mythic.vault or maxRaid
+        return minRaid and mythicVault and itemLevel >= minRaid and itemLevel <= mythicVault
+    end
+    if sourceType == "crafted" then
+        local tbl = ns.Data and ns.Data.ItemLevelTable
+        local crafted = tbl and tbl.crafted
+        local minCraft = crafted and crafted.base and crafted.base.ilvl or nil
+        local maxCraft = crafted and crafted.r5 and crafted.r5.ilvl or nil
+        return minCraft and maxCraft and itemLevel >= minCraft and itemLevel <= maxCraft
+    end
+    return true
+end
+
+local function getValidPreviewTooltipLink(context, sourceType)
+    if type(context) ~= "table" then
+        return nil
+    end
+    for _, link in ipairs({ context.itemLink, context.link }) do
+        if isItemHyperlink(link) then
+            local tooltipData = getTooltipDataForHyperlink(link)
+            local itemLevel = extractTooltipItemLevel(tooltipData)
+            if isValidPreviewItemLevel(sourceType, itemLevel) then
+                return link, itemLevel
+            end
+        end
+    end
+    return nil
+end
+
 local function showSeasonItemTooltip(owner, row)
     if not row or not row.itemID or row.itemID <= 0 then return end
 
@@ -2561,24 +2624,25 @@ local function showSeasonItemTooltip(owner, row)
         local sourceLabel = getDisplaySourceLabel(entry)
         local noteKind = row._displayNoteKind or canonicalNote(entry.note)
         local noteIndex = row._displayNoteIndex or 3
+        local sr, sg, sb = getSourceTypeColor(sourceType)
 
-        GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.88, 0.70, 1.00, true)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.70, 0.78, 0.90, 1, 1, 1)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.70, 0.78, 0.90, 1, 1, 1)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.70, 0.78, 0.90, 1, 1, 1)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.70, 0.78, 0.90, 1, 1, 1)
+        GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.45, 0.82, 1.00, true)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.62, 0.68, 0.78, 0.94, 0.96, 1.00)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.62, 0.68, 0.78, sr, sg, sb)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.62, 0.68, 0.78, 0.84, 0.92, 1.00)
+        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.62, 0.68, 0.78, 0.96, 0.96, 0.96)
         if entry.overallRank then
             GameTooltip:AddDoubleLine(
                 ns.L("bis_tooltip_overall_rank"),
                 ns.L("bis_note_rank", tonumber(entry.overallRank) or 0),
-                0.70, 0.78, 0.90, 1, 1, 1
+                0.62, 0.68, 0.78, 0.90, 0.94, 1.00
             )
         end
         if entry.sourceRank then
             GameTooltip:AddDoubleLine(
                 ns.L("bis_tooltip_source_rank"),
                 ns.L("bis_note_rank", tonumber(entry.sourceRank) or 0),
-                0.70, 0.78, 0.90, 1, 1, 1
+                0.62, 0.68, 0.78, 0.90, 0.94, 1.00
             )
         end
         return sourceType
@@ -2592,15 +2656,15 @@ local function showSeasonItemTooltip(owner, row)
             end
             local vaultTrack = getSeasonalMythicPlusSummary("vault")
             if vaultTrack ~= "" then
-                GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+                GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.62, 0.68, 0.78, 0.78, 0.88, 1.00)
             end
         elseif sourceType == "raid" or sourceType == "tier" then
             for _, line in ipairs(getSeasonalRaidSummaryLines()) do
-                GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+                GameTooltip:AddDoubleLine(line.label, line.text, 0.62, 0.68, 0.78, 0.78, 0.88, 1.00)
             end
         elseif sourceType == "crafted" then
             for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
-                GameTooltip:AddDoubleLine(line.label, line.text, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+                GameTooltip:AddDoubleLine(line.label, line.text, 0.62, 0.68, 0.78, 0.78, 0.88, 1.00)
             end
         end
     end
@@ -2663,15 +2727,16 @@ local function showSeasonItemTooltip(owner, row)
         return
     end
 
-    local context = (sourceType == "mythicplus" or sourceType == "raid")
-        and getEncounterJournalContextForEntry(entry, row.itemID)
+    local context = (sourceType == "mythicplus" or sourceType == "raid" or sourceType == "tier")
+        and getEncounterJournalContextForEntry(entry, row.itemID, false)
         or nil
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
 
     local shown = false
-    if context and context.link then
-        shown = tryShowTooltipHyperlink(context.link)
+    local previewLink = getValidPreviewTooltipLink(context, sourceType)
+    if previewLink then
+        shown = tryShowTooltipHyperlink(previewLink)
     end
     if not shown then
         shown = tryShowTooltipItemID(row.itemID)
@@ -2698,48 +2763,38 @@ local function showSeasonItemTooltip(owner, row)
         return
     end
 
+    if previewLink then
+        if sourceType == "mythicplus" or sourceType == "raid" then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+        end
+        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
+        GameTooltip:Show()
+        return
+    end
+
     GameTooltip:AddLine(" ")
-    if context and context.link then
-        if sourceType == "mythicplus" then
-            GameTooltip:AddDoubleLine(
-                ns.L("bis_tooltip_basis"),
-                getSourceBasisLabel(sourceType),
-                0.65, 0.72, 0.82, 0.90, 0.94, 1.00
-            )
-            GameTooltip:AddLine(ns.L("bis_tooltip_preview_key", getSeasonPreviewKeyLevel()), 0.60, 0.86, 1.00, true)
-        elseif sourceType == "raid" or sourceType == "tier" then
-            GameTooltip:AddDoubleLine(
-                ns.L("bis_tooltip_basis"),
-                getSourceBasisLabel("raid"),
-                0.65, 0.72, 0.82, 0.90, 0.94, 1.00
-            )
-            GameTooltip:AddLine(ns.L("bis_tooltip_raid_preview"), 0.60, 0.86, 1.00, true)
-        end
-    else
-        GameTooltip:AddDoubleLine(
-            ns.L("bis_tooltip_source"),
-            getDisplaySourceLabel(entry),
-            0.65, 0.72, 0.82, 0.90, 0.94, 1.00
-        )
-        GameTooltip:AddDoubleLine(
-            ns.L("bis_tooltip_basis"),
-            getSourceBasisLabel(sourceType),
-            0.65, 0.72, 0.82, 0.90, 0.94, 1.00
-        )
-        if sourceType == "mythicplus" then
-            GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.80, 0.46, true)
-        elseif sourceType == "raid" then
-            GameTooltip:AddLine(ns.L("bis_tooltip_raid_fallback"), 1.00, 0.80, 0.46, true)
-        elseif sourceType == "tier" then
-            GameTooltip:AddLine(ns.L("bis_tooltip_tier_fallback"), 1.00, 0.80, 0.46, true)
-        elseif sourceType == "crafted" then
-            GameTooltip:AddLine(ns.L("bis_tooltip_crafted_fallback"), 1.00, 0.80, 0.46, true)
-        end
-        GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.45, 0.45, true)
+    GameTooltip:AddDoubleLine(
+        ns.L("bis_tooltip_source"),
+        getDisplaySourceLabel(entry),
+        0.62, 0.68, 0.78, 0.90, 0.94, 1.00
+    )
+    GameTooltip:AddDoubleLine(
+        ns.L("bis_tooltip_basis"),
+        getSourceBasisLabel(sourceType),
+        0.62, 0.68, 0.78, 0.90, 0.94, 1.00
+    )
+    if sourceType == "mythicplus" then
+        GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.80, 0.46, true)
+    elseif sourceType == "raid" then
+        GameTooltip:AddLine(ns.L("bis_tooltip_raid_fallback"), 1.00, 0.80, 0.46, true)
+    elseif sourceType == "tier" then
+        GameTooltip:AddLine(ns.L("bis_tooltip_tier_fallback"), 1.00, 0.80, 0.46, true)
+    elseif sourceType == "crafted" then
+        GameTooltip:AddLine(ns.L("bis_tooltip_crafted_fallback"), 1.00, 0.80, 0.46, true)
     end
-    if not context or not context.link then
-        appendSeasonTooltipRanges(sourceType)
-    end
+    GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.45, 0.45, true)
+    appendSeasonTooltipRanges(sourceType)
     if sourceType == "mythicplus" or sourceType == "raid" then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
