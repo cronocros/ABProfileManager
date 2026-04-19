@@ -29,8 +29,13 @@ local questPanelRefreshPending = false
 
 -- 전투부대 은행 세션 상태 추적
 local abpmBankSessionActive = false
+-- CloseBankFrame → BANKFRAME_CLOSED → abpmCloseBankSessions 재귀 방지 플래그
+local abpmBankCleanupInProgress = false
 
 local function abpmCloseBankSessions()
+    -- 재진입 방지: CloseBankFrame 호출이 BANKFRAME_CLOSED를 재발화하여 무한 재귀를 일으킬 수 있음
+    if abpmBankCleanupInProgress then return end
+    abpmBankCleanupInProgress = true
     if BankFrame and BankFrame:IsShown() then
         pcall(CloseBankFrame)
     end
@@ -41,6 +46,7 @@ local function abpmCloseBankSessions()
         pcall(function() AccountBankPanel:Hide() end)
     end
     abpmBankSessionActive = false
+    abpmBankCleanupInProgress = false
 end
 
 local function refreshGhostsAndRetries()
@@ -508,8 +514,9 @@ function Events:BANKFRAME_OPENED()
 end
 
 function Events:BANKFRAME_CLOSED()
+    -- 주의: 여기서 CloseBankFrame/abpmCloseBankSessions 호출 금지
+    -- BankFrame이 닫히는 도중에 재호출하면 BANKFRAME_CLOSED가 재발화되어 무한 재귀 발생
     abpmBankSessionActive = false
-    abpmCloseBankSessions()
 end
 
 function Events:UI_ERROR_MESSAGE(messageType, message)
