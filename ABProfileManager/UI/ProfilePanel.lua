@@ -187,8 +187,9 @@ function ProfilePanel:RefreshSpecButtons()
 
     for index, button in ipairs(self.specButtons) do
         if index <= count then
-            local _, name = GetSpecializationInfo(index)
-            local label = name or ("Spec " .. index)
+            local specID, name = GetSpecializationInfo(index)
+            local localizedName = ns.SpecL(specID, name) or ("Spec " .. index)
+            local label = localizedName
             if currentSpec == index then
                 label = "▶ " .. label
             end
@@ -196,7 +197,7 @@ function ProfilePanel:RefreshSpecButtons()
             button:Show()
             ns.UI.Widgets.SetButtonSelected(button, currentSpec == index)
             button.specIndex = index
-            button.specName = name or ("Spec " .. index)
+            button.specName = localizedName
         else
             button:Hide()
         end
@@ -610,15 +611,15 @@ function ProfilePanel:Refresh()
     local classTag = record and record.class or "UNKNOWN"
     local className = ns.ClassL(classTag)
     local specID = record and record.specID or 0
-    local specName = "-"
+    local specName = ns.SpecL(specID) or "-"
     if type(GetSpecializationInfoByID) == "function" and specID and specID > 0 then
         local _, localizedSpecName = GetSpecializationInfoByID(specID)
-        specName = localizedSpecName or specName
+        specName = ns.SpecL(specID, localizedSpecName) or specName
     elseif type(GetSpecialization) == "function" and type(GetSpecializationInfo) == "function" then
         local currentSpecIndex = GetSpecialization()
         if currentSpecIndex and currentSpecIndex > 0 then
-            local _, localizedSpecName = GetSpecializationInfo(currentSpecIndex)
-            specName = localizedSpecName or specName
+            local currentSpecID, localizedSpecName = GetSpecializationInfo(currentSpecIndex)
+            specName = ns.SpecL(currentSpecID, localizedSpecName) or specName
         end
     end
     self.characterInfo:SetText(ns.L("current_character", key, className, specID, specName))
@@ -696,6 +697,7 @@ function ProfilePanel:Refresh()
     if selectedSource and selectedSource.kind == ns.Constants.SOURCE_KIND.TEMPLATE then
         local details = ns.Modules.ProfileManager:GetSourceDetails(selectedSource.kind, selectedSource.key)
         if details then
+            local detailsSpecName = ns.SpecL(details.specID, details.specName) or details.specName or "-"
             detailsText = table.concat({
                 ns.L("section_template_info"),
                 ns.L("source_details_name_bullet", details.key),
@@ -703,7 +705,7 @@ function ProfilePanel:Refresh()
                 ns.L("source_details_character_bullet", details.characterKey or "-"),
                 ns.L("source_details_class_bullet", ns.ClassL(details.class or "UNKNOWN")),
                 ns.L("source_details_spec_bullet", details.specID or 0),
-                ns.L("source_details_spec_name_bullet", details.specName or "-"),
+                ns.L("source_details_spec_name_bullet", detailsSpecName),
                 ns.L(
                     "source_details_recorded_actions_bullet",
                     details.stats and details.stats.recordedActions or 0,

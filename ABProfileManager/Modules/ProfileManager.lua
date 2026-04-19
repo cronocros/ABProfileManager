@@ -11,14 +11,14 @@ local function getSpecializationName(specID)
 
     local value1, value2 = GetSpecializationInfoByID(specID)
     if type(value1) == "string" then
-        return value1
+        return ns.SpecL(specID, value1)
     end
 
     if type(value2) == "string" then
-        return value2
+        return ns.SpecL(specID, value2)
     end
 
-    return nil
+    return ns.SpecL(specID)
 end
 
 local function buildTemplateStats(source)

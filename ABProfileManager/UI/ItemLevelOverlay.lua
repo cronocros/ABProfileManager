@@ -332,6 +332,14 @@ local function getMyKeyLines()
     return lines
 end
 
+local function formatKeyLevelLabel(keyLevel)
+    return ns.L("ilvl_row_key_level", tostring(keyLevel or ""))
+end
+
+local function formatDelveTierLabel(tier)
+    return ns.L("ilvl_row_delve_tier", tostring(tier or ""))
+end
+
 -- 열 헤더: 단 | 클리어보상 | 드랍문장 | 위대한금고
 local function colHeader(sourceKey, dropKey, vaultKey, crestKey)
     return {
@@ -417,7 +425,7 @@ local function buildOverviewRows(avgIlvl)
             if e then rows[#rows+1] = mRow(ns.L(e.labelKey or key), e, avgIlvl) end
         end
         for _, e in ipairs(tbl.mythicPlus.endOfDungeon or {}) do
-            rows[#rows+1] = mRow(tostring(e.key).."단", e, avgIlvl)
+            rows[#rows+1] = mRow(formatKeyLevelLabel(e.key), e, avgIlvl)
         end
     end
 
@@ -438,7 +446,7 @@ local function buildOverviewRows(avgIlvl)
         rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_delves")) }
         rows[#rows+1] = colHeader("ilvl_col_tier", "ilvl_col_drop", "ilvl_col_vault", "ilvl_col_crest")
         local last = tbl.delves[#tbl.delves]
-        rows[#rows+1] = delveRow(tostring(last.tier).."단계", last, avgIlvl)
+        rows[#rows+1] = delveRow(formatDelveTierLabel(last.tier), last, avgIlvl)
         rows[#rows+1] = bountifulKeyRow(avgIlvl)
     end
 
@@ -472,7 +480,7 @@ local function buildDelveRows(avgIlvl)
     rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_delves")) }
     rows[#rows+1] = colHeader("ilvl_col_tier", "ilvl_col_drop", "ilvl_col_vault", "ilvl_col_crest")
     for _, e in ipairs(tbl.delves) do
-        rows[#rows+1] = delveRow(tostring(e.tier).."단계", e, avgIlvl)
+        rows[#rows+1] = delveRow(formatDelveTierLabel(e.tier), e, avgIlvl)
     end
     rows[#rows+1] = bountifulKeyRow(avgIlvl)
     return rows
@@ -489,7 +497,7 @@ local function buildMythicPlusRows(avgIlvl)
         if e then rows[#rows+1] = mRow(ns.L(e.labelKey or key), e, avgIlvl) end
     end
     for _, e in ipairs(tbl.mythicPlus.endOfDungeon or {}) do
-        rows[#rows+1] = mRow(tostring(e.key).."단", e, avgIlvl)
+        rows[#rows+1] = mRow(formatKeyLevelLabel(e.key), e, avgIlvl)
     end
     return rows
 end

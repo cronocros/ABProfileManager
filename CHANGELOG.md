@@ -10,6 +10,15 @@
 
 한밤 시즌 1 BIS 오버레이를 runtime merge 방식에서 source-aware 정적 카탈로그 방식으로 전환한 릴리스.
 
+유지보수 재배포 (2026-04-19):
+- BIS 오버레이의 보스/출처/던전 locale 경로를 보강해 enUS 선택 시 한글 누수가 남지 않도록 정리
+- BIS spec/class, StatsOverlay, ProfilePanel, ConfigPanel이 클라이언트 locale 대신 애드온 locale 기준의 직업/특성명을 사용하도록 정리
+- BIS 툴팁의 보스 라벨 fallback을 안전화하고 `제나스 지점` canonical 경로를 던전 locale 키에 추가
+- 드랍템 레벨 오버레이의 M+/구렁 행 라벨을 locale별 형식으로 분리 (`+2`, `Tier 11` / `2단`, `11단계`)
+- 파티찾기 시즌 최고기록 오버레이의 던전명 줄바꿈 규칙을 한/영 locale 모두에 맞게 보정
+- 전문기술 오버레이 헤더에 `L / 접기` 버튼과 hover 설명을 추가하고, 기존 보기 전환 버튼과 함께 공통 헤더 조작으로 정리
+- README / ADDON_INTRO / 릴리스 노트를 최신 유지보수 내용으로 갱신
+
 주요 변경:
 - `Data/BISCatalog.lua`를 런타임 단일 BIS 데이터 소스로 추가하고, 게임 안에서는 더 이상 `BISData_Method.lua + BISData.lua` runtime 병합을 하지 않도록 정리
 - `scripts/build_bis_catalog.py`를 추가해 `DOC` seed, Wowhead 가이드, Wago DB2 검증 데이터를 합쳐 한밤 시즌 1 카탈로그를 생성하도록 구성

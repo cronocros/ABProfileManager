@@ -225,7 +225,7 @@
 
 - open/spec/filter 전환은 단일 rebuild 경로를 사용
 - slot grouping과 정렬 키는 생성 시점에 최대한 고정
-- locale 선택은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`만 사용
+- locale 선택은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 우선 사용하고, legacy `boss/source` 값은 런타임 alias 정규화로 마지막 누수를 막는다
 - `GET_ITEM_INFO_RECEIVED`는 icon/quality/item hyperlink 보정이 필요한 visible row만 patch
 
 ## 회귀 포인트

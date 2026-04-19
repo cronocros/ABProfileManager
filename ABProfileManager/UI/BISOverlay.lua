@@ -121,6 +121,7 @@ local SLOT_LOCALE_KEYS = {
 local DUNGEON_LOCALE_KEYS = {
     ["마법학자의 정원"] = "bis_dungeon_magisters_terrace",
     ["마이사라 동굴"] = "bis_dungeon_maisara_caverns",
+    ["제나스 지점"] = "bis_dungeon_nexus_point_xenas",
     ["공결점 제나스"] = "bis_dungeon_nexus_point_xenas",
     ["공결탑 제나스"] = "bis_dungeon_nexus_point_xenas",
     ["윈드러너 첨탑"] = "bis_dungeon_windrunner_spire",
@@ -690,10 +691,10 @@ local function getAllSpecs()
             if ok and specID and specName then
                 specs[#specs + 1] = {
                     specID = specID,
-                    name = specName,
+                    name = ns.SpecL(specID, specName) or specName,
                     icon = icon,
                     classID = classID,
-                    className = className,
+                    className = ns.ClassL(classFile) or className,
                     classFile = classFile,
                     specIndex = specIndex,
                     isPlayerClass = classID == playerClassID,
@@ -1233,6 +1234,9 @@ local function getDisplaySourceLabel(entry)
     if isEnglishOnlyLabel(localized) then
         return localizeSourceType(sourceType)
     end
+    if (not isKoreanLanguageSelected()) and type(localized) == "string" and localized:find("[가-힣]") then
+        return entry.displaySourceEnUS or entry.dungeonEnUS or localizeSourceType(sourceType)
+    end
     return localized
 end
 
@@ -1330,13 +1334,91 @@ local SOURCE_LABEL_KOKR = {
     [normalizeCompareText("Alleria Windrunner")] = "쿠엘다나스 진격로",
 }
 
+local SOURCE_LABEL_ENUS = {
+    [normalizeCompareText("제작")] = "Crafting",
+    [normalizeCompareText("연금술")] = "Alchemy",
+    [normalizeCompareText("대장기술")] = "Blacksmithing",
+    [normalizeCompareText("마법부여")] = "Enchanting",
+    [normalizeCompareText("기계공학")] = "Engineering",
+    [normalizeCompareText("주문각인")] = "Inscription",
+    [normalizeCompareText("보석세공")] = "Jewelcrafting",
+    [normalizeCompareText("가죽세공")] = "Leatherworking",
+    [normalizeCompareText("재봉")] = "Tailoring",
+    [normalizeCompareText("촉매")] = "Catalyst",
+    [normalizeCompareText("촉매 충전")] = "Catalyst Charge",
+    [normalizeCompareText("티어")] = "Tier",
+    [normalizeCompareText("티어 세트")] = "Tier Set",
+    [normalizeCompareText("티어 아이템")] = "Tier Item",
+    [normalizeCompareText("티어 가슴")] = "Tier Chest",
+    [normalizeCompareText("티어 장갑")] = "Tier Gloves",
+    [normalizeCompareText("티어 머리")] = "Tier Helmet",
+    [normalizeCompareText("티어 다리")] = "Tier Legs",
+    [normalizeCompareText("촉매 / 티어")] = "Catalyst / Tier",
+    [normalizeCompareText("촉매 / 레이드")] = "Catalyst / Raid",
+    [normalizeCompareText("촉매 / 레이드 / 금고")] = "Catalyst / Raid / Vault",
+    [normalizeCompareText("레이드 / 촉매")] = "Raid / Catalyst",
+    [normalizeCompareText("레이드 / 촉매 / 금고")] = "Raid / Catalyst / Vault",
+    [normalizeCompareText("한밤 폭포")] = "Midnight Falls",
+    [normalizeCompareText("공허 첨탑")] = "The Voidspire",
+    [normalizeCompareText("꿈의균열")] = "Dreamrift",
+    [normalizeCompareText("공허흉터 투기장")] = "Voidscar Arena",
+    [normalizeCompareText("죽음의 골목")] = "Murder Row",
+    [normalizeCompareText("날로라크의 소굴")] = "Den of Nalorakk",
+    [normalizeCompareText("윈드러너 첨탑")] = "Windrunner Spire",
+    [normalizeCompareText("삼두정의 권좌")] = "Seat of the Triumvirate",
+    [normalizeCompareText("마법학자의 정원")] = "Magisters' Terrace",
+    [normalizeCompareText("마이사라 동굴")] = "Maisara Caverns",
+    [normalizeCompareText("제나스 지점")] = "Nexus-Point Xenas",
+    [normalizeCompareText("사론의 구덩이")] = "Pit of Saron",
+    [normalizeCompareText("알게타르 대학")] = "Algeth'ar Academy",
+    [normalizeCompareText("알게타르 아카데미")] = "Algeth'ar Academy",
+    [normalizeCompareText("하늘탑")] = "Skyreach",
+    [normalizeCompareText("전제군주 아베르지안")] = "Imperator Averzian",
+    [normalizeCompareText("벨로렌")] = "Belo'ren",
+    [normalizeCompareText("바엘고어")] = "Vaelgor",
+    [normalizeCompareText("바엘고어 & 에조라크")] = "Vaelgor & Ezzorak",
+    [normalizeCompareText("보라시우스")] = "Vorasius",
+    [normalizeCompareText("카이메루스")] = "Chimaerus",
+    [normalizeCompareText("전투전도사 센")] = "War Chaplain Senn",
+    [normalizeCompareText("쿠엘다나스 진격로")] = "March on Quel'Danas",
+    [normalizeCompareText("란지트")] = "Ranjit",
+    [normalizeCompareText("크롤룩 사령관")] = "Commander Kruluk",
+    [normalizeCompareText("코어수호자 니사라")] = "Corewarden Nysarra",
+    [normalizeCompareText("데젠트리우스")] = "Degentrius",
+    [normalizeCompareText("보르다자")] = "Bordaja",
+    [normalizeCompareText("대현자 비릭스")] = "High Sage Viryx",
+    [normalizeCompareText("엠버던")] = "Emberdon",
+    [normalizeCompareText("로스라시온")] = "Losthrasion",
+    [normalizeCompareText("게멜루스")] = "Gemellus",
+    [normalizeCompareText("도라고사의 메아리")] = "Echo of Doragosa",
+    [normalizeCompareText("사프리시")] = "Saprishi",
+    [normalizeCompareText("이크와 크릭")] = "Ick and Krick",
+    [normalizeCompareText("부왕 네즈하르")] = "Viceroy Nezhar",
+    [normalizeCompareText("락툴")] = "Raktul",
+    [normalizeCompareText("무로진과 네크락스")] = "Murozin and Nekrax",
+    [normalizeCompareText("루라")] = "L'ura",
+    [normalizeCompareText("세라넬 선래시")] = "Seranel Sunlash",
+    [normalizeCompareText("아르카노트론 쿠스토스")] = "Arcanotron Custos",
+    [normalizeCompareText("아라크나스")] = "Arachnas",
+    [normalizeCompareText("루크란")] = "Rukhran",
+    [normalizeCompareText("안식 없는 심장")] = "Restless Heart",
+    [normalizeCompareText("크로스")] = "Crawth",
+    [normalizeCompareText("벡사무스")] = "Vexamus",
+    [normalizeCompareText("잔해 듀오")] = "Wreckage Duo",
+}
+
 localizeSourceLabel = function(label)
     if not label or label == "" then
         return label
     end
-    if ns.DB and ns.Constants and ns.DB.GetLanguage
-        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN then
-        local localized = SOURCE_LABEL_KOKR[normalizeCompareText(label)]
+    local normalized = normalizeCompareText(label)
+    if isKoreanLanguageSelected() then
+        local localized = SOURCE_LABEL_KOKR[normalized]
+        if localized and localized ~= "" then
+            return localized
+        end
+    else
+        local localized = SOURCE_LABEL_ENUS[normalized]
         if localized and localized ~= "" then
             return localized
         end
@@ -2742,7 +2824,11 @@ local function showSeasonItemTooltip(owner, row)
 
     local function getTooltipBossLabel(sourceType)
         if entry.boss and entry.boss ~= "" then
-            return localizeSourceLabel(entry.boss)
+            local bossLabel = localizeSourceLabel(entry.boss)
+            if (not isKoreanLanguageSelected()) and type(bossLabel) == "string" and bossLabel:find("[가-힣]") then
+                return nil
+            end
+            return bossLabel
         end
 
         if sourceType == "raid" then

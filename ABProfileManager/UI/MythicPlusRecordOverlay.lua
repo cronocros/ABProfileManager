@@ -115,22 +115,54 @@ local function getBestDuration(mapID)
     return bestDuration
 end
 
+local function isKoreanLanguageSelected()
+    return ns.DB and ns.DB.GetLanguage and ns.Constants
+        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
+        or false
+end
+
 local DUNGEON_NAME_OVERRIDES = {
-    ["윈드러너첨탑"] = "윈드러너\n첨탑",
-    ["삼두정의권좌"] = "삼두정의\n권좌",
-    ["공결탑제나스"] = "공결탑\n제나스",
-    ["사론의구덩이"] = "사론의\n구덩이",
-    ["마법학자의정원"] = "마법학자의\n정원",
-    ["마이사라동굴"] = "마이사라\n동굴",
-    ["알게타르대학"] = "알케타르\n대학",
+    ["윈드러너첨탑"] = { koKR = "윈드러너\n첨탑", enUS = "Windrunner\nSpire" },
+    ["windrunnerspire"] = { koKR = "윈드러너\n첨탑", enUS = "Windrunner\nSpire" },
+    ["삼두정의권좌"] = { koKR = "삼두정의\n권좌", enUS = "Seat of the\nTriumvirate" },
+    ["seatofthetriumvirate"] = { koKR = "삼두정의\n권좌", enUS = "Seat of the\nTriumvirate" },
+    ["제나스지점"] = { koKR = "제나스\n지점", enUS = "Nexus-Point\nXenas" },
+    ["공결탑제나스"] = { koKR = "제나스\n지점", enUS = "Nexus-Point\nXenas" },
+    ["nexuspointxenas"] = { koKR = "제나스\n지점", enUS = "Nexus-Point\nXenas" },
+    ["사론의구덩이"] = { koKR = "사론의\n구덩이", enUS = "Pit of\nSaron" },
+    ["pitofsaron"] = { koKR = "사론의\n구덩이", enUS = "Pit of\nSaron" },
+    ["마법학자의정원"] = { koKR = "마법학자의\n정원", enUS = "Magisters'\nTerrace" },
+    ["magistersterrace"] = { koKR = "마법학자의\n정원", enUS = "Magisters'\nTerrace" },
+    ["마이사라동굴"] = { koKR = "마이사라\n동굴", enUS = "Maisara\nCaverns" },
+    ["maisaracaverns"] = { koKR = "마이사라\n동굴", enUS = "Maisara\nCaverns" },
+    ["알게타르대학"] = { koKR = "알게타르\n대학", enUS = "Algeth'ar\nAcademy" },
+    ["algetharacademy"] = { koKR = "알게타르\n대학", enUS = "Algeth'ar\nAcademy" },
+    ["skyreach"] = { koKR = "하늘탑", enUS = "Skyreach" },
+    ["하늘탑"] = { koKR = "하늘탑", enUS = "Skyreach" },
 }
 
+local function normalizeDungeonKey(name)
+    local value = tostring(name or ""):lower()
+    return value:gsub("[%s%p%c]+", "")
+end
+
 local function formatDungeonDisplayName(name)
-    local compact = tostring(name or ""):gsub("%s+", "")
+    local raw = tostring(name or "")
+    local compact = normalizeDungeonKey(raw)
     if compact == "" then
         return ""
     end
-    return DUNGEON_NAME_OVERRIDES[compact] or compact:gsub("/", "\n")
+
+    local override = DUNGEON_NAME_OVERRIDES[compact]
+    if override then
+        return isKoreanLanguageSelected() and override.koKR or override.enUS
+    end
+
+    if isKoreanLanguageSelected() then
+        return raw:gsub("%s*/%s*", "\n")
+    end
+
+    return raw:gsub("%s*/%s*", "\n")
 end
 
 local function ensureDisplay(iconFrame)

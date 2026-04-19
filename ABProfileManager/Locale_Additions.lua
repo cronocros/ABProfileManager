@@ -520,6 +520,8 @@ if enUS then
     enUS.ilvl_key_restored   = "Restored"
     enUS.ilvl_key_unknown    = "Unknown"
     enUS.ilvl_delve_bountiful_key = "Treasure Map Use"
+    enUS.ilvl_row_key_level  = "+%s"
+    enUS.ilvl_row_delve_tier = "Tier %s"
 
     -- World event locations & tooltip
     enUS.world_event_loc_community_feast     = "Silvermoon City"
@@ -1066,6 +1068,8 @@ if koKR then
     koKR.ilvl_key_restored   = "복원된 열쇠"
     koKR.ilvl_key_unknown    = "확인 불가"
     koKR.ilvl_delve_bountiful_key = "보물지도 사용"
+    koKR.ilvl_row_key_level  = "%s단"
+    koKR.ilvl_row_delve_tier = "%s단계"
 
     -- World event locations & tooltip
     koKR.world_event_loc_community_feast     = "실버문 시티"

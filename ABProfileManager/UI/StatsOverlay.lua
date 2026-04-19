@@ -113,8 +113,8 @@ local function getCurrentSpecName(specIndex)
         return nil
     end
 
-    local _, specName = GetSpecializationInfo(specIndex)
-    return specName
+    local specID, specName = GetSpecializationInfo(specIndex)
+    return ns.SpecL(specID, specName)
 end
 
 local function getCurrentSpecRole(specIndex)
@@ -138,8 +138,8 @@ local function getCurrentClassName()
         return nil
     end
 
-    local className = UnitClass("player")
-    return className
+    local _, classTag = UnitClass("player")
+    return ns.ClassL(classTag)
 end
 
 local function getDisplayClassName(classTag)

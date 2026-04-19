@@ -13,6 +13,8 @@ local MINI_WIDTH = 190
 local MINI_HEIGHT = 34
 local TOGGLE_BUTTON_WIDTH = 18
 local TOGGLE_BUTTON_HEIGHT = 16
+local HEADER_BUTTON_GAP = 2
+local HEADER_BUTTON_WIDTH = 18
 local PADDING_X = 6
 local PADDING_Y = 6
 local ROW_GAP = 8
@@ -64,6 +66,41 @@ local function applyTextStyle(fontString, size, r, g, b)
     end
 end
 
+local function attachHeaderButtonTooltip(button, titleKey, bodyProvider)
+    if not button then
+        return
+    end
+
+    button:SetScript("OnEnter", function(currentButton)
+        if not GameTooltip then
+            return
+        end
+
+        GameTooltip:SetOwner(currentButton, "ANCHOR_BOTTOM")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
+        local body = type(bodyProvider) == "function" and bodyProvider() or bodyProvider
+        if body and body ~= "" then
+            GameTooltip:AddLine(body, 0.90, 0.92, 0.98, true)
+        end
+        GameTooltip:Show()
+    end)
+    button:HookScript("OnLeave", GameTooltip_Hide)
+end
+
+local function createHeaderGlyphButton(parent, text)
+    local button = CreateFrame("Button", nil, parent)
+    button:SetSize(HEADER_BUTTON_WIDTH, TOGGLE_BUTTON_HEIGHT)
+    button.label = button:CreateFontString(nil, "OVERLAY")
+    button.label:SetAllPoints()
+    ns.UI.Typography:ApplyFont(button.label, 10, { domain = "professionOverlay", flags = "OUTLINE" })
+    button.label:SetJustifyH("CENTER")
+    button.label:SetJustifyV("MIDDLE")
+    button.label:SetText(text or "")
+    button.label:SetTextColor(0.70, 0.70, 0.80, 1)
+    return button
+end
+
 local function colorize(text, colorHex)
     local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
     if #hex == 6 then
@@ -105,6 +142,28 @@ local function setDisplayMode(mode)
     local normalized = normalizeDisplayMode(mode, config)
     config.displayMode = normalized
     config.collapsed = normalized ~= OVERLAY_MODE_EXPANDED
+    if normalized ~= OVERLAY_MODE_EXPANDED then
+        config.collapsedDisplayMode = normalized
+    end
+end
+
+local function getCollapsedDisplayMode()
+    local config = getOverlayConfig()
+    local collapsedMode = normalizeDisplayMode(config.collapsedDisplayMode, config)
+    if collapsedMode == OVERLAY_MODE_EXPANDED then
+        return OVERLAY_MODE_COMPACT
+    end
+    return collapsedMode
+end
+
+local function toggleCollapsedState()
+    local currentMode = getDisplayMode()
+    if currentMode == OVERLAY_MODE_EXPANDED then
+        setDisplayMode(getCollapsedDisplayMode())
+        return
+    end
+
+    setDisplayMode(OVERLAY_MODE_EXPANDED)
 end
 
 local function getNextDisplayMode(mode)
@@ -141,6 +200,10 @@ local function getModeButtonGlyph(mode)
     end
 
     return "+"
+end
+
+local function getHeaderButtonClusterWidth()
+    return TOGGLE_BUTTON_WIDTH + (HEADER_BUTTON_WIDTH * 2) + (HEADER_BUTTON_GAP * 2)
 end
 
 local function getSourceShortLabel(row)
@@ -578,23 +641,51 @@ function ProfessionKnowledgeOverlay:Initialize()
     frame.title:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING_X, -PADDING_Y)
     applyTextStyle(frame.title, TITLE_SIZE, 1, 0.86, 0.40)
 
+    local collapseButton = createHeaderGlyphButton(frame, "-")
+    collapseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING_X, -PADDING_Y + 1)
+    collapseButton:SetScript("OnClick", function()
+        toggleCollapsedState()
+        self:Refresh()
+    end)
+    attachHeaderButtonTooltip(collapseButton, "overlay_button_collapse_title", function()
+        return getDisplayMode() == OVERLAY_MODE_EXPANDED
+            and ns.L("overlay_button_collapse_body_expanded")
+            or ns.L("overlay_button_collapse_body_collapsed")
+    end)
+    frame.collapseButton = collapseButton
+
+    local lockButton = createHeaderGlyphButton(frame, "U")
+    lockButton:SetPoint("RIGHT", collapseButton, "LEFT", -HEADER_BUTTON_GAP, 0)
+    local function updateLockButtonVisual()
+        local locked = ns.DB and ns.DB:IsProfessionKnowledgeOverlayLocked()
+        lockButton.label:SetText(locked and "L" or "U")
+        lockButton.label:SetTextColor(locked and 1 or 0.70, locked and 0.60 or 0.70, locked and 0.60 or 0.80, 1)
+    end
+    updateLockButtonVisual()
+    lockButton:SetScript("OnClick", function()
+        if ns.DB then
+            ns.DB:SetProfessionKnowledgeOverlayLocked(not ns.DB:IsProfessionKnowledgeOverlayLocked())
+        end
+        updateLockButtonVisual()
+    end)
+    attachHeaderButtonTooltip(lockButton, "overlay_button_lock_title", function()
+        return (ns.DB and ns.DB:IsProfessionKnowledgeOverlayLocked())
+            and ns.L("overlay_button_lock_body_locked")
+            or ns.L("overlay_button_lock_body_unlocked")
+    end)
+    frame.lockButton = lockButton
+    frame.updateLockButtonVisual = updateLockButtonVisual
+
     frame.toggleButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     frame.toggleButton:SetSize(TOGGLE_BUTTON_WIDTH, TOGGLE_BUTTON_HEIGHT)
-    frame.toggleButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING_X, -PADDING_Y + 1)
+    frame.toggleButton:SetPoint("RIGHT", lockButton, "LEFT", -HEADER_BUTTON_GAP, 0)
     frame.toggleButton:SetScript("OnClick", function()
         setDisplayMode(getNextDisplayMode(getDisplayMode()))
         self:Refresh()
     end)
-    frame.toggleButton:SetScript("OnEnter", function(currentButton)
-        if not GameTooltip then
-            return
-        end
-
-        GameTooltip:SetOwner(currentButton, "ANCHOR_RIGHT")
-        GameTooltip:SetText(ns.L("professions_overlay_toggle_tooltip", ns.L(getModeButtonLabelKey(getDisplayMode()))), 1, 0.86, 0.4)
-        GameTooltip:Show()
+    attachHeaderButtonTooltip(frame.toggleButton, "professions_overlay_title", function()
+        return ns.L("professions_overlay_toggle_tooltip", ns.L(getModeButtonLabelKey(getDisplayMode())))
     end)
-    frame.toggleButton:SetScript("OnLeave", GameTooltip_Hide)
     if frame.toggleButton.GetFontString then
         local fontString = frame.toggleButton:GetFontString()
         if fontString then
@@ -1087,6 +1178,12 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
     self.frame:SetScale(overlayScale)
     self.frame.title:SetText(ns.L("professions_overlay_title"))
     self.frame.toggleButton:SetText(getModeButtonGlyph(displayMode))
+    if self.frame.collapseButton and self.frame.collapseButton.label then
+        self.frame.collapseButton.label:SetText(displayMode == OVERLAY_MODE_EXPANDED and "-" or "+")
+    end
+    if self.frame.updateLockButtonVisual then
+        self.frame.updateLockButtonVisual()
+    end
 
     if self.frame:IsShown() and self.lastRenderSignature == renderSignature then
         self.frame:Show()
@@ -1102,7 +1199,7 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
         end
 
         local titleWidth = math.ceil(self.frame.title:GetStringWidth() or 0)
-        self.frame:SetSize(math.max(MINI_WIDTH, titleWidth + TOGGLE_BUTTON_WIDTH + (PADDING_X * 4)), MINI_HEIGHT)
+        self.frame:SetSize(math.max(MINI_WIDTH, titleWidth + getHeaderButtonClusterWidth() + (PADDING_X * 4)), MINI_HEIGHT)
         self.frame:Show()
         return
     end
@@ -1110,7 +1207,7 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
     self:EnsureRowCount(#professions)
 
     local contentWidth = 860
-    local maxWidth = math.ceil(self.frame.title:GetStringWidth() or 0) + TOGGLE_BUTTON_WIDTH + 18
+    local maxWidth = math.ceil(self.frame.title:GetStringWidth() or 0) + getHeaderButtonClusterWidth() + 18
     local previous = self.frame.title
     local totalHeight = (PADDING_Y * 2) + math.ceil(self.frame.title:GetStringHeight() or TITLE_SIZE)
 

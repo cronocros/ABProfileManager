@@ -60,8 +60,8 @@ local function getClassName()
         return "?"
     end
 
-    local className = UnitClass("player")
-    return className or "?"
+    local _, classTag = UnitClass("player")
+    return ns.ClassL(classTag) or "?"
 end
 
 local function getSpecName()
@@ -74,8 +74,8 @@ local function getSpecName()
         return ns.L("stats_overlay_unknown_spec")
     end
 
-    local _, specName = GetSpecializationInfo(specIndex)
-    return specName or ns.L("stats_overlay_unknown_spec")
+    local specID, specName = GetSpecializationInfo(specIndex)
+    return ns.SpecL(specID, specName) or ns.L("stats_overlay_unknown_spec")
 end
 
 local function getStateLabel(enabled)
@@ -360,7 +360,7 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.minimapCheck.Text:SetText(ns.L("config_minimap_show"))
     refs.confirmCheck.Text:SetText(ns.L("config_confirm_show"))
     refs.debugCheck.Text:SetText(ns.L("config_debug_show"))
-    if refs.logViewBtn then refs.logViewBtn:SetText(ns.L("config_log_view_btn") or "로그 보기") end
+    if refs.logViewBtn then refs.logViewBtn:SetText(ns.L("config_log_view_btn") or "View Log") end
     refs.mouseMoveRestoreCheck.Text:SetText(ns.L("config_mouse_move_restore_show"))
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))

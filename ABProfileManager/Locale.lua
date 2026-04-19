@@ -5,7 +5,7 @@ ns.Locale = Locale
 
 Locale.strings = {
     enUS = {
-        window_title = "Action Bar Manager (ABProfileManager) Author: 밍밍이와코코",
+        window_title = "Action Bar Manager (ABProfileManager) Author: MingMing & Coco",
         tab_profiles = "Templates",
         tab_action_bars = "Action Bars",
         tab_quests = "Quests",
@@ -747,6 +747,93 @@ Locale.classNames = {
     },
 }
 
+Locale.specNames = {
+    enUS = {
+        [62] = "Arcane",
+        [63] = "Fire",
+        [64] = "Frost",
+        [65] = "Holy",
+        [66] = "Protection",
+        [70] = "Retribution",
+        [71] = "Arms",
+        [72] = "Fury",
+        [73] = "Protection",
+        [102] = "Balance",
+        [103] = "Feral",
+        [104] = "Guardian",
+        [105] = "Restoration",
+        [1467] = "Devastation",
+        [1468] = "Preservation",
+        [1473] = "Augmentation",
+        [250] = "Blood",
+        [251] = "Frost",
+        [252] = "Unholy",
+        [253] = "Beast Mastery",
+        [254] = "Marksmanship",
+        [255] = "Survival",
+        [256] = "Discipline",
+        [257] = "Holy",
+        [258] = "Shadow",
+        [259] = "Assassination",
+        [260] = "Outlaw",
+        [261] = "Subtlety",
+        [262] = "Elemental",
+        [263] = "Enhancement",
+        [264] = "Restoration",
+        [265] = "Affliction",
+        [266] = "Demonology",
+        [267] = "Destruction",
+        [268] = "Brewmaster",
+        [269] = "Windwalker",
+        [270] = "Mistweaver",
+        [577] = "Havoc",
+        [581] = "Vengeance",
+        [1382] = "Predator",
+    },
+    koKR = {
+        [62] = "비전",
+        [63] = "화염",
+        [64] = "냉기",
+        [65] = "신성",
+        [66] = "보호",
+        [70] = "징벌",
+        [71] = "무기",
+        [72] = "분노",
+        [73] = "방어",
+        [102] = "조화",
+        [103] = "야성",
+        [104] = "수호",
+        [105] = "회복",
+        [1467] = "황폐",
+        [1468] = "보존",
+        [1473] = "증강",
+        [250] = "혈기",
+        [251] = "냉기",
+        [252] = "부정",
+        [253] = "야수",
+        [254] = "사격",
+        [255] = "생존",
+        [256] = "수양",
+        [257] = "신성",
+        [258] = "암흑",
+        [259] = "암살",
+        [260] = "무법",
+        [261] = "잠행",
+        [262] = "정기",
+        [263] = "고양",
+        [264] = "복원",
+        [265] = "고통",
+        [266] = "악마",
+        [267] = "파괴",
+        [268] = "양조",
+        [269] = "풍운",
+        [270] = "운무",
+        [577] = "파멸",
+        [581] = "복수",
+        [1382] = "포식자",
+    },
+}
+
 function Locale:GetCurrentLanguage()
     if ns.DB and ns.DB.GetLanguage then
         return ns.DB:GetLanguage()
@@ -771,6 +858,17 @@ function Locale:GetClassName(classTag)
     return bucket[classTag] or self.classNames.enUS[classTag] or classTag
 end
 
+function Locale:GetSpecName(specID, fallback)
+    specID = tonumber(specID) or 0
+    if specID <= 0 then
+        return fallback
+    end
+
+    local language = self:GetCurrentLanguage()
+    local bucket = self.specNames[language] or self.specNames.koKR
+    return bucket[specID] or self.specNames.enUS[specID] or fallback or ("Spec " .. tostring(specID))
+end
+
 function ns.L(key, ...)
     local text = ns.Locale:GetString(key)
     if select("#", ...) > 0 then
@@ -782,4 +880,8 @@ end
 
 function ns.ClassL(classTag)
     return ns.Locale:GetClassName(classTag)
+end
+
+function ns.SpecL(specID, fallback)
+    return ns.Locale:GetSpecName(specID, fallback)
 end
