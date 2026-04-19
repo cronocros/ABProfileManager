@@ -2634,6 +2634,38 @@ local function showSeasonItemTooltip(owner, row)
     if not row or not row.itemID or row.itemID <= 0 then return end
 
     local entry = row._entry or {}
+    local function getTooltipFontColorRGB(fontColor, fallbackR, fallbackG, fallbackB)
+        if type(fontColor) == "table" then
+            if type(fontColor.GetRGB) == "function" then
+                local r, g, b = fontColor:GetRGB()
+                return r or fallbackR, g or fallbackG, b or fallbackB
+            end
+            return fontColor.r or fallbackR, fontColor.g or fallbackG, fontColor.b or fallbackB
+        end
+        return fallbackR, fallbackG, fallbackB
+    end
+
+    local function wrapTooltipTextColor(text, r, g, b)
+        local function toByte(value)
+            value = tonumber(value) or 1
+            value = math.max(0, math.min(1, value))
+            return math.floor(value * 255 + 0.5)
+        end
+        return string.format("|cff%02x%02x%02x%s|r", toByte(r), toByte(g), toByte(b), tostring(text or ""))
+    end
+
+    local labelR, labelG, labelB = getTooltipFontColorRGB(DISABLED_FONT_COLOR, 0.62, 0.68, 0.78)
+    local valueR, valueG, valueB = getTooltipFontColorRGB(HIGHLIGHT_FONT_COLOR, 0.96, 0.96, 0.96)
+    local headerR, headerG, headerB = getTooltipFontColorRGB(GREEN_FONT_COLOR, 0.12, 1.00, 0.00)
+    local function addStyledTooltipLine(label, value, vr, vg, vb)
+        local text = wrapTooltipTextColor((label or "") .. ":", labelR, labelG, labelB)
+        local valueText = tostring(value or "")
+        if valueText ~= "" then
+            text = text .. " " .. wrapTooltipTextColor(valueText, vr or valueR, vg or valueG, vb or valueB)
+        end
+        GameTooltip:AddLine(text, 1, 1, 1, true)
+    end
+
     local function appendSeasonTooltipMeta()
         local sourceType = getEntrySourceType(entry)
         local sourceLabel = getDisplaySourceLabel(entry)
@@ -2641,23 +2673,21 @@ local function showSeasonItemTooltip(owner, row)
         local noteIndex = row._displayNoteIndex or 3
         local sr, sg, sb = getSourceTypeColor(sourceType)
 
-        GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), 0.45, 0.82, 1.00, true)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot), 0.62, 0.68, 0.78, 0.94, 0.96, 1.00)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_source"), sourceLabel, 0.62, 0.68, 0.78, sr, sg, sb)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType), 0.62, 0.68, 0.78, 0.84, 0.92, 1.00)
-        GameTooltip:AddDoubleLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex), 0.62, 0.68, 0.78, 0.96, 0.96, 0.96)
+        GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), headerR, headerG, headerB, true)
+        addStyledTooltipLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot))
+        addStyledTooltipLine(ns.L("bis_tooltip_source"), sourceLabel, sr, sg, sb)
+        addStyledTooltipLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType))
+        addStyledTooltipLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex))
         if entry.overallRank then
-            GameTooltip:AddDoubleLine(
+            addStyledTooltipLine(
                 ns.L("bis_tooltip_overall_rank"),
-                ns.L("bis_note_rank", tonumber(entry.overallRank) or 0),
-                0.62, 0.68, 0.78, 0.90, 0.94, 1.00
+                ns.L("bis_note_rank", tonumber(entry.overallRank) or 0)
             )
         end
         if entry.sourceRank then
-            GameTooltip:AddDoubleLine(
+            addStyledTooltipLine(
                 ns.L("bis_tooltip_source_rank"),
-                ns.L("bis_note_rank", tonumber(entry.sourceRank) or 0),
-                0.62, 0.68, 0.78, 0.90, 0.94, 1.00
+                ns.L("bis_note_rank", tonumber(entry.sourceRank) or 0)
             )
         end
         return sourceType
@@ -2667,19 +2697,19 @@ local function showSeasonItemTooltip(owner, row)
         if sourceType == "mythicplus" then
             local runTrack = getSeasonalMythicPlusSummary("run")
             if runTrack ~= "" then
-                GameTooltip:AddDoubleLine(ns.L("bis_tooltip_end_of_run"), runTrack, 0.70, 0.78, 0.90, 0.82, 0.82, 0.92)
+                addStyledTooltipLine(ns.L("bis_tooltip_end_of_run"), runTrack)
             end
             local vaultTrack = getSeasonalMythicPlusSummary("vault")
             if vaultTrack ~= "" then
-                GameTooltip:AddDoubleLine(ns.L("bis_tooltip_vault"), vaultTrack, 0.62, 0.68, 0.78, 0.78, 0.88, 1.00)
+                addStyledTooltipLine(ns.L("bis_tooltip_vault"), vaultTrack)
             end
         elseif sourceType == "raid" or sourceType == "tier" then
             for _, line in ipairs(getSeasonalRaidSummaryLines()) do
-                GameTooltip:AddDoubleLine(line.label, line.text, 0.62, 0.68, 0.78, 0.78, 0.88, 1.00)
+                addStyledTooltipLine(line.label, line.text)
             end
         elseif sourceType == "crafted" then
             for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
-                GameTooltip:AddDoubleLine(line.label, line.text, 0.62, 0.68, 0.78, 0.78, 0.88, 1.00)
+                addStyledTooltipLine(line.label, line.text)
             end
         end
     end
@@ -2697,6 +2727,7 @@ local function showSeasonItemTooltip(owner, row)
         GameTooltip:ClearLines()
         GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
         fallbackSourceType = appendSeasonTooltipMeta()
+        GameTooltip:AddLine(" ")
         appendSeasonTooltipRanges(fallbackSourceType)
         if fallbackSourceType == "mythicplus" or fallbackSourceType == "raid" then
             GameTooltip:AddLine(" ")
