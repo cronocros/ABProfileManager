@@ -643,11 +643,34 @@ function ItemLevelOverlay:EnsureFrame()
     avgLabel:SetText("")
     frame.avgLabel = avgLabel
 
+    local function attachHeaderButtonTooltip(button, titleKey, bodyProvider)
+        if not button then
+            return
+        end
+        button:SetScript("OnEnter", function(self2)
+            GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
+            local body = type(bodyProvider) == "function" and bodyProvider() or bodyProvider
+            if body and body ~= "" then
+                GameTooltip:AddLine(body, 0.90, 0.92, 0.98, true)
+            end
+            GameTooltip:Show()
+        end)
+        button:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+    end
+
     local toggleBtn = CreateFrame("Button", nil, frame)
     toggleBtn:SetSize(18, 18)
     toggleBtn:SetPoint("RIGHT", titleBar, "RIGHT", -3, 0)
     makeBtnText(toggleBtn, 12, 0.80, 0.80, 1.00)
     toggleBtn:SetText("-")
+    attachHeaderButtonTooltip(toggleBtn, "overlay_button_collapse_title", function()
+        return ItemLevelOverlay.collapsed and ns.L("overlay_button_collapse_body_collapsed")
+            or ns.L("overlay_button_collapse_body_expanded")
+    end)
     frame.toggleBtn = toggleBtn
 
     -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
@@ -670,6 +693,11 @@ function ItemLevelOverlay:EnsureFrame()
             ns.DB:SetItemLevelOverlayLocked(not ns.DB:IsItemLevelOverlayLocked())
         end
         updateILLockVisual()
+    end)
+    attachHeaderButtonTooltip(lockBtn, "overlay_button_lock_title", function()
+        return (ns.DB and ns.DB:IsItemLevelOverlayLocked())
+            and ns.L("overlay_button_lock_body_locked")
+            or ns.L("overlay_button_lock_body_unlocked")
     end)
     frame.lockBtn = lockBtn
 
@@ -696,6 +724,7 @@ function ItemLevelOverlay:EnsureFrame()
         config.y = defaults.y
         ItemLevelOverlay:Refresh()
     end)
+    attachHeaderButtonTooltip(resetBtn, "overlay_button_reset_title", ns.L("overlay_button_reset_body"))
     frame.resetBtn = resetBtn
 
     -- 탭 행

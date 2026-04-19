@@ -1897,6 +1897,25 @@ function BISOverlay:EnsureFrame()
     frame.avgLabel:SetTextColor(0.82, 0.86, 0.94, 1)
     frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", "?"))
 
+    local function attachHeaderButtonTooltip(button, titleKey, bodyProvider)
+        if not button then
+            return
+        end
+        button:SetScript("OnEnter", function(self2)
+            GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
+            local body = type(bodyProvider) == "function" and bodyProvider() or bodyProvider
+            if body and body ~= "" then
+                GameTooltip:AddLine(body, 0.90, 0.92, 0.98, true)
+            end
+            GameTooltip:Show()
+        end)
+        button:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+    end
+
     local itemTooltipBtn = CreateFrame("Button", nil, frame, "BackdropTemplate")
     itemTooltipBtn:SetSize(TITLE_TOGGLE_W, TITLE_TOGGLE_H)
     itemTooltipBtn:SetPoint("RIGHT", frame.avgLabel, "LEFT", -8, 0)
@@ -1991,6 +2010,10 @@ function BISOverlay:EnsureFrame()
         BISOverlay._collapsed = not BISOverlay._collapsed
         BISOverlay:ApplyCollapse()
     end)
+    attachHeaderButtonTooltip(collapseBtn, "overlay_button_collapse_title", function()
+        return BISOverlay._collapsed and ns.L("overlay_button_collapse_body_collapsed")
+            or ns.L("overlay_button_collapse_body_expanded")
+    end)
     frame.collapseBtn = collapseBtn
 
     -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
@@ -2013,6 +2036,11 @@ function BISOverlay:EnsureFrame()
             ns.DB:SetBISOverlayLocked(not ns.DB:IsBISOverlayLocked())
         end
         updateBISLockVisual()
+    end)
+    attachHeaderButtonTooltip(lockBtn, "overlay_button_lock_title", function()
+        return (ns.DB and ns.DB:IsBISOverlayLocked())
+            and ns.L("overlay_button_lock_body_locked")
+            or ns.L("overlay_button_lock_body_unlocked")
     end)
     frame.lockBtn = lockBtn
 
@@ -2040,6 +2068,7 @@ function BISOverlay:EnsureFrame()
         BISOverlay._lastAnchorMode = nil
         BISOverlay:Refresh()
     end)
+    attachHeaderButtonTooltip(resetBtn, "overlay_button_reset_title", ns.L("overlay_button_reset_body"))
     frame.resetBtn = resetBtn
 
     -- ─── 구분선 1 ───────────────────────────────────────────
@@ -2656,7 +2685,14 @@ local function showSeasonItemTooltip(owner, row)
 
     local labelR, labelG, labelB = getTooltipFontColorRGB(DISABLED_FONT_COLOR, 0.62, 0.68, 0.78)
     local valueR, valueG, valueB = getTooltipFontColorRGB(HIGHLIGHT_FONT_COLOR, 0.96, 0.96, 0.96)
-    local headerR, headerG, headerB = getTooltipFontColorRGB(GREEN_FONT_COLOR, 0.12, 1.00, 0.00)
+    local headerR, headerG, headerB = 0.42, 0.78, 1.00
+    local accentR, accentG, accentB = 1.00, 0.82, 0.44
+    local TRACK_COLORS = {
+        chmp = { 0.28, 0.68, 1.00 },
+        hero = { 0.72, 0.35, 1.00 },
+        myth = { 1.00, 0.20, 0.20 },
+    }
+
     local function addStyledTooltipLine(label, value, vr, vg, vb)
         local text = wrapTooltipTextColor((label or "") .. ":", labelR, labelG, labelB)
         local valueText = tostring(value or "")
@@ -2666,16 +2702,168 @@ local function showSeasonItemTooltip(owner, row)
         GameTooltip:AddLine(text, 1, 1, 1, true)
     end
 
+    local function addTrackTooltipLine(label, value, grade)
+        local color = TRACK_COLORS[grade] or TRACK_COLORS.chmp
+        addStyledTooltipLine(label, value, color[1], color[2], color[3])
+    end
+
+    local function isRaidLocationLabel(label)
+        local normalized = normalizeCompareText(label)
+        if normalized == "" then
+            return false
+        end
+        for _, candidate in ipairs({
+            "한밤 폭포", "Midnight Falls",
+            "공허 첨탑", "The Voidspire",
+            "꿈의균열", "Dreamrift", "The Dreamrift",
+            "쿠엘다나스 진격로", "March on Quel'danas", "March on Quel’danas",
+        }) do
+            if normalized == normalizeCompareText(candidate) then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function getTooltipDungeonLabel()
+        local dungeonName = resolveSeasonDungeonName(
+            (isKoreanLanguageSelected() and entry.dungeon) or entry.dungeonEnUS or entry.dungeon or entry.sourceLabel
+        )
+        return dungeonName and localizeDungeon(dungeonName) or nil
+    end
+
+    local function getTooltipRaidLabel()
+        local display = getDisplaySourceLabel(entry)
+        if display and display ~= "" and isRaidLocationLabel(display) then
+            return display
+        end
+        return nil
+    end
+
+    local function getTooltipBossLabel(sourceType)
+        if entry.boss and entry.boss ~= "" then
+            return localizeSourceLabel(entry.boss)
+        end
+
+        if sourceType == "raid" then
+            local display = getDisplaySourceLabel(entry)
+            if display and display ~= "" and not isRaidLocationLabel(display) and not hasRaidMetaLabel(display) then
+                return display
+            end
+        end
+
+        return nil
+    end
+
+    local function getTooltipMethodLabel(sourceType)
+        if sourceType == "crafted" then
+            local label = localizeSourceLabel(entry.sourceLabel)
+            if not label or label == "" or isCraftingSourceLabel(entry.sourceLabel) then
+                return localizeSourceType(sourceType)
+            end
+            return label
+        end
+        if sourceType == "tier" then
+            local label = localizeSourceLabel(entry.sourceLabel)
+            if not label or label == "" or label == localizeSourceType(sourceType) then
+                return ns.L("bis_basis_tier")
+            end
+            return label
+        end
+        return nil
+    end
+
+    local function getMythicPlusBandText(mode, grade)
+        local tbl = ns.Data and ns.Data.ItemLevelTable
+        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
+        if not entries or #entries == 0 then
+            return nil
+        end
+
+        local firstKey, lastKey, minIlvl, maxIlvl
+        for _, candidate in ipairs(entries) do
+            local currentGrade = mode == "vault" and candidate.vaultGrade or candidate.grade
+            if currentGrade == grade then
+                local key = tonumber(candidate.key)
+                local ilvl = tonumber(mode == "vault" and candidate.vault or candidate.ilvl)
+                local cap = tonumber(mode == "vault" and candidate.vaultMax or candidate.maxilvl) or ilvl
+                if not firstKey then
+                    firstKey = key
+                    minIlvl = ilvl
+                end
+                lastKey = key or lastKey
+                if ilvl and (not minIlvl or ilvl < minIlvl) then
+                    minIlvl = ilvl
+                end
+                if ilvl and (not maxIlvl or ilvl > maxIlvl) then
+                    maxIlvl = ilvl
+                end
+                if cap and (not maxIlvl or cap > maxIlvl) then
+                    maxIlvl = cap
+                end
+            end
+        end
+
+        if not firstKey or not lastKey or not minIlvl or not maxIlvl then
+            return nil
+        end
+
+        return string.format("+%d~+%d / %d~%d", firstKey, lastKey, minIlvl, maxIlvl)
+    end
+
+    local function appendSeasonTooltipDetails(sourceType, sourceR, sourceG, sourceB)
+        addStyledTooltipLine(ns.L("bis_tooltip_acquisition"), localizeSourceType(sourceType), sourceR, sourceG, sourceB)
+
+        if sourceType == "mythicplus" then
+            local dungeonLabel = getTooltipDungeonLabel()
+            local bossLabel = getTooltipBossLabel(sourceType)
+            if dungeonLabel then
+                addStyledTooltipLine(ns.L("bis_tooltip_dungeon"), dungeonLabel, sourceR, sourceG, sourceB)
+            end
+            if bossLabel then
+                addStyledTooltipLine(ns.L("bis_tooltip_boss"), bossLabel, accentR, accentG, accentB)
+            end
+            return
+        end
+
+        if sourceType == "raid" then
+            local raidLabel = getTooltipRaidLabel()
+            local bossLabel = getTooltipBossLabel(sourceType)
+            if raidLabel then
+                addStyledTooltipLine(ns.L("bis_tooltip_raid"), raidLabel, sourceR, sourceG, sourceB)
+            end
+            if bossLabel then
+                addStyledTooltipLine(ns.L("bis_tooltip_boss"), bossLabel, accentR, accentG, accentB)
+            end
+            if not raidLabel and not bossLabel then
+                addStyledTooltipLine(ns.L("bis_tooltip_source"), getDisplaySourceLabel(entry), sourceR, sourceG, sourceB)
+            end
+            return
+        end
+
+        if sourceType == "crafted" or sourceType == "tier" then
+            local methodLabel = getTooltipMethodLabel(sourceType)
+            if methodLabel and methodLabel ~= "" then
+                addStyledTooltipLine(ns.L("bis_tooltip_method"), methodLabel, sourceR, sourceG, sourceB)
+            else
+                addStyledTooltipLine(ns.L("bis_tooltip_source"), getDisplaySourceLabel(entry), sourceR, sourceG, sourceB)
+            end
+            local raidLabel = getTooltipRaidLabel()
+            if raidLabel then
+                addStyledTooltipLine(ns.L("bis_tooltip_raid"), raidLabel, sourceR, sourceG, sourceB)
+            end
+        end
+    end
+
     local function appendSeasonTooltipMeta()
         local sourceType = getEntrySourceType(entry)
-        local sourceLabel = getDisplaySourceLabel(entry)
         local noteKind = row._displayNoteKind or canonicalNote(entry.note)
         local noteIndex = row._displayNoteIndex or 3
         local sr, sg, sb = getSourceTypeColor(sourceType)
 
         GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), headerR, headerG, headerB, true)
         addStyledTooltipLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot))
-        addStyledTooltipLine(ns.L("bis_tooltip_source"), sourceLabel, sr, sg, sb)
+        appendSeasonTooltipDetails(sourceType, sr, sg, sb)
         addStyledTooltipLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType))
         addStyledTooltipLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex))
         if entry.overallRank then
@@ -2695,21 +2883,58 @@ local function showSeasonItemTooltip(owner, row)
 
     local function appendSeasonTooltipRanges(sourceType)
         if sourceType == "mythicplus" then
-            local runTrack = getSeasonalMythicPlusSummary("run")
-            if runTrack ~= "" then
-                addStyledTooltipLine(ns.L("bis_tooltip_end_of_run"), runTrack)
+            local championRun = getMythicPlusBandText("run", "chmp")
+            local heroRun = getMythicPlusBandText("run", "hero")
+            local mythVault = getMythicPlusBandText("vault", "myth")
+            if championRun then
+                addTrackTooltipLine(ns.L("ilvl_crest_chmp"), championRun, "chmp")
             end
-            local vaultTrack = getSeasonalMythicPlusSummary("vault")
-            if vaultTrack ~= "" then
-                addStyledTooltipLine(ns.L("bis_tooltip_vault"), vaultTrack)
+            if heroRun then
+                addTrackTooltipLine(ns.L("ilvl_crest_hero"), heroRun, "hero")
+            end
+            if mythVault then
+                addTrackTooltipLine(ns.L("ilvl_crest_myth") .. " / " .. ns.L("bis_tooltip_vault"), mythVault, "myth")
             end
         elseif sourceType == "raid" or sourceType == "tier" then
-            for _, line in ipairs(getSeasonalRaidSummaryLines()) do
-                addStyledTooltipLine(line.label, line.text)
+            local tbl = ns.Data and ns.Data.ItemLevelTable
+            local raid = tbl and tbl.raid
+            if raid and raid.normal then
+                addTrackTooltipLine(
+                    ns.L("ilvl_crest_chmp") .. " (" .. ns.L("ilvl_raid_normal") .. ")",
+                    string.format("%d~%d", raid.normal.min or 0, raid.normal.max or 0),
+                    "chmp"
+                )
+            end
+            if raid and raid.heroic then
+                addTrackTooltipLine(
+                    ns.L("ilvl_crest_hero") .. " (" .. ns.L("ilvl_raid_heroic") .. ")",
+                    string.format("%d~%d", raid.heroic.min or 0, raid.heroic.max or 0),
+                    "hero"
+                )
+            end
+            if raid and raid.mythic then
+                addTrackTooltipLine(
+                    ns.L("ilvl_crest_myth") .. " (" .. ns.L("ilvl_raid_mythic") .. ")",
+                    string.format("%d~%d", raid.mythic.min or 0, raid.mythic.max or 0),
+                    "myth"
+                )
             end
         elseif sourceType == "crafted" then
-            for _, line in ipairs(getSeasonalCraftedSummaryLines()) do
-                addStyledTooltipLine(line.label, line.text)
+            local tbl = ns.Data and ns.Data.ItemLevelTable
+            local crafted = tbl and tbl.crafted
+            if crafted and crafted.base and crafted.base.ilvl then
+                addTrackTooltipLine(
+                    ns.L(crafted.base.labelKey) or "Base",
+                    tostring(crafted.base.ilvl),
+                    "hero"
+                )
+            end
+            if crafted and crafted.r5 and crafted.r5.ilvl then
+                addTrackTooltipLine(
+                    ns.L(crafted.r5.labelKey) or "Max",
+                    tostring(crafted.r5.ilvl),
+                    "myth"
+                )
             end
         end
     end
@@ -2723,7 +2948,7 @@ local function showSeasonItemTooltip(owner, row)
         local qc = getQualityColor(quality or getEntryQuality(entry))
         local fallbackSourceType
 
-        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+        GameTooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
         GameTooltip:ClearLines()
         GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
         fallbackSourceType = appendSeasonTooltipMeta()
@@ -2733,7 +2958,6 @@ local function showSeasonItemTooltip(owner, row)
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
         end
-        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
         GameTooltip:Show()
     end
 
@@ -2787,7 +3011,7 @@ local function showSeasonItemTooltip(owner, row)
         end
     end
 
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
 
     local shown = false
     local previewLink = getValidPreviewTooltipLink(context, sourceType)
@@ -2802,11 +3026,14 @@ local function showSeasonItemTooltip(owner, row)
         return
     end
 
+    GameTooltip:AddLine(" ")
+    appendSeasonTooltipMeta()
+    GameTooltip:AddLine(" ")
+    appendSeasonTooltipRanges(sourceType)
     if sourceType == "mythicplus" or sourceType == "raid" then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end
-    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
     GameTooltip:Show()
 end
 
