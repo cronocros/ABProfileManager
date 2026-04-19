@@ -488,11 +488,14 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
                     end
                 end
                 if matched then
-                    local foundLink = info.itemLink or info.hyperlink or info.link
+                    local previewLink = info.link or info.hyperlink or info.itemLink
+                    local itemLink = info.itemLink or info.hyperlink or info.link
+                    local foundLink = previewLink or itemLink
                     if foundLink then
                         foundContext = {
                             link = foundLink,
-                            itemLink = info.itemLink or info.hyperlink or nil,
+                            previewLink = previewLink,
+                            itemLink = itemLink,
                             itemID = info.itemID,
                             instanceID = candidate.instanceID,
                             tier = candidate.tier,
@@ -596,11 +599,14 @@ local function getPreviewRaidLootContext(itemID, fallbackName, allowLiveScan)
                     end
                 end
                 if matched then
-                    local foundLink = info.itemLink or info.hyperlink or info.link
+                    local previewLink = info.link or info.hyperlink or info.itemLink
+                    local itemLink = info.itemLink or info.hyperlink or info.link
+                    local foundLink = previewLink or itemLink
                     if foundLink then
                         foundContext = {
                             link = foundLink,
-                            itemLink = info.itemLink or info.hyperlink or nil,
+                            previewLink = previewLink,
+                            itemLink = itemLink,
                             itemID = info.itemID,
                             instanceID = candidate.instanceID,
                             tier = candidate.tier,
@@ -2603,7 +2609,7 @@ local function getValidPreviewTooltipLink(context, sourceType)
     if type(context) ~= "table" then
         return nil
     end
-    for _, link in ipairs({ context.itemLink, context.link }) do
+    for _, link in ipairs({ context.previewLink, context.itemLink, context.link }) do
         if isItemHyperlink(link) then
             local tooltipData = getTooltipDataForHyperlink(link)
             local itemLevel = extractTooltipItemLevel(tooltipData)
@@ -2613,6 +2619,15 @@ local function getValidPreviewTooltipLink(context, sourceType)
         end
     end
     return nil
+end
+
+local function isValidTooltipLinkForSource(link, sourceType)
+    if not isItemHyperlink(link) then
+        return false
+    end
+    local tooltipData = getTooltipDataForHyperlink(link)
+    local itemLevel = extractTooltipItemLevel(tooltipData)
+    return isValidPreviewItemLevel(sourceType, itemLevel)
 end
 
 local function showSeasonItemTooltip(owner, row)
@@ -2669,6 +2684,28 @@ local function showSeasonItemTooltip(owner, row)
         end
     end
 
+    local function showSeasonFallbackTooltip()
+        local itemName, _, quality = GetItemInfo(row.itemID)
+        if not itemName then
+            requestItemData(row.itemID)
+        end
+        local displayName = getEntryLocalizedName(entry) or itemName or ("Item #" .. tostring(row.itemID))
+        local qc = getQualityColor(quality or getEntryQuality(entry))
+        local fallbackSourceType
+
+        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+        fallbackSourceType = appendSeasonTooltipMeta()
+        appendSeasonTooltipRanges(fallbackSourceType)
+        if fallbackSourceType == "mythicplus" or fallbackSourceType == "raid" then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+        end
+        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
+        GameTooltip:Show()
+    end
+
     local function tryShowTooltipHyperlink(link)
         if not link or link == "" or not GameTooltip or not GameTooltip.SetHyperlink then
             return false
@@ -2678,22 +2715,16 @@ local function showSeasonItemTooltip(owner, row)
         return ok and GameTooltip:NumLines() > 0
     end
 
-    local function tryShowTooltipItemID(itemID)
+    local function tryShowTooltipItemID(itemID, sourceType)
         if not itemID or itemID <= 0 then
             return false
         end
         local _, itemLink = GetItemInfo(itemID)
-        if itemLink and tryShowTooltipHyperlink(itemLink) then
+        if itemLink and isValidTooltipLinkForSource(itemLink, sourceType) and tryShowTooltipHyperlink(itemLink) then
             return true
         end
-        if GameTooltip and GameTooltip.SetItemByID then
-            GameTooltip:ClearLines()
-            local ok = pcall(GameTooltip.SetItemByID, GameTooltip, itemID)
-            if ok and GameTooltip:NumLines() > 0 then
-                return true
-            end
-        end
-        if tryShowTooltipHyperlink("item:" .. tostring(itemID)) then
+        local bareLink = "item:" .. tostring(itemID)
+        if isValidTooltipLinkForSource(bareLink, sourceType) and tryShowTooltipHyperlink(bareLink) then
             return true
         end
         requestItemData(itemID)
@@ -2702,34 +2733,28 @@ local function showSeasonItemTooltip(owner, row)
 
     local sourceType = getEntrySourceType(entry)
     if not isOverlayItemTooltipEnabled() then
-        -- 아이템 이름/품질 (GetItemInfo 캐시 히트 시 즉시, 아닐 경우 비동기 요청)
-        local itemName, _, quality = GetItemInfo(row.itemID)
-        if not itemName then
-            requestItemData(row.itemID)
-        end
-        local displayName = getEntryLocalizedName(entry) or itemName or ("Item #" .. tostring(row.itemID))
-        local qc = getQualityColor(quality or getEntryQuality(entry))
-
-        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-        GameTooltip:ClearLines()
-
-        -- 아이템명 (품질 색상)
-        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
-        sourceType = appendSeasonTooltipMeta()
-        appendSeasonTooltipRanges(sourceType)
-
-        if sourceType == "mythicplus" or sourceType == "raid" then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
-        end
-        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-        GameTooltip:Show()
+        showSeasonFallbackTooltip()
         return
     end
 
     local context = (sourceType == "mythicplus" or sourceType == "raid" or sourceType == "tier")
         and getEncounterJournalContextForEntry(entry, row.itemID, false)
         or nil
+    if (not context or not getValidPreviewTooltipLink(context, sourceType))
+        and (sourceType == "mythicplus" or sourceType == "raid" or sourceType == "tier")
+        and not BISOverlay._tooltipPreviewScanActive
+        and not isJournalPreviewSuspended()
+        and not (EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()) then
+        local ok, resolvedContext
+        BISOverlay._tooltipPreviewScanActive = true
+        BISOverlay._allowLiveJournalScan = true
+        ok, resolvedContext = pcall(getEncounterJournalContextForEntry, entry, row.itemID, true)
+        BISOverlay._allowLiveJournalScan = false
+        BISOverlay._tooltipPreviewScanActive = false
+        if ok and resolvedContext then
+            context = resolvedContext
+        end
+    end
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
 
@@ -2739,62 +2764,13 @@ local function showSeasonItemTooltip(owner, row)
         shown = tryShowTooltipHyperlink(previewLink)
     end
     if not shown then
-        shown = tryShowTooltipItemID(row.itemID)
+        shown = tryShowTooltipItemID(row.itemID, sourceType)
     end
     if not shown then
-        local itemName, _, quality = GetItemInfo(row.itemID)
-        if not itemName then
-            requestItemData(row.itemID)
-        end
-        local displayName = getEntryLocalizedName(entry) or itemName or ("Item #" .. tostring(row.itemID))
-        local qc = getQualityColor(quality or getEntryQuality(entry))
-
-        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
-        sourceType = appendSeasonTooltipMeta()
-        appendSeasonTooltipRanges(sourceType)
-        if sourceType == "mythicplus" or sourceType == "raid" then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
-        end
-        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-        GameTooltip:Show()
+        showSeasonFallbackTooltip()
         return
     end
 
-    if previewLink then
-        if sourceType == "mythicplus" or sourceType == "raid" then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
-        end
-        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-        GameTooltip:Show()
-        return
-    end
-
-    GameTooltip:AddLine(" ")
-    GameTooltip:AddDoubleLine(
-        ns.L("bis_tooltip_source"),
-        getDisplaySourceLabel(entry),
-        0.62, 0.68, 0.78, 0.90, 0.94, 1.00
-    )
-    GameTooltip:AddDoubleLine(
-        ns.L("bis_tooltip_basis"),
-        getSourceBasisLabel(sourceType),
-        0.62, 0.68, 0.78, 0.90, 0.94, 1.00
-    )
-    if sourceType == "mythicplus" then
-        GameTooltip:AddLine(ns.L("bis_tooltip_preview_fallback"), 1.00, 0.80, 0.46, true)
-    elseif sourceType == "raid" then
-        GameTooltip:AddLine(ns.L("bis_tooltip_raid_fallback"), 1.00, 0.80, 0.46, true)
-    elseif sourceType == "tier" then
-        GameTooltip:AddLine(ns.L("bis_tooltip_tier_fallback"), 1.00, 0.80, 0.46, true)
-    elseif sourceType == "crafted" then
-        GameTooltip:AddLine(ns.L("bis_tooltip_crafted_fallback"), 1.00, 0.80, 0.46, true)
-    end
-    GameTooltip:AddLine(ns.L("bis_tooltip_base_item_level_warning"), 1.00, 0.45, 0.45, true)
-    appendSeasonTooltipRanges(sourceType)
     if sourceType == "mythicplus" or sourceType == "raid" then
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
