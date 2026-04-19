@@ -27,6 +27,22 @@ local statsRefreshToken = 0
 local QUEST_PANEL_REFRESH_DELAY = 0.15
 local questPanelRefreshPending = false
 
+-- 전투부대 은행 세션 상태 추적
+local abpmBankSessionActive = false
+
+local function abpmCloseBankSessions()
+    if BankFrame and BankFrame:IsShown() then
+        pcall(CloseBankFrame)
+    end
+    if C_Bank and type(C_Bank.CloseBankFrame) == "function" then
+        pcall(C_Bank.CloseBankFrame, Enum.BankType.Account)
+    end
+    if AccountBankPanel and AccountBankPanel.Hide then
+        pcall(function() AccountBankPanel:Hide() end)
+    end
+    abpmBankSessionActive = false
+end
+
 local function refreshGhostsAndRetries()
     ns:SafeCall(ns.Modules.ActionBarApplier, "ReconcilePendingGhosts")
     ns:SafeCall(ns.Modules.ActionBarApplier, "RetryPendingGhosts")
@@ -231,6 +247,40 @@ local function ensureCombatTextSettings()
     end
 end
 
+-- 전투부대 은행 사용 가능 여부 사전 점검 (외부 모듈/명령어에서 호출)
+-- 반환: true = 사용 가능, false = 불가 (채팅 안내 출력)
+function ns.ABPM_CanUseWarbandBank()
+    if not C_Bank then
+        ns.Utils.Print("[ABPM] 전투부대 은행 API(C_Bank)를 찾을 수 없습니다.")
+        return false
+    end
+    local hasBankType = false
+    if type(C_Bank.HasBankType) == "function" then
+        local ok, result = pcall(C_Bank.HasBankType, Enum.BankType.Account)
+        if ok then hasBankType = result end
+    end
+    if not hasBankType then
+        ns.Utils.Print("[ABPM] 전투부대 은행이 활성화되어 있지 않습니다.")
+        return false
+    end
+    local canUse = false
+    if type(C_Bank.CanUseBank) == "function" then
+        local ok, result = pcall(C_Bank.CanUseBank, Enum.BankType.Account)
+        if ok then canUse = result end
+    end
+    if not canUse then
+        ns.Utils.Print("[ABPM] 현재 전투부대 은행을 사용할 수 없는 상태입니다.")
+        return false
+    end
+    return true
+end
+
+-- 모든 은행 세션 강제 종료 (수동 호출 또는 상호작용 실패 감지 시)
+function ns.ABPM_ResetBankSession()
+    abpmCloseBankSessions()
+    ns.Utils.Print("[ABPM] 전투부대 은행 세션을 초기화했습니다.")
+end
+
 function Events:Initialize()
     frame:SetScript("OnEvent", function(_, event, ...)
         if type(self[event]) == "function" then
@@ -279,6 +329,11 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
     frame:RegisterEvent("ACTIVE_DELVE_DATA_UPDATE")
     frame:RegisterEvent("AREA_POIS_UPDATED")
+    -- 전투부대 은행 세션 보호 이벤트
+    frame:RegisterEvent("PLAYER_LEAVING_WORLD")
+    frame:RegisterEvent("BANKFRAME_OPENED")
+    frame:RegisterEvent("BANKFRAME_CLOSED")
+    frame:RegisterEvent("UI_ERROR_MESSAGE")
     -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight API 미확인)
     -- frame:RegisterEvent("MERCHANT_SHOW")
     -- frame:RegisterEvent("MERCHANT_UPDATE")
@@ -302,6 +357,7 @@ function Events:PLAYER_LOGIN()
 end
 
 function Events:PLAYER_LOGOUT()
+    abpmCloseBankSessions()
     ns:SafeCall(ns.DB, "SetDebugEnabled", false)
 end
 
@@ -440,6 +496,38 @@ end
 function Events:AREA_POIS_UPDATED()
     ns:SafeCall(ns.UI.ItemLevelOverlay, "InvalidateBountifulDelveNamesCache")
     refreshItemLevelOverlay()
+end
+
+-- 전투부대 은행 세션 보호 핸들러
+function Events:PLAYER_LEAVING_WORLD()
+    abpmCloseBankSessions()
+end
+
+function Events:BANKFRAME_OPENED()
+    abpmBankSessionActive = true
+end
+
+function Events:BANKFRAME_CLOSED()
+    abpmBankSessionActive = false
+    abpmCloseBankSessions()
+end
+
+function Events:UI_ERROR_MESSAGE(messageType, message)
+    if not message then return end
+    local isBankError = false
+    -- 방법 1: WoW 전역 상수 직접 비교 (영문 클라이언트)
+    if _G["ERR_BANK_IN_USE"] and message == _G["ERR_BANK_IN_USE"] then
+        isBankError = true
+    end
+    -- 방법 2: "bank" 부분 문자열 검색 (다국어 클라이언트 보완)
+    if not isBankError then
+        local ok, found = pcall(string.find, string.lower(message), "bank", 1, true)
+        if ok and found then isBankError = true end
+    end
+    if isBankError and abpmBankSessionActive then
+        abpmCloseBankSessions()
+        ns.Utils.Print("[ABPM] 은행이 다른 곳에서 사용 중입니다. 전투부대 은행 세션을 닫았습니다.")
+    end
 end
 
 -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight spellID API 부정확)

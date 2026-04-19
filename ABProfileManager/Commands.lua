@@ -28,6 +28,8 @@ local function printHelp()
     ns.Utils.Print(ns.L("help_clear"))
     ns.Utils.Print(ns.L("help_quote"))
     ns.Utils.Print(ns.L("help_verifywp"))
+    ns.Utils.Print("/abpm bankcheck   - 전투부대 은행 가용 상태 확인")
+    ns.Utils.Print("/abpm bankreset   - 전투부대 은행 세션 강제 초기화")
 end
 
 local PROFESSION_NAME_MAP = {
@@ -557,6 +559,21 @@ function Commands:HandleSlash(message)
         end
 
         runVerifyWaypoints(filterProfession)
+        return
+    end
+
+    if command == "bankcheck" then
+        local ok = ns.ABPM_CanUseWarbandBank and ns.ABPM_CanUseWarbandBank()
+        if ok then
+            ns.Utils.Print("[ABPM] 전투부대 은행 사용 가능 상태입니다.")
+        end
+        return
+    end
+
+    if command == "bankreset" then
+        if ns.ABPM_ResetBankSession then
+            ns.ABPM_ResetBankSession()
+        end
         return
     end
 

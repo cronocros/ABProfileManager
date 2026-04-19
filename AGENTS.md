@@ -71,6 +71,9 @@ ABProfileManager/
 
 ## 인게임 회귀 체크리스트
 
+- 전투부대 은행 세션 보호: `/abpm bankcheck`, `/abpm bankreset` 동작 확인
+- 은행 NPC 접근 시 `BANKFRAME_OPENED` 정상 감지 여부
+- 로그아웃/존 이동 후 재접속 시 은행 잠김 현상 없는지 확인
 - profession 카드 폭과 체크박스 레이아웃
 - profession overlay 상세/요약/최소
 - 전투메시지 설정 버튼 선택 상태
@@ -122,6 +125,24 @@ ABProfileManager/
 - `CREST_ID_BY_GRADE = { adv=3383, vet=3341, chmp=3343, hero=3345, myth=3347 }`
 - `DELVE_RESTORED_KEY_CURRENCY_ID = 3028`
 - 구렁 최고 단계는 `11단계`
+
+### 전투부대 은행(Warband Bank) 세션 보호
+
+`Events.lua` 내 구현. 유령 세션(ghost session) 및 잠김 현상 방어.
+
+핵심 함수:
+- `abpmCloseBankSessions()` (local) — 모든 은행 프레임 닫기 + 세션 플래그 초기화
+- `ns.ABPM_CanUseWarbandBank()` — `C_Bank.HasBankType` / `C_Bank.CanUseBank` 사전 점검, 불가 시 채팅 경고
+- `ns.ABPM_ResetBankSession()` — 강제 세션 초기화, 외부 모듈/명령어에서 호출 가능
+
+이벤트:
+- `PLAYER_LEAVING_WORLD`, `PLAYER_LOGOUT` → `abpmCloseBankSessions()` 호출
+- `BANKFRAME_OPENED` / `BANKFRAME_CLOSED` → `abpmBankSessionActive` 플래그 관리
+- `UI_ERROR_MESSAGE` → 은행 관련 에러 감지 시 세션 자동 정리
+
+슬래시 명령어:
+- `/abpm bankcheck` — 전투부대 은행 가용 상태 출력
+- `/abpm bankreset` — 세션 강제 초기화
 
 ## 미완성 기능
 
