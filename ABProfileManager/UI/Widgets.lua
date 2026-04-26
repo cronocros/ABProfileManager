@@ -106,7 +106,9 @@ local function createScrollHost(parent, width, height)
             thumbHeight = math.min(trackHeight, thumbHeight)
         end
 
-        thumb:SetHeight(thumbHeight)
+        if thumb:GetHeight() ~= thumbHeight then
+            thumb:SetHeight(thumbHeight)
+        end
         slider:SetMinMaxValues(0, range)
         slider:SetValue(current)
         track:SetShown(range > 0)

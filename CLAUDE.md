@@ -11,6 +11,6 @@
 현재 기준:
 
 - 기준 브랜치: `main`
-- 기준 버전: `v1.7.0`
-- 최신 로컬 패키지: `dist/ABProfileManager-v1.7.0.zip`
+- 기준 버전: `v1.7.1`
+- 최신 로컬 패키지: `dist/ABProfileManager-v1.7.1.zip`
 - 이전 로컬 패키지: `dist/archive/`

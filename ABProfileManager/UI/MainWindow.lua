@@ -59,6 +59,16 @@ local function refreshCurrentTab(window)
     ns:SafeCall(ns.UI.MainWindow, "RefreshStatus")
 end
 
+local TAB_LOCALE_KEYS = {
+    { field = "profilesTab",   key = "tab_profiles" },
+    { field = "actionBarsTab", key = "tab_action_bars" },
+    { field = "professionsTab", key = "tab_professions" },
+    { field = "mapTab",        key = "tab_map" },
+    { field = "questsTab",     key = "tab_quests" },
+    { field = "configTab",     key = "tab_config" },
+    { field = "utilityTab",    key = "tab_utility" },
+}
+
 function MainWindow:RefreshLocale()
     if not self.frame then
         return
@@ -67,13 +77,16 @@ function MainWindow:RefreshLocale()
     self.frame.title:SetText(buildWindowTitle())
     ns.UI.Widgets.ApplyFont(self.frame.title, 14, { domain = "ui" })
     self.frame.title:SetTextColor(1, 0.86, 0.42, 1)
-    self.frame.profilesTab:SetText(ns.L("tab_profiles"))
-    self.frame.actionBarsTab:SetText(ns.L("tab_action_bars"))
-    self.frame.professionsTab:SetText(ns.L("tab_professions"))
-    self.frame.mapTab:SetText(ns.L("tab_map"))
-    self.frame.questsTab:SetText(ns.L("tab_quests"))
-    self.frame.configTab:SetText(ns.L("tab_config"))
-    self.frame.utilityTab:SetText(ns.L("tab_utility"))
+
+    for _, entry in ipairs(TAB_LOCALE_KEYS) do
+        local tab = self.frame[entry.field]
+        tab:SetText(ns.L(entry.key))
+        local fs = tab:GetFontString()
+        if fs then
+            ns.UI.Widgets.ApplyFont(fs, 12, { domain = "ui" })
+        end
+    end
+
     applyTabSelectionStyles(self.frame)
 end
 
@@ -118,6 +131,11 @@ function MainWindow:Initialize()
         if currentFrame.Raise then
             currentFrame:Raise()
         end
+        -- 탭 버튼 텍스트가 초기화 타이밍에 따라 안 보이는 경우를 방지:
+        -- OnShow 시점에 한 프레임 뒤로 미뤄 레이아웃 완료 후 locale 재적용
+        C_Timer.After(0, function()
+            ns:SafeCall(ns.UI.MainWindow, "RefreshLocale")
+        end)
     end)
     frame:SetScript("OnKeyDown", function(currentFrame, key)
         if key == "ESCAPE" then

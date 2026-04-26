@@ -38,7 +38,7 @@ function Utils.DeepCopy(value)
 
     local copy = {}
     for key, entry in pairs(value) do
-        copy[Utils.DeepCopy(key)] = Utils.DeepCopy(entry)
+        copy[key] = Utils.DeepCopy(entry)
     end
 
     return copy

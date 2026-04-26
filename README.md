@@ -7,14 +7,14 @@
 
 ## 현재 버전
 
-- `v1.7.0`
+- `v1.7.1`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.0/ABProfileManager-v1.7.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.7.0.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.1/ABProfileManager-v1.7.1.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.7.1.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.0.md](./DOC/releases/RELEASE_NOTES_v1.7.0.md)
-- 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.0_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.0_EN.md)
+- 최신 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.1.md](./DOC/releases/RELEASE_NOTES_v1.7.1.md)
+- 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.1_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.1_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약

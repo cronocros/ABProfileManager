@@ -33,8 +33,12 @@ local function initializeModule(module)
         return
     end
 
-    module:Initialize()
-    module._initialized = true
+    local ok, err = pcall(module.Initialize, module)
+    if ok then
+        module._initialized = true
+    elseif ns.Utils and ns.Utils.Debug then
+        ns.Utils.Debug(string.format("Module init failed: %s", tostring(err)))
+    end
 end
 
 function ns:InitializeStartupModules()

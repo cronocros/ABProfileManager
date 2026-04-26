@@ -26,6 +26,11 @@ local _stateSignatureParts = {}
 local _snapshot = {}
 local _entryPool = {}
 local _entryPoolSize = 0
+-- buildPriorityText 재사용 버퍼: 매 Refresh마다 labels/segments 테이블 생성 방지
+local _priorityLabels = {}
+local _prioritySegments = {}
+-- getDisplayClassName 지연 캐시: 로케일 로드 후 첫 호출 시 1회만 생성
+local _classLabels = nil
 
 local function acquireEntry()
     _entryPoolSize = _entryPoolSize + 1
@@ -143,23 +148,24 @@ local function getCurrentClassName()
 end
 
 local function getDisplayClassName(classTag)
-    local classLabels = {
-        DEATHKNIGHT = ns.L("stats_overlay_class_deathknight"),
-        DEMONHUNTER = ns.L("stats_overlay_class_demonhunter"),
-        DRUID = ns.L("stats_overlay_class_druid"),
-        EVOKER = ns.L("stats_overlay_class_evoker"),
-        HUNTER = ns.L("stats_overlay_class_hunter"),
-        MAGE = ns.L("stats_overlay_class_mage"),
-        MONK = ns.L("stats_overlay_class_monk"),
-        PALADIN = ns.L("stats_overlay_class_paladin"),
-        PRIEST = ns.L("stats_overlay_class_priest"),
-        ROGUE = ns.L("stats_overlay_class_rogue"),
-        SHAMAN = ns.L("stats_overlay_class_shaman"),
-        WARLOCK = ns.L("stats_overlay_class_warlock"),
-        WARRIOR = ns.L("stats_overlay_class_warrior"),
-    }
-
-    return classLabels[classTag or ""] or getCurrentClassName() or "?"
+    if not _classLabels then
+        _classLabels = {
+            DEATHKNIGHT = ns.L("stats_overlay_class_deathknight"),
+            DEMONHUNTER = ns.L("stats_overlay_class_demonhunter"),
+            DRUID       = ns.L("stats_overlay_class_druid"),
+            EVOKER      = ns.L("stats_overlay_class_evoker"),
+            HUNTER      = ns.L("stats_overlay_class_hunter"),
+            MAGE        = ns.L("stats_overlay_class_mage"),
+            MONK        = ns.L("stats_overlay_class_monk"),
+            PALADIN     = ns.L("stats_overlay_class_paladin"),
+            PRIEST      = ns.L("stats_overlay_class_priest"),
+            ROGUE       = ns.L("stats_overlay_class_rogue"),
+            SHAMAN      = ns.L("stats_overlay_class_shaman"),
+            WARLOCK     = ns.L("stats_overlay_class_warlock"),
+            WARRIOR     = ns.L("stats_overlay_class_warrior"),
+        }
+    end
+    return _classLabels[classTag or ""] or getCurrentClassName() or "?"
 end
 
 local function getEquippedItemLevel()
@@ -194,20 +200,17 @@ local function buildIdentityText()
 end
 
 local function buildPriorityText(orderGroups)
-    local segments = {}
-
+    wipe(_prioritySegments)
     for _, group in ipairs(orderGroups or {}) do
-        local labels = {}
+        wipe(_priorityLabels)
         for _, statKey in ipairs(group) do
-            labels[#labels + 1] = ns.L("stats_overlay_short_" .. statKey)
+            _priorityLabels[#_priorityLabels + 1] = ns.L("stats_overlay_short_" .. statKey)
         end
-
-        if #labels > 0 then
-            segments[#segments + 1] = table.concat(labels, " = ")
+        if #_priorityLabels > 0 then
+            _prioritySegments[#_prioritySegments + 1] = table.concat(_priorityLabels, " = ")
         end
     end
-
-    return table.concat(segments, " > ")
+    return table.concat(_prioritySegments, " > ")
 end
 
 local function getPriorityDisplay(specName, orderGroups)
