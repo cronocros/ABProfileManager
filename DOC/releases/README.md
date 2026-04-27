@@ -4,7 +4,7 @@
 
 기준:
 
-- 최신 한글 릴리스 노트: `RELEASE_NOTES_v1.7.1.md`
-- 최신 영문 릴리스 노트: `RELEASE_NOTES_v1.7.1_EN.md`
+- 최신 한글 릴리스 노트: `RELEASE_NOTES_v1.7.2.md`
+- 최신 영문 릴리스 노트: `RELEASE_NOTES_v1.7.2_EN.md`
 
 이전 릴리스 노트는 `DOC/archive/release-notes/`로 이동합니다.

@@ -66,12 +66,9 @@ local function getOverlayScale()
 end
 
 local function safeNumber(value)
-    local numeric = tonumber(value) or 0
-    if numeric < 0 then
-        return 0
-    end
-
-    return numeric
+    -- tostring→tonumber strips the WoW 12.0.5+ "secret number" flag so downstream
+    -- comparisons (< > <=) remain safe in tainted addon execution.
+    return tonumber(tostring(value)) or 0
 end
 
 local function roundToInteger(value)
@@ -558,7 +555,10 @@ function StatsOverlay:PreparePaperDollTooltip(entry, owner)
     applyTooltipProxyFont(proxy.Label, GameFontNormal)
     applyTooltipProxyFont(proxy.Value, GameFontHighlight)
 
-    setter(proxy, "player")
+    local ok = pcall(setter, proxy, "player")
+    if not ok then
+        return nil
+    end
     return proxy
 end
 
