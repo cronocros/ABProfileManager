@@ -183,6 +183,24 @@ function ActionBarApplier:DismissPendingGhost(logicalSlot)
     return true
 end
 
+function ActionBarApplier:DismissAllPendingGhosts()
+    if not self.pendingGhosts then
+        return 0
+    end
+
+    local count = 0
+    for logicalSlot in pairs(self.pendingGhosts) do
+        self.pendingGhosts[logicalSlot] = nil
+        count = count + 1
+    end
+
+    if count > 0 then
+        ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
+    end
+
+    return count
+end
+
 function ActionBarApplier:CanResolveRecord(slotRecord)
     if isEmptyRecord(slotRecord) then
         return true

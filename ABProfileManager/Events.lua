@@ -32,6 +32,11 @@ local abpmBankSessionActive = false
 -- CloseBankFrame → BANKFRAME_CLOSED → abpmCloseBankSessions 재귀 방지 플래그
 local abpmBankCleanupInProgress = false
 
+-- 루팅 세션 중 BAG/LOOT 이벤트 동시 발화에 의한 중복 followup 방지
+-- token 패턴: 연속 루팅(1.5초 이내 다수 아이템 획득) 시 타이머 누적 방지
+local lootSessionActive = false
+local lootSessionToken = 0
+
 local function abpmCloseBankSessions()
     -- 재진입 방지: CloseBankFrame 호출이 BANKFRAME_CLOSED를 재발화하여 무한 재귀를 일으킬 수 있음
     if abpmBankCleanupInProgress then return end
@@ -72,11 +77,27 @@ local function refreshQuestPanel()
     C_Timer.After(QUEST_PANEL_REFRESH_DELAY, _questPanelRefreshCallback)
 end
 
-local function scheduleStatsOverlayRefresh(delay)
+local statsRefreshForcePending = false
+
+local function _doStatsOverlayRefresh(forceRequested)
+    -- WoW 12.0.5 인던 진입 / 특성 변경 / 장비 교체 등 critical 시점에는
+    -- 캐시된 lastStateSignature 가 stale 한 0 값이거나 동일 hash 일 수 있어
+    -- force=true 로 강제 갱신해야 0 표시 / 트링킷 발동 미반영 문제를 막을 수 있다.
+    if forceRequested then
+        ns:SafeCall(ns.UI.StatsOverlay, "Refresh", { force = true })
+    else
+        ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+    end
+end
+
+local function scheduleStatsOverlayRefresh(delay, force)
     if not ns.DB or not ns.DB:IsStatsOverlayEnabled() then
         return
     end
     delay = delay or STATS_REFRESH_DELAY
+    if force then
+        statsRefreshForcePending = true
+    end
     if statsRefreshPending and statsRefreshDelay and statsRefreshDelay <= delay then
         return
     end
@@ -90,9 +111,11 @@ local function scheduleStatsOverlayRefresh(delay)
         if token ~= statsRefreshToken then
             return
         end
+        local wantForce = statsRefreshForcePending
         statsRefreshPending = false
         statsRefreshDelay = nil
-        ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+        statsRefreshForcePending = false
+        _doStatsOverlayRefresh(wantForce)
         return
     end
 
@@ -100,18 +123,24 @@ local function scheduleStatsOverlayRefresh(delay)
         if token ~= statsRefreshToken then
             return
         end
+        local wantForce = statsRefreshForcePending
         statsRefreshPending = false
         statsRefreshDelay = nil
-        ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+        statsRefreshForcePending = false
+        _doStatsOverlayRefresh(wantForce)
     end)
 end
 
 local function refreshStatsOverlay()
-    scheduleStatsOverlayRefresh(STATS_REFRESH_DELAY)
+    scheduleStatsOverlayRefresh(STATS_REFRESH_DELAY, false)
 end
 
 local function refreshStatsOverlaySlow()
-    scheduleStatsOverlayRefresh(STATS_SLOW_REFRESH_DELAY)
+    scheduleStatsOverlayRefresh(STATS_SLOW_REFRESH_DELAY, false)
+end
+
+local function refreshStatsOverlayForce(delay)
+    scheduleStatsOverlayRefresh(delay or STATS_REFRESH_DELAY, true)
 end
 
 local function refreshItemLevelOverlay()
@@ -124,7 +153,8 @@ local function refreshItemLevelOverlay()
 end
 
 local function refreshCharacterContextUI()
-    ns:SafeCall(ns.UI.StatsOverlay, "Refresh")
+    -- 컨텍스트 변경(존 이동/특성 변경/장비 변경) 시 stats overlay 캐시 무효화
+    ns:SafeCall(ns.UI.StatsOverlay, "Refresh", { force = true })
     ns:SafeCall(ns.UI.ItemLevelOverlay, "Refresh")
     ns:SafeCall(ns.UI.BISOverlay, "Refresh")
     ns:SafeCall(ns.UI.MythicPlusRecordOverlay, "Refresh")
@@ -340,6 +370,14 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("BANKFRAME_OPENED")
     frame:RegisterEvent("BANKFRAME_CLOSED")
     frame:RegisterEvent("UI_ERROR_MESSAGE")
+    -- 쐐기(M+) 진행 상태 감지 — 스탯 오버레이 M+ 우선순위 자동 전환
+    frame:RegisterEvent("CHALLENGE_MODE_START")
+    frame:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+    frame:RegisterEvent("CHALLENGE_MODE_DEATH_COUNT_UPDATED")
+    -- 인던/존 이동: 스탯 오버레이가 stale signature 로 0 표시되는 문제 방지
+    frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    frame:RegisterEvent("PLAYER_ENTER_COMBAT")
+    frame:RegisterEvent("PLAYER_LEAVE_COMBAT")
     -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight API 미확인)
     -- frame:RegisterEvent("MERCHANT_SHOW")
     -- frame:RegisterEvent("MERCHANT_UPDATE")
@@ -356,7 +394,12 @@ function Events:PLAYER_LOGIN()
     ensureMouseMoveSetting()
     ensureCombatTextSettings()
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
-    refreshStatsOverlay()
+    -- 로그인 직후 PaperDoll API 가 0 일 수 있어 force 후속 갱신 1회 추가
+    ns:SafeCall(ns.UI.StatsOverlay, "InvalidateState")
+    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
+    if C_Timer and type(C_Timer.After) == "function" then
+        C_Timer.After(1.5, function() refreshStatsOverlayForce(0) end)
+    end
     runProfessionKnowledgeRefresh(true, "PLAYER_LOGIN")
     ns:SafeCall(ns.Modules.BlizzardFrameManager, "Apply")
     ns.Utils.Print(ns.L("loaded_window_hint"))
@@ -375,6 +418,13 @@ function Events:PLAYER_ENTERING_WORLD()
     ensureCombatTextSettings()
     refreshGhostsAndRetries()
     runProfessionKnowledgeRefresh(true, "PLAYER_ENTERING_WORLD")
+    -- 인던/PvP 진입 직후엔 PaperDoll 통계 API 가 일시적으로 0 을 반환할 수 있어
+    -- 짧은 후속 force refresh 두 번을 통해 값이 채워지자마자 갱신되도록 한다.
+    ns:SafeCall(ns.UI.StatsOverlay, "InvalidateState")
+    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
+    if C_Timer and type(C_Timer.After) == "function" then
+        C_Timer.After(1.0, function() refreshStatsOverlayForce(0) end)
+    end
     refreshWorldEntryUI()
 end
 
@@ -418,7 +468,8 @@ function Events:SKILL_LINES_CHANGED()
 end
 
 function Events:PLAYER_EQUIPMENT_CHANGED()
-    refreshStatsOverlay()
+    -- 장비 교체는 stat 절대값을 다시 계산해야 하므로 force 로 캐시 무효화
+    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
     refreshItemLevelOverlay()
 end
 
@@ -451,7 +502,9 @@ function Events:UNIT_AURA(unitToken)
         return
     end
 
-    refreshStatsOverlaySlow()
+    -- 트링킷 사용 효과 / 물약 / 외부 버프는 buff hash 가 변하면 즉시 반영되어야 한다.
+    -- slow(0.45s)는 응답이 너무 느려 발동 효과를 놓치므로 일반 디바운스(0.15s)로 변경.
+    refreshStatsOverlay()
 end
 
 function Events:UNIT_STATS(unitToken)
@@ -477,17 +530,29 @@ end
 
 function Events:BAG_UPDATE_DELAYED()
     refreshProfessionKnowledgeViews(true, "BAG_UPDATE_DELAYED")
-    scheduleProfessionFollowUpRefresh("BAG_UPDATE_DELAYED")
+    if not lootSessionActive then
+        scheduleProfessionFollowUpRefresh("BAG_UPDATE_DELAYED")
+    end
 end
 
 function Events:BAG_NEW_ITEMS_UPDATED()
     refreshProfessionKnowledgeViews(true, "BAG_NEW_ITEMS_UPDATED")
+    lootSessionActive = true
+    lootSessionToken = lootSessionToken + 1
+    local token = lootSessionToken
     scheduleProfessionFollowUpRefresh("BAG_NEW_ITEMS_UPDATED")
+    C_Timer.After(1.5, function()
+        if token == lootSessionToken then
+            lootSessionActive = false
+        end
+    end)
 end
 
 function Events:LOOT_CLOSED()
     refreshProfessionKnowledgeViews(true, "LOOT_CLOSED")
-    scheduleProfessionFollowUpRefresh("LOOT_CLOSED")
+    if not lootSessionActive then
+        scheduleProfessionFollowUpRefresh("LOOT_CLOSED")
+    end
 end
 
 function Events:CURRENCY_DISPLAY_UPDATE()
@@ -535,6 +600,34 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
         abpmCloseBankSessions()
         ns.Utils.Print("[ABPM] 은행이 다른 곳에서 사용 중입니다. 전투부대 은행 세션을 닫았습니다.")
     end
+end
+
+-- 쐐기(M+) 상태 핸들러 — isMplus 자동 감지 경로
+function Events:CHALLENGE_MODE_START()
+    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
+end
+
+function Events:CHALLENGE_MODE_COMPLETED()
+    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
+end
+
+function Events:CHALLENGE_MODE_DEATH_COUNT_UPDATED()
+    refreshStatsOverlay()
+end
+
+-- 존(인던) 이동: 인스턴스 컨텍스트 자체가 signature 의 일부이므로 force 갱신
+function Events:ZONE_CHANGED_NEW_AREA()
+    ns:SafeCall(ns.UI.StatsOverlay, "InvalidateState")
+    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
+end
+
+-- 전투 진입/종료 시 발동 효과 / 분노 / 광폭화 등 buff 상태 변동 즉시 반영
+function Events:PLAYER_ENTER_COMBAT()
+    refreshStatsOverlay()
+end
+
+function Events:PLAYER_LEAVE_COMBAT()
+    refreshStatsOverlay()
 end
 
 -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight spellID API 부정확)

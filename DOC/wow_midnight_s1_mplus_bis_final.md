@@ -810,7 +810,7 @@
 - itemID: 245770 — **Aln'hara Cane** — 제작 지팡이
 
 ### 장신구
-- itemID: 249346 — **Vaelgor's Final Stare** — 레이드 전체 BiS 쪽에서 강하지만, M+ 파밍 추천 던전은 **윈드러너 첨탑**이 우선이다.
+- itemID: 249346 — **Vaelgor's Final Stare** — 레이드 드랍 (Vaelgor & Ezzorak). M+ 파밍 시 윈드러너 첨탑 우선 파밍 권장 (장신구 풀 파밍 목적).
 
 ### 목걸이
 - itemID: 50228 — **Barbed Ymirheim Choker** — **사론의 구덩이(Pit of Saron)**

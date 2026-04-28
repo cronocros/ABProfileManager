@@ -213,7 +213,8 @@ function Tracker:RefreshQuestCache(force)
     local freshLookup = _completedQuestScanBuffer
     local freshCount = 0
     if C_QuestLog and type(C_QuestLog.GetAllCompletedQuestIDs) == "function" then
-        local completedQuestIDs = C_QuestLog.GetAllCompletedQuestIDs()
+        local ok_q, completedQuestIDs = pcall(C_QuestLog.GetAllCompletedQuestIDs)
+        if not ok_q then completedQuestIDs = nil end
         if type(completedQuestIDs) == "table" then
             for _, questID in pairs(completedQuestIDs) do
                 questID = tonumber(questID)

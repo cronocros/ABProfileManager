@@ -177,6 +177,9 @@ function ActionBarPanel:RefreshLocale()
     self.applyButton:SetText(ns.L("apply_selected_source"))
     self.clearButton:SetText(ns.L("clear_selected_range"))
     self.undoButton:SetText(ns.L("undo_button"))
+    if self.clearGhostsButton then
+        self.clearGhostsButton:SetText(ns.L("ghost_clear_all_button"))
+    end
     self.syncHint:SetText(ns.L("sync_hint"))
 
     for _, modeInfo in ipairs(MODE_BUTTONS) do
@@ -480,6 +483,9 @@ function ActionBarPanel:Create(parent)
     local undoButton = widgets.CreateButton(syncBox, "", 382, 34)
     undoButton:SetPoint("TOPLEFT", applyButton, "BOTTOMLEFT", 0, -8)
 
+    local clearGhostsButton = widgets.CreateButton(syncBox, "", 382, 34)
+    clearGhostsButton:SetPoint("TOPLEFT", undoButton, "BOTTOMLEFT", 0, -8)
+
     local syncButtons = {
         compareButton,
         fillEmptyButton,
@@ -490,6 +496,7 @@ function ActionBarPanel:Create(parent)
         applyButton,
         clearButton,
         undoButton,
+        clearGhostsButton,
     }
     for _, button in ipairs(syncButtons) do
         local fontString = button:GetFontString()
@@ -539,6 +546,7 @@ function ActionBarPanel:Create(parent)
     self.applyButton = applyButton
     self.clearButton = clearButton
     self.undoButton = undoButton
+    self.clearGhostsButton = clearGhostsButton
 
     local function bindInput(box)
         box:SetScript("OnEnterPressed", function(currentBox)
@@ -688,6 +696,26 @@ function ActionBarPanel:Create(parent)
                 self:Refresh()
             end,
         })
+    end)
+
+    clearGhostsButton:SetScript("OnEnter", function(currentButton)
+        setTooltip(currentButton, ns.L("ghost_clear_all_tip"))
+    end)
+    clearGhostsButton:SetScript("OnLeave", GameTooltip_Hide)
+    clearGhostsButton:SetScript("OnClick", function()
+        local applier = ns.Modules and ns.Modules.ActionBarApplier
+        if not applier or type(applier.DismissAllPendingGhosts) ~= "function" then
+            setStatus(self, ns.L("ghost_clear_all_none"))
+            return
+        end
+
+        local removed = applier:DismissAllPendingGhosts() or 0
+        if removed <= 0 then
+            setStatus(self, ns.L("ghost_clear_all_none"))
+            return
+        end
+
+        setStatus(self, ns.L("ghost_clear_all_done", removed))
     end)
 
     self:BindSyncHelp(compareButton, "compare", false)

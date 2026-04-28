@@ -57,6 +57,13 @@ local TITLE_TOGGLE_W = 56
 local TITLE_TOGGLE_H = 18
 
 local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted", "tier" }
+-- table.sort 보조 — sourceGroup → 정렬 우선순위 (낮을수록 먼저)
+local SOURCE_GROUP_ORDER = {
+    mythicplus = 1,
+    raid       = 2,
+    tier       = 3,
+    crafted    = 4,
+}
 local BIS_SOURCE_DEFAULTS = {
     mythicplus = true,
     raid = true,
@@ -2689,9 +2696,21 @@ local function getTooltipDataForHyperlink(link)
     return nil
 end
 
+local function isTimewalkingInstance()
+    local inInstance, instanceType = IsInInstance()
+    if not inInstance or instanceType ~= "party" then return false end
+    -- difficulty 24 = Timewalking Dungeon
+    local _, _, difficulty = GetInstanceInfo()
+    return difficulty == 24
+end
+
 local function isValidPreviewItemLevel(sourceType, itemLevel)
     if not itemLevel or itemLevel <= 0 then
         return false
+    end
+    -- 시간여행 던전에서는 아이템이 스케일다운된 ilvl로 표시되므로 범위 검증을 우회
+    if isTimewalkingInstance() then
+        return true
     end
     if sourceType == "mythicplus" then
         local minRun, maxRun = getSeasonalMythicPlusRange()

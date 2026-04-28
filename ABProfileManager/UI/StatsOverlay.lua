@@ -22,6 +22,7 @@ local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 -- BuildSnapshotSignature 재사용 버퍼: 매 호출마다 table 생성 방지
 local _snapshotParts = {}
 local _stateSignatureParts = {}
+local _buffHashParts = {}
 -- BuildSnapshot 재사용 버퍼: 매 Refresh 마다 snapshot/entry 테이블 생성 방지
 local _snapshot = {}
 local _entryPool = {}
@@ -289,6 +290,39 @@ end
 local function shouldShowTankDefensiveStats(specIndex)
     local tankStatsEnabled = not ns.DB or ns.DB:IsStatsOverlayTankStatsEnabled()
     return tankStatsEnabled and getCurrentSpecRole(specIndex) == "TANK"
+end
+
+-- 활성 버프 hash: 트링킷/사용효과/소모품 등 절대값 stat 변동을 signature에 포함시켜
+-- BuildStateSignature 가 동일하더라도 buff state 가 바뀌면 즉시 갱신되도록 한다.
+local function getPlayerBuffHash()
+    wipe(_buffHashParts)
+    if not C_UnitAuras or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then
+        return ""
+    end
+
+    for index = 1, 40 do
+        local data
+        local ok, result = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
+        if ok then data = result end
+        if not data then break end
+        _buffHashParts[#_buffHashParts + 1] = string.format(
+            "%d:%d:%d",
+            data.spellId or 0,
+            math.floor((data.expirationTime or 0) * 10),
+            data.applications or 0
+        )
+    end
+
+    return table.concat(_buffHashParts, "|")
+end
+
+local function isInsideInstanceContext()
+    if type(IsInInstance) ~= "function" then
+        return 0, ""
+    end
+    local ok, inInstance, instanceType = pcall(IsInInstance)
+    if not ok then return 0, "" end
+    return inInstance and 1 or 0, instanceType or ""
 end
 
 local function getSecondaryStatDRTier(percentFromRating)
@@ -729,7 +763,11 @@ function StatsOverlay:BuildSnapshot()
         addPercentStat(snapshot, "block", ns.L("stats_overlay_block"), getBlockPercent())
     end
 
-    local isMplus = ns.DB and ns.DB:IsStatsOverlayMythicPlusMode()
+    local manualMplus = ns.DB and ns.DB:IsStatsOverlayMythicPlusMode()
+    local inChallengeMode = type(C_ChallengeMode) == "table"
+        and type(C_ChallengeMode.IsChallengeModeActive) == "function"
+        and C_ChallengeMode.IsChallengeModeActive()
+    local isMplus = manualMplus or (inChallengeMode and true or false)
     local mplusBucket = isMplus and classTag and ns.Data and ns.Data.StatPrioritiesMythicPlus and ns.Data.StatPrioritiesMythicPlus[classTag]
     local classBucket = classTag and ns.Data and ns.Data.StatPriorities and ns.Data.StatPriorities[classTag]
     local orderGroups = (mplusBucket and mplusBucket[specIndex]) or (classBucket and classBucket[specIndex]) or nil
@@ -762,7 +800,11 @@ function StatsOverlay:BuildStateSignature()
     local showTankStats = shouldShowTankDefensiveStats(specIndex)
     local typographyOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("statsOverlay") or 0
     local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or ""
-    local isMplus = ns.DB and ns.DB.IsStatsOverlayMythicPlusMode and ns.DB:IsStatsOverlayMythicPlusMode() and 1 or 0
+    local _manualMplus = ns.DB and ns.DB.IsStatsOverlayMythicPlusMode and ns.DB:IsStatsOverlayMythicPlusMode()
+    local _inChallengeMode = type(C_ChallengeMode) == "table"
+        and type(C_ChallengeMode.IsChallengeModeActive) == "function"
+        and C_ChallengeMode.IsChallengeModeActive()
+    local isMplus = (_manualMplus or _inChallengeMode) and 1 or 0
 
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(language)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(typographyOffset)
@@ -786,7 +828,21 @@ function StatsOverlay:BuildStateSignature()
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getParryPercent()) or 0)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getBlockPercent()) or 0)
 
+    -- 인스턴스 컨텍스트(none/party/raid/pvp/scenario): 인던 진입/이탈 시 stale signature 방지
+    local inInstance, instanceType = isInsideInstanceContext()
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(inInstance)
+    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(instanceType)
+
+    -- 활성 버프 hash: 트링킷 사용효과/물약/외부 버프가 stat 절대값에 영향 줘도 즉시 갱신
+    _stateSignatureParts[#_stateSignatureParts + 1] = getPlayerBuffHash()
+
     return table.concat(_stateSignatureParts, "\030")
+end
+
+-- 외부에서 캐시 무효화: 인던 진입/특성 변경/장비 교체 등 critical 시점에서 호출
+function StatsOverlay:InvalidateState()
+    self.lastStateSignature = nil
+    self.lastSnapshotSignature = nil
 end
 
 function StatsOverlay:BuildSnapshotSignature(snapshot)
@@ -935,19 +991,19 @@ function StatsOverlay:LayoutRows(snapshot)
     end
 end
 
-function StatsOverlay:RefreshStats()
+function StatsOverlay:RefreshStats(force)
     if not self.frame then
         return
     end
 
     local stateSignature = self:BuildStateSignature()
-    if stateSignature == self.lastStateSignature then
+    if not force and stateSignature == self.lastStateSignature then
         return
     end
 
     local snapshot = self:BuildSnapshot()
     local snapshotSignature = self:BuildSnapshotSignature(snapshot)
-    if snapshotSignature == self.lastSnapshotSignature then
+    if not force and snapshotSignature == self.lastSnapshotSignature then
         self.lastStateSignature = stateSignature
         return
     end
@@ -976,9 +1032,14 @@ function StatsOverlay:RefreshStats()
     self.lastStateSignature = stateSignature
 end
 
-function StatsOverlay:Refresh()
+function StatsOverlay:Refresh(options)
     if not self.frame then
         self:Initialize()
+    end
+
+    local force = options and options.force or false
+    if force then
+        self:InvalidateState()
     end
 
     if not self.frame or not ns.DB or not ns.DB:IsStatsOverlayEnabled() then
@@ -989,6 +1050,6 @@ function StatsOverlay:Refresh()
     end
 
     self.frame:SetScale(getOverlayScale())
-    self:RefreshStats()
+    self:RefreshStats(force)
     self.frame:Show()
 end

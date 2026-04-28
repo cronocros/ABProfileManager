@@ -7,14 +7,14 @@
 
 ## 현재 버전
 
-- `v1.7.1`
+- `v1.7.3`
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.1/ABProfileManager-v1.7.1.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.7.1.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.3/ABProfileManager-v1.7.3.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.7.3.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.1.md](./DOC/releases/RELEASE_NOTES_v1.7.1.md)
-- 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.1_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.1_EN.md)
+- 최신 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.3.md](./DOC/releases/RELEASE_NOTES_v1.7.3.md)
+- 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.3_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.3_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
@@ -26,6 +26,15 @@
 - 한밤 시즌 1 기준 전클래스/전특성 `쐐기 / 레이드 / 제작 / 티어` BIS 추천 장비 카탈로그 제공
 - 파티찾기 시즌 최고기록 던전 아이콘 위에 `평점 + 던전명` 오버레이 제공
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.7.3 핵심 정리
+
+- 인던/존 진입 직후 스탯 오버레이의 부 능력치(치/가/특/유)가 0으로 묶이는 문제를 수정했습니다.
+  - `PLAYER_ENTERING_WORLD` / `ZONE_CHANGED_NEW_AREA` 시 캐시 signature를 강제 무효화하고, 짧은 후속 force refresh를 한 번 더 실행합니다.
+  - `BuildStateSignature`에 활성 player 버프 hash와 인스턴스 컨텍스트를 추가했습니다.
+- 장신구 사용효과 / 물약 / 외부 버프가 실시간으로 반영되도록 `UNIT_AURA` 디바운스를 0.45s → 0.15s로 단축했습니다.
+- 액션바 탭 동기화 영역 하단에 **`고스트 모두 제거`** 버튼을 추가했습니다. 잔여 고스트(사용 불가 표시) 마커를 한 번에 정리합니다.
+- WoW Patch 12.0.5 (한밤 .5, 2026-04-23 핫픽스) 기준으로 BIS 카탈로그 출처/보스/트링킷 우선순위를 재검증하고 보정했습니다.
 
 ## v1.7.0 핵심 정리
 

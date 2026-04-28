@@ -1,6 +1,16 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.7.1 기반)`
+버전 기준: `main (v1.7.3 기반)`
+
+## 0-new. v1.7.3 메모
+
+- `UI/StatsOverlay.lua` `BuildStateSignature`에 인스턴스 컨텍스트(`IsInInstance()`)와 player 활성 buff hash(`spellId:expirationTime*10:applications`, slot 1..40)를 추가했다.
+- `Refresh(options)`는 `{ force = true }` 옵션을 받는다. `lastStateSignature` / `lastSnapshotSignature`를 우회하며, 외부에서 `StatsOverlay:InvalidateState()`로 캐시를 명시 무효화할 수 있다.
+- `Events.lua`는 `ZONE_CHANGED_NEW_AREA`, `PLAYER_ENTER_COMBAT`, `PLAYER_LEAVE_COMBAT`을 추가 등록한다. 인스턴스 진입 / 특성 변경 / 장비 교체 시 force refresh 경로를 사용한다.
+- `UNIT_AURA` 디바운스는 `STATS_SLOW_REFRESH_DELAY` (0.45s) → `STATS_REFRESH_DELAY` (0.15s)로 단축됐다. 트링킷 발동/물약/외부 버프 반응성 우선이다.
+- `Modules/ActionBarApplier.lua`에 `DismissAllPendingGhosts()`가 추가됐다. `Modules/GhostManager:RefreshGhosts()`가 자동으로 후처리를 한다.
+- `UI/ActionBarPanel.lua`의 sync 영역에 `clearGhostsButton` 행이 추가됐다. Locale 키는 `ghost_clear_all_button / ghost_clear_all_tip / ghost_clear_all_long / ghost_clear_all_none / ghost_clear_all_done`.
+- `Data/BISCatalog.lua`는 12.0.5 (2026-04-23) 핫픽스 기준으로 출처 라벨 / 보스 매핑 / 트링킷 우선순위를 재검증하고 보정했다. 런타임 정책(`Data/BISCatalog.lua` 단일 소스, 4 sourceGroup, visible 후보 재번호화)은 유지된다.
 
 ## 현재 상태
 
