@@ -553,16 +553,32 @@ function ActionBarApplier:ReconcilePendingGhosts()
 end
 
 function ActionBarApplier:RetryPendingGhosts()
-    if InCombatLockdown and InCombatLockdown() then
-        ns.Utils.Debug("Skipping ghost retry while in combat")
+    -- 처리할 ghost 가 없으면 silently 종료. ACTIONBAR_SLOT_CHANGED 등이 매우
+    -- 빈번하게 발화되므로 빈 retry 가 디버그 로그 버퍼를 폭주시키지 않게 한다.
+    if not next(self.pendingGhosts) then
+        self._lastRetrySkipReason = nil
         return
     end
 
-    local cursorKind, cursorID = getCursorSummary()
-    if cursorKind then
-        ns.Utils.Debug(string.format("Skipping ghost retry because cursor is busy (%s:%s)", tostring(cursorKind), tostring(cursorID)))
+    local skipReason
+    if InCombatLockdown and InCombatLockdown() then
+        skipReason = "combat"
+    else
+        local cursorKind, cursorID = getCursorSummary()
+        if cursorKind then
+            skipReason = string.format("cursor:%s:%s", tostring(cursorKind), tostring(cursorID))
+        end
+    end
+
+    if skipReason then
+        -- skip 사유가 바뀔 때만 1회 로그. 동일 사유의 연속 호출은 suppress.
+        if skipReason ~= self._lastRetrySkipReason then
+            ns.Utils.Debug("Ghost retry skipped: " .. skipReason)
+            self._lastRetrySkipReason = skipReason
+        end
         return
     end
+    self._lastRetrySkipReason = nil
 
     local ghostCount = ns.Utils.TableCount(self.pendingGhosts)
     if ghostCount > 0 then

@@ -86,7 +86,18 @@ function ns:SafeCall(target, methodName, ...)
         return nil
     end
 
-    return target[methodName](target, ...)
+    -- WoW 12.0.5+ 의 secret number taint 등 일시적 오류가 발생해도 다음 frame
+    -- 에서 자연스럽게 회복되도록 pcall 로 감싸 사용자에게 lua 오류 화면이
+    -- 직접 노출되지 않게 한다. 디버그 모드일 때만 stack trace 를 남긴다.
+    local ok, result = pcall(target[methodName], target, ...)
+    if not ok then
+        if ns.Utils and ns.Utils.Debug then
+            ns.Utils.Debug(string.format("SafeCall(%s) failed: %s", tostring(methodName), tostring(result)))
+        end
+        return nil
+    end
+
+    return result
 end
 
 function ns:GetSelectionState()

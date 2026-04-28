@@ -147,6 +147,32 @@ function Utils.SafeToNumber(value, fallback)
     return math.floor(numeric)
 end
 
+-- WoW 12.0.5+ 의 "secret number" 보호 플래그가 붙은 값을 직접 산술 연산하면
+-- "execution tainted by '<addon>'" 오류가 발생한다. tostring→tonumber 변환으로
+-- 플래그를 제거하여 안전한 plain number 로 만든다. C_UnitAuras 등 외부 API
+-- 결과에 산술/포맷 적용 직전에 이 함수를 거치게 한다.
+--
+-- Fallback chain (중요):
+--   1) tostring→tonumber 성공 → 일반 number (secret 플래그 제거 완료)
+--   2) 실패해도 type 이 number 면 원본 보존 (전투 중 secret number 가
+--      tostring 으로 numeric 문자열을 반환하지 않을 때 0 으로 깎이는 부작용 방지)
+--   3) 그 외(nil/string 등) → tonumber 또는 0
+-- pcall 로 감싸 tostring 자체가 taint 오류를 일으키는 극단 케이스도 흡수한다.
+function Utils.SafeNumber(value)
+    local convertOk, stripped = pcall(function()
+        return tonumber(tostring(value))
+    end)
+    if convertOk and stripped then
+        return stripped
+    end
+
+    if type(value) == "number" then
+        return value
+    end
+
+    return tonumber(value) or 0
+end
+
 function Utils.SortedKeys(tbl)
     local keys = {}
 

@@ -67,9 +67,16 @@ local function getOverlayScale()
 end
 
 local function safeNumber(value)
-    -- tostring→tonumber strips the WoW 12.0.5+ "secret number" flag so downstream
-    -- comparisons (< > <=) remain safe in tainted addon execution.
-    return tonumber(tostring(value)) or 0
+    -- ns.Utils.SafeNumber 로 위임. fallback chain 으로 secret number 가 0 으로
+    -- 깎이지 않도록 보호한다(전투 중 PaperDoll API 등이 secret 반환 시 부작용).
+    if ns.Utils and ns.Utils.SafeNumber then
+        return ns.Utils.SafeNumber(value)
+    end
+    -- Utils 미로드 시 폴백 (Core.lua 가 SafeCall 정의 시 호출되는 경우 등)
+    local stripped = tonumber(tostring(value))
+    if stripped then return stripped end
+    if type(value) == "number" then return value end
+    return tonumber(value) or 0
 end
 
 local function roundToInteger(value)
@@ -301,16 +308,22 @@ local function getPlayerBuffHash()
     end
 
     for index = 1, 40 do
-        local data
-        local ok, result = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
-        if ok then data = result end
-        if not data then break end
-        _buffHashParts[#_buffHashParts + 1] = string.format(
+        local fetchOk, data = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
+        if not fetchOk or not data then break end
+        -- WoW 12.0.5+ 의 C_UnitAuras 반환 테이블은 secret number 로 표시되어
+        -- 직접 산술 연산(*, math.floor 등) 시 taint 오류가 발생한다.
+        -- safeNumber(tostring→tonumber)로 secret 플래그를 제거한 뒤 사용한다.
+        -- 산술/포맷 자체도 pcall 로 감싸 한 aura 가 실패해도 다음 aura 처리는
+        -- 계속되도록 격리한다.
+        local formatOk, line = pcall(string.format,
             "%d:%d:%d",
-            data.spellId or 0,
-            math.floor((data.expirationTime or 0) * 10),
-            data.applications or 0
+            safeNumber(data.spellId),
+            math.floor(safeNumber(data.expirationTime) * 10),
+            safeNumber(data.applications)
         )
+        if formatOk and line then
+            _buffHashParts[#_buffHashParts + 1] = line
+        end
     end
 
     return table.concat(_buffHashParts, "|")
