@@ -50,6 +50,7 @@ UI\MapPanel.lua
 UI\QuestPanel.lua
 UI\AddonSettingsPages.lua
 UI\ConfigPanel.lua
+ABPM_ruRU_Final_v3.lua
 UI\UtilityPanel.lua
 UI\SilvermoonMapOverlay.lua
 UI\MainWindow.lua
