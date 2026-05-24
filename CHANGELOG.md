@@ -6,6 +6,39 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.7.4 - 2026-05-25
+
+WoW Patch 12.0.5 유지보수 재배포. 툴팁 판매가 처리에서 발생하던 secret-number taint 오류를 막고, BIS 보상 트랙 안내와 스탯 우선순위 표를 함께 정리했습니다.
+
+주요 변경:
+- ABPM 자체 hover 설명이 전역 `GameTooltip`을 직접 소유하지 않도록 애드온 전용 툴팁 헬퍼를 추가
+- BIS 아이템 hover에서 `GameTooltip:SetHyperlink()` 직접 호출을 제거하고, `C_TooltipInfo.GetHyperlink()` 텍스트를 수동 렌더링하면서 판매가/화폐 라인을 제외
+- 액션바, 모험 안내서, Pawn 비교 툴팁에서 이어질 수 있던 `MoneyFrame.lua secret number` 오류 경로 차단
+- 쐐기 BIS 항목에 `던전 종료` / `위대한 금고·Voidcore` 보상 트랙과 대표 아이템 레벨 안내 추가
+- Patch 12.0.5 기준 40개 전문화 `스탯 우선순위 표` 팝업 추가 및 현재 전문화 강조 표시
+- BIS 카탈로그 생성기와 보상 프로필 검증 스크립트 보강
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, 릴리스 노트를 v1.7.4 유지보수 기준으로 갱신
+
+## 1.7.3 - 2026-04-27
+
+스탯 오버레이 인스턴스/전투 갱신 안정화와 고스트 일괄 정리를 묶은 유지보수 릴리스.
+
+주요 변경:
+- 스탯 오버레이 상태 서명에 인스턴스 컨텍스트와 활성 버프 해시를 추가해 특성 변경, 장비 교체, 인스턴스 진입, 전투 중 버프 변화 반응성 보강
+- `StatsOverlay:Refresh({ force = true })`와 `InvalidateState()` 경로 추가
+- `ZONE_CHANGED_NEW_AREA`, `PLAYER_ENTER_COMBAT`, `PLAYER_LEAVE_COMBAT` 이벤트에서 필요한 UI만 강제 갱신
+- 고스트 액션 일괄 정리 버튼과 `DismissAllPendingGhosts()` 경로 추가
+- 12.0.5 핫픽스 기준 BIS 출처 라벨, 보스 매핑, 트링킷 우선순위 재검증
+
+## 1.7.2 - 2026-04-26
+
+WoW Patch 12.0.5 secret-number 보호값 대응 핫픽스.
+
+주요 변경:
+- Blizzard `PaperDollFrame_Set*` setter 호출을 보호 경로로 감싸 스탯 툴팁 taint 오류를 완화
+- `safeNumber()`가 `tonumber(tostring(value))` 패턴을 사용해 secret-number 플래그를 제거한 뒤 산술/비교에 사용하도록 변경
+- Patch 12.0.5의 secret-number 동작과 방어 전략을 릴리스 노트에 문서화
+
 ## 1.7.1 - 2026-04-26
 
 WoW Patch 12.0.5 호환성 업데이트.

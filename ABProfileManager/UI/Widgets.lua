@@ -191,6 +191,32 @@ function Widgets.ApplyTooltip(tooltip, headerBaseSize, bodyBaseSize, options)
     end
 end
 
+function Widgets.GetTooltip()
+    if Widgets.tooltip then
+        if Widgets.tooltip.SetMinimumWidth then
+            Widgets.tooltip:SetMinimumWidth(0)
+        end
+        return Widgets.tooltip
+    end
+    if not CreateFrame or not UIParent then
+        return nil
+    end
+
+    local tooltip = CreateFrame("GameTooltip", "ABProfileManagerTooltip", UIParent, "GameTooltipTemplate")
+    tooltip:SetFrameStrata("TOOLTIP")
+    if tooltip.SetMinimumWidth then
+        tooltip:SetMinimumWidth(0)
+    end
+    Widgets.tooltip = tooltip
+    return tooltip
+end
+
+function Widgets.HideTooltip()
+    if Widgets.tooltip and Widgets.tooltip.Hide then
+        Widgets.tooltip:Hide()
+    end
+end
+
 function Widgets.CreateButton(parent, text, width, height)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     button:SetSize(width or 120, height or 24)
@@ -582,4 +608,8 @@ function Widgets.SetButtonSelected(button, selected)
     else
         fontString:SetTextColor(1, 1, 1, 1)
     end
+end
+
+function Widgets.CreateScrollHost(parent, width, height)
+    return createScrollHost(parent, width, height)
 end

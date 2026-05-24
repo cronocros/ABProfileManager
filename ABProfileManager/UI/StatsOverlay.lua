@@ -451,11 +451,7 @@ function StatsOverlay:CreateRow()
     row.tooltipRegion:SetScript("OnEnter", function(currentRegion)
         self:ShowRowTooltip(currentRegion.ownerRow or currentRegion)
     end)
-    row.tooltipRegion:SetScript("OnLeave", function(currentRow)
-        if GameTooltip and GameTooltip:IsOwned(currentRow) then
-            GameTooltip:Hide()
-        end
-    end)
+    row.tooltipRegion:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     return row
 end
@@ -624,22 +620,12 @@ function StatsOverlay:GetTooltipTitle(entry)
 end
 
 function StatsOverlay:ShowRowTooltip(row)
-    if not row or not row.entry or not row.entry.key or not GameTooltip then
+    local tooltip = ns.UI.Widgets.GetTooltip()
+    if not row or not row.entry or not row.entry.key or not tooltip then
         return
     end
 
-    local proxy = self:PreparePaperDollTooltip(row.entry, row.tooltipRegion)
-    if proxy then
-        if type(PaperDollStatTooltip) == "function" and proxy.tooltip then
-            PaperDollStatTooltip(proxy)
-            return
-        end
-
-        if type(proxy.onEnterFunc) == "function" then
-            proxy.onEnterFunc(proxy)
-            return
-        end
-    end
+    self:PreparePaperDollTooltip(row.entry, row.tooltipRegion)
 
     local tooltipTitle = self:GetTooltipTitle(row.entry) or row.entry.label or ""
     if row.entry.key == "priority" then
@@ -647,25 +633,25 @@ function StatsOverlay:ShowRowTooltip(row)
         tooltipTitle = tooltipTitle .. "  [" .. modeLabel .. "]"
     end
 
-    GameTooltip:SetOwner(row.tooltipRegion or row, "ANCHOR_RIGHT")
-    GameTooltip:SetText(tooltipTitle, 0.96, 0.82, 0.30)
+    tooltip:SetOwner(row.tooltipRegion or row, "ANCHOR_RIGHT")
+    tooltip:SetText(tooltipTitle, 0.96, 0.82, 0.30)
 
     local body = self:GetTooltipBody(row.entry)
     if body then
-        GameTooltip:AddLine(body, 1, 1, 1, true)
+        tooltip:AddLine(body, 1, 1, 1, true)
     end
 
     if row.entry.style == "stat" then
         local drKey = "stats_overlay_dr_tier_" .. tostring(row.entry.drTier or 0)
         local drText = ns.Locale:GetString(drKey)
         if drText ~= drKey then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(ns.L("stats_overlay_tooltip_dr_line", drText, formatPercent(row.entry.ratingPercent or 0)), 0.84, 0.92, 1, true)
+            tooltip:AddLine(" ")
+            tooltip:AddLine(ns.L("stats_overlay_tooltip_dr_line", drText, formatPercent(row.entry.ratingPercent or 0)), 0.84, 0.92, 1, true)
         end
     end
 
-    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-    GameTooltip:Show()
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
 end
 
 function StatsOverlay:Initialize()

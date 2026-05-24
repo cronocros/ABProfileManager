@@ -10,8 +10,8 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [releases/RELEASE_NOTES_v1.7.3.md](./releases/RELEASE_NOTES_v1.7.3.md)
-  - 최신 한글 릴리스 노트 (v1.7.3)
+- [releases/RELEASE_NOTES_v1.7.4.md](./releases/RELEASE_NOTES_v1.7.4.md)
+  - 최신 한글 릴리스 노트 (v1.7.4)
 - [releases/RELEASE_NOTES_v1.7.4_EN.md](./releases/RELEASE_NOTES_v1.7.4_EN.md)
   - 최신 영문 릴리스 노트 (v1.7.4)
 - [ARCHITECTURE.md](./ARCHITECTURE.md)

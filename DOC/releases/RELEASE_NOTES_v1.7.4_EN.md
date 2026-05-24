@@ -1,81 +1,66 @@
 # ABProfileManager v1.7.4
 
-WoW Patch 12.0.5 — Stats overlay combat-zero fix + addon-wide secret number hardening.
+WoW Patch 12.0.5 maintenance repack — tooltip MoneyFrame hardening, M+ BIS reward tracks, and the new stat-priority table.
 
 Direct download: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.4/ABProfileManager-v1.7.4.zip`
 Local package: `dist/ABProfileManager-v1.7.4.zip`
 
 ## Changes
 
-### Bug Fixes — Stats Overlay
+### Tooltip / MoneyFrame Fixes
 
-- **Fixed: secondary stats displaying as `0` while in combat.**
-  v1.7.2's `safeNumber()` used `tonumber(tostring(value)) or 0`, which strips the WoW 12.0.5+ secret-number flag for arithmetic safety — but in some combat contexts the engine's `tostring()` does not return a numeric string for secret-protected values, collapsing every PaperDoll readout to `0`. `safeNumber()` is now a fallback chain: try `tostring → tonumber` first; on failure preserve the original value when it is already a `number` (so the displayed value stays intact even if the secret flag could not be stripped); only fall back to `0` for non-numeric inputs.
-- **Fixed: residual taint crash from `C_UnitAuras.GetAuraDataByIndex` arithmetic.**
-  `getPlayerBuffHash()` now sanitizes `spellId` / `expirationTime` / `applications` through `safeNumber()` before any arithmetic, and wraps the per-aura `string.format` step in `pcall`, so a single secret-protected aura entry can no longer break the buff-hash loop or surface a Lua error to the user.
+- **Fixed a Blizzard `MoneyFrame.lua` secret-number error path.**
+  Action bar item hovers, Encounter Journal item hovers, and Pawn comparison tooltips could surface `attempt to perform arithmetic on a secret number value (execution tainted by 'ABProfileManager')` after ABPM had owned the global tooltip. ABPM hover text now uses addon-owned tooltip frames instead.
+- **Removed direct global `GameTooltip` usage from ABPM hover text.**
+  Shared UI helpers now provide `ABProfileManagerTooltip`, keeping addon explanations out of Blizzard's normal item tooltip ownership path.
+- **Hardened BIS item hover preview.**
+  BIS rows no longer call `GameTooltip:SetHyperlink()` for item preview. They read `C_TooltipInfo.GetHyperlink()` data, render text lines into an addon tooltip, and skip sell-price / money / currency lines so `MoneyFrame_Update` is not involved.
 
-### Addon-Wide Hardening
+### BIS Overlay
 
-- **`ns:SafeCall(...)` now actually pcalls.**
-  The helper used by 60+ event/refresh paths (overlays, panels, modules) was previously only doing a `nil` check despite its name. Any unhandled secret-number taint or transient API failure surfaced directly to the user as a Lua error screen. `SafeCall` now wraps the dispatch in `pcall`, recovers silently on the next refresh tick, and emits a `[debug] SafeCall(<method>) failed: ...` line only when `/abpm debug on` is set — making future taint regressions self-diagnosing without breaking the UI.
-- **New shared sanitizer `Utils.SafeNumber(value)`.**
-  Centralizes the secret-number stripping pattern with the fallback chain described above so other modules (not just `StatsOverlay`) can adopt it without duplicating logic.
+- **Added Mythic+ reward profile guidance.**
+  M+ BIS rows now show representative reward tracks such as end-of-dungeon Hero 3/6 item level 266 and Great Vault / Voidcore Myth 1/6 item level 272.
+- **Regenerated and validated the BIS catalog.**
+  `Data/BISCatalog.lua` now carries reward profile references, and the build/validation scripts check those references before release.
+- **Cleaned up item/source labels.**
+  Korean and English labels were refreshed against the current static data.
 
-### Bug Fixes — Ghost Retry
+### Stat Priority Table
 
-- **Fixed: ghost retry debug log flooding the buffer in combat.**
-  `ActionBarApplier:RetryPendingGhosts()` is invoked from `ACTIONBAR_SLOT_CHANGED`, `ACTIONBAR_PAGE_CHANGED`, `UPDATE_BONUS_ACTIONBAR`, and `SPELLS_CHANGED`. While in combat (or with a busy cursor), it was logging `Skipping ghost retry while in combat` on every fire — observed at ~15 lines/sec, saturating the 200-line debug ring buffer in seconds and pushing real diagnostics out. The retry is now a no-op when `pendingGhosts` is empty, and the skip log is state-change-based: a single line when the skip reason first appears, then suppressed until the reason changes (combat → cursor, or skip → resume).
+- **Added a main-window `Stat Priority Table` button.**
+  The new popup lists primary and secondary stat priorities by class and specialization.
+- **Updated Patch 12.0.5 data for all 40 specs.**
+  Hero talent, raid/M+, single-target, and AoE branches are shown directly in the table when applicable. The current player's specialization row is highlighted.
+- **Updated the short stat-priority line used by the stats overlay.**
+  The overlay keeps its compact display, while the new table exposes the full branch detail.
 
-## Technical Notes
+### Included Earlier v1.7.4 Stability Work
 
-### `safeNumber` fallback chain
+- Secondary stats no longer collapse to `0` in combat when the client returns secret-protected numeric values.
+- Aura hash arithmetic is sanitized so a secret-protected aura entry cannot break stats refresh.
+- `ns:SafeCall(...)` wraps optional module dispatch in `pcall`.
+- Ghost retry debug logging is state-change based instead of flooding the debug buffer in combat.
 
-```lua
-function Utils.SafeNumber(value)
-    -- 1. Strip secret-number flag via tostring → tonumber.
-    local convertOk, stripped = pcall(function()
-        return tonumber(tostring(value))
-    end)
-    if convertOk and stripped then
-        return stripped
-    end
+## Announcement Summary
 
-    -- 2. tostring couldn't yield a numeric string but the value is already
-    --    a number — preserve it so display stays correct (taint risk only
-    --    materializes if it is later fed into arithmetic, which the host
-    --    SafeCall pcall now contains).
-    if type(value) == "number" then
-        return value
-    end
+ABProfileManager v1.7.4 maintenance update:
 
-    -- 3. nil / non-numeric string → 0.
-    return tonumber(value) or 0
-end
-```
-
-This trades a microscopic chance of taint propagation (case 2) against the previous certainty of all-zero readouts in combat. The new addon-wide `SafeCall` pcall absorbs any taint that does propagate.
-
-### State-change ghost-retry logging
-
-```lua
-if skipReason ~= self._lastRetrySkipReason then
-    ns.Utils.Debug("Ghost retry skipped: " .. skipReason)
-    self._lastRetrySkipReason = skipReason
-end
-```
-
-`_lastRetrySkipReason` is reset to `nil` whenever (a) `pendingGhosts` is empty, or (b) the retry actually proceeds — so the next genuinely new skip event still surfaces a single line.
+- Fixed the possible `MoneyFrame.lua secret number` error on action bar / Encounter Journal / Pawn item tooltips.
+- Switched BIS item hover preview to a safer addon-owned tooltip renderer.
+- Added M+ BIS reward track and item-level guidance.
+- Added a Patch 12.0.5 stat-priority table for all 40 specs.
 
 ## In-Game Regression Checklist
 
-- [ ] Enter combat — secondary stats (crit / haste / mastery / versatility) display real values, not `0`.
-- [ ] Trinket on-use during combat updates the readout within ~0.2s.
-- [ ] No Lua error screen appears during combat / instance entry / spec swap / equipment swap.
-- [ ] With `/abpm debug on`, `Skipping ghost retry...` appears at most once per skip-reason change, not per-frame.
-- [ ] Existing v1.7.3 behaviors (instance entry refresh, trinket buff hash, bulk ghost cleanup, BIS source labels) continue to work.
+- [ ] Hover BIS item rows.
+- [ ] Hover action bar item/equipment buttons after using ABPM UI.
+- [ ] Hover Encounter Journal items and Pawn comparison tooltips.
+- [ ] Confirm items with sell prices no longer trigger `MoneyFrame.lua` errors.
+- [ ] Open the `Stat Priority Table` popup and confirm the current spec row is highlighted.
+- [ ] Existing v1.7.3/v1.7.4 stability behavior continues to work: stats refresh, ghost cleanup, BIS source labels.
 
 ## Upgrading from a Previous Version
 
 - Existing saved data (`ABPM_DB`) is preserved.
-- No settings reconfiguration required.
-- No new locale keys, no new buttons, no UI changes — this is a pure stability hotfix on top of v1.7.3.
+- No settings reset is required.
+- This is a same-tag v1.7.4 maintenance repack. If you already downloaded v1.7.4, replace it with the latest ZIP.

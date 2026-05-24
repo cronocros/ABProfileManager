@@ -19,13 +19,18 @@ local function updatePosition(button)
 end
 
 local function setTooltip(button)
-    GameTooltip:SetOwner(button, "ANCHOR_LEFT")
-    GameTooltip:SetText(ns.L("minimap_tooltip_title"))
-    GameTooltip:AddLine(ns.L("minimap_tooltip_line1"), 1, 0.82, 0, true)
-    GameTooltip:AddLine(ns.L("minimap_tooltip_line2"), 1, 0.82, 0, true)
-    GameTooltip:AddLine(ns.L("minimap_tooltip_line3", ns.Constants.AUTHOR), 0.7, 0.9, 1, true)
-    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-    GameTooltip:Show()
+    local tooltip = ns.UI.Widgets.GetTooltip()
+    if not tooltip then
+        return
+    end
+
+    tooltip:SetOwner(button, "ANCHOR_LEFT")
+    tooltip:SetText(ns.L("minimap_tooltip_title"))
+    tooltip:AddLine(ns.L("minimap_tooltip_line1"), 1, 0.82, 0, true)
+    tooltip:AddLine(ns.L("minimap_tooltip_line2"), 1, 0.82, 0, true)
+    tooltip:AddLine(ns.L("minimap_tooltip_line3", ns.Constants.AUTHOR), 0.7, 0.9, 1, true)
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
 end
 
 function MinimapButton:Initialize()
@@ -99,7 +104,7 @@ function MinimapButton:Initialize()
     end)
 
     button:SetScript("OnEnter", setTooltip)
-    button:SetScript("OnLeave", GameTooltip_Hide)
+    button:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     self.button = button
     self:Refresh()

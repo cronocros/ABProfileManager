@@ -78,3 +78,39 @@ ns.Data.ItemLevelTable = {
         conquest = { min=250, max=276, labelKey="ilvl_pvp_conquest" },
     },
 }
+
+-- BIS 툴팁용 보상 프로필. 단수는 요구 조건이고, 대표 표기는 업그레이드 트랙을 우선한다.
+ns.Data.BISRewardProfiles = {
+    mythicplus = {
+        mplus_end_of_dungeon = {
+            source = "mythicplus",
+            sourceLabel = "쐐기",
+            rewardContext = "end_of_dungeon",
+            rewardContextLabel = "던전 종료",
+            minKeystoneLevel = 10,
+            itemLevel = 266,
+            upgradeTrack = "Hero",
+            upgradeTrackKo = "영웅",
+            upgradeRank = "3/6",
+            displayLabel = "쐐기 영웅 트랙",
+            fullLabel = "쐐기 영웅 트랙 3/6 · 266 · 던전 종료 · M+10 이상",
+            itemString = nil,
+            itemLink = nil,
+        },
+        mplus_great_vault_voidcore = {
+            source = "mythicplus",
+            sourceLabel = "쐐기",
+            rewardContext = "great_vault_voidcore",
+            rewardContextLabel = "위대한 금고/Voidcore",
+            minKeystoneLevel = 10,
+            itemLevel = 272,
+            upgradeTrack = "Myth",
+            upgradeTrackKo = "신화",
+            upgradeRank = "1/6",
+            displayLabel = "쐐기 신화 트랙",
+            fullLabel = "쐐기 신화 트랙 1/6 · 272 · 위대한 금고/Voidcore · M+10 이상",
+            itemString = nil,
+            itemLink = nil,
+        },
+    },
+}

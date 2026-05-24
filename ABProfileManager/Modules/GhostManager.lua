@@ -27,7 +27,7 @@ local function handleGhostDrop(currentOverlay)
         return
     end
 
-    GameTooltip_Hide()
+    ns.UI.Widgets.HideTooltip()
     reportStatus(ns.L("ghost_replaced", getSlotLabel(currentOverlay.logicalSlot)))
 end
 
@@ -40,7 +40,7 @@ local function handleGhostDismiss(currentOverlay)
         return
     end
 
-    GameTooltip_Hide()
+    ns.UI.Widgets.HideTooltip()
     reportStatus(ns.L("ghost_removed", getSlotLabel(currentOverlay.logicalSlot)))
 end
 
@@ -90,14 +90,19 @@ local function createOverlay(button)
     ns.UI.Widgets.ApplyFont(overlay.marker, 11, { domain = "ui" })
 
     overlay:SetScript("OnEnter", function(currentOverlay)
-        GameTooltip:SetOwner(currentOverlay, "ANCHOR_RIGHT")
-        GameTooltip:SetText(currentOverlay.title or ns.L("ghost_unavailable_action"))
-        GameTooltip:AddLine(currentOverlay.message or ns.L("ghost_reason_default"), 1, 0.82, 0, true)
-        GameTooltip:AddLine(currentOverlay.controlsHint or ns.L("ghost_controls_hint"), 0.84, 0.9, 1, true)
-        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-        GameTooltip:Show()
+        local tooltip = ns.UI.Widgets.GetTooltip()
+        if not tooltip then
+            return
+        end
+
+        tooltip:SetOwner(currentOverlay, "ANCHOR_RIGHT")
+        tooltip:SetText(currentOverlay.title or ns.L("ghost_unavailable_action"))
+        tooltip:AddLine(currentOverlay.message or ns.L("ghost_reason_default"), 1, 0.82, 0, true)
+        tooltip:AddLine(currentOverlay.controlsHint or ns.L("ghost_controls_hint"), 0.84, 0.9, 1, true)
+        ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+        tooltip:Show()
     end)
-    overlay:SetScript("OnLeave", GameTooltip_Hide)
+    overlay:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
     overlay:SetScript("OnClick", function(currentOverlay)
         ns.Utils.Print(currentOverlay.message or ns.L("ghost_reason_default"))
     end)

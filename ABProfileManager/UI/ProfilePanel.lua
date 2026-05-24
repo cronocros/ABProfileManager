@@ -20,10 +20,15 @@ local function refreshOtherPanel()
 end
 
 local function setTooltip(owner, text)
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-    GameTooltip:SetText(text)
-    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-    GameTooltip:Show()
+    local tooltip = ns.UI.Widgets.GetTooltip()
+    if not tooltip then
+        return
+    end
+
+    tooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    tooltip:SetText(text)
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
 end
 
 local function getSetSpecializationFunc()
@@ -416,7 +421,7 @@ function ProfilePanel:Create(parent)
     upButton:SetScript("OnEnter", function(currentButton)
         setTooltip(currentButton, ns.L("template_scroll_up"))
     end)
-    upButton:SetScript("OnLeave", GameTooltip_Hide)
+    upButton:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     local downButton = widgets.CreateButton(templatesBox, "", 24, 20)
     downButton:SetPoint("TOPRIGHT", templatesBox, "TOPRIGHT", -8, -7)
@@ -426,7 +431,7 @@ function ProfilePanel:Create(parent)
     downButton:SetScript("OnEnter", function(currentButton)
         setTooltip(currentButton, ns.L("template_scroll_down"))
     end)
-    downButton:SetScript("OnLeave", GameTooltip_Hide)
+    downButton:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     self.frame = frame
     self.title = title

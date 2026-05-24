@@ -8,7 +8,12 @@ local function setStatus(message)
 end
 
 local function setTooltip(owner, text)
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    local tooltip = ns.UI.Widgets.GetTooltip()
+    if not tooltip then
+        return
+    end
+
+    tooltip:SetOwner(owner, "ANCHOR_RIGHT")
     text = tostring(text or "")
 
     local lines = {}
@@ -17,17 +22,17 @@ local function setTooltip(owner, text)
     end
 
     if #lines == 0 then
-        GameTooltip:SetText("")
-        GameTooltip:Show()
+        tooltip:SetText("")
+        tooltip:Show()
         return
     end
 
-    GameTooltip:SetText(lines[1])
+    tooltip:SetText(lines[1])
     for index = 2, #lines do
-        GameTooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
+        tooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
     end
-    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-    GameTooltip:Show()
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
 end
 
 local function openQuestFromLink(link)
@@ -257,7 +262,7 @@ function QuestPanel:Create(parent)
     refreshButton:SetScript("OnEnter", function(currentButton)
         setTooltip(currentButton, ns.L("quest_refresh_tooltip"))
     end)
-    refreshButton:SetScript("OnLeave", GameTooltip_Hide)
+    refreshButton:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     safeCleanupButton:SetScript("OnClick", function()
         ns.Modules.QuestManager:RequestSafeCleanup({
@@ -276,7 +281,7 @@ function QuestPanel:Create(parent)
     safeCleanupButton:SetScript("OnEnter", function(currentButton)
         setTooltip(currentButton, ns.L("quest_safe_cleanup_tooltip"))
     end)
-    safeCleanupButton:SetScript("OnLeave", GameTooltip_Hide)
+    safeCleanupButton:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     abandonAllButton:SetScript("OnClick", function()
         ns.Modules.QuestManager:RequestAbandonAll({
@@ -295,7 +300,7 @@ function QuestPanel:Create(parent)
     abandonAllButton:SetScript("OnEnter", function(currentButton)
         setTooltip(currentButton, ns.L("quest_abandon_all_tooltip"))
     end)
-    abandonAllButton:SetScript("OnLeave", GameTooltip_Hide)
+    abandonAllButton:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     -- 탭 전환 시(OnShow) 강제 갱신: 숨겨진 상태에서 건너뛴 스캔을 보완
     frame:SetScript("OnShow", function()

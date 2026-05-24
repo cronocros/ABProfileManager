@@ -97,6 +97,131 @@ local function getQualityColor(itemQuality)
     return QC[effectiveQ] or QC[4], effectiveQ
 end
 
+local function getBISTooltip()
+    if BISOverlay._hoverTooltip then
+        return BISOverlay._hoverTooltip
+    end
+    if not CreateFrame or not UIParent then
+        return nil
+    end
+
+    local tooltip = CreateFrame("GameTooltip", "ABProfileManagerBISTooltip", UIParent, "GameTooltipTemplate")
+    tooltip:SetFrameStrata("TOOLTIP")
+    BISOverlay._hoverTooltip = tooltip
+    return tooltip
+end
+
+local function hideBISTooltip()
+    local tooltip = BISOverlay and BISOverlay._hoverTooltip
+    if tooltip and tooltip.Hide then
+        tooltip:Hide()
+    end
+end
+
+local function safeTooltipString(value)
+    if value == nil then
+        return nil
+    end
+
+    local ok, text = pcall(string.format, "%s", value)
+    if not ok or type(text) ~= "string" or text == "" then
+        return nil
+    end
+    return text
+end
+
+local function getTooltipDataField(data, key)
+    if type(data) ~= "table" then
+        return nil, false
+    end
+
+    local ok, value = pcall(function()
+        return data[key]
+    end)
+    if not ok then
+        return nil, true
+    end
+    return value, false
+end
+
+local function tooltipLineHasField(line, key)
+    local value, blocked = getTooltipDataField(line, key)
+    if blocked then
+        return true
+    end
+
+    local ok, hasValue = pcall(function()
+        return value ~= nil
+    end)
+    return (not ok) or hasValue
+end
+
+local function isTooltipMoneyLine(line)
+    if type(line) ~= "table" then
+        return true
+    end
+
+    local lineType, blocked = getTooltipDataField(line, "type")
+    if blocked then
+        return true
+    end
+
+    local sellPriceType = Enum
+        and Enum.TooltipDataLineType
+        and Enum.TooltipDataLineType.SellPrice
+        or nil
+    if sellPriceType ~= nil then
+        local ok, isSellPrice = pcall(function()
+            return lineType == sellPriceType
+        end)
+        if not ok or isSellPrice then
+            return true
+        end
+    end
+
+    for _, key in ipairs({ "price", "money", "coinage", "currencyID" }) do
+        if tooltipLineHasField(line, key) then
+            return true
+        end
+    end
+
+    local leftText = safeTooltipString(getTooltipDataField(line, "leftText"))
+        or safeTooltipString(getTooltipDataField(line, "text"))
+    local sellPriceLabel = type(SELL_PRICE) == "string" and SELL_PRICE or nil
+    return leftText == "Sell Price" or leftText == "판매 가격" or (sellPriceLabel and leftText == sellPriceLabel) or false
+end
+
+local function renderTooltipDataWithoutMoney(tooltip, tooltipData, itemQuality)
+    local lines = getTooltipDataField(tooltipData, "lines")
+    if not tooltip or type(tooltipData) ~= "table" or type(lines) ~= "table" then
+        return false
+    end
+
+    tooltip:ClearLines()
+    local qc = getQualityColor(itemQuality)
+    local rendered = 0
+
+    for _, line in ipairs(lines) do
+        if type(line) == "table" and not isTooltipMoneyLine(line) then
+            local leftText = safeTooltipString(getTooltipDataField(line, "leftText"))
+                or safeTooltipString(getTooltipDataField(line, "text"))
+            local rightText = safeTooltipString(getTooltipDataField(line, "rightText"))
+            if leftText or rightText then
+                rendered = rendered + 1
+                if rightText and tooltip.AddDoubleLine then
+                    local r, g, b = rendered == 1 and qc[1] or 0.90, rendered == 1 and qc[2] or 0.90, rendered == 1 and qc[3] or 0.90
+                    pcall(tooltip.AddDoubleLine, tooltip, leftText or " ", rightText, r, g, b, 0.90, 0.90, 0.90)
+                else
+                    local r, g, b = rendered == 1 and qc[1] or 0.90, rendered == 1 and qc[2] or 0.90, rendered == 1 and qc[3] or 0.90
+                    pcall(tooltip.AddLine, tooltip, leftText or rightText or " ", r, g, b, true)
+                end
+            end
+        end
+    end
+
+    return rendered > 0 and tooltip:NumLines() > 0
+end
+
 local SLOT_ORDER = {
     "무기", "보조장비", "방패", "머리", "목", "어깨", "망토", "가슴",
     "손목", "손", "허리", "다리", "발", "반지", "장신구",
@@ -1483,18 +1608,22 @@ local function extractTooltipItemLevel(tooltipData)
         return nil
     end
 
-    local overrideItemLevel = tonumber(tooltipData.overrideItemLevel)
+    local overrideItemLevel = tonumber(safeTooltipString(getTooltipDataField(tooltipData, "overrideItemLevel")))
     if overrideItemLevel and overrideItemLevel > 0 then
         return math.floor(overrideItemLevel + 0.5)
     end
 
-    for _, line in ipairs(tooltipData.lines or {}) do
-        for _, field in ipairs({ line.leftText, line.rightText, line.text }) do
-            local text = tostring(field or "")
-            local normalized = normalizeCompareText(text)
-            if normalized ~= "" and normalized:find(ITEM_LEVEL_TOKEN, 1, true) then
-                local itemLevel = tonumber(text:match("(%d+)"))
-                if itemLevel then
+    local lines = getTooltipDataField(tooltipData, "lines")
+    for _, line in ipairs(type(lines) == "table" and lines or {}) do
+        for _, key in ipairs({ "leftText", "rightText", "text" }) do
+            local field = getTooltipDataField(line, key)
+            local text = safeTooltipString(field)
+            local ok, normalized = pcall(normalizeCompareText, text or "")
+            if ok and normalized ~= "" and normalized:find(ITEM_LEVEL_TOKEN, 1, true) then
+                local matchOk, itemLevel = pcall(function()
+                    return tonumber((text or ""):match("(%d+)"))
+                end)
+                if matchOk and itemLevel then
                     return itemLevel
                 end
             end
@@ -1991,18 +2120,21 @@ function BISOverlay:EnsureFrame()
             return
         end
         button:SetScript("OnEnter", function(self2)
-            GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-            GameTooltip:ClearLines()
-            GameTooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
+            local tooltip = ns.UI.Widgets.GetTooltip()
+            if not tooltip then
+                return
+            end
+
+            tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+            tooltip:ClearLines()
+            tooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
             local body = type(bodyProvider) == "function" and bodyProvider() or bodyProvider
             if body and body ~= "" then
-                GameTooltip:AddLine(body, 0.90, 0.92, 0.98, true)
+                tooltip:AddLine(body, 0.90, 0.92, 0.98, true)
             end
-            GameTooltip:Show()
+            tooltip:Show()
         end)
-        button:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
+        button:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
     end
 
     local itemTooltipBtn = CreateFrame("Button", nil, frame, "BackdropTemplate")
@@ -2045,15 +2177,18 @@ function BISOverlay:EnsureFrame()
     itemTooltipBtn.label:SetJustifyH("LEFT")
     itemTooltipBtn.label:SetJustifyV("MIDDLE")
     itemTooltipBtn:SetScript("OnEnter", function(self2)
-        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-        GameTooltip:SetText(ns.L("bis_overlay_item_tooltip"), 1, 1, 1, 1, true)
-        GameTooltip:AddLine(ns.L("bis_overlay_item_tooltip_hint"), 0.70, 0.78, 0.90, true)
-        ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-        GameTooltip:Show()
+        local tooltip = ns.UI.Widgets.GetTooltip()
+        if not tooltip then
+            return
+        end
+
+        tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        tooltip:SetText(ns.L("bis_overlay_item_tooltip"), 1, 1, 1, 1, true)
+        tooltip:AddLine(ns.L("bis_overlay_item_tooltip_hint"), 0.70, 0.78, 0.90, true)
+        ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+        tooltip:Show()
     end)
-    itemTooltipBtn:SetScript("OnLeave", function()
-        GameTooltip:Hide()
-    end)
+    itemTooltipBtn:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
     local function updateBISItemTooltipVisual()
         local enabled = isOverlayItemTooltipEnabled()
         itemTooltipBtn.label:SetText(ns.L("bis_overlay_item_tooltip"))
@@ -2212,14 +2347,19 @@ function BISOverlay:EnsureFrame()
     frame.specPickerBtn.arrow:SetText("v")
     frame.specPickerBtn.arrow:SetTextColor(0.78, 0.80, 0.92, 1)
     frame.specPickerBtn:SetScript("OnEnter", function(self2)
-        GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-        GameTooltip:SetText(ns.L("bis_all_specs"), 1, 1, 1, 1, true)
-        GameTooltip:AddLine(ns.L("bis_all_specs_hint"), 0.70, 0.78, 0.90, true)
-        GameTooltip:Show()
+        local tooltip = ns.UI.Widgets.GetTooltip()
+        if not tooltip then
+            return
+        end
+
+        tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        tooltip:SetText(ns.L("bis_all_specs"), 1, 1, 1, 1, true)
+        tooltip:AddLine(ns.L("bis_all_specs_hint"), 0.70, 0.78, 0.90, true)
+        tooltip:Show()
     end)
     frame.specPickerBtn:SetScript("OnLeave", function()
         if not (frame.specPicker and frame.specPicker:IsShown()) then
-            GameTooltip:Hide()
+            ns.UI.Widgets.HideTooltip()
         end
     end)
 
@@ -2626,11 +2766,16 @@ function BISOverlay:EnsureTabs()
         tab.specName = spec.name
 
         tab:SetScript("OnEnter", function(self2)
-            GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-            GameTooltip:SetText(spec.name, 1, 1, 1, 1, true)
-            GameTooltip:Show()
+            local tooltip = ns.UI.Widgets.GetTooltip()
+            if not tooltip then
+                return
+            end
+
+            tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+            tooltip:SetText(spec.name, 1, 1, 1, 1, true)
+            tooltip:Show()
         end)
-        tab:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        tab:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
         tab:SetScript("OnClick", function()
             BISOverlay.selectedSpecID = spec.specID
             BISOverlay:UpdateTabHighlight()
@@ -2760,10 +2905,218 @@ local function isValidTooltipLinkForSource(link, sourceType)
     return isValidPreviewItemLevel(sourceType, itemLevel)
 end
 
-local function showSeasonItemTooltip(owner, row)
+local showSeasonItemTooltip
+
+local BIS_STAT_LABELS = {
+    ITEM_MOD_STRENGTH_SHORT = "힘",
+    ITEM_MOD_AGILITY_SHORT = "민첩",
+    ITEM_MOD_INTELLECT_SHORT = "지능",
+    ITEM_MOD_STAMINA_SHORT = "체력",
+    ITEM_MOD_CRIT_RATING_SHORT = "치명타",
+    ITEM_MOD_HASTE_RATING_SHORT = "가속",
+    ITEM_MOD_MASTERY_RATING_SHORT = "특화",
+    ITEM_MOD_VERSATILITY = "유연",
+    ITEM_MOD_VERSATILITY_RATING_SHORT = "유연",
+}
+
+local BIS_PRIMARY_STAT_ORDER = {
+    "ITEM_MOD_STRENGTH_SHORT",
+    "ITEM_MOD_AGILITY_SHORT",
+    "ITEM_MOD_INTELLECT_SHORT",
+}
+
+local BIS_SECONDARY_STAT_ORDER = {
+    "ITEM_MOD_CRIT_RATING_SHORT",
+    "ITEM_MOD_HASTE_RATING_SHORT",
+    "ITEM_MOD_MASTERY_RATING_SHORT",
+    "ITEM_MOD_VERSATILITY",
+    "ITEM_MOD_VERSATILITY_RATING_SHORT",
+}
+
+local function buildRewardLabel(profile)
+    local source = profile and profile.sourceLabel or "쐐기"
+    local track = profile and (profile.upgradeTrackKo or profile.upgradeTrack) or "알 수 없음"
+    local rank = profile and profile.upgradeRank or ""
+    local ilvl = profile and profile.itemLevel or "?"
+    local context = profile and profile.rewardContextLabel or "획득처 미상"
+    local key = profile and profile.minKeystoneLevel and ("M+" .. tostring(profile.minKeystoneLevel) .. " 이상") or nil
+
+    if key then
+        return string.format("%s %s 트랙 %s · %s · %s · %s", source, track, rank, tostring(ilvl), context, key)
+    end
+    return string.format("%s %s 트랙 %s · %s · %s", source, track, rank, tostring(ilvl), context)
+end
+
+local function isMythTrack(profile)
+    return profile and profile.upgradeTrack == "Myth"
+end
+
+local function getDefaultRewardProfilesForEntry(entry)
+    local sourceType = getEntrySourceType(entry)
+    if sourceType == "mythicplus" then
+        local profiles = ns.Data and ns.Data.BISRewardProfiles and ns.Data.BISRewardProfiles.mythicplus
+        return profiles
+    end
+    return nil
+end
+
+local function getRewardProfilesForEntry(entry)
+    if entry and type(entry.rewardProfiles) == "table" then
+        return entry.rewardProfiles
+    end
+    return getDefaultRewardProfilesForEntry(entry)
+end
+
+local function requestRewardProfileItemLoad(itemInfo, owner, row)
+    if type(itemInfo) ~= "string" or itemInfo == "" or not Item or not Item.CreateFromItemLink then
+        return
+    end
+    local ok, item = pcall(Item.CreateFromItemLink, Item, itemInfo)
+    if not ok or not item or not item.ContinueOnItemLoad then
+        return
+    end
+    item:ContinueOnItemLoad(function()
+        local tooltip = getBISTooltip()
+        if tooltip and owner and tooltip:IsOwned(owner) then
+            showSeasonItemTooltip(owner, row)
+        end
+    end)
+end
+
+local function getFullItemInfoForProfile(profile)
+    if type(profile) ~= "table" then
+        return nil
+    end
+    if type(profile.itemLink) == "string" and profile.itemLink ~= "" then
+        return profile.itemLink
+    end
+    if type(profile.itemString) == "string" and profile.itemString ~= "" then
+        return profile.itemString
+    end
+    return nil
+end
+
+local function getDetailedItemLevelFromFullInfo(itemInfo)
+    if not itemInfo or not C_Item or not C_Item.GetDetailedItemLevelInfo then
+        return nil
+    end
+    local ok, effectiveItemLevel = pcall(C_Item.GetDetailedItemLevelInfo, itemInfo)
+    if ok and effectiveItemLevel then
+        return effectiveItemLevel
+    end
+    return nil
+end
+
+local function getItemStatsFromFullInfo(itemInfo)
+    if not itemInfo or not C_Item or not C_Item.GetItemStats then
+        return nil
+    end
+    local ok, stats = pcall(C_Item.GetItemStats, itemInfo)
+    if ok and type(stats) == "table" then
+        return stats
+    end
+    return nil
+end
+
+local function addRewardStatLine(tooltip, stats, statKey, prefix)
+    local value = stats and tonumber(stats[statKey])
+    if not value or value == 0 then
+        return false
+    end
+    tooltip:AddLine(string.format("%s%s +%d", prefix or "", BIS_STAT_LABELS[statKey] or statKey, value), 0.90, 0.92, 0.98, true)
+    return true
+end
+
+local function renderRewardProfileStats(tooltip, profile, owner, row)
+    local itemInfo = getFullItemInfoForProfile(profile)
+    if not itemInfo then
+        tooltip:AddLine("계산 기준: Base ItemID only", 1.00, 0.45, 0.35, true)
+        tooltip:AddLine("주의: 현재 데이터는 Base ItemID만 있음.", 1.00, 0.45, 0.35, true)
+        tooltip:AddLine("주의: 실제 트랙 스탯 표기에는 full itemString 또는 itemLink의 bonusID 정보가 필요함.", 1.00, 0.45, 0.35, true)
+        return
+    end
+
+    local effectiveItemLevel = getDetailedItemLevelFromFullInfo(itemInfo)
+    local stats = getItemStatsFromFullInfo(itemInfo)
+    if not effectiveItemLevel or not stats then
+        requestRewardProfileItemLoad(itemInfo, owner, row)
+        tooltip:AddLine("아이템 정보 로딩 중", 0.90, 0.82, 0.42, true)
+        tooltip:AddLine("계산 기준: full itemLink/itemString + bonusID 사용", 0.55, 0.85, 1.00, true)
+        return
+    end
+
+    tooltip:AddLine("실제 아이템 레벨: " .. tostring(effectiveItemLevel), 0.55, 0.85, 1.00, true)
+    tooltip:AddLine("실제 스탯:", 1.00, 0.82, 0.44, true)
+    for _, statKey in ipairs(BIS_PRIMARY_STAT_ORDER) do
+        addRewardStatLine(tooltip, stats, statKey, "- ")
+    end
+    addRewardStatLine(tooltip, stats, "ITEM_MOD_STAMINA_SHORT", "- ")
+    for _, statKey in ipairs(BIS_SECONDARY_STAT_ORDER) do
+        addRewardStatLine(tooltip, stats, statKey, "- ")
+    end
+    tooltip:AddLine("계산 기준: full itemLink/itemString + bonusID 사용", 0.55, 0.85, 1.00, true)
+end
+
+local function renderTrackFirstBISTooltip(tooltip, owner, row)
+    if not tooltip or not row or not row._entry or not row.itemID or row.itemID <= 0 then
+        return false
+    end
+
+    local entry = row._entry
+    local profiles = getRewardProfilesForEntry(entry)
+    local sourceType = getEntrySourceType(entry)
+    if sourceType ~= "mythicplus" or type(profiles) ~= "table" then
+        return false
+    end
+
+    local displayName = getEntryLocalizedName(entry) or ("Item #" .. tostring(row.itemID))
+    local qc = getQualityColor(getEntryQuality(entry))
+    tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
+    tooltip:ClearLines()
+    tooltip:AddLine(displayName, qc[1], qc[2], qc[3], true)
+    if entry.nameEnUS and entry.nameEnUS ~= displayName then
+        tooltip:AddLine(entry.nameEnUS, 0.82, 0.86, 0.94, true)
+    end
+    tooltip:AddLine("Base ItemID: " .. tostring(row.itemID), 0.78, 0.82, 0.90, true)
+    tooltip:AddLine("출처: 쐐기", 0.35, 0.78, 1.00, true)
+
+    for _, profileKey in ipairs({ "mplus_great_vault_voidcore", "mplus_end_of_dungeon" }) do
+        local profile = profiles[profileKey]
+        if type(profile) == "table" then
+            local trackLabel = (profile.upgradeTrackKo or profile.upgradeTrack or "알 수 없음") .. " 트랙 " .. (profile.upgradeRank or "")
+            tooltip:AddLine(" ")
+            tooltip:AddLine(buildRewardLabel(profile), isMythTrack(profile) and 1.00 or 0.72, isMythTrack(profile) and 0.28 or 0.35, isMythTrack(profile) and 0.28 or 1.00, true)
+            tooltip:AddLine("등급: " .. trackLabel, 0.96, 0.96, 0.96, true)
+            tooltip:AddLine("아이템 레벨: " .. tostring(profile.itemLevel or "?"), 0.96, 0.96, 0.96, true)
+            tooltip:AddLine("획득 컨텍스트: " .. tostring(profile.rewardContextLabel or "획득처 미상"), 0.90, 0.92, 0.98, true)
+            if profile.minKeystoneLevel then
+                tooltip:AddLine("요구 조건: M+" .. tostring(profile.minKeystoneLevel) .. " 이상", 0.90, 0.92, 0.98, true)
+            end
+            if profile.rewardContext == "end_of_dungeon" and profile.upgradeTrack == "Hero" then
+                tooltip:AddLine("주의: 이 아이템은 +10 보상이지만 신화 트랙이 아님.", 1.00, 0.68, 0.30, true)
+            end
+            renderRewardProfileStats(tooltip, profile, owner, row)
+        end
+    end
+
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
+    return true
+end
+
+showSeasonItemTooltip = function(owner, row)
     if not row or not row.itemID or row.itemID <= 0 then return end
 
+    local tooltip = getBISTooltip()
+    if not tooltip then
+        return
+    end
+
     local entry = row._entry or {}
+    if renderTrackFirstBISTooltip(tooltip, owner, row) then
+        return
+    end
+
     local function getTooltipFontColorRGB(fontColor, fallbackR, fallbackG, fallbackB)
         if type(fontColor) == "table" then
             if type(fontColor.GetRGB) == "function" then
@@ -2800,7 +3153,7 @@ local function showSeasonItemTooltip(owner, row)
         if valueText ~= "" then
             text = text .. " " .. wrapTooltipTextColor(valueText, vr or valueR, vg or valueG, vb or valueB)
         end
-        GameTooltip:AddLine(text, 1, 1, 1, true)
+        tooltip:AddLine(text, 1, 1, 1, true)
     end
 
     local function addTrackTooltipLine(label, value, grade)
@@ -2966,7 +3319,7 @@ local function showSeasonItemTooltip(owner, row)
         local noteIndex = row._displayNoteIndex or 3
         local sr, sg, sb = getSourceTypeColor(sourceType)
 
-        GameTooltip:AddLine(ns.L("bis_tooltip_current_season"), headerR, headerG, headerB, true)
+        tooltip:AddLine(ns.L("bis_tooltip_current_season"), headerR, headerG, headerB, true)
         addStyledTooltipLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot))
         appendSeasonTooltipDetails(sourceType, sr, sg, sb)
         addStyledTooltipLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType))
@@ -3053,26 +3406,25 @@ local function showSeasonItemTooltip(owner, row)
         local qc = getQualityColor(quality or getEntryQuality(entry))
         local fallbackSourceType
 
-        GameTooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
+        tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
+        tooltip:ClearLines()
+        tooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
         fallbackSourceType = appendSeasonTooltipMeta()
-        GameTooltip:AddLine(" ")
+        tooltip:AddLine(" ")
         appendSeasonTooltipRanges(fallbackSourceType)
         if fallbackSourceType == "mythicplus" or fallbackSourceType == "raid" then
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+            tooltip:AddLine(" ")
+            tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
         end
-        GameTooltip:Show()
+        tooltip:Show()
     end
 
-    local function tryShowTooltipHyperlink(link)
-        if not link or link == "" or not GameTooltip or not GameTooltip.SetHyperlink then
+    local function tryRenderTooltipHyperlink(link)
+        if type(link) ~= "string" or link == "" then
             return false
         end
-        GameTooltip:ClearLines()
-        local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
-        return ok and GameTooltip:NumLines() > 0
+        local tooltipData = getTooltipDataForHyperlink(link)
+        return renderTooltipDataWithoutMoney(tooltip, tooltipData, getEntryQuality(entry))
     end
 
     local function tryShowTooltipItemID(itemID, sourceType)
@@ -3080,11 +3432,11 @@ local function showSeasonItemTooltip(owner, row)
             return false
         end
         local _, itemLink = GetItemInfo(itemID)
-        if itemLink and isValidTooltipLinkForSource(itemLink, sourceType) and tryShowTooltipHyperlink(itemLink) then
+        if itemLink and isValidTooltipLinkForSource(itemLink, sourceType) and tryRenderTooltipHyperlink(itemLink) then
             return true
         end
         local bareLink = "item:" .. tostring(itemID)
-        if isValidTooltipLinkForSource(bareLink, sourceType) and tryShowTooltipHyperlink(bareLink) then
+        if isValidTooltipLinkForSource(bareLink, sourceType) and tryRenderTooltipHyperlink(bareLink) then
             return true
         end
         requestItemData(itemID)
@@ -3116,12 +3468,12 @@ local function showSeasonItemTooltip(owner, row)
         end
     end
 
-    GameTooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
+    tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
 
     local shown = false
     local previewLink = getValidPreviewTooltipLink(context, sourceType)
     if previewLink then
-        shown = tryShowTooltipHyperlink(previewLink)
+        shown = tryRenderTooltipHyperlink(previewLink)
     end
     if not shown then
         shown = tryShowTooltipItemID(row.itemID, sourceType)
@@ -3131,15 +3483,16 @@ local function showSeasonItemTooltip(owner, row)
         return
     end
 
-    GameTooltip:AddLine(" ")
+    tooltip:AddLine(" ")
     appendSeasonTooltipMeta()
-    GameTooltip:AddLine(" ")
+    tooltip:AddLine(" ")
     appendSeasonTooltipRanges(sourceType)
     if sourceType == "mythicplus" or sourceType == "raid" then
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+        tooltip:AddLine(" ")
+        tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end
-    GameTooltip:Show()
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
 end
 
 local function isCursorOverSourceColumn(button)
@@ -3239,7 +3592,7 @@ local function ensureRow(frame, index)
             showSeasonItemTooltip(self2, row)
         end
     end)
-    row.tooltipRegion:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    row.tooltipRegion:SetScript("OnLeave", hideBISTooltip)
 
     frame.rows[index] = row
     return row

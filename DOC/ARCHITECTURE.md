@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.7.1 기반)`
+버전 기준: `main (v1.7.4 기반)`
 
 ## 목적
 
@@ -17,6 +17,7 @@
 - 드랍템 레벨 참조 오버레이
 - BIS 추천 장비 카탈로그 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
+- Patch 12.0.5 기준 스탯 우선순위 표 팝업
 
 핵심 원칙:
 
@@ -26,6 +27,7 @@
 - 글자 크기 변경은 도메인별 typography 계층으로 통합한다.
 - 파괴적 작업은 확인창과 입력 검증을 우선한다.
 - BIS 런타임은 생성된 정적 카탈로그만 읽고, 열기 시점의 병합/정규화/웹 조회를 금지한다.
+- 애드온 hover 설명은 전용 tooltip frame을 사용하고, 전역 `GameTooltip:SetHyperlink()` 경로로 Blizzard money tooltip을 taint하지 않는다.
 
 ## 부트스트랩
 
@@ -105,9 +107,10 @@
   - 필터 적용 후 살아남은 후보를 기준으로 visible rank를 다시 계산
   - 첫 2개는 `1순위 / 2순위`, 이후는 `3순위+` 배지로 표기
   - `아이템명 / 드랍 출처 / 유형 / 우선순위` 중심 열 구성
+  - M+ 항목은 `rewardProfiles`로 던전 종료 / 위대한 금고·Voidcore 대표 보상 트랙과 템렙을 표시
   - `mythicplus`, `raid`만 가능한 경우 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
-  - 행 hover는 시즌 preview 기반 아이템 툴팁 경로 사용
+  - 행 hover는 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트를 전용 tooltip에 수동 렌더링하고, money/currency/sell-price line은 제외
   - `GET_ITEM_INFO_RECEIVED`는 전체 rebuild 대신 visible row patch만 수행
   - 헤더 마우스 휠로 0.5~2.0배 스케일 조절
   - 위치 / 스케일 / 접기 상태를 저장하고 재오픈 시 복원
@@ -129,13 +132,17 @@
 - `Data/SilvermoonMapData.lua`
   - 한밤(Midnight) 지도 라벨 정의
 - `Data/StatPriorities.lua`
-  - 특성별 일반 PvE 우선순위
+  - 스탯 오버레이 한 줄 표시용 일반 PvE 우선순위
+- `Data/StatPriorityTable.lua`
+  - 메인 창 `스탯 우선순위 표` 팝업이 표시하는 Patch 12.0.5 기준 40개 전문화 표
+  - 영웅 특성, 콘텐츠, 단일/광역 분기 문구와 현재 전문화 매칭용 specID map 포함
 - `Data/ItemLevelTable.lua`
   - 컨텐츠별 드랍 아이템 레벨 테이블
+  - `ns.Data.BISRewardProfiles`로 BIS row가 참조할 대표 보상 트랙 정의
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 카탈로그
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
-  - `dungeon / boss / profession / catalyst` 등 source detail과 locale별 표기를 함께 저장
+  - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
 - `Data/BISData_Method.lua`
   - Wowhead `current Overall BiS` seed 입력
 - `Data/BISData.lua`
@@ -147,11 +154,15 @@
 - `scripts/build_bis_catalog.py`
   - `DOC` seed와 Wowhead/Wago DB2 검증 데이터를 합쳐 `Data/BISCatalog.lua`를 생성
   - dungeon/source alias canonicalization, locale 누수 검사, itemID 검증을 포함
+- `scripts/validate_bis_reward_profiles.py`
+  - M+ BIS row가 유효한 보상 프로필 key를 참조하는지 검증
 
 ## UI 계층
 
 - `UI/MainWindow.lua`
   - 메인 프레임과 탭 전환
+- `UI/Widgets.lua`
+  - 공통 위젯 헬퍼와 애드온 전용 tooltip frame(`Widgets.GetTooltip`, `Widgets.HideTooltip`) 제공
 - `UI/ProfilePanel.lua`
   - 현재 캐릭터, 템플릿 목록, 템플릿 작업
 - `UI/ActionBarPanel.lua`
@@ -170,6 +181,8 @@
   - 도메인별 글자 크기 보정과 tooltip 폰트 재적용
 - `UI/StatsOverlay.lua`
   - 캐릭터 스탯 오버레이
+- `UI/StatPriorityDialog.lua`
+  - Patch 12.0.5 기준 직업/전문화별 스탯 우선순위 표 팝업
 - `UI/ProfessionKnowledgeOverlay.lua`
   - profession 포인트 오버레이
 - `UI/SilvermoonMapOverlay.lua`
@@ -227,11 +240,16 @@
 - slot grouping과 정렬 키는 생성 시점에 최대한 고정
 - locale 선택은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 우선 사용하고, legacy `boss/source` 값은 런타임 alias 정규화로 마지막 누수를 막는다
 - `GET_ITEM_INFO_RECEIVED`는 icon/quality/item hyperlink 보정이 필요한 visible row만 patch
+- BIS hover tooltip은 전역 `GameTooltip:SetHyperlink()`를 호출하지 않고, tooltipData line을 수동 렌더링한다
+- money/currency/sell-price line은 렌더링하지 않는다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 
 ## 회귀 포인트
 
 - BIS 필터 on/off 후 visible rank가 기대대로 다시 계산되는지
 - `레이드 off + 쐐기만 on`에서 쐐기 드랍템과 인던명이 남는지
+- M+ BIS row에 던전 종료 / 위대한 금고 보상 트랙과 템렙 안내가 표시되는지
 - `제작 + 티어만 on`에서 Encounter Journal 잘못 랜딩이 없는지
+- BIS hover 뒤 액션바 / 모험 안내서 / Pawn item tooltip에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지
 - `koKR`에서 영어 누수, `enUS`에서 한글 누수가 없는지
 - 스크롤 thumb, 마지막 열 가림, 저장 위치/스케일, 접힘 상태 복원이 유지되는지
+- `스탯 우선순위 표` 버튼, 현재 전문화 강조, 긴 분기 문구 줄바꿈이 유지되는지

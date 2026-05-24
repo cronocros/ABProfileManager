@@ -72,20 +72,21 @@ local function attachHeaderButtonTooltip(button, titleKey, bodyProvider)
     end
 
     button:SetScript("OnEnter", function(currentButton)
-        if not GameTooltip then
+        local tooltip = ns.UI.Widgets.GetTooltip()
+        if not tooltip then
             return
         end
 
-        GameTooltip:SetOwner(currentButton, "ANCHOR_BOTTOM")
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
+        tooltip:SetOwner(currentButton, "ANCHOR_BOTTOM")
+        tooltip:ClearLines()
+        tooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
         local body = type(bodyProvider) == "function" and bodyProvider() or bodyProvider
         if body and body ~= "" then
-            GameTooltip:AddLine(body, 0.90, 0.92, 0.98, true)
+            tooltip:AddLine(body, 0.90, 0.92, 0.98, true)
         end
-        GameTooltip:Show()
+        tooltip:Show()
     end)
-    button:HookScript("OnLeave", GameTooltip_Hide)
+    button:HookScript("OnLeave", ns.UI.Widgets.HideTooltip)
 end
 
 local function createHeaderGlyphButton(parent, text)
@@ -515,24 +516,25 @@ local function getWaypointMapName(mapID)
 end
 
 local function showRowTooltip(owner, lines)
-    if not GameTooltip or type(lines) ~= "table" or #lines == 0 then
+    local tooltip = ns.UI.Widgets.GetTooltip()
+    if not tooltip or type(lines) ~= "table" or #lines == 0 then
         return
     end
 
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-    if GameTooltip.SetMinimumWidth then
-        GameTooltip:SetMinimumWidth(TOOLTIP_MIN_WIDTH)
+    tooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    if tooltip.SetMinimumWidth then
+        tooltip:SetMinimumWidth(TOOLTIP_MIN_WIDTH)
     end
-    GameTooltip:SetText(lines[1], 1, 0.86, 0.40)
+    tooltip:SetText(lines[1], 1, 0.86, 0.40)
     for index = 2, #lines do
         local line = lines[index]
         if line == "" then
-            GameTooltip:AddLine(" ")
+            tooltip:AddLine(" ")
         elseif type(line) == "table" then
             local color = line.color or TOOLTIP_COLORS.body
-            GameTooltip:AddLine(line.text or "", color[1], color[2], color[3], line.wrap ~= false)
+            tooltip:AddLine(line.text or "", color[1], color[2], color[3], line.wrap ~= false)
         else
-            GameTooltip:AddLine(line, 0.92, 0.92, 0.88, true)
+            tooltip:AddLine(line, 0.92, 0.92, 0.88, true)
         end
     end
     local headerSize = 13
@@ -541,9 +543,9 @@ local function showRowTooltip(owner, lines)
         headerSize = ns.UI.Typography:GetSize(13, { domain = "tooltip", minSize = 9, maxSize = 28 })
         bodySize = ns.UI.Typography:GetSize(12, { domain = "tooltip", minSize = 9, maxSize = 28 })
     end
-    if GameTooltip.GetName then
-        local tooltipName = GameTooltip:GetName()
-        for index = 1, GameTooltip:NumLines() do
+    if tooltip.GetName then
+        local tooltipName = tooltip:GetName()
+        for index = 1, tooltip:NumLines() do
             local left = _G[tooltipName .. "TextLeft" .. index]
             local right = _G[tooltipName .. "TextRight" .. index]
             if left and left.SetFont then
@@ -554,7 +556,7 @@ local function showRowTooltip(owner, lines)
             end
         end
     end
-    GameTooltip:Show()
+    tooltip:Show()
 end
 
 local function isCursorInsideBounds(left, right, top, bottom, scale)
@@ -974,7 +976,7 @@ function ProfessionKnowledgeOverlay:CreateRow()
         end
     end)
     row:SetScript("OnLeave", function()
-        GameTooltip_Hide()
+        ns.UI.Widgets.HideTooltip()
         self:QueueHideHoverPanel()
     end)
     row:SetScript("OnMouseUp", function(currentRow, button)
@@ -986,7 +988,7 @@ function ProfessionKnowledgeOverlay:CreateRow()
             return
         end
 
-        GameTooltip_Hide()
+        ns.UI.Widgets.HideTooltip()
         self:ShowHoverPanel(currentRow)
     end)
 

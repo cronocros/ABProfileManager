@@ -43,7 +43,12 @@ local function getValidTemplateSelection()
 end
 
 local function setTooltip(owner, text)
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    local tooltip = ns.UI.Widgets.GetTooltip()
+    if not tooltip then
+        return
+    end
+
+    tooltip:SetOwner(owner, "ANCHOR_RIGHT")
     text = tostring(text or "")
 
     local lines = {}
@@ -52,17 +57,17 @@ local function setTooltip(owner, text)
     end
 
     if #lines == 0 then
-        GameTooltip:SetText("")
-        GameTooltip:Show()
+        tooltip:SetText("")
+        tooltip:Show()
         return
     end
 
-    GameTooltip:SetText(lines[1])
+    tooltip:SetText(lines[1])
     for index = 2, #lines do
-        GameTooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
+        tooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
     end
-    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-    GameTooltip:Show()
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
 end
 
 function ActionBarPanel:WriteSelectionToInputs()
@@ -304,7 +309,7 @@ function ActionBarPanel:BindSyncHelp(button, actionKey, showStatusOnClick)
     button:SetScript("OnEnter", function(currentButton)
         setTooltip(currentButton, self:BuildSyncHelpText(actionKey, self:GetSelectionForHelp(), false))
     end)
-    button:SetScript("OnLeave", GameTooltip_Hide)
+    button:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     if showStatusOnClick then
         local originalOnClick = button:GetScript("OnClick")
@@ -701,7 +706,7 @@ function ActionBarPanel:Create(parent)
     clearGhostsButton:SetScript("OnEnter", function(currentButton)
         setTooltip(currentButton, ns.L("ghost_clear_all_tip"))
     end)
-    clearGhostsButton:SetScript("OnLeave", GameTooltip_Hide)
+    clearGhostsButton:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
     clearGhostsButton:SetScript("OnClick", function()
         local applier = ns.Modules and ns.Modules.ActionBarApplier
         if not applier or type(applier.DismissAllPendingGhosts) ~= "function" then

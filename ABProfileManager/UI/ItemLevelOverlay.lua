@@ -656,18 +656,21 @@ function ItemLevelOverlay:EnsureFrame()
             return
         end
         button:SetScript("OnEnter", function(self2)
-            GameTooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-            GameTooltip:ClearLines()
-            GameTooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
+            local tooltip = ns.UI.Widgets.GetTooltip()
+            if not tooltip then
+                return
+            end
+
+            tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+            tooltip:ClearLines()
+            tooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
             local body = type(bodyProvider) == "function" and bodyProvider() or bodyProvider
             if body and body ~= "" then
-                GameTooltip:AddLine(body, 0.90, 0.92, 0.98, true)
+                tooltip:AddLine(body, 0.90, 0.92, 0.98, true)
             end
-            GameTooltip:Show()
+            tooltip:Show()
         end)
-        button:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
+        button:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
     end
 
     local toggleBtn = CreateFrame("Button", nil, frame)

@@ -1,6 +1,6 @@
 # ABProfileManager Security Review
 
-검토 기준일: `2026-04-18`
+검토 기준일: `2026-05-25`
 
 ## 범위
 
@@ -12,6 +12,7 @@
 - BIS 추천 장비 카탈로그 오버레이
 - 드랍템 레벨 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
+- 스탯 우선순위 표 팝업
 - 선택적 TomTom 연동
 
 ## 결론
@@ -24,6 +25,7 @@
 - 외부 네트워크 전송 없음
 - import는 코드 실행이 아니라 데이터 파싱 방식
 - 지도/BIS/드랍 오버레이는 로컬 정적 데이터와 Blizzard API 조회만 사용
+- hover 설명은 애드온 전용 tooltip frame을 사용하며, 전역 `GameTooltip:SetHyperlink()`로 Blizzard money tooltip을 직접 열지 않음
 - TomTom 연동은 선택적 로컬 애드온 호출뿐이며, 미설치 시 fail-safe로 빠짐
 
 ## 주요 안전장치
@@ -62,7 +64,23 @@
 - locale 문자열은 생성 시점에 `koKR/enUS`로 분리 저장되며, 게임 안에서는 해당 locale 필드만 노출한다
 - `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도하고, `crafted`, `tier`는 랜딩 대상에서 제외한다
 - 아이템 캐시 수신 시 visible row만 갱신하고 전체 rebuild를 피하도록 보수적으로 조정했다
+- BIS hover preview는 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트만 전용 tooltip에 렌더링한다
+- 판매가, 화폐, money line은 렌더링하지 않아 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
+- 전역 `GameTooltip:SetHyperlink()` 직접 호출을 금지해 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - `BISData_Method.lua`, `BISData.lua`, `scripts/build_bis_catalog.py`는 릴리스 준비용 repo 도구이며 게임 런타임에 포함된 실행 경로가 아니다
+
+### 공통 tooltip / secret-number 방어
+
+- `UI/Widgets.lua`의 `Widgets.GetTooltip()` / `Widgets.HideTooltip()`가 ABPM 자체 hover 설명용 전용 tooltip frame을 관리한다
+- 액션바 패널, 전문기술 UI, 지도/스탯/BIS/드랍 오버레이 등 ABPM UI hover는 이 전용 frame을 사용한다
+- WoW 12.0.5+의 secret-number 값은 `Utils.SafeNumber()`와 개별 `pcall` 보호 경로를 통해 필요한 곳에서만 숫자로 정규화한다
+- `ns:SafeCall(...)`은 모듈 refresh/이벤트 진입점의 예외를 `pcall`로 감싸, 일시적 taint 오류가 전체 UI 오류창으로 번지는 것을 줄인다
+
+### 스탯 우선순위 표
+
+- `Data/StatPriorityTable.lua`의 정적 문자열/숫자 데이터만 표시한다
+- 외부 입력, 네트워크 조회, 동적 코드 실행 경로가 없다
+- 현재 전문화 강조는 Blizzard specialization ID 조회 결과와 정적 specID map 비교만 사용한다
 
 ### 드랍템 레벨 / 시즌 최고기록 오버레이
 

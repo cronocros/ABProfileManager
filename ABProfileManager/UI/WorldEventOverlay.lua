@@ -297,25 +297,28 @@ function WorldEventOverlay:EnsureRow(index)
         local evt = r._event
         if not evt then return end
         local locStr = evt.locationKey and ns.L(evt.locationKey)
-        GameTooltip:SetOwner(r, "ANCHOR_TOPRIGHT")
-        GameTooltip:ClearLines()
-        GameTooltip:AddLine(ns.L(evt.labelKey) or evt.key, 1, 1, 1)
+        local tooltip = ns.UI.Widgets.GetTooltip()
+        if not tooltip then
+            return
+        end
+
+        tooltip:SetOwner(r, "ANCHOR_TOPRIGHT")
+        tooltip:ClearLines()
+        tooltip:AddLine(ns.L(evt.labelKey) or evt.key, 1, 1, 1)
         if locStr and locStr ~= evt.locationKey then
-            GameTooltip:AddLine(locStr, 0.80, 0.90, 1.00)
+            tooltip:AddLine(locStr, 0.80, 0.90, 1.00)
         end
         if r._state == "active" and ns.DB then
             local isDone = ns.DB:IsWorldEventCompleted(evt.key)
             if isDone then
-                GameTooltip:AddLine(ns.L("world_event_tooltip_unmark"), 0.65, 0.65, 0.65)
+                tooltip:AddLine(ns.L("world_event_tooltip_unmark"), 0.65, 0.65, 0.65)
             else
-                GameTooltip:AddLine(ns.L("world_event_tooltip_mark_done"), 0.65, 0.65, 0.65)
+                tooltip:AddLine(ns.L("world_event_tooltip_mark_done"), 0.65, 0.65, 0.65)
             end
         end
-        GameTooltip:Show()
+        tooltip:Show()
     end)
-    row:SetScript("OnLeave", function()
-        GameTooltip:Hide()
-    end)
+    row:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     -- 클릭: 완료/미완료 토글
     row:SetScript("OnClick", function(r)

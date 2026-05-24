@@ -63,28 +63,29 @@ local function applyText(fontString, size, r, g, b, wrap)
 end
 
 local function setTooltip(owner, text)
-    if not GameTooltip then
+    local tooltip = ns.UI.Widgets.GetTooltip()
+    if not tooltip then
         return
     end
 
-    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    tooltip:SetOwner(owner, "ANCHOR_RIGHT")
     local lines = {}
     for line in string.gmatch(tostring(text or ""), "([^\n]+)") do
         lines[#lines + 1] = line
     end
 
     if #lines == 0 then
-        GameTooltip:SetText("")
-        GameTooltip:Show()
+        tooltip:SetText("")
+        tooltip:Show()
         return
     end
 
-    GameTooltip:SetText(lines[1], 1, 0.86, 0.40)
+    tooltip:SetText(lines[1], 1, 0.86, 0.40)
     for index = 2, #lines do
-        GameTooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
+        tooltip:AddLine(lines[index], 0.9, 0.9, 0.88, true)
     end
-    ns.UI.Widgets.ApplyTooltip(GameTooltip, 13, 12)
-    GameTooltip:Show()
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    tooltip:Show()
 end
 
 local function buildRowTooltip(rowData)
@@ -143,7 +144,7 @@ function ProfessionPanel:CreateRow(parent, offsetY)
             setTooltip(currentRow, buildRowTooltip(currentRow.rowData))
         end
     end)
-    row:SetScript("OnLeave", GameTooltip_Hide)
+    row:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
 
     return row
 end

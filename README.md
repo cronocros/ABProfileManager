@@ -13,7 +13,7 @@
 - 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.4/ABProfileManager-v1.7.4.zip`
 - 로컬 패키지: `dist/ABProfileManager-v1.7.4.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.3.md](./DOC/releases/RELEASE_NOTES_v1.7.3.md)
+- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.4.md](./DOC/releases/RELEASE_NOTES_v1.7.4.md)
 - 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.4_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.4_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
@@ -25,16 +25,19 @@
 - 던전/레이드/M+/제작 드랍 아이템 레벨 표와 우측 `나의 문장 / 나의 열쇠` 패널 제공
 - 한밤 시즌 1 기준 전클래스/전특성 `쐐기 / 레이드 / 제작 / 티어` BIS 추천 장비 카탈로그 제공
 - 파티찾기 시즌 최고기록 던전 아이콘 위에 `평점 + 던전명` 오버레이 제공
+- Patch 12.0.5 기준 전클래스/전문화 `스탯 우선순위 표` 제공
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
 
-## v1.7.3 핵심 정리
+## v1.7.4 핵심 정리
 
-- 인던/존 진입 직후 스탯 오버레이의 부 능력치(치/가/특/유)가 0으로 묶이는 문제를 수정했습니다.
-  - `PLAYER_ENTERING_WORLD` / `ZONE_CHANGED_NEW_AREA` 시 캐시 signature를 강제 무효화하고, 짧은 후속 force refresh를 한 번 더 실행합니다.
-  - `BuildStateSignature`에 활성 player 버프 hash와 인스턴스 컨텍스트를 추가했습니다.
-- 장신구 사용효과 / 물약 / 외부 버프가 실시간으로 반영되도록 `UNIT_AURA` 디바운스를 0.45s → 0.15s로 단축했습니다.
-- 액션바 탭 동기화 영역 하단에 **`고스트 모두 제거`** 버튼을 추가했습니다. 잔여 고스트(사용 불가 표시) 마커를 한 번에 정리합니다.
-- WoW Patch 12.0.5 (한밤 .5, 2026-04-23 핫픽스) 기준으로 BIS 카탈로그 출처/보스/트링킷 우선순위를 재검증하고 보정했습니다.
+- 액션바 / 모험 안내서 / Pawn 비교 툴팁에서 발생할 수 있던 `MoneyFrame.lua secret number` taint 오류를 막았습니다.
+  - ABPM 내부 hover 설명은 전용 툴팁 프레임을 사용합니다.
+  - BIS 아이템 hover는 `GameTooltip:SetHyperlink()` 대신 `C_TooltipInfo.GetHyperlink()` 텍스트를 수동 렌더링하고 판매가 라인은 건너뜁니다.
+- 쐐기 BIS 항목에 던전 종료 / 위대한 금고 보상 트랙과 대표 아이템 레벨 안내를 추가했습니다.
+- 메인 창에 **`스탯 우선순위 표`** 버튼을 추가했습니다.
+  - Patch 12.0.5 기준 40개 전문화의 1차/2차 스탯 우선순위를 표시합니다.
+  - 영웅 특성, 레이드/쐐기, 단일/광역 분기가 있으면 표 안에 그대로 표시합니다.
+- v1.7.3의 스탯 오버레이 전투/인스턴스 안정화와 고스트 일괄 정리 변경은 그대로 포함됩니다.
 
 ## v1.7.0 핵심 정리
 
@@ -79,6 +82,7 @@
 - 캐릭터 스탯 오버레이
   - `캐릭터 직업 - 특성(아이템레벨)` 헤더
   - 치명/가속/특화/유연과 특성 우선순위 표시
+  - 메인 창 `스탯 우선순위 표`에서 40개 전문화 전체 우선순위 확인
   - 탱커 방어스탯(회피/반격/막기) 표시 여부 설정
   - 마우스 휠 스케일 조절과 저장
 - 퀘스트 정리
@@ -94,7 +98,7 @@
   - `아이템명 / 드랍 출처 / 유형 / 우선순위` 중심 렌더
   - `mythicplus`, `raid`는 가능할 때 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 랜딩하지 않음
-  - 아이템 hover 시 현재 시즌 preview 툴팁 표시
+  - 아이템 hover 시 전용 안전 툴팁으로 현재 시즌 preview 정보 표시
   - 커서 앵커 툴팁, 드랍처/보스 보강, 챔피언/영웅/신화 트랙 색상 요약
   - 마우스 휠 스케일 조절과 위치 저장/복원
 - 드랍 아이템 레벨 오버레이
@@ -157,6 +161,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 제작과 티어 항목은 Encounter Journal 랜딩 대상이 아닙니다.
 - `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 확정 전까지 안내서만 열리고 특정 던전으로 바로 이동하지 않을 수 있습니다.
 - BIS 아이템 캐시가 늦게 들어와도 전체 오버레이를 다시 그리지 않고, 보이는 행만 갱신하도록 조정되어 있습니다.
+- 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료`, `위대한 금고/Voidcore`)과 아이템 레벨을 함께 표시합니다.
+- BIS hover 툴팁은 전역 `GameTooltip:SetHyperlink()`를 직접 호출하지 않고, 안전한 전용 툴팁으로 텍스트 정보를 렌더링합니다.
 - 갱신 스크립트:
   - `scripts/refresh_wowhead_bis.py`
   - `scripts/refresh_wowhead_mplus_fallbacks.py`

@@ -67,6 +67,7 @@ local TAB_LOCALE_KEYS = {
     { field = "questsTab",     key = "tab_quests" },
     { field = "configTab",     key = "tab_config" },
     { field = "utilityTab",    key = "tab_utility" },
+    { field = "statPriorityButton", key = "stat_priority_button_label" },
 }
 
 function MainWindow:RefreshLocale()
@@ -203,6 +204,9 @@ function MainWindow:Initialize()
     local utilityTab = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth, 24)
     utilityTab:SetPoint("LEFT", configTab, "RIGHT", 8, 0)
 
+    local statPriorityButton = ns.UI.Widgets.CreateButton(tabContainer, "", tabWidth + 20, 24)
+    statPriorityButton:SetPoint("LEFT", utilityTab, "RIGHT", 12, 0)
+
     local content = CreateFrame("Frame", nil, frame)
     content:SetPoint("TOPLEFT", 16, -76)
     content:SetPoint("BOTTOMRIGHT", -16, 144)
@@ -257,6 +261,9 @@ function MainWindow:Initialize()
         showTab(frame, "utility")
         refreshCurrentTab(frame)
     end)
+    statPriorityButton:SetScript("OnClick", function()
+        ns:SafeCall(ns.UI.StatPriorityDialog, "Toggle")
+    end)
 
     frame.title = title
     frame.statusBox = statusBox
@@ -268,6 +275,7 @@ function MainWindow:Initialize()
     frame.questsTab = questsTab
     frame.configTab = configTab
     frame.utilityTab = utilityTab
+    frame.statPriorityButton = statPriorityButton
 
     showTab(frame, "profiles")
 

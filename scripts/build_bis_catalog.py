@@ -6,6 +6,7 @@ the DOC seed files, and localized Retail DB2 item metadata.
 
 from __future__ import annotations
 
+import argparse
 import csv
 import html
 import json
@@ -56,6 +57,100 @@ SPEC_NAMES = {
 SOURCE_GROUP_ORDER = {"mythicplus": 0, "raid": 1, "crafted": 2, "tier": 3}
 SOURCE_WEIGHT = {"overall": 100, "doc": 200, "fallback": 300}
 NOTE_WEIGHT = {"BIS": 0, "대체재": 10, "2순위": 20, "3순위": 30}
+
+SPEC_KEY_TO_ID = {
+    "MAGE_ARCANE": 62,
+    "MAGE_FIRE": 63,
+    "MAGE_FROST": 64,
+    "PALADIN_HOLY": 65,
+    "PALADIN_PROTECTION": 66,
+    "PALADIN_RETRIBUTION": 70,
+    "WARRIOR_ARMS": 71,
+    "WARRIOR_FURY": 72,
+    "WARRIOR_PROTECTION": 73,
+    "DRUID_BALANCE": 102,
+    "DRUID_FERAL": 103,
+    "DRUID_GUARDIAN": 104,
+    "DRUID_RESTORATION": 105,
+    "DEATHKNIGHT_BLOOD": 250,
+    "DEATHKNIGHT_FROST": 251,
+    "DEATHKNIGHT_UNHOLY": 252,
+    "HUNTER_BEAST_MASTERY": 253,
+    "HUNTER_MARKSMANSHIP": 254,
+    "HUNTER_SURVIVAL": 255,
+    "PRIEST_DISCIPLINE": 256,
+    "PRIEST_HOLY": 257,
+    "PRIEST_SHADOW": 258,
+    "ROGUE_ASSASSINATION": 259,
+    "ROGUE_OUTLAW": 260,
+    "ROGUE_SUBTLETY": 261,
+    "SHAMAN_ELEMENTAL": 262,
+    "SHAMAN_ENHANCEMENT": 263,
+    "SHAMAN_RESTORATION": 264,
+    "WARLOCK_AFFLICTION": 265,
+    "WARLOCK_DEMONOLOGY": 266,
+    "WARLOCK_DESTRUCTION": 267,
+    "MONK_BREWMASTER": 268,
+    "MONK_WINDWALKER": 269,
+    "MONK_MISTWEAVER": 270,
+    "DEMONHUNTER_HAVOC": 577,
+    "DEMONHUNTER_VENGEANCE": 581,
+    "DEMONHUNTER_DEVOURER": 1382,
+    "EVOKER_DEVASTATION": 1467,
+    "EVOKER_PRESERVATION": 1468,
+    "EVOKER_AUGMENTATION": 1473,
+}
+
+XLSX_SLOT_ALIASES = {
+    "cape": "망토",
+    "wrists": "손목",
+    "bracers alternative": "손목",
+    "main-hand": "무기",
+    "mainhand": "무기",
+    "pack leader main hand": "무기",
+    "off-hand": "보조장비",
+    "offhand": "보조장비",
+    "pack leader off-hand": "보조장비",
+    "ring 2": "반지",
+    "주장비": "무기",
+    "한손 무기": "무기",
+    "양손 무기": "무기",
+    "목걸이": "목",
+    "신발": "발",
+}
+
+MPLUS_REWARD_PROFILES = {
+    "mplus_end_of_dungeon": {
+        "source": "mythicplus",
+        "sourceLabel": "쐐기",
+        "rewardContext": "end_of_dungeon",
+        "rewardContextLabel": "던전 종료",
+        "minKeystoneLevel": 10,
+        "itemLevel": 266,
+        "upgradeTrack": "Hero",
+        "upgradeTrackKo": "영웅",
+        "upgradeRank": "3/6",
+        "displayLabel": "쐐기 영웅 트랙",
+        "fullLabel": "쐐기 영웅 트랙 3/6 · 266 · 던전 종료 · M+10 이상",
+        "itemString": None,
+        "itemLink": None,
+    },
+    "mplus_great_vault_voidcore": {
+        "source": "mythicplus",
+        "sourceLabel": "쐐기",
+        "rewardContext": "great_vault_voidcore",
+        "rewardContextLabel": "위대한 금고/Voidcore",
+        "minKeystoneLevel": 10,
+        "itemLevel": 272,
+        "upgradeTrack": "Myth",
+        "upgradeTrackKo": "신화",
+        "upgradeRank": "1/6",
+        "displayLabel": "쐐기 신화 트랙",
+        "fullLabel": "쐐기 신화 트랙 1/6 · 272 · 위대한 금고/Voidcore · M+10 이상",
+        "itemString": None,
+        "itemLink": None,
+    },
+}
 
 SPEC_HEADER_RE = re.compile(r"^\s*\[(\d+)\]\s*=\s*\{\s*$")
 OVERALL_ENTRY_RE = re.compile(
@@ -278,6 +373,12 @@ def clean_markdown(text: str) -> str:
     cleaned = re.sub(r"\[(.*?)\]\(.*?\)", r"\1", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned)
     return cleaned.strip(" -")
+
+
+def clean_xlsx_text(value: object) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", normalize_quotes(str(value)).replace("\xa0", " ")).strip()
 
 
 def lua_string(value: str) -> str:
@@ -756,6 +857,120 @@ def classify_existing_source(entry: Dict[str, object]) -> str:
     return "raid"
 
 
+def normalize_xlsx_slot(slot_value: object, meta_slot: object = "") -> str:
+    raw = clean_xlsx_text(slot_value)
+    key = normalize_quotes(raw).lower()
+    if raw in SLOT_HINTS and SLOT_HINTS[raw]:
+        return str(SLOT_HINTS[raw])
+    if raw in DOC_SLOT_PREFIXES:
+        return DOC_SLOT_PREFIXES[raw]
+    if key in XLSX_SLOT_ALIASES:
+        return XLSX_SLOT_ALIASES[key]
+    meta = clean_xlsx_text(meta_slot)
+    if meta:
+        return meta
+    return raw or "기타"
+
+
+def clean_raid_source_label(source_label: str) -> str:
+    label = clean_xlsx_text(source_label)
+    if not label:
+        return ""
+    label = re.sub(r"\s*\((?:Raid|레이드)\)\s*", "", label, flags=re.IGNORECASE)
+    label = label.replace(" and ", " & ")
+    for sep in (" in ", " - "):
+        if sep in label:
+            left, right = label.split(sep, 1)
+            if canonicalize_raid_source(right) or canonicalize_raid_source(label):
+                return left.strip()
+    return label.strip(" .")
+
+
+def infer_xlsx_source_group(source_type: str, source_label: str, item_id: int, legacy_lookup: Dict[int, str]) -> str:
+    source_type = clean_xlsx_text(source_type)
+    source_label = clean_xlsx_text(source_label)
+    normalized = normalize_key(source_label)
+
+    if source_type == "쐐기":
+        return "mythicplus"
+    if source_type == "제작":
+        return "crafted"
+    if "catalyst" in normalized or "tierset" in normalized or "티어" in normalized or normalized == normalize_key("Raid | Catalyst | Vault"):
+        return "tier"
+    if canonicalize_dungeon(source_label):
+        return "mythicplus"
+    if source_type == "레이드/티어":
+        return "raid"
+    if source_type in {"기타", "미지정", ""}:
+        if "raid" in normalized or canonicalize_raid_source(source_label):
+            return "raid"
+        legacy_group = legacy_lookup.get(item_id)
+        if legacy_group:
+            return legacy_group
+    return "raid"
+
+
+def normalize_xlsx_source_label(source_group: str, source_label: str) -> str:
+    label = clean_xlsx_text(source_label)
+    if source_group == "tier":
+        if "Catalyst" in label or "촉매" in label:
+            return "Catalyst"
+        return "Tier Set"
+    if source_group == "crafted":
+        return label or "Crafting"
+    if source_group == "raid":
+        return clean_raid_source_label(label) or "Raid"
+    return label
+
+
+def parse_xlsx_rows(path: Path) -> List[Dict[str, object]]:
+    try:
+        import openpyxl  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("openpyxl is required to import the BIS xlsx source") from exc
+
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    worksheet = workbook["Long_ID"]
+    header = [clean_xlsx_text(value) for value in next(worksheet.iter_rows(min_row=1, max_row=1, values_only=True))]
+    index = {name: idx for idx, name in enumerate(header)}
+    required = {
+        "스펙키", "기준", "부위", "아이템명(한국어)", "아이템명(영어)",
+        "출처", "출처유형", "Base ItemID",
+    }
+    missing = sorted(required - set(index))
+    if missing:
+        raise ValueError(f"xlsx Long_ID missing required columns: {missing}")
+
+    rows: List[Dict[str, object]] = []
+    for raw_row in worksheet.iter_rows(min_row=2, values_only=True):
+        if not any(value is not None for value in raw_row):
+            continue
+        spec_key = clean_xlsx_text(raw_row[index["스펙키"]])
+        if spec_key not in SPEC_KEY_TO_ID:
+            raise ValueError(f"Unknown xlsx spec key: {spec_key!r}")
+        item_id_text = clean_xlsx_text(raw_row[index["Base ItemID"]])
+        if not item_id_text:
+            continue
+        item_id = int(float(item_id_text))
+        rows.append(
+            {
+                "specID": SPEC_KEY_TO_ID[spec_key],
+                "specKey": spec_key,
+                "criteria": clean_xlsx_text(raw_row[index["기준"]]),
+                "slot": clean_xlsx_text(raw_row[index["부위"]]),
+                "nameKoKR": clean_xlsx_text(raw_row[index["아이템명(한국어)"]]),
+                "nameEnUS": clean_xlsx_text(raw_row[index["아이템명(영어)"]]),
+                "sourceLabel": clean_xlsx_text(raw_row[index["출처"]]),
+                "sourceTypeKo": clean_xlsx_text(raw_row[index["출처유형"]]),
+                "itemID": item_id,
+                "mplusEndLabel": clean_xlsx_text(raw_row[index.get("쐐기 +10 종료 보상 기준", -1)]) if "쐐기 +10 종료 보상 기준" in index else "",
+                "mplusVaultLabel": clean_xlsx_text(raw_row[index.get("쐐기 +10 금고/Voidcore 기준", -1)]) if "쐐기 +10 금고/Voidcore 기준" in index else "",
+                "origin": "xlsx",
+            }
+        )
+    return rows
+
+
 def localized_source_detail(
     source_group: str,
     source_label: str,
@@ -912,6 +1127,7 @@ def build_catalog_rows(
                 "dungeon": dungeon_ko,
                 "dungeonEnUS": dungeon_en,
                 "boss": str(entry.get("boss") or meta.get("boss") or ""),
+                "rewardProfiles": MPLUS_REWARD_PROFILES if source_group == "mythicplus" else None,
                 "overallRank": 0,
                 "sourceRank": 0,
                 "priority": existing_row_priority(slot_seen, entry),
@@ -998,10 +1214,147 @@ def build_catalog_rows(
                 "dungeon": dungeon_ko,
                 "dungeonEnUS": dungeon_en,
                 "boss": str((chosen and chosen.get("boss")) or meta.get("boss") or ""),
+                "rewardProfiles": MPLUS_REWARD_PROFILES if source_group == "mythicplus" else None,
                 "overallRank": 0,
                 "sourceRank": 0,
                 "priority": doc_row_priority(slot_seen, int(doc_row["specID"]), slot),
                 "origin": "doc",
+            }
+        )
+
+    slot_sort_order = {
+        "무기": 0, "보조장비": 1, "방패": 2, "머리": 3, "목": 4, "어깨": 5, "망토": 6,
+        "가슴": 7, "손목": 8, "손": 9, "허리": 10, "다리": 11, "발": 12, "반지": 13, "장신구": 14,
+    }
+    for spec_id, rows in combined.items():
+        by_slot: Dict[str, List[Dict[str, object]]] = {}
+        for row in rows:
+            by_slot.setdefault(str(row["slot"]), []).append(row)
+
+        ranked_rows: List[Dict[str, object]] = []
+        for slot, slot_rows in by_slot.items():
+            slot_rows.sort(
+                key=lambda row: (
+                    int(row["priority"]),
+                    SOURCE_GROUP_ORDER[str(row["sourceGroup"])],
+                    str(row["displaySourceEnUS"]),
+                    int(row["itemID"]),
+                )
+            )
+            source_counts: Dict[str, int] = {}
+            for overall_rank, row in enumerate(slot_rows, start=1):
+                row["overallRank"] = overall_rank
+                group = str(row["sourceGroup"])
+                source_counts[group] = source_counts.get(group, 0) + 1
+                row["sourceRank"] = source_counts[group]
+                ranked_rows.append(row)
+
+        combined[spec_id] = sorted(
+            ranked_rows,
+            key=lambda row: (
+                slot_sort_order.get(str(row["slot"]), 999),
+                int(row["overallRank"]),
+                int(row["itemID"]),
+            ),
+        )
+
+    return combined
+
+
+def xlsx_row_priority(slot_seen: Dict[Tuple[int, str, str], int], entry: Dict[str, object]) -> int:
+    criteria = str(entry.get("criteria") or "")
+    if criteria == "전체 통합 BiS":
+        base = 100
+    elif criteria == "쐐기 기준 BiS":
+        base = 200
+    elif criteria == "레이드 기준 Best":
+        base = 300
+    elif criteria == "제작 기준 Best":
+        base = 400
+    else:
+        base = 500
+    key = (int(entry["specID"]), str(entry["slot"]), criteria)
+    order = slot_seen.get(key, 0)
+    slot_seen[key] = order + 1
+    return base + order
+
+
+def build_catalog_rows_from_xlsx(
+    xlsx_rows: List[Dict[str, object]],
+    legacy_rows: List[Dict[str, object]],
+    companion_map: Dict[str, str],
+) -> Dict[int, List[Dict[str, object]]]:
+    item_metadata = fetch_all_item_metadata(entry["itemID"] for entry in xlsx_rows)
+    legacy_group_by_item: Dict[int, str] = {}
+    for entry in legacy_rows:
+        item_id = int(entry["itemID"])
+        legacy_group_by_item.setdefault(item_id, classify_existing_source(entry))
+
+    combined: Dict[int, List[Dict[str, object]]] = {}
+    dedupe: Dict[Tuple[int, str, int, str], Dict[str, object]] = {}
+    slot_seen: Dict[Tuple[int, str, str], int] = {}
+
+    def add_catalog_row(row: Dict[str, object]) -> None:
+        spec_id = int(row["specID"])
+        dedupe_key = (spec_id, str(row["slot"]), int(row["itemID"]), str(row["sourceGroup"]))
+        existing = dedupe.get(dedupe_key)
+        if existing:
+            existing["priority"] = min(int(existing["priority"]), int(row["priority"]))
+            if not existing.get("boss") and row.get("boss"):
+                existing["boss"] = row["boss"]
+            if not existing.get("rewardProfiles") and row.get("rewardProfiles"):
+                existing["rewardProfiles"] = row["rewardProfiles"]
+            return
+        combined.setdefault(spec_id, []).append(row)
+        dedupe[dedupe_key] = row
+
+    for entry in xlsx_rows:
+        item_id = int(entry["itemID"])
+        meta = item_metadata[item_id]
+        slot = normalize_xlsx_slot(entry.get("slot"), meta.get("slot"))
+        source_group = infer_xlsx_source_group(
+            str(entry.get("sourceTypeKo") or ""),
+            str(entry.get("sourceLabel") or ""),
+            item_id,
+            legacy_group_by_item,
+        )
+        source_label = normalize_xlsx_source_label(source_group, str(entry.get("sourceLabel") or ""))
+        try:
+            detail_ko, detail_en, dungeon_ko, dungeon_en = localized_source_detail(
+                source_group,
+                source_label,
+                source_label,
+            )
+        except ValueError:
+            if source_group != "raid":
+                raise
+            detail_en = source_label or "Raid"
+            detail_ko = SOURCE_DETAIL_KOKR.get(detail_en, "레이드")
+            dungeon_ko, dungeon_en = "", ""
+
+        reward_profiles = MPLUS_REWARD_PROFILES if source_group == "mythicplus" else None
+        add_catalog_row(
+            {
+                "specID": int(entry["specID"]),
+                "slot": slot,
+                "itemID": item_id,
+                "nameKoKR": str(entry.get("nameKoKR") or meta["nameKoKR"] or companion_map.get(normalize_key(str(meta["nameEnUS"]))) or ""),
+                "nameEnUS": str(entry.get("nameEnUS") or meta["nameEnUS"]),
+                "quality": int(meta["quality"]),
+                "icon": str(meta["icon"]),
+                "sourceGroup": source_group,
+                "sourceType": source_group,
+                "sourceLabel": detail_en,
+                "displaySourceKoKR": detail_ko,
+                "displaySourceEnUS": detail_en,
+                "dungeon": dungeon_ko,
+                "dungeonEnUS": dungeon_en,
+                "boss": str(meta.get("boss") or ""),
+                "overallRank": 0,
+                "sourceRank": 0,
+                "priority": xlsx_row_priority(slot_seen, entry),
+                "origin": "xlsx",
+                "rewardProfiles": reward_profiles,
             }
         )
 
@@ -1055,6 +1408,48 @@ def render_entry(entry: Dict[str, object]) -> str:
             icon_id = 0
         return "nil" if icon_id <= 0 else str(icon_id)
 
+    def lua_value(value: object) -> str:
+        if value is None:
+            return "nil"
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, int):
+            return str(value)
+        if isinstance(value, float):
+            return str(int(value)) if value.is_integer() else str(value)
+        return lua_string(str(value))
+
+    def render_profiles(profiles: object) -> str:
+        if not isinstance(profiles, dict) or not profiles:
+            return ""
+        parts: List[str] = []
+        fields = [
+            "source",
+            "sourceLabel",
+            "rewardContext",
+            "rewardContextLabel",
+            "minKeystoneLevel",
+            "itemLevel",
+            "upgradeTrack",
+            "upgradeTrackKo",
+            "upgradeRank",
+            "displayLabel",
+            "fullLabel",
+            "itemString",
+            "itemLink",
+        ]
+        for profile_key in sorted(profiles):
+            profile = profiles[profile_key]
+            if not isinstance(profile, dict):
+                continue
+            profile_body = ", ".join(
+                f"{field} = {lua_value(profile.get(field))}"
+                for field in fields
+                if field in profile
+            )
+            parts.append(f"{profile_key} = {{ {profile_body} }}")
+        return "rewardProfiles = { " + ", ".join(parts) + " }, " if parts else ""
+
     return (
         "        { "
         f"slot = {lua_string(str(entry['slot']))}, "
@@ -1071,6 +1466,7 @@ def render_entry(entry: Dict[str, object]) -> str:
         f"dungeon = {optional_string(str(entry.get('dungeon') or ''))}, "
         f"dungeonEnUS = {optional_string(str(entry.get('dungeonEnUS') or ''))}, "
         f"boss = {optional_string(str(entry.get('boss') or ''))}, "
+        f"{render_profiles(entry.get('rewardProfiles'))}"
         f"overallRank = {int(entry['overallRank'])}, "
         f"sourceRank = {int(entry['sourceRank'])} "
         "},"
@@ -1115,6 +1511,18 @@ def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
                 raise ValueError(f"Unresolved item ID in spec {spec_id}")
             if str(row["sourceGroup"]) not in SOURCE_GROUP_ORDER:
                 raise ValueError(f"Invalid sourceGroup in spec {spec_id}: {row['sourceGroup']!r}")
+            if str(row["sourceGroup"]) == "mythicplus":
+                profiles = row.get("rewardProfiles")
+                if not isinstance(profiles, dict):
+                    raise ValueError(f"Mythic+ row missing rewardProfiles in spec {spec_id}, item {row['itemID']}")
+                end_profile = profiles.get("mplus_end_of_dungeon")
+                vault_profile = profiles.get("mplus_great_vault_voidcore")
+                if not isinstance(end_profile, dict) or not isinstance(vault_profile, dict):
+                    raise ValueError(f"Mythic+ row has incomplete rewardProfiles in spec {spec_id}, item {row['itemID']}")
+                if end_profile.get("upgradeTrack") != "Hero" or int(end_profile.get("itemLevel") or 0) != 266:
+                    raise ValueError(f"Invalid M+ end reward profile in spec {spec_id}, item {row['itemID']}")
+                if vault_profile.get("upgradeTrack") != "Myth" or int(vault_profile.get("itemLevel") or 0) != 272:
+                    raise ValueError(f"Invalid M+ vault reward profile in spec {spec_id}, item {row['itemID']}")
             if not str(row["nameKoKR"]) or is_english_only(str(row["nameKoKR"])):
                 raise ValueError(
                     f"koKR item name leak in spec {spec_id}, item {row['itemID']}: {row['nameKoKR']!r}"
@@ -1145,11 +1553,23 @@ def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Build ABProfileManager BIS catalog.")
+    parser.add_argument(
+        "--xlsx",
+        type=Path,
+        help="Optional Midnight S1 12.0.5 BIS xlsx source. Uses Long_ID as the catalog source.",
+    )
+    args = parser.parse_args()
+
     overall_rows = parse_overall_rows(OVERALL_FILE)
     fallback_rows = parse_fallback_rows(FALLBACK_FILE)
     companion_map = parse_companion_map(DOC_COMPANION_FILE)
-    doc_rows = parse_doc_rows(DOC_FINAL_FILE)
-    catalog = build_catalog_rows(overall_rows, fallback_rows, doc_rows, companion_map)
+    if args.xlsx:
+        xlsx_rows = parse_xlsx_rows(args.xlsx)
+        catalog = build_catalog_rows_from_xlsx(xlsx_rows, overall_rows + fallback_rows, companion_map)
+    else:
+        doc_rows = parse_doc_rows(DOC_FINAL_FILE)
+        catalog = build_catalog_rows(overall_rows, fallback_rows, doc_rows, companion_map)
     validate_catalog(catalog)
     TARGET_FILE.write_text(render_catalog(catalog), encoding="utf-8")
     print(f"Updated {TARGET_FILE}")

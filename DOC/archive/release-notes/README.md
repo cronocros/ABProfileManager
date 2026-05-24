@@ -2,7 +2,7 @@
 
 이 폴더는 최신 버전을 제외한 이전 릴리스 노트를 보관하는 공간입니다.
 
-최신 릴리스 노트는 `DOC/releases/RELEASE_NOTES_v1.7.1.md`와 `DOC/releases/RELEASE_NOTES_v1.7.1_EN.md`를 기준으로 봅니다.
+최신 릴리스 노트는 `DOC/releases/RELEASE_NOTES_v1.7.4.md`와 `DOC/releases/RELEASE_NOTES_v1.7.4_EN.md`를 기준으로 봅니다.
 
 주의:
 

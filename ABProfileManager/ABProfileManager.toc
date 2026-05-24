@@ -13,6 +13,7 @@ Locale_Additions.lua
 Utils.lua
 Data\Defaults.lua
 Data\StatPriorities.lua
+Data\StatPriorityTable.lua
 Data\ProfessionKnowledge.lua
 Data\ProfessionKnowledgeWaypoints.lua
 Data\SilvermoonMapData.lua
@@ -52,6 +53,7 @@ UI\AddonSettingsPages.lua
 UI\ConfigPanel.lua
 UI\UtilityPanel.lua
 UI\SilvermoonMapOverlay.lua
+UI\StatPriorityDialog.lua
 UI\MainWindow.lua
 Commands.lua
 Events.lua

@@ -1,8 +1,18 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.7.3 기반)`
+버전 기준: `main (v1.7.4 기반)`
 
-## 0-new. v1.7.3 메모
+## 0-new. v1.7.4 메모
+
+- ABPM UI hover 설명은 전역 `GameTooltip`을 직접 쓰지 않고 `UI/Widgets.lua`의 `Widgets.GetTooltip()` / `Widgets.HideTooltip()` 전용 프레임을 사용한다. 새 hover 설명을 추가할 때도 이 경로를 유지한다.
+- `UI/BISOverlay.lua`의 BIS 아이템 hover는 `GameTooltip:SetHyperlink()` 금지다. `C_TooltipInfo.GetHyperlink()`의 tooltipData line을 수동 렌더링하고, money/currency/sell-price 계열 라인은 건너뛴다.
+- 위 규칙은 액션바, Encounter Journal, Pawn 비교 툴팁에서 `Blizzard_MoneyFrame/Mainline/MoneyFrame.lua` secret-number 산술 오류가 ABPM taint로 표기되던 문제의 회귀 방지 조건이다.
+- `Data/ItemLevelTable.lua`에 `ns.Data.BISRewardProfiles.mythicplus`가 추가됐다. M+ BIS row는 `rewardProfiles`로 던전 종료 / 위대한 금고·Voidcore 대표 트랙과 템렙을 표시한다.
+- `Data/StatPriorityTable.lua`와 `UI/StatPriorityDialog.lua`가 추가됐다. 메인 창 유틸리티 영역의 `스탯 우선순위 표` 버튼에서 Patch 12.0.5 기준 40개 전문화 표를 연다.
+- `scripts/validate_bis_reward_profiles.py`는 BIS 카탈로그의 M+ 보상 프로필 연결 상태를 검증한다.
+- 인게임 확인 시 ABPM UI hover 뒤에 액션바 아이템, 모험 안내서 아이템, Pawn 비교 툴팁을 순서대로 마우스오버해 `MoneyFrame.lua secret number` 오류가 재현되지 않는지 본다.
+
+## 0-prev. v1.7.3 메모
 
 - `UI/StatsOverlay.lua` `BuildStateSignature`에 인스턴스 컨텍스트(`IsInInstance()`)와 player 활성 buff hash(`spellId:expirationTime*10:applications`, slot 1..40)를 추가했다.
 - `Refresh(options)`는 `{ force = true }` 옵션을 받는다. `lastStateSignature` / `lastSnapshotSignature`를 우회하며, 외부에서 `StatsOverlay:InvalidateState()`로 캐시를 명시 무효화할 수 있다.
@@ -29,6 +39,7 @@
 - 드랍템 레벨정보 오버레이
 - BIS 추천 장비 카탈로그 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
+- 스탯 우선순위 표 팝업
 - 블리자드 기본 UI 창 이동 자유화
 - 편의기능 탭 통합
 
@@ -60,6 +71,7 @@
 - `UI/BISOverlay.lua`는 폭/열 간격/스크롤 영역 민감도가 높다. 열 폭만 조정하지 말고 실제 스크롤 thumb와 마지막 열 가림 여부까지 같이 확인해야 한다.
 - source 판정은 `sourceGroup` 정적 값을 우선 사용한다. 예전 `sourceLabel` 재분류 로직에 다시 기대지 않는 편이 안전하다.
 - `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
+- BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트를 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - unresolved direct ID:
   - `마이사라 동굴`
@@ -124,6 +136,7 @@
   - `UI/StatsOverlay.lua`의 `BuildSnapshot` `isMplus` 분기
   - `DB.lua`의 `IsStatsOverlayMythicPlusMode`
   - `Data/StatPriorities.lua`의 `ns.Data.StatPrioritiesMythicPlus`
+- 새 `Data/StatPriorityTable.lua` / `UI/StatPriorityDialog.lua`는 전체 표 표시용이다. 이 기능이 생겼어도 기존 스탯 오버레이의 M+ 우선순위 모드 UI는 아직 숨김 상태다.
 
 ### BIS 오버레이 direct EJ ID 미확인
 
@@ -163,9 +176,12 @@
 - `ABProfileManager/UI/MythicPlusRecordOverlay.lua`
 - `ABProfileManager/Data/ItemLevelTable.lua`
 - `ABProfileManager/Data/BISCatalog.lua`
+- `ABProfileManager/Data/StatPriorityTable.lua`
+- `ABProfileManager/UI/StatPriorityDialog.lua`
 - `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
 - `scripts/build_bis_catalog.py`
+- `scripts/validate_bis_reward_profiles.py`
 - `scripts/refresh_wowhead_bis.py`
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
 
@@ -195,11 +211,13 @@
 - 전투메시지 설정 체크박스와 `위로 / 아래로 / 부채꼴` 버튼 선택 상태
 - 지도 오버레이가 외부 월드맵에서만 표시되는지
 - BIS 오버레이 드랍 출처 클릭 → 모험 안내서 loot 탭 랜딩
+- BIS 아이템 hover 후 액션바 / 모험 안내서 / Pawn 아이템 tooltip에서 `MoneyFrame.lua` 오류가 없는지 확인
 - BIS 필터 on/off와 visible rank 재계산
 - `레이드 off + 쐐기만 on`에서 쐐기 행이 유지되는지
 - `제작 + 티어만 on`에서 잘못된 랜딩이 없는지
 - 드랍템 레벨 오버레이 우측 `나의 문장 / 나의 열쇠` 패널 수치 확인
 - 시즌 최고기록 오버레이의 `평점 / 던전명` 위치와 줄바꿈 확인
+- 메인 창 `스탯 우선순위 표` 버튼, 현재 전문화 강조 표시, 긴 분기 문구 줄바꿈 확인
 
 ## 6. 다음 작업자에게
 
