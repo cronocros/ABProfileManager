@@ -40,9 +40,40 @@ local function getSpecializationID()
     return specID or 0
 end
 
+local function getClientDefaultLanguage()
+    local constants = ns.Constants or {}
+    local language = constants.LANGUAGE or {}
+    local locale = type(GetLocale) == "function" and GetLocale() or nil
+    local mapped = constants.CLIENT_LOCALE_LANGUAGE and constants.CLIENT_LOCALE_LANGUAGE[locale]
+    return mapped or constants.DEFAULT_FALLBACK_LANGUAGE or language.ENGLISH or "enUS"
+end
+
+local function isSupportedLanguage(language)
+    local constants = ns.Constants or {}
+    local supported = constants.LANGUAGE or {}
+    return language == supported.KOREAN or language == supported.ENGLISH
+end
+
+local function normalizeLanguage(language)
+    if isSupportedLanguage(language) then
+        return language
+    end
+
+    return getClientDefaultLanguage()
+end
+
+local function getLanguageLabelKey(language)
+    if language == ns.Constants.LANGUAGE.KOREAN then
+        return "config_language_korean"
+    end
+
+    return "config_language_english"
+end
+
 function DB:Initialize()
     ABPM_DB = ns.Utils.MergeDefaults(ABPM_DB, ns.Data.Defaults)
     ns.db = ABPM_DB
+    self:MigrateLanguageSettings()
     if ns.db and ns.db.ui and ns.db.ui.mainWindow then
         ns.db.ui.mainWindow.width = math.max(ns.db.ui.mainWindow.width or 0, ns.Constants.WINDOW_WIDTH)
         ns.db.ui.mainWindow.height = math.max(ns.db.ui.mainWindow.height or 0, ns.Constants.WINDOW_HEIGHT)
@@ -107,7 +138,9 @@ function DB:GetGlobalSettings()
     end
 
     ns.db.global.settings = ns.db.global.settings or {
-        language = ns.Constants.LANGUAGE.KOREAN,
+        language = getClientDefaultLanguage(),
+        languageUserSelected = false,
+        languageMigrationVersion = ns.Constants.LANGUAGE_MIGRATION_VERSION,
             confirmActions = true,
             typography = {
                 ui = 0,
@@ -165,17 +198,57 @@ function DB:GetGlobalSettings()
     return ns.db.global.settings
 end
 
-function DB:GetLanguage()
-    return self:GetGlobalSettings().language or ns.Constants.LANGUAGE.KOREAN
+function DB:GetClientDefaultLanguage()
+    return getClientDefaultLanguage()
 end
 
-function DB:SetLanguage(language)
-    if language ~= ns.Constants.LANGUAGE.KOREAN and language ~= ns.Constants.LANGUAGE.ENGLISH then
-        language = ns.Constants.LANGUAGE.KOREAN
+function DB:NormalizeLanguage(language)
+    return normalizeLanguage(language)
+end
+
+function DB:MigrateLanguageSettings()
+    local settings = self:GetGlobalSettings()
+    local migrationVersion = ns.Constants.LANGUAGE_MIGRATION_VERSION or 1
+    local clientDefault = getClientDefaultLanguage()
+
+    if settings.languageMigrationVersion ~= migrationVersion then
+        if settings.language == ns.Constants.LANGUAGE.KOREAN
+            and settings.languageUserSelected ~= true
+            and clientDefault == ns.Constants.LANGUAGE.ENGLISH then
+            settings.language = ns.Constants.LANGUAGE.ENGLISH
+        else
+            settings.language = normalizeLanguage(settings.language)
+        end
+        settings.languageMigrationVersion = migrationVersion
+    else
+        settings.language = normalizeLanguage(settings.language)
     end
 
-    self:GetGlobalSettings().language = language
+    if type(settings.languageUserSelected) ~= "boolean" then
+        settings.languageUserSelected = false
+    end
+
+    return settings.language
+end
+
+function DB:GetLanguage()
+    return normalizeLanguage(self:GetGlobalSettings().language)
+end
+
+function DB:SetLanguage(language, userSelected)
+    language = normalizeLanguage(language)
+
+    local settings = self:GetGlobalSettings()
+    settings.language = language
+    if userSelected ~= false then
+        settings.languageUserSelected = true
+    end
+    settings.languageMigrationVersion = ns.Constants.LANGUAGE_MIGRATION_VERSION or 1
     return language
+end
+
+function DB:GetLanguageLabelKey(language)
+    return getLanguageLabelKey(normalizeLanguage(language))
 end
 
 function DB:IsDebugEnabled()

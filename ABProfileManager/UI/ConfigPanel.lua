@@ -152,12 +152,12 @@ local function buildOverviewText()
 end
 
 function ConfigPanel:ApplyLanguage(language, refs)
-    ns.DB:SetLanguage(language)
+    language = ns.DB:SetLanguage(language, true)
     ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
     ns:RefreshUI()
     setStatus(refs, ns.L(
         "config_saved_language",
-        language == ns.Constants.LANGUAGE.KOREAN and ns.L("config_language_korean") or ns.L("config_language_english")
+        ns.L(ns.DB:GetLanguageLabelKey(language))
     ))
 end
 

@@ -5,12 +5,14 @@
 ## 0-new. v1.7.4 메모
 
 - ABPM UI hover 설명은 전역 `GameTooltip`을 직접 쓰지 않고 `UI/Widgets.lua`의 `Widgets.GetTooltip()` / `Widgets.HideTooltip()` 전용 프레임을 사용한다. 새 hover 설명을 추가할 때도 이 경로를 유지한다.
+- 패키지 TOC는 WoW Patch 12.0.5/12.0.7 계열 대응을 위해 `Interface: 120005, 120007`이다. 스탯 우선순위 표 데이터는 별도 재검증 전까지 Patch 12.0.5 baseline으로 유지한다.
 - `UI/BISOverlay.lua`의 BIS 아이템 hover는 `GameTooltip:SetHyperlink()` 금지다. `C_TooltipInfo.GetHyperlink()`의 tooltipData line을 수동 렌더링하고, money/currency/sell-price 계열 라인은 건너뛴다.
 - 위 규칙은 액션바, Encounter Journal, Pawn 비교 툴팁에서 `Blizzard_MoneyFrame/Mainline/MoneyFrame.lua` secret-number 산술 오류가 ABPM taint로 표기되던 문제의 회귀 방지 조건이다.
 - `Data/ItemLevelTable.lua`에 `ns.Data.BISRewardProfiles.mythicplus`가 추가됐다. M+ BIS row는 `rewardProfiles`로 던전 종료 / 위대한 금고·Voidcore 대표 트랙과 템렙을 표시한다.
 - `Data/StatPriorityTable.lua`와 `UI/StatPriorityDialog.lua`가 추가됐다. 메인 창 유틸리티 영역의 `스탯 우선순위 표` 버튼에서 Patch 12.0.5 기준 40개 전문화 표를 연다.
 - `scripts/validate_bis_reward_profiles.py`는 BIS 카탈로그의 M+ 보상 프로필 연결 상태를 검증한다.
 - 인게임 확인 시 ABPM UI hover 뒤에 액션바 아이템, 모험 안내서 아이템, Pawn 비교 툴팁을 순서대로 마우스오버해 `MoneyFrame.lua secret number` 오류가 재현되지 않는지 본다.
+- 언어 기본값은 클라이언트 기준이다. `koKR` 클라이언트는 한국어, `enUS/enGB`와 현재 미지원 locale은 영어로 시작한다. 기존 영어 클라이언트에 저장된 우발적 `koKR` 기본값은 `languageUserSelected ~= true`일 때 1회 `enUS`로 보정한다.
 
 ## 0-prev. v1.7.3 메모
 

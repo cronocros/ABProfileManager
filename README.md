@@ -8,6 +8,7 @@
 ## 현재 버전
 
 - `v1.7.4`
+- 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
 - 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.4/ABProfileManager-v1.7.4.zip`
@@ -26,6 +27,7 @@
 - 한밤 시즌 1 기준 전클래스/전특성 `쐐기 / 레이드 / 제작 / 티어` BIS 추천 장비 카탈로그 제공
 - 파티찾기 시즌 최고기록 던전 아이콘 위에 `평점 + 던전명` 오버레이 제공
 - Patch 12.0.5 기준 전클래스/전문화 `스탯 우선순위 표` 제공
+- 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
 
 ## v1.7.4 핵심 정리
@@ -33,10 +35,15 @@
 - 액션바 / 모험 안내서 / Pawn 비교 툴팁에서 발생할 수 있던 `MoneyFrame.lua secret number` taint 오류를 막았습니다.
   - ABPM 내부 hover 설명은 전용 툴팁 프레임을 사용합니다.
   - BIS 아이템 hover는 `GameTooltip:SetHyperlink()` 대신 `C_TooltipInfo.GetHyperlink()` 텍스트를 수동 렌더링하고 판매가 라인은 건너뜁니다.
+- WoW 12.0.7 계열 클라이언트 대응을 위해 TOC Interface를 `120005, 120007`로 갱신했습니다.
 - 쐐기 BIS 항목에 던전 종료 / 위대한 금고 보상 트랙과 대표 아이템 레벨 안내를 추가했습니다.
 - 메인 창에 **`스탯 우선순위 표`** 버튼을 추가했습니다.
   - Patch 12.0.5 기준 40개 전문화의 1차/2차 스탯 우선순위를 표시합니다.
   - 영웅 특성, 레이드/쐐기, 단일/광역 분기가 있으면 표 안에 그대로 표시합니다.
+- 언어 기본값을 WoW 클라이언트 기준으로 바꿨습니다.
+  - 한국어 클라이언트는 계속 한국어가 기본입니다.
+  - 영어 클라이언트와 현재 미지원 locale은 첫 설치 시 영어로 열립니다.
+  - 이전 버전에서 영어 클라이언트에 한국어가 저장된 경우 한 번만 영어로 자동 보정합니다.
 - v1.7.3의 스탯 오버레이 전투/인스턴스 안정화와 고스트 일괄 정리 변경은 그대로 포함됩니다.
 
 ## v1.7.0 핵심 정리

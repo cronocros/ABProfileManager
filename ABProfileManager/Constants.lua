@@ -27,5 +27,12 @@ ns.Constants = {
         KOREAN = "koKR",
         ENGLISH = "enUS",
     },
+    LANGUAGE_MIGRATION_VERSION = 1,
+    CLIENT_LOCALE_LANGUAGE = {
+        koKR = "koKR",
+        enUS = "enUS",
+        enGB = "enUS",
+    },
+    DEFAULT_FALLBACK_LANGUAGE = "enUS",
     DEFAULT_ICON = "Interface\\Icons\\INV_Inscription_ScrollOfWisdom_01",
 }

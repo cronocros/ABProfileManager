@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.7.4 기반)`
+버전 기준: `main (v1.7.4 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열)`
 
 ## 목적
 

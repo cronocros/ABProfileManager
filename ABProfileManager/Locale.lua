@@ -168,7 +168,7 @@ Locale.strings = {
         quest_cleanup_done = "[Quest Cleanup Complete]\n- Abandoned quests: %d\n- Skipped quests: %d\n- Failed quests: %d",
         quest_abandon_all_done = "[Abandon All Complete]\n- Abandoned quests: %d\n- Skipped quests: %d\n- Failed quests: %d",
         config_language = "● Interface language",
-        config_language_hint = "The addon UI defaults to Korean. Switch to English here if needed.",
+        config_language_hint = "The addon follows your WoW client language when supported. Unsupported clients use English.",
         config_language_korean = "Korean",
         config_language_english = "English",
         config_minimap = "● Minimap button",
@@ -537,7 +537,7 @@ Locale.strings = {
         quest_cleanup_done = "[퀘스트 정리 완료]\n- 포기한 퀘스트: %d개\n- 건너뛴 퀘스트: %d개\n- 실패한 퀘스트: %d개",
         quest_abandon_all_done = "[전체 퀘스트 포기 완료]\n- 포기한 퀘스트: %d개\n- 건너뛴 퀘스트: %d개\n- 실패한 퀘스트: %d개",
         config_language = "● 인터페이스 언어",
-        config_language_hint = "기본 UI 언어는 한국어입니다. 필요하면 영어로 바꿀 수 있습니다.",
+        config_language_hint = "지원되는 경우 WoW 클라이언트 언어를 따르고, 미지원 언어는 영어로 표시합니다.",
         config_language_korean = "한국어",
         config_language_english = "영어",
         config_minimap = "● 미니맵 버튼",
@@ -869,13 +869,16 @@ function Locale:GetCurrentLanguage()
         return ns.DB:GetLanguage()
     end
 
-    return "koKR"
+    local constants = ns.Constants or {}
+    local locale = type(GetLocale) == "function" and GetLocale() or nil
+    local mapped = constants.CLIENT_LOCALE_LANGUAGE and constants.CLIENT_LOCALE_LANGUAGE[locale]
+    return mapped or constants.DEFAULT_FALLBACK_LANGUAGE or "enUS"
 end
 
 function Locale:GetString(key)
     local language = self:GetCurrentLanguage()
-    local bucket = self.strings[language] or self.strings.koKR
-    return bucket[key] or self.strings.enUS[key] or key
+    local bucket = self.strings[language] or self.strings.enUS
+    return bucket[key] or self.strings.enUS[key] or self.strings.koKR[key] or key
 end
 
 function Locale:GetClassName(classTag)
@@ -884,8 +887,8 @@ function Locale:GetClassName(classTag)
     end
 
     local language = self:GetCurrentLanguage()
-    local bucket = self.classNames[language] or self.classNames.koKR
-    return bucket[classTag] or self.classNames.enUS[classTag] or classTag
+    local bucket = self.classNames[language] or self.classNames.enUS
+    return bucket[classTag] or self.classNames.enUS[classTag] or self.classNames.koKR[classTag] or classTag
 end
 
 function Locale:GetSpecName(specID, fallback)
@@ -895,8 +898,8 @@ function Locale:GetSpecName(specID, fallback)
     end
 
     local language = self:GetCurrentLanguage()
-    local bucket = self.specNames[language] or self.specNames.koKR
-    return bucket[specID] or self.specNames.enUS[specID] or fallback or ("Spec " .. tostring(specID))
+    local bucket = self.specNames[language] or self.specNames.enUS
+    return bucket[specID] or self.specNames.enUS[specID] or self.specNames.koKR[specID] or fallback or ("Spec " .. tostring(specID))
 end
 
 function ns.L(key, ...)

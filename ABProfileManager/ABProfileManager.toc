@@ -1,4 +1,4 @@
-## Interface: 120005
+## Interface: 120005, 120007
 ## Title: ABProfileManager
 ## Notes: Action-bar, profession, BIS/item-level, and Mythic+ record overlay manager for Retail.
 ## Author: 밍밍이와코코

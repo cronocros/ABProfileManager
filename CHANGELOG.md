@@ -8,14 +8,18 @@
 
 ## 1.7.4 - 2026-05-25
 
-WoW Patch 12.0.5 유지보수 재배포. 툴팁 판매가 처리에서 발생하던 secret-number taint 오류를 막고, BIS 보상 트랙 안내와 스탯 우선순위 표를 함께 정리했습니다.
+WoW Patch 12.0.7 호환성 재패키징을 포함한 유지보수 재배포. 툴팁 판매가 처리에서 발생하던 secret-number taint 오류를 막고, BIS 보상 트랙 안내와 스탯 우선순위 표를 함께 정리했습니다.
 
 주요 변경:
+- TOC Interface 번호를 `120005, 120007`로 갱신해 Patch 12.0.5/12.0.7 계열 클라이언트에서 "구버전 애드온" 경고 없이 로드되도록 정리
+- 12.0.7 영향 가능성이 있는 tooltip, Encounter Journal, PVE/Mythic+, currency, PaperDoll, aura API 경로를 정적 점검하고 기존 방어 코드 유지
 - ABPM 자체 hover 설명이 전역 `GameTooltip`을 직접 소유하지 않도록 애드온 전용 툴팁 헬퍼를 추가
 - BIS 아이템 hover에서 `GameTooltip:SetHyperlink()` 직접 호출을 제거하고, `C_TooltipInfo.GetHyperlink()` 텍스트를 수동 렌더링하면서 판매가/화폐 라인을 제외
 - 액션바, 모험 안내서, Pawn 비교 툴팁에서 이어질 수 있던 `MoneyFrame.lua secret number` 오류 경로 차단
 - 쐐기 BIS 항목에 `던전 종료` / `위대한 금고·Voidcore` 보상 트랙과 대표 아이템 레벨 안내 추가
 - Patch 12.0.5 기준 40개 전문화 `스탯 우선순위 표` 팝업 추가 및 현재 전문화 강조 표시
+- 첫 설치 언어를 WoW 클라이언트 기준으로 변경: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어 기본
+- 기존 영어 클라이언트에서 실수로 저장된 `koKR` 기본값은 사용자가 직접 한국어를 선택한 기록이 없을 때 한 번만 `enUS`로 보정
 - BIS 카탈로그 생성기와 보상 프로필 검증 스크립트 보강
 - README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, 릴리스 노트를 v1.7.4 유지보수 기준으로 갱신
 
