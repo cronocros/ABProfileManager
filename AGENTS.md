@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `main (v1.7.5 기반)`
+**현재 기준**: `main (v1.7.6 기반)`
 
 ## 검증 명령어
 
@@ -54,6 +54,7 @@ ABProfileManager/
 1. 메인 UI 레이아웃
 2. profession 카드/오버레이
 3. typography 슬라이더
+   - 스탯 오버레이 특화 tooltip은 현재 전문화 특화 주문 tooltip data를 우선 렌더링
 4. 지도 오버레이
 5. 고스트 드래그 / 전투 중 대기열
 6. BlizzardFrameManager (`uiPanel=true` 프레임만 `SetUserPlaced(true)`)

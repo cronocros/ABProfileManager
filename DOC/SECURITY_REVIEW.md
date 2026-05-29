@@ -12,6 +12,7 @@
 - PrivateAuras assertion 방어
 - 퀘스트 대량 포기
 - 지도 오버레이와 설정 패널
+- 스탯 오버레이 특화 tooltip
 - BIS 추천 장비 카탈로그 오버레이
 - 드랍템 레벨 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
@@ -68,6 +69,12 @@
 - 동일 오류는 count로 압축하고 최대 80개 항목만 유지
 - `/abpm log`와 `/abpm errors`는 복사용 UI만 제공하며 파일/네트워크 출력을 하지 않음
 - 디버그 모드일 때만 stack trace를 기록하고, 기본 상태에서는 첫 오류 줄만 저장
+
+### 스탯 오버레이 특화 tooltip
+
+- 현재 전문화의 Mastery spellID를 Blizzard API로 조회하고 `C_TooltipInfo.GetSpellByID()` 결과만 읽음
+- 전역 `GameTooltip:SetSpellByID()`를 직접 호출하지 않고 애드온 전용 tooltip에 텍스트 라인만 렌더링
+- 외부 입력, 네트워크, 동적 코드 실행 없음
 
 ### Blizzard 기본 창 이동
 

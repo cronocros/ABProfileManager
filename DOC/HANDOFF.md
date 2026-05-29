@@ -1,8 +1,14 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.7.5 기반)`
+버전 기준: `main (v1.7.6 기반)`
 
-## 0-new. v1.7.5 메모
+## 0-new. v1.7.6 메모
+
+- `UI/StatsOverlay.lua`의 특화 tooltip은 `C_SpecializationInfo.GetSpecializationMasterySpells()`로 현재 전문화의 Mastery spellID를 얻고, `C_TooltipInfo.GetSpellByID()` line을 ABPM 전용 tooltip에 렌더링한다.
+- 전역 `GameTooltip:SetSpellByID()`를 직접 쓰지 않는다. v1.7.4 이후 GameTooltip/MoneyFrame taint 방어 정책과 동일하게 addon-owned tooltip 수동 렌더링을 유지한다.
+- 특화 tooltip에도 기존 평점 기여/DR 구간 안내를 뒤에 붙인다.
+
+## 0-prev. v1.7.5 메모
 
 - `Modules/BlizzardFrameManager.lua`는 저장 좌표가 없는 UIPanel 창을 `SetUserPlaced(true)`로 고정하지 않는다. 기본 배치가 없는 상태에서 UserPlaced를 강제로 켜면 캐릭터/은행/특성 등 Blizzard 기본 창이 중앙에 겹칠 수 있다.
 - 은행/전투부대 은행은 `BankFrame` 기준으로 UIPanel 대상에 포함했다. `UIPanelWindows` 런타임 감지도 함께 사용하므로 수동 `uiPanel=true` 누락이 있어도 실제 UIPanel 창은 같은 규칙을 탄다.

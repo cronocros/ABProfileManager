@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- `v1.7.5`
+- `v1.7.6`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.5/ABProfileManager-v1.7.5.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.7.5.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.6/ABProfileManager-v1.7.6.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.7.6.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.5.md](./DOC/releases/RELEASE_NOTES_v1.7.5.md)
-- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.5_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.5_EN.md)
+- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.6.md](./DOC/releases/RELEASE_NOTES_v1.7.6.md)
+- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.6_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.6_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
@@ -29,6 +29,12 @@
 - Patch 12.0.5 기준 전클래스/전문화 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.7.6 핵심 정리
+
+- 스탯 오버레이에서 `특화` 행에 마우스를 올렸을 때 현재 전문화의 실제 특화 주문 툴팁을 표시합니다.
+- 특화 설명은 Blizzard tooltip data를 ABPM 전용 툴팁에 수동 렌더링해 기존 GameTooltip/MoneyFrame taint 방어 정책을 유지합니다.
+- 특화 툴팁 아래의 평점 기여/DR 구간 안내는 기존처럼 유지됩니다.
 
 ## v1.7.5 핵심 정리
 

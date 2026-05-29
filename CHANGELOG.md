@@ -6,6 +6,17 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.7.6 - 2026-05-29
+
+스탯 오버레이 특화 툴팁 핫픽스.
+
+주요 변경:
+- 스탯 오버레이 `특화` 행 hover 시 고정된 간단 설명 대신 현재 전문화의 실제 Mastery spell tooltip data를 표시
+- `C_SpecializationInfo.GetSpecializationMasterySpells()`와 `C_TooltipInfo.GetSpellByID()`를 사용해 전문화별 특화 이름/설명을 렌더링
+- 전역 `GameTooltip` 대신 기존 ABPM 전용 tooltip frame에 수동 렌더링해 MoneyFrame taint 방어 정책 유지
+- 특화 툴팁 아래의 평점 기여/DR 구간 안내 유지
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, 릴리스 노트를 v1.7.6 기준으로 갱신
+
 ## 1.7.5 - 2026-05-29
 
 Blizzard 기본 창 이동 안정화와 ABPM 내부 보호 오류 로그를 묶은 패치 릴리스.

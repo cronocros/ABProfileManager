@@ -62,6 +62,68 @@ local PAPERDOLL_TOOLTIP_SETTERS = {
     block = "PaperDollFrame_SetBlock",
 }
 
+local function safeTooltipString(value)
+    if value == nil then
+        return nil
+    end
+
+    local ok, text = pcall(string.format, "%s", value)
+    if not ok or type(text) ~= "string" or text == "" then
+        return nil
+    end
+    return text
+end
+
+local function getTooltipDataField(data, key)
+    if type(data) ~= "table" then
+        return nil
+    end
+
+    local ok, value = pcall(function()
+        return data[key]
+    end)
+    if ok then
+        return value
+    end
+
+    return nil
+end
+
+local function getTooltipLineColor(line, fallbackR, fallbackG, fallbackB)
+    local color = getTooltipDataField(line, "leftColor")
+    if type(color) ~= "table" then
+        return fallbackR, fallbackG, fallbackB
+    end
+
+    local ok, r, g, b = pcall(function()
+        return color.r, color.g, color.b
+    end)
+    if ok and r and g and b then
+        return r, g, b
+    end
+
+    return fallbackR, fallbackG, fallbackB
+end
+
+local function isTooltipBlankLine(line)
+    local lineType = getTooltipDataField(line, "type")
+    local blankType = Enum
+        and Enum.TooltipDataLineType
+        and Enum.TooltipDataLineType.Blank
+        or nil
+
+    if blankType ~= nil then
+        local ok, isBlank = pcall(function()
+            return lineType == blankType
+        end)
+        if ok and isBlank then
+            return true
+        end
+    end
+
+    return false
+end
+
 local function getOverlayScale()
     return ns.DB and ns.DB:GetStatsOverlayScale() or 1
 end
@@ -605,6 +667,94 @@ function StatsOverlay:PreparePaperDollTooltip(entry, owner)
     return proxy
 end
 
+function StatsOverlay:GetCurrentMasterySpellIDs()
+    local specIndex = getCurrentSpecIndex()
+    if not specIndex then
+        return nil
+    end
+
+    local spellIDs = {}
+    if C_SpecializationInfo and type(C_SpecializationInfo.GetSpecializationMasterySpells) == "function" then
+        local ok, result = pcall(C_SpecializationInfo.GetSpecializationMasterySpells, specIndex)
+        if ok and type(result) == "table" then
+            for _, spellID in ipairs(result) do
+                if type(spellID) == "number" then
+                    spellIDs[#spellIDs + 1] = spellID
+                end
+            end
+        elseif ok and type(result) == "number" then
+            spellIDs[#spellIDs + 1] = result
+        end
+    end
+
+    if #spellIDs == 0 and type(GetSpecializationMasterySpells) == "function" then
+        local results = { pcall(GetSpecializationMasterySpells, specIndex) }
+        if results[1] then
+            for index = 2, #results do
+                if type(results[index]) == "number" then
+                    spellIDs[#spellIDs + 1] = results[index]
+                end
+            end
+        end
+    end
+
+    return #spellIDs > 0 and spellIDs or nil
+end
+
+function StatsOverlay:AddTooltipDataLines(tooltip, tooltipData)
+    local lines = getTooltipDataField(tooltipData, "lines")
+    if not tooltip or type(lines) ~= "table" then
+        return 0
+    end
+
+    local rendered = 0
+    for _, line in ipairs(lines) do
+        if type(line) == "table" then
+            local leftText = safeTooltipString(getTooltipDataField(line, "leftText"))
+                or safeTooltipString(getTooltipDataField(line, "text"))
+            local rightText = safeTooltipString(getTooltipDataField(line, "rightText"))
+
+            if leftText or rightText then
+                rendered = rendered + 1
+                local r, g, b = getTooltipLineColor(line, rendered == 1 and 0.96 or 0.90, rendered == 1 and 0.82 or 0.90, rendered == 1 and 0.30 or 0.90)
+                if rightText and tooltip.AddDoubleLine then
+                    pcall(tooltip.AddDoubleLine, tooltip, leftText or " ", rightText, r, g, b, 0.90, 0.90, 0.90)
+                else
+                    pcall(tooltip.AddLine, tooltip, leftText or rightText or " ", r, g, b, true)
+                end
+            elseif rendered > 0 and isTooltipBlankLine(line) then
+                tooltip:AddLine(" ")
+            end
+        end
+    end
+
+    return rendered
+end
+
+function StatsOverlay:AddMasterySpellTooltip(tooltip)
+    if not tooltip or not C_TooltipInfo or type(C_TooltipInfo.GetSpellByID) ~= "function" then
+        return false
+    end
+
+    local spellIDs = self:GetCurrentMasterySpellIDs()
+    if not spellIDs then
+        return false
+    end
+
+    local renderedTotal = 0
+    for _, spellID in ipairs(spellIDs) do
+        local ok, tooltipData = pcall(C_TooltipInfo.GetSpellByID, spellID)
+        if ok and type(tooltipData) == "table" then
+            if renderedTotal > 0 then
+                tooltip:AddLine(" ")
+            end
+            renderedTotal = renderedTotal + self:AddTooltipDataLines(tooltip, tooltipData)
+        end
+    end
+
+    return renderedTotal > 0
+end
+
 function StatsOverlay:GetTooltipTitle(entry)
     if not entry or not entry.key then
         return entry and entry.label or nil
@@ -625,8 +775,6 @@ function StatsOverlay:ShowRowTooltip(row)
         return
     end
 
-    self:PreparePaperDollTooltip(row.entry, row.tooltipRegion)
-
     local tooltipTitle = self:GetTooltipTitle(row.entry) or row.entry.label or ""
     if row.entry.key == "priority" then
         local modeLabel = row.entry.isMplus and ns.L("stats_priority_mode_mplus") or ns.L("stats_priority_mode_pve")
@@ -634,11 +782,21 @@ function StatsOverlay:ShowRowTooltip(row)
     end
 
     tooltip:SetOwner(row.tooltipRegion or row, "ANCHOR_RIGHT")
-    tooltip:SetText(tooltipTitle, 0.96, 0.82, 0.30)
 
-    local body = self:GetTooltipBody(row.entry)
-    if body then
-        tooltip:AddLine(body, 1, 1, 1, true)
+    local renderedNativeTooltip = false
+    if row.entry.key == "mastery" then
+        tooltip:ClearLines()
+        renderedNativeTooltip = self:AddMasterySpellTooltip(tooltip)
+    end
+
+    if not renderedNativeTooltip then
+        self:PreparePaperDollTooltip(row.entry, row.tooltipRegion)
+        tooltip:SetText(tooltipTitle, 0.96, 0.82, 0.30)
+
+        local body = self:GetTooltipBody(row.entry)
+        if body then
+            tooltip:AddLine(body, 1, 1, 1, true)
+        end
     end
 
     if row.entry.style == "stat" then

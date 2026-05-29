@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.7.5 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열)`
+버전 기준: `main (v1.7.6 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열)`
 
 ## 목적
 
@@ -187,6 +187,7 @@
   - 도메인별 글자 크기 보정과 tooltip 폰트 재적용
 - `UI/StatsOverlay.lua`
   - 캐릭터 스탯 오버레이
+  - 특화 tooltip은 현재 전문화의 Mastery spell tooltip data를 ABPM 전용 tooltip에 렌더링
 - `UI/StatPriorityDialog.lua`
   - Patch 12.0.5 기준 직업/전문화별 스탯 우선순위 표 팝업
 - `UI/ProfessionKnowledgeOverlay.lua`
