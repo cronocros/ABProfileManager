@@ -6,6 +6,20 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.7.5 - 2026-05-29
+
+Blizzard 기본 창 이동 안정화와 ABPM 내부 보호 오류 로그를 묶은 패치 릴리스.
+
+주요 변경:
+- BlizzardFrameManager가 저장 좌표가 없는 UIPanel 창을 즉시 `SetUserPlaced(true)`로 고정하지 않도록 변경
+- 은행/전투부대 은행 창을 UIPanel 대상으로 명시하고, `UIPanelWindows` 런타임 감지로 특성/전문기술/기타 Blizzard UIPanel 창을 보수적으로 처리
+- 이전 버전에서 저장된 Blizzard 창 좌표를 `layoutVersion=2` 전환 시 1회 초기화해 중앙 겹침 좌표가 계속 복원되지 않도록 보정
+- Blizzard 창 위치 초기화 시 UIPanel 창을 강제로 중앙에 배치하지 않고 Blizzard 기본 레이아웃으로 되돌리도록 수정
+- `Utils.RecordCaughtError()` 기반 세션 오류 로그 추가
+- `SafeCall`, 모듈 초기화, 이벤트 dispatch, 설정 탭 버튼, 메인 창 탭 전환 콜백에서 잡힌 ABPM 오류를 `/abpm log`와 `/abpm errors`로 확인 가능
+- Blizzard PrivateAuras의 private dispel/public buff 충돌 assertion을 좁은 조건으로만 완화하는 `PrivateAurasGuard` 모듈 추가
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, 릴리스 노트를 v1.7.5 기준으로 갱신
+
 ## 1.7.4 - 2026-05-25
 
 WoW Patch 12.0.7 호환성 재패키징을 포함한 유지보수 재배포. 툴팁 판매가 처리에서 발생하던 secret-number taint 오류를 막고, BIS 보상 트랙 안내와 스탯 우선순위 표를 함께 정리했습니다.

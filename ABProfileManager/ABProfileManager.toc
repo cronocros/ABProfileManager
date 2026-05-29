@@ -2,7 +2,7 @@
 ## Title: ABProfileManager
 ## Notes: Action-bar, profession, BIS/item-level, and Mythic+ record overlay manager for Retail.
 ## Author: 밍밍이와코코
-## Version: 1.7.4
+## Version: 1.7.5
 ## IconTexture: Interface\Icons\INV_Inscription_ScrollOfWisdom_01
 ## SavedVariables: ABPM_DB
 
@@ -34,6 +34,7 @@ Modules\ProfessionKnowledgeTracker.lua
 Modules\TomTomBridge.lua
 Modules\CombatTextManager.lua
 Modules\BlizzardFrameManager.lua
+Modules\PrivateAurasGuard.lua
 UI\Typography.lua
 UI\Widgets.lua
 UI\ConfirmDialogs.lua

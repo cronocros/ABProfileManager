@@ -52,6 +52,7 @@ ns.Data.Defaults = {
             },
             blizzardFrames = {
                 enabled = false,
+                layoutVersion = 1,
                 movable = {},
                 positions = {},
             },

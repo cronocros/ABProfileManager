@@ -24,6 +24,7 @@ local function printHelp()
     ns.Utils.Print(ns.L("help_delete_template"))
     ns.Utils.Print(ns.L("help_undo"))
     ns.Utils.Print(ns.L("help_debug"))
+    ns.Utils.Print(ns.L("help_errors"))
     ns.Utils.Print(ns.L("help_apply_template"))
     ns.Utils.Print(ns.L("help_clear"))
     ns.Utils.Print(ns.L("help_quote"))
@@ -190,7 +191,7 @@ function Commands:Initialize()
 
     SLASH_ABPROFILEMANAGER1 = "/abpm"
     SlashCmdList.ABPROFILEMANAGER = function(message)
-        Commands:HandleSlash(message)
+        ns:SafeCall(Commands, "HandleSlash", message)
     end
 
     self._slashRegistered = true
@@ -406,14 +407,22 @@ function Commands:HandleSlash(message)
         return
     end
 
-    if command == "log" then
-        -- 디버그 로그를 팝업 EditBox에 출력 (복사 가능)
+    if command == "log" or command == "errors" then
+        -- 디버그/보호 오류 로그를 팝업 EditBox에 출력 (복사 가능)
         local log = ns.Utils.GetDebugLog and ns.Utils.GetDebugLog() or {}
-        if #log == 0 then
-            ns.Utils.Print("디버그 로그가 없습니다. /abpm debug on 으로 활성화 후 재시도하세요.")
+        local caught = ns.Utils.GetCaughtErrorLog and ns.Utils.GetCaughtErrorLog() or {}
+        if #log == 0 and #caught == 0 then
+            ns.Utils.Print("디버그/보호 오류 로그가 없습니다.")
             return
         end
-        local text = table.concat(log, "\n")
+        local sections = {}
+        if #log > 0 then
+            sections[#sections + 1] = "[Debug Log]\n" .. table.concat(log, "\n")
+        end
+        if #caught > 0 then
+            sections[#sections + 1] = "[Caught ABPM Errors]\n" .. table.concat(caught, "\n")
+        end
+        local text = table.concat(sections, "\n\n")
         -- 기존 팝업 재사용
         if ABPMLogPopup then ABPMLogPopup:Hide() end
         local popup = CreateFrame("Frame", "ABPMLogPopup", UIParent, "BackdropTemplate")
@@ -457,6 +466,7 @@ function Commands:HandleSlash(message)
         clrBtn:SetText("로그 지우기")
         clrBtn:SetScript("OnClick", function()
             if ns.Utils.ClearDebugLog then ns.Utils.ClearDebugLog() end
+            if ns.Utils.ClearCaughtErrorLog then ns.Utils.ClearCaughtErrorLog() end
             eb:SetText("(로그 지움)")
         end)
         popup:Show()

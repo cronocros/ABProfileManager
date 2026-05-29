@@ -9,13 +9,19 @@ end
 
 local DEBUG_LOG_MAX = 200
 local debugLogBuffer = {}
+local CAUGHT_ERROR_LOG_MAX = 80
+local caughtErrorBuffer = {}
+
+local function getTimeLabel()
+    return (GetTime and string.format("%.1f", GetTime())) or "?"
+end
 
 function Utils.Debug(message)
     if ns.DB and ns.DB.IsDebugEnabled and ns.DB:IsDebugEnabled() then
         local line = "[debug] " .. tostring(message)
         Utils.Print(line)
         -- 버퍼에 타임스탬프와 함께 저장
-        local ts = (GetTime and string.format("%.1f", GetTime())) or "?"
+        local ts = getTimeLabel()
         debugLogBuffer[#debugLogBuffer + 1] = ts .. "  " .. tostring(message)
         if #debugLogBuffer > DEBUG_LOG_MAX then
             table.remove(debugLogBuffer, 1)
@@ -29,6 +35,76 @@ end
 
 function Utils.ClearDebugLog()
     debugLogBuffer = {}
+end
+
+function Utils.RecordCaughtError(context, err, stackLevel)
+    local firstLine = tostring(err or "unknown error"):match("^[^\n]+") or tostring(err or "unknown error")
+    local key = tostring(context or "unknown") .. "\n" .. firstLine
+    local last = caughtErrorBuffer[#caughtErrorBuffer]
+    if last and last.key == key then
+        last.count = (last.count or 1) + 1
+        last.lastSeen = getTimeLabel()
+        return
+    end
+
+    local entry = {
+        key = key,
+        context = tostring(context or "unknown"),
+        message = firstLine,
+        firstSeen = getTimeLabel(),
+        lastSeen = nil,
+        count = 1,
+    }
+
+    if ns.DB and ns.DB.IsDebugEnabled and ns.DB:IsDebugEnabled() and type(debugstack) == "function" then
+        local ok, stack = pcall(debugstack, stackLevel or 3, 6, 6)
+        if ok and stack and stack ~= "" then
+            entry.stack = stack
+        end
+    end
+
+    caughtErrorBuffer[#caughtErrorBuffer + 1] = entry
+    if #caughtErrorBuffer > CAUGHT_ERROR_LOG_MAX then
+        table.remove(caughtErrorBuffer, 1)
+    end
+end
+
+function Utils.GetCaughtErrorCount()
+    local total = 0
+    for _, entry in ipairs(caughtErrorBuffer) do
+        total = total + (entry.count or 1)
+    end
+    return total
+end
+
+function Utils.GetCaughtErrorLog()
+    local lines = {}
+    for _, entry in ipairs(caughtErrorBuffer) do
+        local suffix = ""
+        if (entry.count or 1) > 1 then
+            suffix = string.format("  (x%d, last %s)", entry.count, entry.lastSeen or "?")
+        end
+        lines[#lines + 1] = string.format("%s  [%s] %s%s", entry.firstSeen or "?", entry.context or "unknown", entry.message or "?", suffix)
+        if entry.stack and entry.stack ~= "" then
+            lines[#lines + 1] = entry.stack
+        end
+    end
+    return lines
+end
+
+function Utils.ClearCaughtErrorLog()
+    caughtErrorBuffer = {}
+end
+
+function Utils.SafeHandler(context, fn)
+    return function(...)
+        local ok, result = pcall(fn, ...)
+        if not ok then
+            Utils.RecordCaughtError(context, result, 3)
+            return nil
+        end
+        return result
+    end
 end
 
 function Utils.DeepCopy(value)

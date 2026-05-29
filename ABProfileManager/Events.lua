@@ -192,6 +192,9 @@ local function runProfessionKnowledgeRefresh(forceScan, reason)
     end)
 
     if not ok then
+        if ns.Utils and ns.Utils.RecordCaughtError then
+            ns.Utils.RecordCaughtError("ProfessionRefresh:" .. tostring(reason or "unknown"), err, 3)
+        end
         if ns.Utils and ns.Utils.Debug then
             ns.Utils.Debug(string.format("Profession refresh failed (%s): %s", tostring(reason or "unknown"), tostring(err)))
         end
@@ -273,6 +276,9 @@ local function ensureCombatTextSettings()
             return manager:ApplyConfiguredSettings()
         end)
         if not ok or applied == false then
+            if not ok and ns.Utils and ns.Utils.RecordCaughtError then
+                ns.Utils.RecordCaughtError("CombatTextApply", applied, 3)
+            end
             if ns.Utils and ns.Utils.Debug then
                 ns.Utils.Debug(string.format("Combat text CVar apply failed: %s", tostring(applied)))
             end
@@ -320,7 +326,7 @@ end
 function Events:Initialize()
     frame:SetScript("OnEvent", function(_, event, ...)
         if type(self[event]) == "function" then
-            self[event](self, ...)
+            ns:SafeCall(self, event, ...)
         end
     end)
 

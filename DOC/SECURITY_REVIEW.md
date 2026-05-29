@@ -1,12 +1,15 @@
 # ABProfileManager Security Review
 
-검토 기준일: `2026-05-25`
+검토 기준일: `2026-05-29`
 
 ## 범위
 
 - 템플릿 import/export
 - profession 자동 추적
 - 전투메시지 CVar 제어
+- ABPM 보호 오류 로그
+- Blizzard 기본 창 이동 관리
+- PrivateAuras assertion 방어
 - 퀘스트 대량 포기
 - 지도 오버레이와 설정 패널
 - BIS 추천 장비 카탈로그 오버레이
@@ -27,6 +30,8 @@
 - 지도/BIS/드랍 오버레이는 로컬 정적 데이터와 Blizzard API 조회만 사용
 - hover 설명은 애드온 전용 tooltip frame을 사용하며, 전역 `GameTooltip:SetHyperlink()`로 Blizzard money tooltip을 직접 열지 않음
 - TomTom 연동은 선택적 로컬 애드온 호출뿐이며, 미설치 시 fail-safe로 빠짐
+- ABPM 보호 오류 로그는 세션 메모리 안에만 저장하며 외부 전송이나 파일 쓰기를 하지 않음
+- Lua 오류 팝업을 전역으로 숨기는 `scriptErrors` CVar 변경은 하지 않음
 
 ## 주요 안전장치
 
@@ -56,6 +61,25 @@
 - 로컬 CVar 읽기/쓰기만 사용
 - 외부 네트워크, 외부 코드 실행, 매크로 주입은 없음
 - `_v2` CVar가 없을 때는 구형 이름으로 fallback 하지만, 적용 범위는 전투메시지 관련 CVar에 한정한다
+
+### 보호 오류 로그
+
+- `pcall`로 잡은 ABPM 내부 오류만 세션 버퍼에 기록
+- 동일 오류는 count로 압축하고 최대 80개 항목만 유지
+- `/abpm log`와 `/abpm errors`는 복사용 UI만 제공하며 파일/네트워크 출력을 하지 않음
+- 디버그 모드일 때만 stack trace를 기록하고, 기본 상태에서는 첫 오류 줄만 저장
+
+### Blizzard 기본 창 이동
+
+- 저장 좌표가 없는 UIPanel 창은 `SetUserPlaced(true)`로 고정하지 않음
+- 이전 `layoutVersion`의 저장 좌표는 1회 초기화해 잘못된 중앙 겹침 좌표 재사용을 방지
+- WorldMapFrame은 위치 저장/복원 대상이 아니며 기존처럼 드래그 전용 처리만 유지
+
+### PrivateAuras assertion 방어
+
+- `PrivateAuraAnchorContainerMixin.CheckExistingDispelHasCorrectType`의 좁은 충돌 조건만 우회
+- private dispel 항목과 public helpful buff가 같은 `auraInstanceID`를 공유하는 경우에만 suppress
+- 전역 오류 핸들러, `ScriptErrorsFrame`, `scriptErrors` CVar는 변경하지 않음
 
 ### BIS 추천 장비 카탈로그 오버레이
 

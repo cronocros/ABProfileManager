@@ -36,8 +36,13 @@ local function initializeModule(module)
     local ok, err = pcall(module.Initialize, module)
     if ok then
         module._initialized = true
-    elseif ns.Utils and ns.Utils.Debug then
-        ns.Utils.Debug(string.format("Module init failed: %s", tostring(err)))
+    else
+        if ns.Utils and ns.Utils.RecordCaughtError then
+            ns.Utils.RecordCaughtError("ModuleInit", err, 3)
+        end
+        if ns.Utils and ns.Utils.Debug then
+            ns.Utils.Debug(string.format("Module init failed: %s", tostring(err)))
+        end
     end
 end
 
@@ -57,6 +62,7 @@ function ns:InitializeStartupModules()
         self.Modules.TomTomBridge,
         self.Modules.CombatTextManager,
         self.Modules.BlizzardFrameManager,
+        self.Modules.PrivateAurasGuard,
         -- [비활성] self.Modules.MerchantHelper,  -- 도안 감지 미동작
         -- [비활성] self.Modules.MailHistory,     -- 우편 자동완성 미구현
         self.Commands,
@@ -91,6 +97,9 @@ function ns:SafeCall(target, methodName, ...)
     -- 직접 노출되지 않게 한다. 디버그 모드일 때만 stack trace 를 남긴다.
     local ok, result = pcall(target[methodName], target, ...)
     if not ok then
+        if ns.Utils and ns.Utils.RecordCaughtError then
+            ns.Utils.RecordCaughtError("SafeCall:" .. tostring(methodName), result, 3)
+        end
         if ns.Utils and ns.Utils.Debug then
             ns.Utils.Debug(string.format("SafeCall(%s) failed: %s", tostring(methodName), tostring(result)))
         end

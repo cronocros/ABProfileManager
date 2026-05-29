@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `main (v1.7.4 기반)`
+**현재 기준**: `main (v1.7.5 기반)`
 
 ## 검증 명령어
 
@@ -57,6 +57,8 @@ ABProfileManager/
 4. 지도 오버레이
 5. 고스트 드래그 / 전투 중 대기열
 6. BlizzardFrameManager (`uiPanel=true` 프레임만 `SetUserPlaced(true)`)
+   - 저장 좌표가 없는 UIPanel 창은 `SetUserPlaced(true)`로 고정하지 않는다
+   - `layoutVersion=2` 이전 저장 좌표는 1회 초기화한다
 7. `SilvermoonMapOverlay.lua`, `StatsOverlay.lua`의 재사용 버퍼
 8. `UI/BISOverlay.lua`
    - `Data/BISCatalog.lua`만 읽는다

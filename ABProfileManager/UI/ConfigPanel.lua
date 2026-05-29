@@ -33,6 +33,13 @@ local function setStatus(target, message)
     ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
 end
 
+local function safeHandler(context, fn)
+    if ns.Utils and ns.Utils.SafeHandler then
+        return ns.Utils.SafeHandler(context, fn)
+    end
+    return fn
+end
+
 local function showMainWindow()
     if not ns.UI.MainWindow.frame then
         ns.UI.MainWindow:Initialize()
@@ -136,6 +143,10 @@ local function buildOverviewText()
         ),
         ns.L("config_overview_profession_scan", lastScan),
         ns.L("config_overview_debug", getStateLabel(ns.DB:IsDebugEnabled())),
+        ns.L(
+            "config_overview_caught_errors",
+            ns.Utils.GetCaughtErrorCount and ns.Utils.GetCaughtErrorCount() or 0
+        ),
         ns.L("config_overview_storage"),
         "",
         ns.L("config_overview_guide_header"),
@@ -144,6 +155,7 @@ local function buildOverviewText()
         ns.L("config_overview_hint_map"),
         ns.L("config_overview_hint_tomtom"),
         ns.L("config_overview_hint_debug"),
+        ns.L("config_overview_hint_errors"),
         "",
         authorLine,
         "",
@@ -278,72 +290,72 @@ function ConfigPanel:ApplyCombatTextMode(mode, refs, labelKey)
 end
 
 function ConfigPanel:BindControlSet(refs)
-    refs.koreanButton:SetScript("OnClick", function()
+    refs.koreanButton:SetScript("OnClick", safeHandler("ConfigPanel:koreanButton", function()
         self:ApplyLanguage(ns.Constants.LANGUAGE.KOREAN, refs)
-    end)
+    end))
 
-    refs.englishButton:SetScript("OnClick", function()
+    refs.englishButton:SetScript("OnClick", safeHandler("ConfigPanel:englishButton", function()
         self:ApplyLanguage(ns.Constants.LANGUAGE.ENGLISH, refs)
-    end)
+    end))
 
-    refs.minimapCheck:SetScript("OnClick", function(currentCheck)
+    refs.minimapCheck:SetScript("OnClick", safeHandler("ConfigPanel:minimapCheck", function(currentCheck)
         self:ApplyMinimapVisible(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.confirmCheck:SetScript("OnClick", function(currentCheck)
+    refs.confirmCheck:SetScript("OnClick", safeHandler("ConfigPanel:confirmCheck", function(currentCheck)
         self:ApplyConfirmEnabled(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.debugCheck:SetScript("OnClick", function(currentCheck)
+    refs.debugCheck:SetScript("OnClick", safeHandler("ConfigPanel:debugCheck", function(currentCheck)
         self:ApplyDebugEnabled(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.mouseMoveRestoreCheck:SetScript("OnClick", function(currentCheck)
+    refs.mouseMoveRestoreCheck:SetScript("OnClick", safeHandler("ConfigPanel:mouseMoveRestoreCheck", function(currentCheck)
         self:ApplyMouseMoveRestore(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.statsOverlayCheck:SetScript("OnClick", function(currentCheck)
+    refs.statsOverlayCheck:SetScript("OnClick", safeHandler("ConfigPanel:statsOverlayCheck", function(currentCheck)
         self:ApplyStatsOverlayEnabled(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.professionOverlayCheck:SetScript("OnClick", function(currentCheck)
+    refs.professionOverlayCheck:SetScript("OnClick", safeHandler("ConfigPanel:professionOverlayCheck", function(currentCheck)
         self:ApplyProfessionOverlayEnabled(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.tankStatsCheck:SetScript("OnClick", function(currentCheck)
+    refs.tankStatsCheck:SetScript("OnClick", safeHandler("ConfigPanel:tankStatsCheck", function(currentCheck)
         self:ApplyStatsOverlayTankStats(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.mythicPlusCheck:SetScript("OnClick", function(currentCheck)
+    refs.mythicPlusCheck:SetScript("OnClick", safeHandler("ConfigPanel:mythicPlusCheck", function(currentCheck)
         self:ApplyStatsOverlayMythicPlus(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
     for _, entry in ipairs(refs.typographySliders or {}) do
-        entry.slider.slider:SetScript("OnValueChanged", function(currentSlider, value)
+        entry.slider.slider:SetScript("OnValueChanged", safeHandler("ConfigPanel:typographySlider", function(currentSlider, value)
             entry.slider:SetValueText(value)
             local rounded = math.floor((tonumber(value) or 0) + 0.5)
             if ns.DB:GetTypographyOffset(entry.domain) ~= rounded then
                 self:ApplyTypographyOffset(entry.domain, rounded, refs)
             end
-        end)
+        end))
     end
 
-    refs.combatTextManageCheck:SetScript("OnClick", function(currentCheck)
+    refs.combatTextManageCheck:SetScript("OnClick", safeHandler("ConfigPanel:combatTextManageCheck", function(currentCheck)
         self:ApplyCombatTextManaged(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
-    refs.combatTextDirectionalCheck:SetScript("OnClick", function(currentCheck)
+    refs.combatTextDirectionalCheck:SetScript("OnClick", safeHandler("ConfigPanel:combatTextDirectionalCheck", function(currentCheck)
         self:ApplyCombatTextDirectionalDamage(currentCheck:GetChecked(), refs)
-    end)
+    end))
 
     for index, option in ipairs(COMBAT_TEXT_MODE_OPTIONS) do
-        refs.combatTextModeButtons[index]:SetScript("OnClick", function()
+        refs.combatTextModeButtons[index]:SetScript("OnClick", safeHandler("ConfigPanel:combatTextMode", function()
             self:ApplyCombatTextMode(option.value, refs, option.labelKey)
-        end)
+        end))
     end
 
     if refs.openWindowButton then
-        refs.openWindowButton:SetScript("OnClick", showMainWindow)
+        refs.openWindowButton:SetScript("OnClick", safeHandler("ConfigPanel:openWindowButton", showMainWindow))
     end
 end
 
@@ -445,9 +457,9 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.logViewBtn = CreateFrame("Button", nil, refs.generalBox, "UIPanelButtonTemplate")
     refs.logViewBtn:SetSize(84, 20)
     refs.logViewBtn:SetPoint("TOPLEFT", refs.debugCheck, "BOTTOMLEFT", 24, -4)
-    refs.logViewBtn:SetScript("OnClick", function()
+    refs.logViewBtn:SetScript("OnClick", safeHandler("ConfigPanel:logViewButton", function()
         ns.Commands:HandleSlash("log")
-    end)
+    end))
 
     refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.logViewBtn, "BOTTOMLEFT", -24, -8)

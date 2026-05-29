@@ -1,8 +1,17 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.7.4 기반)`
+버전 기준: `main (v1.7.5 기반)`
 
-## 0-new. v1.7.4 메모
+## 0-new. v1.7.5 메모
+
+- `Modules/BlizzardFrameManager.lua`는 저장 좌표가 없는 UIPanel 창을 `SetUserPlaced(true)`로 고정하지 않는다. 기본 배치가 없는 상태에서 UserPlaced를 강제로 켜면 캐릭터/은행/특성 등 Blizzard 기본 창이 중앙에 겹칠 수 있다.
+- 은행/전투부대 은행은 `BankFrame` 기준으로 UIPanel 대상에 포함했다. `UIPanelWindows` 런타임 감지도 함께 사용하므로 수동 `uiPanel=true` 누락이 있어도 실제 UIPanel 창은 같은 규칙을 탄다.
+- `global.settings.blizzardFrames.layoutVersion`은 `2`이다. 이전 저장 좌표는 1회 비워서 과거 중앙 겹침 좌표가 계속 복원되지 않게 한다.
+- `/abpm log`와 `/abpm errors`는 디버그 로그와 ABPM 보호 오류 로그를 함께 보여준다. 보호 오류는 `Utils.RecordCaughtError()`에 세션 한정으로 저장되며, 같은 오류는 count로 압축한다.
+- `Core.lua`의 `SafeCall`, 모듈 초기화, `Events.lua` 이벤트 dispatch, `ConfigPanel`/`MainWindow` 주요 버튼 콜백은 보호 오류 로그 경로를 탄다.
+- `Modules/PrivateAurasGuard.lua`는 Blizzard PrivateAuras의 private dispel/public helpful buff auraInstanceID 충돌 assertion만 좁게 우회한다. 전역 `scriptErrors` CVar는 건드리지 않는다.
+
+## 0-prev. v1.7.4 메모
 
 - ABPM UI hover 설명은 전역 `GameTooltip`을 직접 쓰지 않고 `UI/Widgets.lua`의 `Widgets.GetTooltip()` / `Widgets.HideTooltip()` 전용 프레임을 사용한다. 새 hover 설명을 추가할 때도 이 경로를 유지한다.
 - 패키지 TOC는 WoW Patch 12.0.5/12.0.7 계열 대응을 위해 `Interface: 120005, 120007`이다. 스탯 우선순위 표 데이터는 별도 재검증 전까지 Patch 12.0.5 baseline으로 유지한다.
@@ -106,7 +115,8 @@
 
 ### BlizzardFrameManager / 지도
 
-- `SetUserPlaced(true)`는 반드시 `uiPanel=true` 프레임에만 적용할 것. WorldMapFrame에 적용 시 오른쪽 퀘스트 목록 패널이 숨는다.
+- `SetUserPlaced(true)`는 저장 좌표가 있는 UIPanel 프레임에만 적용할 것. 저장 좌표가 없는 기본 창을 초기부터 UserPlaced로 고정하면 은행/캐릭터/특성 창이 중앙에 겹칠 수 있다.
+- WorldMapFrame에 `SetUserPlaced(true)`를 남기면 오른쪽 퀘스트 목록 패널이 숨는다. WorldMapFrame은 위치 저장 없이 드래그 전용으로만 유지한다.
 - 지도 오버레이는 child/detail map에서 부모 라벨을 억지로 보여주지 않는 현재 기준을 유지하는 편이 안전하다.
 
 ## 2. 운영 메모

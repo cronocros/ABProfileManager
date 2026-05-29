@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.7.4 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열)`
+버전 기준: `main (v1.7.5 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열)`
 
 ## 목적
 
@@ -77,6 +77,12 @@
   - 카드/오버레이/툴팁 데이터 제공
 - `Modules/CombatTextManager.lua`
   - Midnight 최신 전투메시지 `_v2` CVar와 구형 이름 fallback을 함께 관리
+- `Modules/BlizzardFrameManager.lua`
+  - 선택적으로 Blizzard 기본 창을 드래그 가능하게 만듦
+  - 저장 좌표가 없는 UIPanel 창은 Blizzard 기본 배치에 맡기고, 저장 좌표가 있는 UIPanel 창만 `SetUserPlaced(true)`로 복원
+  - `global.settings.blizzardFrames.layoutVersion=2` 이전 저장 좌표는 1회 초기화
+- `Modules/PrivateAurasGuard.lua`
+  - Blizzard PrivateAuras의 private dispel/public helpful buff auraInstanceID 충돌 assertion만 좁게 완화
 - `Modules/TomTomBridge.lua`
   - TomTom 선택적 연동
   - 하란다르/공허폭풍 일부 1회성 보물은 해당 지역 진입 후 waypoint 생성
@@ -209,6 +215,7 @@
   - typography 도메인별 오프셋
   - 지도 라벨 카테고리 필터
   - 마우스 이동 자동 복구
+  - Blizzard 기본 창 이동 설정과 저장 좌표 layout version
 
 ### UI
 

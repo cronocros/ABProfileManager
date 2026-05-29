@@ -7,7 +7,8 @@ ns.Modules.BlizzardFrameManager = BlizzardFrameManager
 -- 이동 가능하게 만들 블리자드 프레임 목록
 --
 -- uiPanel=true  : ShowUIPanel / UpdateUIPanelPositions 가 OnShow 이후 위치를 덮어쓰므로
---                 C_Timer.After(0) 딜레이 복원이 필요한 UIPanel 계열 프레임
+--                 저장 좌표가 있을 때 SetUserPlaced(true) + 딜레이 복원이 필요한 UIPanel 계열 프레임
+--                 런타임에서 UIPanelWindows 에 등록된 프레임도 같은 방식으로 감지한다.
 -- hookOnShow    : OnShow 때마다 저장 위치를 복원할 프레임
 -- lazyAddon     : 해당 이름의 애드온이 로드될 때 자동 적용
 local MANAGED_FRAMES = {
@@ -63,6 +64,7 @@ local MANAGED_FRAMES = {
         key = "Bank",
         getter = function() return BankFrame end,
         hookOnShow = true,
+        uiPanel   = true,
     },
     {
         key = "Collections",
@@ -124,6 +126,30 @@ local function isFrameMaximized(frame)
         if ok and result then return true end
     end
     return false
+end
+
+local function getFrameName(frame)
+    if not frame or type(frame.GetName) ~= "function" then
+        return nil
+    end
+
+    local ok, name = pcall(frame.GetName, frame)
+    if ok then
+        return name
+    end
+
+    return nil
+end
+
+local function isRegisteredUIPanel(frame)
+    local frameName = getFrameName(frame)
+    return frameName
+        and type(UIPanelWindows) == "table"
+        and UIPanelWindows[frameName] ~= nil
+end
+
+local function shouldManageAsUIPanel(entry, frame)
+    return (entry and entry.uiPanel) or isRegisteredUIPanel(frame)
 end
 
 -- WorldMapFrame 드래그 전용 (MANAGED_FRAMES 와 완전 분리)
@@ -199,21 +225,29 @@ local function restoreFramePosition(key, frame, isUiPanel)
                 frame:SetUserPlaced(isUiPanel and true or false)
             end
         end)
+    elseif isUiPanel and frame.SetUserPlaced then
+        -- 저장 좌표가 없는 기본 상태에서는 Blizzard UIPanel 레이아웃을 유지한다.
+        -- 초기부터 UserPlaced=true 로 고정하면 여러 기본 창이 같은 중앙 좌표에 겹칠 수 있다.
+        pcall(function()
+            frame:SetUserPlaced(false)
+        end)
     end
 end
 
 local function makeFrameMovable(key, frame, isUiPanel)
     if not frame then return end
 
+    local hasSavedPosition = getFrameDB(key) ~= nil
+
     pcall(function()
         frame:SetMovable(true)
         frame:EnableMouse(true)
         frame:RegisterForDrag("LeftButton")
         frame:SetClampedToScreen(true)
-        -- uiPanel: UserPlaced=true → UIPanelLayout 재배치 방지
-        -- 비uiPanel: UserPlaced=false → 이전 세션에서 남은 상태 해제
+        -- 저장 좌표가 있는 uiPanel 만 UserPlaced=true 로 고정한다.
+        -- 저장 좌표가 없는 기본 프레임은 Blizzard 의 기본 좌/우 패널 배치에 맡긴다.
         if frame.SetUserPlaced then
-            frame:SetUserPlaced(isUiPanel and true or false)
+            frame:SetUserPlaced(isUiPanel and hasSavedPosition and true or false)
         end
     end)
 
@@ -234,9 +268,8 @@ local function makeFrameMovable(key, frame, isUiPanel)
             frame:SetScript("OnDragStop", function(f)
                 f:StopMovingOrSizing()
                 -- StopMovingOrSizing 가 암묵적으로 UserPlaced=true 설정
-                -- 비UIPanel 프레임에서 즉시 해제
-                if not isUiPanel and f.SetUserPlaced then
-                    f:SetUserPlaced(false)
+                if f.SetUserPlaced then
+                    f:SetUserPlaced(isUiPanel and true or false)
                 end
                 saveFrameDB(key, f)
             end)
@@ -248,9 +281,8 @@ local function makeFrameMovable(key, frame, isUiPanel)
             frame:HookScript("OnDragStop", function(f)
                 saveFrameDB(key, f)
                 -- StopMovingOrSizing 가 암묵적으로 UserPlaced=true 설정
-                -- 비UIPanel 프레임에서 해제
-                if not isUiPanel and f.SetUserPlaced then
-                    f:SetUserPlaced(false)
+                if f.SetUserPlaced then
+                    f:SetUserPlaced(isUiPanel and true or false)
                 end
             end)
         end)
@@ -265,14 +297,15 @@ local function applyToFrame(entry)
         return true  -- 프레임은 있지만 비활성화 상태
     end
 
-    makeFrameMovable(entry.key, frame, entry.uiPanel)
+    local isUiPanel = shouldManageAsUIPanel(entry, frame)
+    makeFrameMovable(entry.key, frame, isUiPanel)
 
     if not entry.hookOnShow then
         if not frame:IsShown() then
-            restoreFramePosition(entry.key, frame, entry.uiPanel)
+            restoreFramePosition(entry.key, frame, isUiPanel)
         end
     else
-        restoreFramePosition(entry.key, frame, entry.uiPanel)
+        restoreFramePosition(entry.key, frame, isUiPanel)
     end
 
     if entry.hookOnShow and not entry._showHooked then
@@ -282,11 +315,11 @@ local function applyToFrame(entry)
                 if not ns.DB or not ns.DB:IsBlizzardFrameMovable(entry.key) then return end
                 -- 즉시 복원 (UIPanelLayout 덮어쓰기 대응)
                 C_Timer.After(0, function()
-                    if f and f:IsShown() then restoreFramePosition(entry.key, f, entry.uiPanel) end
+                    if f and f:IsShown() then restoreFramePosition(entry.key, f, shouldManageAsUIPanel(entry, f)) end
                 end)
                 -- 추가 지연 복원: 탭 전환 후 WoW 가 다음 프레임에서 위치를 재설정하는 경우 대응
                 C_Timer.After(0.12, function()
-                    if f and f:IsShown() then restoreFramePosition(entry.key, f, entry.uiPanel) end
+                    if f and f:IsShown() then restoreFramePosition(entry.key, f, shouldManageAsUIPanel(entry, f)) end
                 end)
             end)
         end)
@@ -311,9 +344,14 @@ function BlizzardFrameManager:ResetPosition(key)
             local frame = entry.getter and entry.getter()
             if frame then
                 pcall(function()
-                    frame:ClearAllPoints()
-                    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+                    local isUiPanel = shouldManageAsUIPanel(entry, frame)
                     if frame.SetUserPlaced then frame:SetUserPlaced(false) end
+                    if not isUiPanel then
+                        frame:ClearAllPoints()
+                        frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+                    elseif frame:IsShown() and type(UpdateUIPanelPositions) == "function" then
+                        C_Timer.After(0, UpdateUIPanelPositions)
+                    end
                 end)
             end
         end
@@ -358,18 +396,16 @@ function BlizzardFrameManager:Initialize()
 
     -- UpdateUIPanelPositions 훅: WoW 가 패널 배치를 재계산할 때마다 저장 위치 복원
     -- (캐릭터창 탭 전환, 인접 패널 닫힘 등으로 인한 강제 재배치 대응)
-    -- uiPanel=true 프레임만 대상
+    -- UIPanel 계열 프레임만 대상
     if type(UpdateUIPanelPositions) == "function" then
         local uiPanelDeferPending = false
         hooksecurefunc("UpdateUIPanelPositions", function()
             if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
-            -- 즉시 복원 (uiPanel=true 프레임만)
+            -- 즉시 복원 (저장 좌표가 있는 UIPanel 계열 프레임만)
             for _, entry in ipairs(MANAGED_FRAMES) do
-                if entry.uiPanel and ns.DB:IsBlizzardFrameMovable(entry.key) then
-                    local frame = entry.getter and entry.getter()
-                    if frame and frame:IsShown() then
-                        restoreFramePosition(entry.key, frame, true)
-                    end
+                local frame = entry.getter and entry.getter()
+                if frame and shouldManageAsUIPanel(entry, frame) and ns.DB:IsBlizzardFrameMovable(entry.key) and frame:IsShown() then
+                    restoreFramePosition(entry.key, frame, true)
                 end
             end
             -- 단일 deferred 복원 (중복 타이머 방지)
@@ -379,11 +415,9 @@ function BlizzardFrameManager:Initialize()
                     uiPanelDeferPending = false
                     if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
                     for _, entry in ipairs(MANAGED_FRAMES) do
-                        if entry.uiPanel and ns.DB:IsBlizzardFrameMovable(entry.key) then
-                            local frame = entry.getter and entry.getter()
-                            if frame and frame:IsShown() then
-                                restoreFramePosition(entry.key, frame, true)
-                            end
+                        local frame = entry.getter and entry.getter()
+                        if frame and shouldManageAsUIPanel(entry, frame) and ns.DB:IsBlizzardFrameMovable(entry.key) and frame:IsShown() then
+                            restoreFramePosition(entry.key, frame, true)
                         end
                     end
                 end)
@@ -392,23 +426,21 @@ function BlizzardFrameManager:Initialize()
     end
 
     -- ShowUIPanel 훅: UIPanel 계열 프레임이 탭 전환 시 ShowUIPanel 을 재호출하는 경우 대응
-    -- uiPanel=true 프레임만 대상
+    -- UIPanel 계열 프레임만 대상
     if type(ShowUIPanel) == "function" then
         pcall(function()
             hooksecurefunc("ShowUIPanel", function(frame)
                 if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
                 for _, entry in ipairs(MANAGED_FRAMES) do
-                    if entry.uiPanel then
-                        local f = entry.getter and entry.getter()
-                        if f == frame and ns.DB:IsBlizzardFrameMovable(entry.key) then
-                            C_Timer.After(0, function()
-                                if frame and frame:IsShown() then restoreFramePosition(entry.key, frame, true) end
-                            end)
-                            C_Timer.After(0.12, function()
-                                if frame and frame:IsShown() then restoreFramePosition(entry.key, frame, true) end
-                            end)
-                            break
-                        end
+                    local f = entry.getter and entry.getter()
+                    if f == frame and shouldManageAsUIPanel(entry, f) and ns.DB:IsBlizzardFrameMovable(entry.key) then
+                        C_Timer.After(0, function()
+                            if frame and frame:IsShown() then restoreFramePosition(entry.key, frame, true) end
+                        end)
+                        C_Timer.After(0.12, function()
+                            if frame and frame:IsShown() then restoreFramePosition(entry.key, frame, true) end
+                        end)
+                        break
                     end
                 end
             end)

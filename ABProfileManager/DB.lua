@@ -176,6 +176,7 @@ function DB:GetGlobalSettings()
         },
         blizzardFrames = {
             enabled = false,
+            layoutVersion = 1,
             movable = {},
             positions = {},
         },
@@ -702,11 +703,16 @@ function DB:GetBlizzardFrameSettings()
     local settings = self:GetGlobalSettings()
     settings.blizzardFrames = settings.blizzardFrames or {
         enabled = false,
+        layoutVersion = 1,
         movable = {},
         positions = {},
     }
     settings.blizzardFrames.movable = settings.blizzardFrames.movable or {}
     settings.blizzardFrames.positions = settings.blizzardFrames.positions or {}
+    if (settings.blizzardFrames.layoutVersion or 0) < 2 then
+        settings.blizzardFrames.positions = {}
+        settings.blizzardFrames.layoutVersion = 2
+    end
     return settings.blizzardFrames
 end
 

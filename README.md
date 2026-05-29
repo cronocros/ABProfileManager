@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- `v1.7.4`
+- `v1.7.5`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.4/ABProfileManager-v1.7.4.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.7.4.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.5/ABProfileManager-v1.7.5.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.7.5.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.4.md](./DOC/releases/RELEASE_NOTES_v1.7.4.md)
-- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.4_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.4_EN.md)
+- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.5.md](./DOC/releases/RELEASE_NOTES_v1.7.5.md)
+- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.5_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.5_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
@@ -29,6 +29,18 @@
 - Patch 12.0.5 기준 전클래스/전문화 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.7.5 핵심 정리
+
+- Blizzard 기본 창 이동 기능을 보정했습니다.
+  - 저장 좌표가 없는 캐릭터/은행/특성 등 UIPanel 창은 Blizzard 기본 배치에 맡깁니다.
+  - 전투부대 은행/은행 창은 UIPanel 창으로 명시해 다른 기본 창을 열 때 중앙 겹침이 생기는 상황을 줄였습니다.
+  - 이전 버전에서 저장된 Blizzard 창 좌표는 안정화를 위해 한 번 초기화됩니다.
+- ABPM 내부 보호 오류 로그를 추가했습니다.
+  - 메인 탭 전환, 설정 탭 버튼, 이벤트/모듈 초기화의 보호 오류는 `/abpm log` 또는 `/abpm errors`에서 확인할 수 있습니다.
+  - 반복되는 같은 오류는 횟수로 묶어 표시합니다.
+- Blizzard PrivateAuras의 반복 assertion 팝업은 좁은 조건에서만 막도록 방어 모듈을 추가했습니다.
+- 다른 애드온이나 Blizzard 자체 오류까지 숨기지 않기 위해 전역 `scriptErrors` CVar는 변경하지 않습니다.
 
 ## v1.7.4 핵심 정리
 
