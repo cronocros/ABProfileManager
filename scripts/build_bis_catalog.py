@@ -24,6 +24,7 @@ OVERALL_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData_Method.lua"
 FALLBACK_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData.lua"
 DOC_FINAL_FILE = REPO_ROOT / "DOC" / "wow_midnight_s1_mplus_bis_final.md"
 DOC_COMPANION_FILE = REPO_ROOT / "DOC" / "wow_midnight_s1_mplus_bis_korean_companion.md"
+ADDON_DB_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.0.lua"
 TARGET_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
 WAGO_DB2_INDEX_URL = "https://wago.tools/db2"
 WAGO_DB2_URL_TEMPLATE = "https://wago.tools/db2/{table}/csv?build={build}{locale_param}"
@@ -99,6 +100,63 @@ SPEC_KEY_TO_ID = {
     "EVOKER_DEVASTATION": 1467,
     "EVOKER_PRESERVATION": 1468,
     "EVOKER_AUGMENTATION": 1473,
+}
+
+ADDON_DB_SPEC_KEY_ALIASES = {
+    "DRUID_RESTO": "DRUID_RESTORATION",
+    "HUNTER_BM": "HUNTER_BEAST_MASTERY",
+    "HUNTER_MARKSMAN": "HUNTER_MARKSMANSHIP",
+    "PRIEST_DISC": "PRIEST_DISCIPLINE",
+}
+
+SPEC_ID_TO_CLASS_TOKEN = {
+    62: "MAGE", 63: "MAGE", 64: "MAGE",
+    65: "PALADIN", 66: "PALADIN", 70: "PALADIN",
+    71: "WARRIOR", 72: "WARRIOR", 73: "WARRIOR",
+    102: "DRUID", 103: "DRUID", 104: "DRUID", 105: "DRUID",
+    250: "DEATHKNIGHT", 251: "DEATHKNIGHT", 252: "DEATHKNIGHT",
+    253: "HUNTER", 254: "HUNTER", 255: "HUNTER",
+    256: "PRIEST", 257: "PRIEST", 258: "PRIEST",
+    259: "ROGUE", 260: "ROGUE", 261: "ROGUE",
+    262: "SHAMAN", 263: "SHAMAN", 264: "SHAMAN",
+    265: "WARLOCK", 266: "WARLOCK", 267: "WARLOCK",
+    268: "MONK", 269: "MONK", 270: "MONK",
+    577: "DEMONHUNTER", 581: "DEMONHUNTER", 1382: "DEMONHUNTER",
+    1467: "EVOKER", 1468: "EVOKER", 1473: "EVOKER",
+}
+
+CLASS_WEAPON_TYPES = {
+    "DEATHKNIGHT": {"AXE_1H", "MACE_1H", "SWORD_1H", "AXE_2H", "MACE_2H", "SWORD_2H", "POLEARM"},
+    "DEMONHUNTER": {"AXE_1H", "FIST", "SWORD_1H", "WARGLAIVE"},
+    "DRUID": {"DAGGER", "FIST", "MACE_1H", "MACE_2H", "POLEARM", "STAFF"},
+    "EVOKER": {"DAGGER", "FIST", "MACE_1H", "STAFF", "SWORD_1H", "OFF_HAND"},
+    "HUNTER": {"BOW", "CROSSBOW", "GUN", "POLEARM", "STAFF"},
+    "MAGE": {"DAGGER", "STAFF", "SWORD_1H", "WAND", "OFF_HAND"},
+    "MONK": {"AXE_1H", "FIST", "MACE_1H", "POLEARM", "STAFF", "SWORD_1H"},
+    "PALADIN": {"AXE_1H", "MACE_1H", "SWORD_1H", "AXE_2H", "MACE_2H", "POLEARM", "SWORD_2H", "SHIELD"},
+    "PRIEST": {"DAGGER", "MACE_1H", "STAFF", "WAND", "OFF_HAND"},
+    "ROGUE": {"AXE_1H", "DAGGER", "FIST", "MACE_1H", "SWORD_1H"},
+    "SHAMAN": {"AXE_1H", "DAGGER", "FIST", "MACE_1H", "STAFF", "SHIELD"},
+    "WARLOCK": {"DAGGER", "STAFF", "SWORD_1H", "WAND", "OFF_HAND"},
+    "WARRIOR": {"AXE_1H", "FIST", "MACE_1H", "POLEARM", "STAFF", "SWORD_1H", "AXE_2H", "MACE_2H", "SWORD_2H", "SHIELD"},
+}
+
+ADDON_DB_SLOT_MAP = {
+    "HEAD": "머리",
+    "NECK": "목",
+    "SHOULDERS": "어깨",
+    "BACK": "망토",
+    "CHEST": "가슴",
+    "WRIST": "손목",
+    "HANDS": "손",
+    "WAIST": "허리",
+    "LEGS": "다리",
+    "FEET": "발",
+    "RING": "반지",
+    "TRINKET": "장신구",
+    "WEAPON": "무기",
+    "OFF_HAND": "보조장비",
+    "SHIELD": "방패",
 }
 
 XLSX_SLOT_ALIASES = {
@@ -1397,6 +1455,480 @@ def build_catalog_rows_from_xlsx(
     return combined
 
 
+def lua_unescape(value: str) -> str:
+    return value.replace('\\"', '"').replace("\\\\", "\\")
+
+
+def get_lua_field(line: str, field: str) -> object:
+    match = re.search(rf'\b{re.escape(field)}\s*=\s*(nil|true|false|-?\d+|"(?:(?:\\.)|[^"\\])*")', line)
+    if not match:
+        return None
+    raw = match.group(1)
+    if raw == "nil":
+        return None
+    if raw == "true":
+        return True
+    if raw == "false":
+        return False
+    if raw.startswith('"') and raw.endswith('"'):
+        return lua_unescape(raw[1:-1])
+    return int(raw)
+
+
+def parse_existing_catalog_rows(path: Path) -> List[Dict[str, object]]:
+    rows: List[Dict[str, object]] = []
+    if not path.exists():
+        return rows
+    current_spec: Optional[int] = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        spec_match = re.match(r"^\s*\[(\d+)\]\s*=\s*\{", line)
+        if spec_match:
+            current_spec = int(spec_match.group(1))
+            continue
+        if current_spec is None or "{ slot =" not in line:
+            continue
+        source_group = get_lua_field(line, "sourceGroup")
+        if source_group not in {"raid", "crafted"}:
+            continue
+        rows.append(
+            {
+                "specID": current_spec,
+                "slot": str(get_lua_field(line, "slot") or ""),
+                "itemID": int(get_lua_field(line, "itemID") or 0),
+                "nameKoKR": str(get_lua_field(line, "nameKoKR") or ""),
+                "nameEnUS": str(get_lua_field(line, "nameEnUS") or ""),
+                "quality": int(get_lua_field(line, "quality") or 4),
+                "icon": get_lua_field(line, "icon"),
+                "sourceGroup": str(source_group),
+                "sourceType": str(get_lua_field(line, "sourceType") or source_group),
+                "sourceLabel": str(get_lua_field(line, "sourceLabel") or ""),
+                "displaySourceKoKR": str(get_lua_field(line, "displaySourceKoKR") or ""),
+                "displaySourceEnUS": str(get_lua_field(line, "displaySourceEnUS") or ""),
+                "dungeon": str(get_lua_field(line, "dungeon") or ""),
+                "dungeonEnUS": str(get_lua_field(line, "dungeonEnUS") or ""),
+                "boss": str(get_lua_field(line, "boss") or ""),
+                "overallRank": int(get_lua_field(line, "overallRank") or 99),
+                "sourceRank": int(get_lua_field(line, "sourceRank") or 99),
+                "priority": 100 + int(get_lua_field(line, "overallRank") or 99)
+                if source_group == "raid"
+                else 420 + int(get_lua_field(line, "overallRank") or 99),
+                "origin": "existing_catalog",
+            }
+        )
+    return rows
+
+
+def extract_addon_db_block(text: str, table_name: str) -> str:
+    start = text.index(f"{table_name} = {{")
+    end = text.find("\n-- END extracted block", start)
+    if end == -1:
+        end = len(text)
+    return text[start:end]
+
+
+def parse_quoted_field(text: str, field: str) -> str:
+    match = re.search(rf'\b{re.escape(field)}\s*=\s*"([^"]*)"', text)
+    return match.group(1) if match else ""
+
+
+def parse_number_field(text: str, field: str) -> Optional[int]:
+    match = re.search(rf'\b{re.escape(field)}\s*=\s*(\d+)', text)
+    return int(match.group(1)) if match else None
+
+
+def parse_bool_field(text: str, field: str) -> Optional[bool]:
+    match = re.search(rf'\b{re.escape(field)}\s*=\s*(true|false)', text)
+    if not match:
+        return None
+    return match.group(1) == "true"
+
+
+def parse_addon_db_specs(text: str) -> Tuple[Dict[int, Dict[str, object]], Dict[int, Dict[str, object]]]:
+    block = extract_addon_db_block(text, "SPECS")
+    specs: Dict[int, Dict[str, object]] = {}
+    policies: Dict[int, Dict[str, object]] = {}
+    current_key: Optional[str] = None
+    current_lines: List[str] = []
+
+    def flush() -> None:
+        if not current_key or not current_lines:
+            return
+        raw = "\n".join(current_lines)
+        spec_key = ADDON_DB_SPEC_KEY_ALIASES.get(current_key, current_key)
+        spec_id = SPEC_KEY_TO_ID.get(spec_key)
+        if not spec_id:
+            raise ValueError(f"Unknown addon DB spec key: {current_key}")
+        info = {
+            "specKey": current_key,
+            "classKo": parse_quoted_field(raw, "classKo"),
+            "specKo": parse_quoted_field(raw, "specKo"),
+            "role": parse_quoted_field(raw, "role"),
+            "armor": parse_quoted_field(raw, "armor"),
+            "primary": parse_quoted_field(raw, "primary"),
+            "tierSetId": parse_number_field(raw, "tierSetId") or 0,
+            "tierSetKo": parse_quoted_field(raw, "tierSetKo"),
+        }
+        policy = {
+            **info,
+            "secondaryPriority": parse_quoted_field(raw, "secondaryPriority"),
+            "statPriorityVerified": parse_bool_field(raw, "statPriorityVerified") is True,
+            "statPriorityStatus": parse_quoted_field(raw, "statPriorityStatus"),
+            "staticFinalBisVerified": False,
+            "bisOptimalVerified": False,
+            "bisStatus": parse_quoted_field(raw, "bisStatus"),
+            "bisValidationLevel": "STRICT_STATIC_DB_CANNOT_CERTIFY_FINAL_BIS__RUNTIME_SIM_REQUIRED",
+        }
+        specs[spec_id] = info
+        policies[spec_id] = policy
+
+    for raw_line in block.splitlines():
+        start_match = re.match(r"\s*([A-Z_]+)\s*=\s*\{", raw_line)
+        if start_match:
+            if start_match.group(1) == "SPECS":
+                continue
+            flush()
+            current_key = start_match.group(1)
+            current_lines = [raw_line]
+            continue
+        if current_key:
+            current_lines.append(raw_line)
+            if raw_line.strip() == "},":
+                flush()
+                current_key = None
+                current_lines = []
+    flush()
+    return specs, policies
+
+
+def parse_addon_db_dungeons(text: str) -> Dict[str, str]:
+    block = extract_addon_db_block(text, "DUNGEONS")
+    dungeons: Dict[str, str] = {}
+    for ko, en in re.findall(r'ko\s*=\s*"([^"]+)"\s*,\s*en\s*=\s*"([^"]+)"', block):
+        dungeons[ko] = en
+    return dungeons
+
+
+def parse_addon_db_simple_item_table(text: str, table_name: str, source_slot: Optional[str] = None) -> List[Dict[str, object]]:
+    block = extract_addon_db_block(text, table_name)
+    rows: List[Dict[str, object]] = []
+    pattern = re.compile(
+        r'\{\s*slot\s*=\s*"([^"]+)"\s*,\s*id\s*=\s*(\d+)\s*,\s*ko\s*=\s*"([^"]+)"\s*,\s*dungeon\s*=\s*"([^"]+)"\s*\}'
+    )
+    for slot, item_id, ko, dungeon in pattern.findall(block):
+        rows.append(
+            {
+                "slot": ADDON_DB_SLOT_MAP.get(source_slot or slot, ADDON_DB_SLOT_MAP.get(slot, slot)),
+                "itemID": int(item_id),
+                "nameKoKR": ko,
+                "dungeon": dungeon,
+                "kind": table_name,
+            }
+        )
+    return rows
+
+
+def parse_addon_db_trinkets(text: str) -> List[Dict[str, object]]:
+    block = extract_addon_db_block(text, "TRINKETS")
+    rows: List[Dict[str, object]] = []
+    pattern = re.compile(
+        r'\{\s*id\s*=\s*(\d+)\s*,\s*ko\s*=\s*"([^"]+)"\s*,\s*usableBy\s*=\s*"([^"]+)"\s*,\s*dungeon\s*=\s*"([^"]+)"\s*\}'
+    )
+    for item_id, ko, usable_by, dungeon in pattern.findall(block):
+        rows.append(
+            {
+                "slot": "장신구",
+                "itemID": int(item_id),
+                "nameKoKR": ko,
+                "usableBy": usable_by,
+                "dungeon": dungeon,
+                "kind": "TRINKETS",
+            }
+        )
+    return rows
+
+
+def parse_addon_db_weapons(text: str) -> List[Dict[str, object]]:
+    block = extract_addon_db_block(text, "WEAPONS")
+    rows: List[Dict[str, object]] = []
+    pattern = re.compile(
+        r'\{\s*type\s*=\s*"([^"]+)"\s*,\s*stat\s*=\s*"([^"]+)"\s*,\s*id\s*=\s*(\d+)\s*,\s*ko\s*=\s*"([^"]+)"\s*,\s*dungeon\s*=\s*"([^"]+)"\s*\}'
+    )
+    for weapon_type, stat, item_id, ko, dungeon in pattern.findall(block):
+        rows.append(
+            {
+                "slot": ADDON_DB_SLOT_MAP.get(weapon_type, "무기" if weapon_type != "SHIELD" else "방패"),
+                "itemID": int(item_id),
+                "nameKoKR": ko,
+                "weaponType": weapon_type,
+                "weaponStat": stat,
+                "dungeon": dungeon,
+                "kind": "WEAPONS",
+            }
+        )
+    return rows
+
+
+def parse_addon_db_tier_sets(text: str) -> Dict[int, Dict[str, object]]:
+    block = extract_addon_db_block(text, "TIER_SETS")
+    sets: Dict[int, Dict[str, object]] = {}
+    current_set: Optional[int] = None
+    current_lines: List[str] = []
+
+    def flush() -> None:
+        if current_set is None or not current_lines:
+            return
+        raw = "\n".join(current_lines)
+        pieces = []
+        for slot_key, item_id, ko, slot_ko in re.findall(
+            r'([A-Z]+)\s*=\s*\{\s*id\s*=\s*(\d+)\s*,\s*ko\s*=\s*"([^"]+)"\s*,\s*slotKo\s*=\s*"([^"]+)"',
+            raw,
+        ):
+            pieces.append(
+                {
+                    "slot": slot_ko,
+                    "slotKey": slot_key,
+                    "itemID": int(item_id),
+                    "nameKoKR": ko,
+                }
+            )
+        sets[current_set] = {
+            "classKo": parse_quoted_field(raw, "classKo"),
+            "setKo": parse_quoted_field(raw, "setKo"),
+            "pieces": pieces,
+        }
+
+    for raw_line in block.splitlines():
+        start_match = re.match(r"\s*\[(\d+)\]\s*=\s*\{", raw_line)
+        if start_match:
+            flush()
+            current_set = int(start_match.group(1))
+            current_lines = [raw_line]
+            continue
+        if current_set is not None:
+            current_lines.append(raw_line)
+            if raw_line.startswith("  },"):
+                flush()
+                current_set = None
+                current_lines = []
+    flush()
+    return sets
+
+
+def stat_matches_primary(stat_token: str, primary: str) -> bool:
+    if stat_token == "AGILITY":
+        return primary == "민첩"
+    if stat_token == "STRENGTH":
+        return primary == "힘"
+    if stat_token == "INTELLECT":
+        return primary == "지능"
+    if stat_token == "AGILITY_STRENGTH":
+        return primary in {"민첩", "힘"}
+    if stat_token == "AGILITY_INTELLECT":
+        return primary in {"민첩", "지능"}
+    if stat_token == "INTELLECT_STRENGTH":
+        return primary in {"지능", "힘"}
+    return True
+
+
+def trinket_matches_spec(row: Dict[str, object], spec: Dict[str, object]) -> bool:
+    usable_by = str(row.get("usableBy") or "")
+    primary = str(spec.get("primary") or "")
+    role = str(spec.get("role") or "")
+    if usable_by == "ALL_PRIMARY" or usable_by == "MASTERY":
+        return True
+    if usable_by == "AGILITY_STRENGTH":
+        return primary in {"민첩", "힘"}
+    if usable_by == "TANK_AGILITY_STRENGTH":
+        return role == "TANK" and primary in {"민첩", "힘"}
+    if usable_by == "AGILITY_INTELLECT":
+        return primary in {"민첩", "지능"}
+    if usable_by == "STRENGTH":
+        return primary == "힘"
+    if usable_by == "INTELLECT":
+        return primary == "지능"
+    if usable_by == "HEALER_INTELLECT":
+        return role == "HEALER" and primary == "지능"
+    return True
+
+
+def weapon_matches_spec(row: Dict[str, object], spec_id: int, spec: Dict[str, object]) -> bool:
+    class_token = SPEC_ID_TO_CLASS_TOKEN.get(spec_id)
+    if class_token and row.get("weaponType") not in CLASS_WEAPON_TYPES.get(class_token, set()):
+        return False
+    return stat_matches_primary(str(row.get("weaponStat") or ""), str(spec.get("primary") or ""))
+
+
+def addon_db_validation_meta(policy: Dict[str, object], source_group: str) -> Dict[str, object]:
+    return {
+        "staticFinalBisVerified": False,
+        "bisValidationLevel": str(policy.get("bisValidationLevel") or "STATIC_BIS_NOT_CONFIRMED"),
+        "statPriorityVerified": policy.get("statPriorityVerified") is True,
+        "runtimeItemLinkRequired": source_group in {"mythicplus", "tier"},
+        "mythTrackVerified": False,
+        "statPrioritySummary": str(policy.get("secondaryPriority") or ""),
+    }
+
+
+def build_catalog_rows_from_addon_db(
+    addon_db_path: Path,
+    preserved_rows: List[Dict[str, object]],
+) -> Tuple[Dict[int, List[Dict[str, object]]], Dict[int, Dict[str, object]]]:
+    text = addon_db_path.read_text(encoding="utf-8")
+    specs, spec_policies = parse_addon_db_specs(text)
+    dungeon_en_by_ko = parse_addon_db_dungeons(text)
+    tier_sets = parse_addon_db_tier_sets(text)
+    accessory_rows = parse_addon_db_simple_item_table(text, "ACCESSORIES")
+    armor_rows_by_armor = {
+        "CLOTH": parse_addon_db_simple_item_table(text, "CLOTH_ARMOR"),
+        "LEATHER": parse_addon_db_simple_item_table(text, "LEATHER_ARMOR"),
+        "MAIL": parse_addon_db_simple_item_table(text, "MAIL_ARMOR"),
+        "PLATE": parse_addon_db_simple_item_table(text, "PLATE_ARMOR"),
+    }
+    trinket_rows = parse_addon_db_trinkets(text)
+    weapon_rows = parse_addon_db_weapons(text)
+
+    candidate_ids = {int(row["itemID"]) for row in preserved_rows}
+    for rows in armor_rows_by_armor.values():
+        candidate_ids.update(int(row["itemID"]) for row in rows)
+    for rows in (accessory_rows, trinket_rows, weapon_rows):
+        candidate_ids.update(int(row["itemID"]) for row in rows)
+    for tier in tier_sets.values():
+        candidate_ids.update(int(piece["itemID"]) for piece in tier.get("pieces", []))
+
+    item_metadata = fetch_all_item_metadata(candidate_ids)
+    combined: Dict[int, List[Dict[str, object]]] = {}
+    dedupe: Dict[Tuple[int, str, int, str], Dict[str, object]] = {}
+
+    slot_sort_order = {
+        "무기": 0, "보조장비": 1, "방패": 2, "머리": 3, "목": 4, "어깨": 5, "망토": 6,
+        "가슴": 7, "손목": 8, "손": 9, "허리": 10, "다리": 11, "발": 12, "반지": 13, "장신구": 14,
+    }
+
+    def add_catalog_row(row: Dict[str, object]) -> None:
+        spec_id = int(row["specID"])
+        key = (spec_id, str(row["slot"]), int(row["itemID"]), str(row["sourceGroup"]))
+        existing = dedupe.get(key)
+        if existing:
+            existing["priority"] = min(int(existing["priority"]), int(row["priority"]))
+            return
+        combined.setdefault(spec_id, []).append(row)
+        dedupe[key] = row
+
+    def make_mplus_row(spec_id: int, source: Dict[str, object], priority: int) -> Dict[str, object]:
+        item_id = int(source["itemID"])
+        spec_policy = spec_policies[spec_id]
+        meta = item_metadata[item_id]
+        dungeon_ko = str(source.get("dungeon") or "")
+        dungeon_en = dungeon_en_by_ko.get(dungeon_ko) or DUNGEON_DATA.get(dungeon_ko, {}).get("en") or dungeon_ko
+        return {
+            "specID": spec_id,
+            "slot": str(source["slot"]),
+            "itemID": item_id,
+            "nameKoKR": str(source.get("nameKoKR") or meta.get("nameKoKR") or ""),
+            "nameEnUS": str(meta.get("nameEnUS") or source.get("nameKoKR") or ""),
+            "quality": int(meta.get("quality") or 4),
+            "icon": meta.get("icon"),
+            "sourceGroup": "mythicplus",
+            "sourceType": "mythicplus",
+            "sourceLabel": dungeon_en,
+            "displaySourceKoKR": dungeon_ko,
+            "displaySourceEnUS": dungeon_en,
+            "dungeon": dungeon_ko,
+            "dungeonEnUS": dungeon_en,
+            "boss": "",
+            "rewardProfiles": MPLUS_REWARD_PROFILES,
+            "overallRank": 0,
+            "sourceRank": 0,
+            "priority": priority,
+            "origin": "addon_db",
+            **addon_db_validation_meta(spec_policy, "mythicplus"),
+        }
+
+    def make_tier_row(spec_id: int, piece: Dict[str, object], priority: int) -> Dict[str, object]:
+        item_id = int(piece["itemID"])
+        spec_policy = spec_policies[spec_id]
+        meta = item_metadata[item_id]
+        return {
+            "specID": spec_id,
+            "slot": str(piece["slot"]),
+            "itemID": item_id,
+            "nameKoKR": str(piece.get("nameKoKR") or meta.get("nameKoKR") or ""),
+            "nameEnUS": str(meta.get("nameEnUS") or piece.get("nameKoKR") or ""),
+            "quality": int(meta.get("quality") or 4),
+            "icon": meta.get("icon"),
+            "sourceGroup": "tier",
+            "sourceType": "tier",
+            "sourceLabel": "Tier Set",
+            "displaySourceKoKR": "티어 세트",
+            "displaySourceEnUS": "Tier Set",
+            "dungeon": "",
+            "dungeonEnUS": "",
+            "boss": "",
+            "overallRank": 0,
+            "sourceRank": 0,
+            "priority": priority,
+            "origin": "addon_db",
+            **addon_db_validation_meta(spec_policy, "tier"),
+        }
+
+    for row in preserved_rows:
+        add_catalog_row(dict(row))
+
+    for spec_id, spec in specs.items():
+        policy = spec_policies[spec_id]
+        tier = tier_sets.get(int(spec.get("tierSetId") or 0))
+        if tier:
+            for index, piece in enumerate(tier.get("pieces", []), start=1):
+                add_catalog_row(make_tier_row(spec_id, piece, 160 + index))
+
+        mplus_sources: List[Tuple[int, Dict[str, object]]] = []
+        for index, row in enumerate(accessory_rows, start=1):
+            mplus_sources.append((220 + index, row))
+        for index, row in enumerate(armor_rows_by_armor.get(str(spec.get("armor") or ""), []), start=1):
+            mplus_sources.append((260 + index, row))
+        for index, row in enumerate(trinket_rows, start=1):
+            if trinket_matches_spec(row, spec):
+                mplus_sources.append((340 + index, row))
+        for index, row in enumerate(weapon_rows, start=1):
+            if weapon_matches_spec(row, spec_id, spec):
+                mplus_sources.append((430 + index, row))
+
+        for priority, source in mplus_sources:
+            add_catalog_row(make_mplus_row(spec_id, source, priority))
+
+    for spec_id, rows in combined.items():
+        by_slot: Dict[str, List[Dict[str, object]]] = {}
+        for row in rows:
+            by_slot.setdefault(str(row["slot"]), []).append(row)
+        ranked_rows: List[Dict[str, object]] = []
+        for slot, slot_rows in by_slot.items():
+            slot_rows.sort(
+                key=lambda row: (
+                    int(row["priority"]),
+                    SOURCE_GROUP_ORDER[str(row["sourceGroup"])],
+                    str(row.get("displaySourceEnUS") or ""),
+                    int(row["itemID"]),
+                )
+            )
+            source_counts: Dict[str, int] = {}
+            for overall_rank, row in enumerate(slot_rows, start=1):
+                row["overallRank"] = overall_rank
+                source_group = str(row["sourceGroup"])
+                source_counts[source_group] = source_counts.get(source_group, 0) + 1
+                row["sourceRank"] = source_counts[source_group]
+                ranked_rows.append(row)
+        combined[spec_id] = sorted(
+            ranked_rows,
+            key=lambda row: (
+                slot_sort_order.get(str(row["slot"]), 999),
+                int(row["overallRank"]),
+                int(row["itemID"]),
+            ),
+        )
+
+    return combined, spec_policies
+
+
 def render_entry(entry: Dict[str, object]) -> str:
     def optional_string(value: str) -> str:
         return "nil" if not value else lua_string(value)
@@ -1450,6 +1982,22 @@ def render_entry(entry: Dict[str, object]) -> str:
             parts.append(f"{profile_key} = {{ {profile_body} }}")
         return "rewardProfiles = { " + ", ".join(parts) + " }, " if parts else ""
 
+    def render_extra_fields(entry: Dict[str, object]) -> str:
+        fields = [
+            "staticFinalBisVerified",
+            "bisValidationLevel",
+            "statPriorityVerified",
+            "runtimeItemLinkRequired",
+            "mythTrackVerified",
+            "statPrioritySummary",
+        ]
+        parts = [
+            f"{field} = {lua_value(entry[field])}"
+            for field in fields
+            if field in entry
+        ]
+        return ", ".join(parts) + ", " if parts else ""
+
     return (
         "        { "
         f"slot = {lua_string(str(entry['slot']))}, "
@@ -1467,13 +2015,55 @@ def render_entry(entry: Dict[str, object]) -> str:
         f"dungeonEnUS = {optional_string(str(entry.get('dungeonEnUS') or ''))}, "
         f"boss = {optional_string(str(entry.get('boss') or ''))}, "
         f"{render_profiles(entry.get('rewardProfiles'))}"
+        f"{render_extra_fields(entry)}"
         f"overallRank = {int(entry['overallRank'])}, "
         f"sourceRank = {int(entry['sourceRank'])} "
         "},"
     )
 
 
-def render_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> str:
+def render_spec_policy(spec_id: int, policy: Dict[str, object]) -> str:
+    fields = [
+        "specKey",
+        "classKo",
+        "specKo",
+        "role",
+        "armor",
+        "primary",
+        "tierSetId",
+        "tierSetKo",
+        "secondaryPriority",
+        "statPriorityVerified",
+        "statPriorityStatus",
+        "staticFinalBisVerified",
+        "bisOptimalVerified",
+        "bisStatus",
+        "bisValidationLevel",
+    ]
+
+    def lua_value(value: object) -> str:
+        if value is None:
+            return "nil"
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, int):
+            return str(value)
+        if isinstance(value, float):
+            return str(int(value)) if value.is_integer() else str(value)
+        return lua_string(str(value))
+
+    body = ", ".join(
+        f"{field} = {lua_value(policy.get(field))}"
+        for field in fields
+        if field in policy
+    )
+    return f"    [{spec_id}] = {{ {body} }},"
+
+
+def render_catalog(
+    catalog: Dict[int, List[Dict[str, object]]],
+    spec_policies: Optional[Dict[int, Dict[str, object]]] = None,
+) -> str:
     lines = [
         "local _, ns = ...",
         "",
@@ -1491,6 +2081,16 @@ def render_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> str:
         lines.append("")
     lines.append("}")
     lines.append("")
+    if spec_policies:
+        lines.extend(
+            [
+                "ns.Data.BISSpecPolicies = {",
+            ]
+        )
+        for spec_id in sorted(spec_policies):
+            lines.append(render_spec_policy(spec_id, spec_policies[spec_id]))
+        lines.append("}")
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -1523,6 +2123,18 @@ def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
                     raise ValueError(f"Invalid M+ end reward profile in spec {spec_id}, item {row['itemID']}")
                 if vault_profile.get("upgradeTrack") != "Myth" or int(vault_profile.get("itemLevel") or 0) != 272:
                     raise ValueError(f"Invalid M+ vault reward profile in spec {spec_id}, item {row['itemID']}")
+                for profile_key, profile in profiles.items():
+                    if not isinstance(profile, dict):
+                        raise ValueError(
+                            f"Mythic+ row has invalid reward profile in spec {spec_id}, item {row['itemID']}: {profile_key}"
+                        )
+                    if profile.get("itemString") or profile.get("itemLink"):
+                        raise ValueError(
+                            f"Mythic+ row must not contain static itemString/itemLink in spec {spec_id}, "
+                            f"item {row['itemID']}, profile {profile_key}"
+                        )
+                if row.get("runtimeItemLinkRequired") is not True:
+                    raise ValueError(f"Mythic+ row missing runtime link policy in spec {spec_id}, item {row['itemID']}")
             if not str(row["nameKoKR"]) or is_english_only(str(row["nameKoKR"])):
                 raise ValueError(
                     f"koKR item name leak in spec {spec_id}, item {row['itemID']}: {row['nameKoKR']!r}"
@@ -1559,19 +2171,33 @@ def main() -> int:
         type=Path,
         help="Optional Midnight S1 12.0.5 BIS xlsx source. Uses Long_ID as the catalog source.",
     )
+    parser.add_argument(
+        "--addon-db",
+        nargs="?",
+        const=ADDON_DB_FILE,
+        type=Path,
+        help="Optional Midnight S1 addon Lua DB source. Defaults to DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua.",
+    )
     args = parser.parse_args()
 
-    overall_rows = parse_overall_rows(OVERALL_FILE)
-    fallback_rows = parse_fallback_rows(FALLBACK_FILE)
-    companion_map = parse_companion_map(DOC_COMPANION_FILE)
-    if args.xlsx:
+    spec_policies = None
+    if args.addon_db:
+        preserved_rows = parse_existing_catalog_rows(TARGET_FILE)
+        catalog, spec_policies = build_catalog_rows_from_addon_db(args.addon_db, preserved_rows)
+    else:
+        overall_rows = parse_overall_rows(OVERALL_FILE)
+        fallback_rows = parse_fallback_rows(FALLBACK_FILE)
+        companion_map = parse_companion_map(DOC_COMPANION_FILE)
+    if args.addon_db:
+        pass
+    elif args.xlsx:
         xlsx_rows = parse_xlsx_rows(args.xlsx)
         catalog = build_catalog_rows_from_xlsx(xlsx_rows, overall_rows + fallback_rows, companion_map)
     else:
         doc_rows = parse_doc_rows(DOC_FINAL_FILE)
         catalog = build_catalog_rows(overall_rows, fallback_rows, doc_rows, companion_map)
     validate_catalog(catalog)
-    TARGET_FILE.write_text(render_catalog(catalog), encoding="utf-8")
+    TARGET_FILE.write_text(render_catalog(catalog, spec_policies), encoding="utf-8")
     print(f"Updated {TARGET_FILE}")
     print(f"Specs: {len(catalog)}")
     print(f"Rows: {sum(len(rows) for rows in catalog.values())}")

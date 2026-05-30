@@ -10,10 +10,10 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [releases/RELEASE_NOTES_v1.7.6.md](./releases/RELEASE_NOTES_v1.7.6.md)
-  - 최신 한글 릴리스 노트 (v1.7.6)
-- [releases/RELEASE_NOTES_v1.7.6_EN.md](./releases/RELEASE_NOTES_v1.7.6_EN.md)
-  - 최신 영문 릴리스 노트 (v1.7.6)
+- [releases/RELEASE_NOTES_v1.8.0.md](./releases/RELEASE_NOTES_v1.8.0.md)
+  - 최신 한글 릴리스 노트 (v1.8.0)
+- [releases/RELEASE_NOTES_v1.8.0_EN.md](./releases/RELEASE_NOTES_v1.8.0_EN.md)
+  - 최신 영문 릴리스 노트 (v1.8.0)
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름
 - [HANDOFF.md](./HANDOFF.md)
@@ -33,7 +33,8 @@
   - `../scripts/refresh_wowhead_bis.py`
   - `../scripts/refresh_wowhead_mplus_fallbacks.py`
 - BIS 통합 카탈로그 생성 스크립트:
-  - `../scripts/build_bis_catalog.py`
+  - `../scripts/build_bis_catalog.py --addon-db`
+  - `../scripts/validate_bis_catalog.py`
 
 ## 보관 문서
 

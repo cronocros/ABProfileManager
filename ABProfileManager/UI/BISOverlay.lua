@@ -7,7 +7,7 @@ ns.UI.BISOverlay = BISOverlay
 -- 레이아웃 상수
 -- ============================================================
 
-local FRAME_W      = 480
+local FRAME_W      = 560
 local PADDING      = 6
 local ROW_H        = 19
 local SECTION_H    = 24
@@ -37,17 +37,17 @@ local SB_GAP = 5    -- 스크롤바와 컨텐츠 사이 간격
 local HEADER_H  = TITLE_H + 8 + TABS_H + 12
 
 -- 컨텐츠 폭: 스크롤바(+갭+오른쪽 패딩) 제외
-local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 430
+local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 510
 
 -- 아이템 행 컬럼 레이아웃
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local COL_ICON    = ICON_SIZE + 5
-local COL_NAME    = 220
-local COL_SLOT    = 104
-local COL_TYPE    = 40
-local COL_NOTE    = 34
-local SPEC_PICKER_W = 154
+local COL_NAME    = 224
+local COL_SLOT    = 156
+local COL_TYPE    = 64
+local COL_NOTE    = 42
+local SPEC_PICKER_W = 162
 local SPEC_PICKER_BTN_H = 22
 local SPEC_PICKER_ROW_H = 20
 local SPEC_PICKER_MAX_VISIBLE = 12
@@ -1271,6 +1271,80 @@ local function localizeSourceType(sourceType)
     return ns.L(key)
 end
 
+local STAT_POLICY_EN_REPLACEMENTS = {
+    { "치명타 및 극대화", "Critical Strike" },
+    { "아이템레벨", "item level" },
+    { "치명타", "Critical Strike" },
+    { "가속", "Haste" },
+    { "특화", "Mastery" },
+    { "유연성", "Versatility" },
+    { "유연", "Versatility" },
+    { "힘", "Strength" },
+    { "민첩", "Agility" },
+    { "지능", "Intellect" },
+    { "우선", "priority" },
+    { "균형", "balanced" },
+}
+
+local function hasHangul(text)
+    return type(text) == "string" and text:find("[가-힣]") ~= nil
+end
+
+local function localizeStatPolicyText(text)
+    if not text or text == "" then
+        return nil
+    end
+    if isKoreanLanguageSelected() then
+        return text
+    end
+
+    local localized = tostring(text)
+    for _, pair in ipairs(STAT_POLICY_EN_REPLACEMENTS) do
+        localized = localized:gsub(pair[1], pair[2])
+    end
+    localized = localized
+        :gsub("·", " / ")
+        :gsub(" 및 ", " and ")
+        :gsub("이상", "+")
+        :gsub("%s+", " ")
+        :match("^%s*(.-)%s*$")
+
+    if hasHangul(localized) then
+        return ns.L("bis_stat_policy_contextual_summary")
+    end
+    return localized
+end
+
+local function getSpecPolicy(specID)
+    return specID and ns.Data and ns.Data.BISSpecPolicies and ns.Data.BISSpecPolicies[specID] or nil
+end
+
+local function getSpecPolicySummary(specID)
+    local policy = getSpecPolicy(specID)
+    local statSummary = localizeStatPolicyText(policy and policy.secondaryPriority)
+    if statSummary and statSummary ~= "" then
+        return ns.L("bis_overlay_policy_summary", statSummary)
+    end
+    return ns.L("bis_overlay_policy_summary_empty")
+end
+
+local function getEntryTrackStatusLabel(entry)
+    local sourceType = getEntrySourceType(entry)
+    if sourceType == "mythicplus" then
+        return ns.L("bis_track_mplus_runtime")
+    end
+    if sourceType == "tier" then
+        return ns.L("bis_status_tier_candidate")
+    end
+    if sourceType == "raid" then
+        return ns.L("bis_status_raid_preserved")
+    end
+    if sourceType == "crafted" then
+        return ns.L("bis_status_crafted_preserved")
+    end
+    return localizeSourceType(sourceType)
+end
+
 hasRaidMetaLabel = function(label)
     local normalized = normalizeCompareText(label)
     if normalized == "" then
@@ -2104,9 +2178,17 @@ function BISOverlay:EnsureFrame()
 
     frame.noticeText = frame:CreateFontString(nil, "OVERLAY")
     frame.noticeText:SetFont(FONT_PATH, 9, FONT_FLAGS)
-    frame.noticeText:SetPoint("LEFT", frame.hintText, "RIGHT", 6, 0)
+    frame.noticeText:SetPoint("TOPLEFT", frame.titleText, "BOTTOMLEFT", 0, -2)
+    frame.noticeText:SetWidth(CONTENT_W - 170)
+    frame.noticeText:SetJustifyH("LEFT")
     frame.noticeText:SetTextColor(1.00, 0.82, 0.46, 1)
-    frame.noticeText:SetText(ns.L("bis_overlay_notice"))
+    if frame.noticeText.SetWordWrap then
+        frame.noticeText:SetWordWrap(false)
+    end
+    if frame.noticeText.SetMaxLines then
+        frame.noticeText:SetMaxLines(1)
+    end
+    frame.noticeText:SetText(getSpecPolicySummary(getPlayerSpecID()))
 
     frame.avgLabel = frame:CreateFontString(nil, "OVERLAY")
     frame.avgLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
@@ -2934,17 +3016,36 @@ local BIS_SECONDARY_STAT_ORDER = {
 }
 
 local function buildRewardLabel(profile)
-    local source = profile and profile.sourceLabel or "쐐기"
-    local track = profile and (profile.upgradeTrackKo or profile.upgradeTrack) or "알 수 없음"
+    local source = profile and profile.sourceLabel or ns.L("bis_source_mplus")
+    local track = profile and (profile.upgradeTrackKo or profile.upgradeTrack) or "?"
     local rank = profile and profile.upgradeRank or ""
     local ilvl = profile and profile.itemLevel or "?"
-    local context = profile and profile.rewardContextLabel or "획득처 미상"
-    local key = profile and profile.minKeystoneLevel and ("M+" .. tostring(profile.minKeystoneLevel) .. " 이상") or nil
+    local context = profile and profile.rewardContextLabel or ns.L("bis_tooltip_acquisition")
+    local key = profile and profile.minKeystoneLevel and (
+        isKoreanLanguageSelected() and ("M+" .. tostring(profile.minKeystoneLevel) .. " 이상")
+        or ("M+" .. tostring(profile.minKeystoneLevel) .. "+")
+    ) or nil
+
+    if not isKoreanLanguageSelected() then
+        source = profile and profile.source == "mythicplus" and ns.L("bis_source_mplus") or tostring(source or "")
+        track = profile and (profile.upgradeTrack or profile.upgradeTrackKo) or "?"
+        if profile and profile.rewardContext == "end_of_dungeon" then
+            context = ns.L("bis_tooltip_end_of_run")
+        elseif profile and profile.rewardContext == "great_vault_voidcore" then
+            context = ns.L("bis_tooltip_vault")
+        end
+    end
 
     if key then
-        return string.format("%s %s 트랙 %s · %s · %s · %s", source, track, rank, tostring(ilvl), context, key)
+        if isKoreanLanguageSelected() then
+            return string.format("%s %s 트랙 %s · %s · %s · %s", source, track, rank, tostring(ilvl), context, key)
+        end
+        return string.format("%s %s %s · %s · %s · %s", source, track, rank, tostring(ilvl), context, key)
     end
-    return string.format("%s %s 트랙 %s · %s · %s", source, track, rank, tostring(ilvl), context)
+    if isKoreanLanguageSelected() then
+        return string.format("%s %s 트랙 %s · %s · %s", source, track, rank, tostring(ilvl), context)
+    end
+    return string.format("%s %s %s · %s · %s", source, track, rank, tostring(ilvl), context)
 end
 
 local function isMythTrack(profile)
@@ -3030,9 +3131,9 @@ end
 local function renderRewardProfileStats(tooltip, profile, owner, row)
     local itemInfo = getFullItemInfoForProfile(profile)
     if not itemInfo then
-        tooltip:AddLine("계산 기준: Base ItemID only", 1.00, 0.45, 0.35, true)
-        tooltip:AddLine("주의: 현재 데이터는 Base ItemID만 있음.", 1.00, 0.45, 0.35, true)
-        tooltip:AddLine("주의: 실제 트랙 스탯 표기에는 full itemString 또는 itemLink의 bonusID 정보가 필요함.", 1.00, 0.45, 0.35, true)
+        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_base"), 1.00, 0.45, 0.35, true)
+        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_base_warning"), 1.00, 0.45, 0.35, true)
+        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_full_required"), 1.00, 0.45, 0.35, true)
         return
     end
 
@@ -3040,13 +3141,13 @@ local function renderRewardProfileStats(tooltip, profile, owner, row)
     local stats = getItemStatsFromFullInfo(itemInfo)
     if not effectiveItemLevel or not stats then
         requestRewardProfileItemLoad(itemInfo, owner, row)
-        tooltip:AddLine("아이템 정보 로딩 중", 0.90, 0.82, 0.42, true)
-        tooltip:AddLine("계산 기준: full itemLink/itemString + bonusID 사용", 0.55, 0.85, 1.00, true)
+        tooltip:AddLine(ns.L("bis_tooltip_item_loading"), 0.90, 0.82, 0.42, true)
+        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_full"), 0.55, 0.85, 1.00, true)
         return
     end
 
-    tooltip:AddLine("실제 아이템 레벨: " .. tostring(effectiveItemLevel), 0.55, 0.85, 1.00, true)
-    tooltip:AddLine("실제 스탯:", 1.00, 0.82, 0.44, true)
+    tooltip:AddLine(ns.L("bis_tooltip_actual_item_level", tostring(effectiveItemLevel)), 0.55, 0.85, 1.00, true)
+    tooltip:AddLine(ns.L("bis_tooltip_actual_stats"), 1.00, 0.82, 0.44, true)
     for _, statKey in ipairs(BIS_PRIMARY_STAT_ORDER) do
         addRewardStatLine(tooltip, stats, statKey, "- ")
     end
@@ -3054,7 +3155,45 @@ local function renderRewardProfileStats(tooltip, profile, owner, row)
     for _, statKey in ipairs(BIS_SECONDARY_STAT_ORDER) do
         addRewardStatLine(tooltip, stats, statKey, "- ")
     end
-    tooltip:AddLine("계산 기준: full itemLink/itemString + bonusID 사용", 0.55, 0.85, 1.00, true)
+    tooltip:AddLine(ns.L("bis_tooltip_stat_calc_full"), 0.55, 0.85, 1.00, true)
+end
+
+local function appendBISValidationLines(tooltip, entry, sourceType)
+    if not tooltip or type(entry) ~= "table" then
+        return false
+    end
+
+    local added = false
+    local function ensureHeader()
+        if added then
+            return
+        end
+        tooltip:AddLine(" ")
+        tooltip:AddLine(ns.L("bis_tooltip_validation"), 0.42, 0.78, 1.00, true)
+        added = true
+    end
+
+    if entry.statPrioritySummary and entry.statPrioritySummary ~= "" then
+        ensureHeader()
+        tooltip:AddLine(ns.L("bis_tooltip_stat_policy") .. ": " .. tostring(localizeStatPolicyText(entry.statPrioritySummary) or entry.statPrioritySummary), 0.90, 0.92, 0.98, true)
+    end
+    if entry.staticFinalBisVerified == false then
+        ensureHeader()
+        tooltip:AddLine(ns.L("bis_tooltip_static_final_bis") .. ": " .. ns.L("bis_status_static_unverified"), 1.00, 0.68, 0.30, true)
+    end
+    if entry.runtimeItemLinkRequired then
+        ensureHeader()
+        tooltip:AddLine(ns.L("bis_tooltip_runtime_link_required") .. ": " .. ns.L("bis_status_runtime_link"), 0.55, 0.85, 1.00, true)
+    end
+    if sourceType == "mythicplus" or sourceType == "tier" then
+        ensureHeader()
+        local mythStatus = entry.mythTrackVerified and ns.L("bis_tooltip_myth_track_verified")
+            or ns.L("bis_tooltip_myth_track_candidate")
+        tooltip:AddLine(ns.L("bis_tooltip_myth_track_status") .. ": " .. mythStatus, 1.00, 0.76, 0.34, true)
+        tooltip:AddLine(ns.L("bis_tooltip_myth_track_itemid_only"), 1.00, 0.58, 0.42, true)
+    end
+
+    return added
 end
 
 local function renderTrackFirstBISTooltip(tooltip, owner, row)
@@ -3077,23 +3216,33 @@ local function renderTrackFirstBISTooltip(tooltip, owner, row)
     if entry.nameEnUS and entry.nameEnUS ~= displayName then
         tooltip:AddLine(entry.nameEnUS, 0.82, 0.86, 0.94, true)
     end
-    tooltip:AddLine("Base ItemID: " .. tostring(row.itemID), 0.78, 0.82, 0.90, true)
-    tooltip:AddLine("출처: 쐐기", 0.35, 0.78, 1.00, true)
+    tooltip:AddLine(ns.L("bis_tooltip_base_item_id", tostring(row.itemID)), 0.78, 0.82, 0.90, true)
+    tooltip:AddLine(ns.L("bis_tooltip_source") .. ": " .. ns.L("bis_source_mplus"), 0.35, 0.78, 1.00, true)
+    appendBISValidationLines(tooltip, entry, sourceType)
 
     for _, profileKey in ipairs({ "mplus_great_vault_voidcore", "mplus_end_of_dungeon" }) do
         local profile = profiles[profileKey]
         if type(profile) == "table" then
-            local trackLabel = (profile.upgradeTrackKo or profile.upgradeTrack or "알 수 없음") .. " 트랙 " .. (profile.upgradeRank or "")
+            local trackName = isKoreanLanguageSelected()
+                and (profile.upgradeTrackKo or profile.upgradeTrack or "?")
+                or (profile.upgradeTrack or profile.upgradeTrackKo or "?")
+            local trackLabel = trackName .. " " .. (profile.upgradeRank or "")
             tooltip:AddLine(" ")
             tooltip:AddLine(buildRewardLabel(profile), isMythTrack(profile) and 1.00 or 0.72, isMythTrack(profile) and 0.28 or 0.35, isMythTrack(profile) and 0.28 or 1.00, true)
-            tooltip:AddLine("등급: " .. trackLabel, 0.96, 0.96, 0.96, true)
-            tooltip:AddLine("아이템 레벨: " .. tostring(profile.itemLevel or "?"), 0.96, 0.96, 0.96, true)
-            tooltip:AddLine("획득 컨텍스트: " .. tostring(profile.rewardContextLabel or "획득처 미상"), 0.90, 0.92, 0.98, true)
+            tooltip:AddLine(ns.L("bis_tooltip_track_grade") .. ": " .. trackLabel, 0.96, 0.96, 0.96, true)
+            tooltip:AddLine(ns.L("bis_tooltip_item_level") .. ": " .. tostring(profile.itemLevel or "?"), 0.96, 0.96, 0.96, true)
+            local contextLabel = profile.rewardContextLabel or ns.L("bis_tooltip_acquisition")
+            if not isKoreanLanguageSelected() then
+                contextLabel = profile.rewardContext == "end_of_dungeon" and ns.L("bis_tooltip_end_of_run")
+                    or profile.rewardContext == "great_vault_voidcore" and ns.L("bis_tooltip_vault")
+                    or contextLabel
+            end
+            tooltip:AddLine(ns.L("bis_tooltip_reward_context") .. ": " .. tostring(contextLabel), 0.90, 0.92, 0.98, true)
             if profile.minKeystoneLevel then
-                tooltip:AddLine("요구 조건: M+" .. tostring(profile.minKeystoneLevel) .. " 이상", 0.90, 0.92, 0.98, true)
+                tooltip:AddLine(ns.L("bis_tooltip_requirement") .. ": M+" .. tostring(profile.minKeystoneLevel) .. "+", 0.90, 0.92, 0.98, true)
             end
             if profile.rewardContext == "end_of_dungeon" and profile.upgradeTrack == "Hero" then
-                tooltip:AddLine("주의: 이 아이템은 +10 보상이지만 신화 트랙이 아님.", 1.00, 0.68, 0.30, true)
+                tooltip:AddLine(ns.L("bis_tooltip_end_reward_not_myth"), 1.00, 0.68, 0.30, true)
             end
             renderRewardProfileStats(tooltip, profile, owner, row)
         end
@@ -3113,9 +3262,6 @@ showSeasonItemTooltip = function(owner, row)
     end
 
     local entry = row._entry or {}
-    if renderTrackFirstBISTooltip(tooltip, owner, row) then
-        return
-    end
 
     local function getTooltipFontColorRGB(fontColor, fallbackR, fallbackG, fallbackB)
         if type(fontColor) == "table" then
@@ -3410,6 +3556,7 @@ showSeasonItemTooltip = function(owner, row)
         tooltip:ClearLines()
         tooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
         fallbackSourceType = appendSeasonTooltipMeta()
+        appendBISValidationLines(tooltip, entry, fallbackSourceType)
         tooltip:AddLine(" ")
         appendSeasonTooltipRanges(fallbackSourceType)
         if fallbackSourceType == "mythicplus" or fallbackSourceType == "raid" then
@@ -3479,12 +3626,16 @@ showSeasonItemTooltip = function(owner, row)
         shown = tryShowTooltipItemID(row.itemID, sourceType)
     end
     if not shown then
+        if renderTrackFirstBISTooltip(tooltip, owner, row) then
+            return
+        end
         showSeasonFallbackTooltip()
         return
     end
 
     tooltip:AddLine(" ")
     appendSeasonTooltipMeta()
+    appendBISValidationLines(tooltip, entry, sourceType)
     tooltip:AddLine(" ")
     appendSeasonTooltipRanges(sourceType)
     if sourceType == "mythicplus" or sourceType == "raid" then
@@ -3652,7 +3803,7 @@ function BISOverlay:RebuildContent()
         frame.hintText:SetText(ns.L("bis_overlay_hint"))
     end
     if frame.noticeText then
-        frame.noticeText:SetText(ns.L("bis_overlay_notice"))
+        frame.noticeText:SetText(getSpecPolicySummary(specID))
     end
     if frame.avgLabel then
         frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
@@ -3765,7 +3916,7 @@ function BISOverlay:RebuildContent()
                 iRow.typeLabel:SetWidth(COL_TYPE)
                 iRow.typeLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
                 iRow.typeLabel:SetTextColor(sr, sg, sb, 1)
-                iRow.typeLabel:SetText(localizeSourceType(sourceType))
+                iRow.typeLabel:SetText(getEntryTrackStatusLabel(entry))
                 iRow.typeLabel:Show()
 
                 -- note 배지
@@ -3869,7 +4020,7 @@ function BISOverlay:Refresh()
             self.frame.hintText:SetText(ns.L("bis_overlay_hint"))
         end
         if self.frame.noticeText then
-            self.frame.noticeText:SetText(ns.L("bis_overlay_notice"))
+            self.frame.noticeText:SetText(getSpecPolicySummary(specID))
         end
         if self.frame.avgLabel then
             local avgIlvl = getAverageItemLevel()

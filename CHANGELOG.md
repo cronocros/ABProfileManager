@@ -6,6 +6,21 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.8.0 - 2026-05-31
+
+한밤 시즌 1 M+/티어 BIS 후보를 새 DOC DB 기준으로 재생성하고 BIS 오버레이 표기 정책을 정리한 릴리스.
+
+주요 변경:
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua` 기반으로 40개 전문화 M+/티어 후보를 재생성
+- 기존 레이드/제작 행은 보존하고, 게임 런타임 데이터 소스는 계속 `Data/BISCatalog.lua` 하나로 유지
+- M+ 보상 프로필을 `던전 종료 Hero 3/6 266` / `위대한 금고·Voidcore Myth 1/6 272` 후보로 분리하되 정적 `itemLink`, `itemString`, bonusID는 생성하지 않음
+- BIS row와 전문화 정책에 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false`, 스탯 우선순위 검증 메타를 추가
+- BIS 오버레이 폭/열 구성을 넓히고, 헤더에 현재 전문화 스탯 정책과 "정적 최종 BiS 아님" 상태를 표시
+- BIS 툴팁에 Base ItemID, reward profile, 런타임 링크 필요 여부, Myth 트랙 후보/미검증 상태, 심크 필요 문구를 분리 표시
+- `GameTooltip:SetHyperlink()` 금지, visible row만 갱신, crafted/tier 비랜딩, M+/raid Encounter Journal 랜딩 정책 유지
+- `scripts/build_bis_catalog.py --addon-db`와 `scripts/validate_bis_catalog.py`를 통해 새 DOC DB 생성/검증 경로 추가
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.8.0 기준으로 갱신
+
 ## 1.7.6 - 2026-05-29
 
 스탯 오버레이 특화 툴팁 핫픽스.

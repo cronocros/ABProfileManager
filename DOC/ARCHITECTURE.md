@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `main (v1.7.6 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열)`
+버전 기준: `v1.8.0 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -112,11 +112,12 @@
   - 필터는 `mythicplus / raid / crafted / tier` 4개 기본 on
   - 필터 적용 후 살아남은 후보를 기준으로 visible rank를 다시 계산
   - 첫 2개는 `1순위 / 2순위`, 이후는 `3순위+` 배지로 표기
-  - `아이템명 / 드랍 출처 / 유형 / 우선순위` 중심 열 구성
-  - M+ 항목은 `rewardProfiles`로 던전 종료 / 위대한 금고·Voidcore 대표 보상 트랙과 템렙을 표시
+  - `아이템명 / 드랍 출처 / 트랙·검증 상태 / 우선순위` 중심 열 구성
+  - 헤더에 현재 전문화 스탯 정책과 정적 최종 BiS 미확정 상태를 표시
+  - M+ 항목은 `rewardProfiles`로 던전 종료 Hero 3/6 266 / 위대한 금고·Voidcore Myth 1/6 272 대표 후보 트랙과 템렙을 표시
   - `mythicplus`, `raid`만 가능한 경우 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
-  - 행 hover는 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트를 전용 tooltip에 수동 렌더링하고, money/currency/sell-price line은 제외
+  - 행 hover는 검증된 런타임/EJ preview hyperlink가 있을 때 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트를 전용 tooltip에 수동 렌더링하고, 없으면 Base ItemID와 경고/검증 메타만 표시
   - `GET_ITEM_INFO_RECEIVED`는 전체 rebuild 대신 visible row patch만 수행
   - 헤더 마우스 휠로 0.5~2.0배 스케일 조절
   - 위치 / 스케일 / 접기 상태를 저장하고 재오픈 시 복원
@@ -149,17 +150,24 @@
   - 런타임에서 직접 읽는 단일 BIS 카탈로그
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
+  - v1.8.0부터 `ns.Data.BISSpecPolicies`와 row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `mythTrackVerified`, `statPrioritySummary` 메타를 함께 저장
 - `Data/BISData_Method.lua`
   - Wowhead `current Overall BiS` seed 입력
 - `Data/BISData.lua`
   - Wowhead `Best Gear from Mythic+` + seed fallback 입력
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`
+  - v1.8.0 M+/티어 카탈로그 생성용 오프라인 입력
+  - TOC에 직접 로드하지 않으며 런타임 데이터 소스가 아니다
 - `scripts/refresh_wowhead_bis.py`
   - Wowhead `current Overall BiS` 40 spec 데이터를 `Data/BISData_Method.lua`로 재생성
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
   - Wowhead M+ 추천 후보를 `Data/BISData.lua`로 재생성
 - `scripts/build_bis_catalog.py`
-  - `DOC` seed와 Wowhead/Wago DB2 검증 데이터를 합쳐 `Data/BISCatalog.lua`를 생성
-  - dungeon/source alias canonicalization, locale 누수 검사, itemID 검증을 포함
+  - 기존 DOC/Wowhead 경로 또는 `--addon-db` 새 DOC DB 경로로 `Data/BISCatalog.lua`를 생성
+  - 새 DOC DB 경로에서는 기존 raid/crafted row를 보존하고 M+/tier 후보를 재생성
+  - dungeon/source alias canonicalization, locale 누수 검사, itemID 검증, 정적 링크 미생성 검증을 포함
+- `scripts/validate_bis_catalog.py`
+  - 40개 전문화, 기존 raid row 보존, M+ reward profile, 정적 itemLink/bonusID 미생성, crafted/tier 비프로필 정책을 검증
 - `scripts/validate_bis_reward_profiles.py`
   - M+ BIS row가 유효한 보상 프로필 key를 참조하는지 검증
 
@@ -236,9 +244,9 @@
 
 ## BIS 카탈로그 흐름
 
-1. `scripts/refresh_wowhead_bis.py`
-2. `scripts/refresh_wowhead_mplus_fallbacks.py`
-3. `scripts/build_bis_catalog.py`
+1. `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`를 M+/티어 오프라인 입력으로 준비
+2. `scripts/build_bis_catalog.py --addon-db`
+3. `scripts/validate_bis_catalog.py`
 4. 생성 결과 `Data/BISCatalog.lua`를 패키지에 포함
 5. 게임 런타임에서는 `UI/BISOverlay.lua`가 `Data/BISCatalog.lua`만 읽음
 
@@ -249,13 +257,15 @@
 - locale 선택은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 우선 사용하고, legacy `boss/source` 값은 런타임 alias 정규화로 마지막 누수를 막는다
 - `GET_ITEM_INFO_RECEIVED`는 icon/quality/item hyperlink 보정이 필요한 visible row만 patch
 - BIS hover tooltip은 전역 `GameTooltip:SetHyperlink()`를 호출하지 않고, tooltipData line을 수동 렌더링한다
+- M+/tier row는 정적 최종 BiS가 아니며 실제 `itemLink`/bonusID와 심크/QE/로그 검증이 필요하다는 메타를 함께 표시한다
 - money/currency/sell-price line은 렌더링하지 않는다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 
 ## 회귀 포인트
 
 - BIS 필터 on/off 후 visible rank가 기대대로 다시 계산되는지
 - `레이드 off + 쐐기만 on`에서 쐐기 드랍템과 인던명이 남는지
-- M+ BIS row에 던전 종료 / 위대한 금고 보상 트랙과 템렙 안내가 표시되는지
+- M+ BIS row에 던전 종료 Hero / 위대한 금고 Myth 후보 트랙과 템렙 안내가 표시되는지
+- tooltip에 정적 최종 BiS 아님, 런타임 링크 필요, itemID만으로 Myth 트랙 미확정 문구가 표시되는지
 - `제작 + 티어만 on`에서 Encounter Journal 잘못 랜딩이 없는지
 - BIS hover 뒤 액션바 / 모험 안내서 / Pawn item tooltip에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지
 - `koKR`에서 영어 누수, `enUS`에서 한글 누수가 없는지

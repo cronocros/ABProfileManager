@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- `v1.7.6`
+- `v1.8.0`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.7.6/ABProfileManager-v1.7.6.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.7.6.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.8.0/ABProfileManager-v1.8.0.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.8.0.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.6.md](./DOC/releases/RELEASE_NOTES_v1.7.6.md)
-- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.7.6_EN.md](./DOC/releases/RELEASE_NOTES_v1.7.6_EN.md)
+- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.8.0.md](./DOC/releases/RELEASE_NOTES_v1.8.0.md)
+- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.8.0_EN.md](./DOC/releases/RELEASE_NOTES_v1.8.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
@@ -29,6 +29,14 @@
 - Patch 12.0.5 기준 전클래스/전문화 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.8.0 핵심 정리
+
+- BIS M+/티어 후보를 새 DOC DB 기준으로 재생성했습니다.
+- 레이드/제작 행은 기존 카탈로그에서 보존하고, 런타임 데이터 소스는 계속 `Data/BISCatalog.lua` 하나만 사용합니다.
+- M+ 행은 던전 종료 Hero 3/6 266과 위대한 금고·Voidcore Myth 1/6 272 후보를 표시하지만, 정적 `itemLink`/bonusID는 만들지 않습니다.
+- BIS 오버레이 헤더와 툴팁에 스탯 우선순위, 런타임 링크 필요 여부, Myth 트랙 미검증, "정적 최종 BiS 아님/심크 필요" 상태를 분리 표시합니다.
+- crafted/tier 비랜딩, M+/raid Encounter Journal 랜딩, visible row만 갱신하는 기존 정책을 유지합니다.
 
 ## v1.7.6 핵심 정리
 
@@ -120,10 +128,11 @@
   - 부위별 `1순위 / 2순위 / 3순위+` 강조
   - `쐐기 / 레이드 / 제작 / 티어` 필터
   - 필터 후 살아남은 후보 전체 표시
-  - `아이템명 / 드랍 출처 / 유형 / 우선순위` 중심 렌더
+  - `아이템명 / 드랍 출처 / 트랙·검증 상태 / 우선순위` 중심 렌더
+  - 헤더에 현재 전문화 스탯 우선순위와 정적 BiS 검증 상태 표시
   - `mythicplus`, `raid`는 가능할 때 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 랜딩하지 않음
-  - 아이템 hover 시 전용 안전 툴팁으로 현재 시즌 preview 정보 표시
+  - 아이템 hover 시 전용 안전 툴팁으로 Base ItemID, 보상 프로필, 런타임 링크 검증 상태 표시
   - 커서 앵커 툴팁, 드랍처/보스 보강, 챔피언/영웅/신화 트랙 색상 요약
   - 마우스 휠 스케일 조절과 위치 저장/복원
 - 드랍 아이템 레벨 오버레이
@@ -179,19 +188,22 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 
 - BIS 정보는 참고용입니다. 실제 템은 게임 내에서 직접 확인하는 전제를 유지합니다.
 - 런타임 데이터는 `Data/BISCatalog.lua` 하나만 사용합니다.
-- 생성 파이프라인은 `DOC` seed + Wowhead + Wago DB2 검증을 거쳐 `koKR/enUS/itemID/sourceGroup/rank`를 고정합니다.
+- 생성 파이프라인은 `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua` + 기존 raid/crafted row + Wago DB2 검증을 거쳐 `koKR/enUS/itemID/sourceGroup/rank`를 고정합니다.
 - `BISData_Method.lua`, `BISData.lua`는 더 이상 런타임 병합 대상이 아니라 생성용 seed 입력입니다.
+- 새 DOC DB는 TOC에 직접 로드하지 않고 `scripts/build_bis_catalog.py --addon-db`의 오프라인 입력으로만 사용합니다.
 - 필터 적용 후 남은 후보만 다시 정렬하므로, `레이드 off`, `쐐기만 on`, `제작 + 티어만 on` 모두 실제 후보 목록이 유지됩니다.
-- `제나스 지점`, `알게타르 대학` 같은 source alias는 생성기에서 canonical name으로 정규화합니다.
+- `공결탑 제나스`, `알게타르 대학` 같은 source alias는 생성기에서 canonical name으로 정규화합니다.
 - 제작과 티어 항목은 Encounter Journal 랜딩 대상이 아닙니다.
 - `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 확정 전까지 안내서만 열리고 특정 던전으로 바로 이동하지 않을 수 있습니다.
 - BIS 아이템 캐시가 늦게 들어와도 전체 오버레이를 다시 그리지 않고, 보이는 행만 갱신하도록 조정되어 있습니다.
-- 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료`, `위대한 금고/Voidcore`)과 아이템 레벨을 함께 표시합니다.
-- BIS hover 툴팁은 전역 `GameTooltip:SetHyperlink()`를 직접 호출하지 않고, 안전한 전용 툴팁으로 텍스트 정보를 렌더링합니다.
+- 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료 Hero 3/6 266`, `위대한 금고/Voidcore Myth 1/6 272`)과 아이템 레벨을 함께 표시합니다.
+- 정적 카탈로그는 `itemID`만으로 Hero/Myth 트랙이나 최종 BiS를 확정하지 않으며, 실제 `itemLink`/bonusID와 심크 검증이 필요하다는 메타를 표시합니다.
+- BIS hover 툴팁은 전역 `GameTooltip:SetHyperlink()`를 직접 호출하지 않고, 안전한 전용 툴팁으로 검증된 tooltipData 텍스트만 렌더링합니다.
 - 갱신 스크립트:
   - `scripts/refresh_wowhead_bis.py`
   - `scripts/refresh_wowhead_mplus_fallbacks.py`
-  - `scripts/build_bis_catalog.py`
+  - `scripts/build_bis_catalog.py --addon-db`
+  - `scripts/validate_bis_catalog.py`
 
 ## 현재 제약
 

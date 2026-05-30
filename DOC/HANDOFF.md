@@ -1,8 +1,18 @@
 # ABProfileManager Handoff
 
-버전 기준: `main (v1.7.6 기반)`
+버전 기준: `v1.8.0 기반`
 
-## 0-new. v1.7.6 메모
+## 0-new. v1.8.0 메모
+
+- BIS M+/티어 후보는 `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`를 오프라인 입력으로 `scripts/build_bis_catalog.py --addon-db`에서 생성한다. 이 DOC DB는 TOC에 직접 로드하지 않는다.
+- 게임 런타임 BIS 데이터 소스는 계속 `ABProfileManager/Data/BISCatalog.lua` 하나다. 생성 결과에는 `ns.Data.BISItems`와 `ns.Data.BISSpecPolicies`가 함께 들어간다.
+- 새 생성 경로는 기존 `raid`와 `crafted` row를 현재 카탈로그에서 보존하고, M+/tier 후보만 새 DOC DB 기준으로 재생성한다.
+- M+ row의 `rewardProfiles`는 `mplus_end_of_dungeon` Hero 3/6 266과 `mplus_great_vault_voidcore` Myth 1/6 272 후보를 담지만, `itemString`/`itemLink`/bonusID는 정적으로 만들지 않는다.
+- row 메타는 기본적으로 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false`이다. itemID만으로 Hero/Myth 트랙이나 최종 스탯을 확정하지 않는다.
+- `UI/BISOverlay.lua`는 헤더에 현재 전문화 스탯 정책과 "정적 최종 BiS 아님" 상태를 표시하고, tooltip에 런타임 링크 필요/심크 필요/Myth 후보 미검증 상태를 분리 표시한다.
+- `scripts/validate_bis_catalog.py`는 40개 전문화, 기존 raid row 보존, M+ reward profile, 정적 링크 미생성, crafted/tier 비프로필 정책을 검증한다.
+
+## 0-prev. v1.7.6 메모
 
 - `UI/StatsOverlay.lua`의 특화 tooltip은 `C_SpecializationInfo.GetSpecializationMasterySpells()`로 현재 전문화의 Mastery spellID를 얻고, `C_TooltipInfo.GetSpellByID()` line을 ABPM 전용 tooltip에 렌더링한다.
 - 전역 `GameTooltip:SetSpellByID()`를 직접 쓰지 않는다. v1.7.4 이후 GameTooltip/MoneyFrame taint 방어 정책과 동일하게 addon-owned tooltip 수동 렌더링을 유지한다.
@@ -25,7 +35,7 @@
 - 위 규칙은 액션바, Encounter Journal, Pawn 비교 툴팁에서 `Blizzard_MoneyFrame/Mainline/MoneyFrame.lua` secret-number 산술 오류가 ABPM taint로 표기되던 문제의 회귀 방지 조건이다.
 - `Data/ItemLevelTable.lua`에 `ns.Data.BISRewardProfiles.mythicplus`가 추가됐다. M+ BIS row는 `rewardProfiles`로 던전 종료 / 위대한 금고·Voidcore 대표 트랙과 템렙을 표시한다.
 - `Data/StatPriorityTable.lua`와 `UI/StatPriorityDialog.lua`가 추가됐다. 메인 창 유틸리티 영역의 `스탯 우선순위 표` 버튼에서 Patch 12.0.5 기준 40개 전문화 표를 연다.
-- `scripts/validate_bis_reward_profiles.py`는 BIS 카탈로그의 M+ 보상 프로필 연결 상태를 검증한다.
+- `scripts/validate_bis_reward_profiles.py`는 기존 XLSX 생성 경로의 M+ 보상 프로필 연결 상태를 검증한다. v1.8.0 새 DOC DB 경로의 릴리스 검증은 `scripts/validate_bis_catalog.py`를 우선 사용한다.
 - 인게임 확인 시 ABPM UI hover 뒤에 액션바 아이템, 모험 안내서 아이템, Pawn 비교 툴팁을 순서대로 마우스오버해 `MoneyFrame.lua secret number` 오류가 재현되지 않는지 본다.
 - 언어 기본값은 클라이언트 기준이다. `koKR` 클라이언트는 한국어, `enUS/enGB`와 현재 미지원 locale은 영어로 시작한다. 기존 영어 클라이언트에 저장된 우발적 `koKR` 기본값은 `languageUserSelected ~= true`일 때 1회 `enUS`로 보정한다.
 
@@ -69,7 +79,7 @@
 - `레이드 off + 쐐기만 on` 상태에서도 각 부위의 쐐기 드랍템과 인던이 남아야 한다. 이 조건이 깨지면 release blocker로 본다.
 - locale은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 그대로 쓴다. 런타임 번역 fallback을 넣지 않는 편이 안전하다.
 - 한글명은 `공식 KR 표기 > Wowhead koKR > DOC companion 검증 통과값` 우선순위로 생성한다.
-- `제나스 지점`, `알게타르 대학` 같은 alias는 생성기에서 canonical name으로 정규화한다. 런타임에서는 canonical label만 읽는다.
+- `공결탑 제나스`, `알게타르 대학` 같은 alias는 생성기에서 canonical name으로 정규화한다. 런타임에서는 canonical label만 읽는다.
 - 오버레이 open/spec/filter 전환은 단일 rebuild 경로를 유지한다. `GET_ITEM_INFO_RECEIVED`는 visible row patch만 처리한다.
 - crafted/tier는 Encounter Journal 랜딩 대상이 아니다. `mythicplus/raid`만 랜딩을 유지한다.
 - `마이사라 동굴`, `윈드러너 첨탑` direct EJ ID는 아직 미확정이다.
@@ -89,6 +99,7 @@
 - source 판정은 `sourceGroup` 정적 값을 우선 사용한다. 예전 `sourceLabel` 재분류 로직에 다시 기대지 않는 편이 안전하다.
 - `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
 - BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트를 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
+- M+/tier는 `runtimeItemLinkRequired` 경고와 "정적 최종 BiS 아님/심크 필요" 안내가 빠지면 안 된다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - unresolved direct ID:
   - `마이사라 동굴`
@@ -113,7 +124,7 @@
 - 줄바꿈 override 대상:
   - `윈드러너 첨탑`
   - `삼두정의 권좌`
-  - `제나스 지점`
+  - `공결탑 제나스`
   - `사론의 구덩이`
   - `마법학자의 정원`
   - `마이사라 동굴`
@@ -199,6 +210,7 @@
 - `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
 - `scripts/build_bis_catalog.py`
+- `scripts/validate_bis_catalog.py`
 - `scripts/validate_bis_reward_profiles.py`
 - `scripts/refresh_wowhead_bis.py`
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
@@ -218,6 +230,7 @@
 ## 5. 검증 습관
 
 - 먼저 `luaparser` 전체 파싱
+- `python .\scripts\validate_bis_catalog.py`
 - 그 다음 `git diff --check`
 - 릴리스 작업이면 그 다음 패키징
 - 마지막에 푸시, 필요 시 GitHub release
@@ -230,6 +243,7 @@
 - 지도 오버레이가 외부 월드맵에서만 표시되는지
 - BIS 오버레이 드랍 출처 클릭 → 모험 안내서 loot 탭 랜딩
 - BIS 아이템 hover 후 액션바 / 모험 안내서 / Pawn 아이템 tooltip에서 `MoneyFrame.lua` 오류가 없는지 확인
+- BIS tooltip에서 런타임 링크 필요, itemID만으로 Myth 트랙 미확정, 정적 최종 BiS 아님/심크 필요 문구가 보이는지 확인
 - BIS 필터 on/off와 visible rank 재계산
 - `레이드 off + 쐐기만 on`에서 쐐기 행이 유지되는지
 - `제작 + 티어만 on`에서 잘못된 랜딩이 없는지
