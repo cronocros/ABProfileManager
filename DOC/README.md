@@ -14,6 +14,10 @@
   - 최신 한글 릴리스 노트 (v1.10.0)
 - [releases/RELEASE_NOTES_v1.10.0_EN.md](./releases/RELEASE_NOTES_v1.10.0_EN.md)
   - 최신 영문 릴리스 노트 (v1.10.0)
+- [releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.10.0.md](./releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.10.0.md)
+  - v1.7.7 이후 누적 변경 한글 공지
+- [releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.10.0_EN.md](./releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.10.0_EN.md)
+  - v1.7.7 이후 누적 변경 영문 공지
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름
 - [HANDOFF.md](./HANDOFF.md)

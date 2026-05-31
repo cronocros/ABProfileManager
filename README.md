@@ -16,6 +16,7 @@
 - 이전 로컬 패키지: `dist/archive/`
 - 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.10.0.md](./DOC/releases/RELEASE_NOTES_v1.10.0.md)
 - 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.10.0_EN.md](./DOC/releases/RELEASE_NOTES_v1.10.0_EN.md)
+- v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.10.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.10.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
