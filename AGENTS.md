@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.10.0 기반`
+**현재 기준**: `v1.11.0 기반`
 
 ## 검증 명령어
 
@@ -65,7 +65,7 @@ ABProfileManager/
    - `layoutVersion=2` 이전 저장 좌표는 1회 초기화한다
 7. `SilvermoonMapOverlay.lua`, `StatsOverlay.lua`의 재사용 버퍼
 8. `UI/BISOverlay.lua`
-   - `Data/BISCatalog.lua`만 읽는다
+   - 정적 후보는 `Data/BISCatalog.lua`만 읽고, 실제 링크 점수는 `Data/BISRuntimeScoring.lua`를 통해 계산한다
    - `GET_ITEM_INFO_RECEIVED`는 visible row만 갱신한다
    - crafted/tier는 Encounter Journal 랜딩 대상이 아니다
    - 드루이드 4특성 헤더 폭과 필터 겹침 여부를 같이 확인
@@ -108,6 +108,8 @@ ABProfileManager/
 
 런타임 데이터:
 - `Data/BISCatalog.lua`
+- `Data/MidnightS1MPlusDB.lua`
+- `Data/BISRuntimeScoring.lua`
 
 생성 입력:
 - `Data/BISData_Method.lua`
@@ -116,18 +118,22 @@ ABProfileManager/
 - `DOC/wow_midnight_s1_mplus_bis_korean_companion.md`
 - `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`
 - `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
 생성 스크립트:
 - `scripts/refresh_wowhead_bis.py`
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
 - `scripts/build_bis_catalog.py`
+- `scripts/build_bis_runtime_scoring.py`
 
 중요 규칙:
 - 런타임 merge/정규화/웹 조회 금지
 - `mythicplus / raid / crafted / tier` 4개 필터 모두 기본 on
 - 필터 후 visible list 기준으로 `1순위 / 2순위 / 3순위+`를 재번호화
-- 전문화별 스탯 우선순위는 v1.3 단일 대표 정책을 사용한다
-- v1.3 점수 정책은 정적 메타데이터까지만 반영하며 실제 `itemLink` 기반 점수 엔진은 후속 설계 범위다
+- 정적 후보 풀은 v1.3 입력을 유지하고, 전문화별 스탯 우선순위와 실제 `itemLink` 점수는 v1.7 컴팩트 코어를 사용한다
+- 실제 링크가 없는 후보는 기존 정적 순서를 유지한다
+- 장비/가방 링크 인덱스는 overlay rebuild당 한 번만 만든다
 
 ### 아이템 레벨 오버레이 + 문장/열쇠 패널
 

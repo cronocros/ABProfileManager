@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.10.0 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.0 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -17,7 +17,7 @@
 - 드랍템 레벨 참조 오버레이
 - BIS 추천 장비 카탈로그 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
-- 한밤 시즌 1 v1.3 기준 40개 전문화 단일 대표 스탯 우선순위 표 팝업
+- 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 스탯 우선순위 표 팝업
 
 핵심 원칙:
 
@@ -26,7 +26,7 @@
 - 지도 오버레이는 보수적인 맵 판정과 정적 좌표를 사용한다.
 - 글자 크기 변경은 도메인별 typography 계층으로 통합한다.
 - 파괴적 작업은 확인창과 입력 검증을 우선한다.
-- BIS 런타임은 생성된 정적 카탈로그만 읽고, 열기 시점의 병합/정규화/웹 조회를 금지한다.
+- BIS 정적 후보는 생성된 카탈로그만 읽고, 열기 시점의 병합/웹 조회를 금지한다.
 - 애드온 hover 설명은 전용 tooltip frame을 사용하고, 전역 `GameTooltip:SetHyperlink()` 경로로 Blizzard money tooltip을 taint하지 않는다.
 
 ## 부트스트랩
@@ -109,6 +109,9 @@
 - `UI/BISOverlay.lua`
   - 현재 캐릭터 클래스의 전 특성 탭과 부위별 추천 장비 카탈로그 렌더
   - 정적 `Data/BISCatalog.lua`를 읽어 slot별 후보를 구성
+  - 실제 소유 `itemLink`가 있는 후보끼리는 `Data/BISRuntimeScoring.lua` 어댑터로 v1.7 점수를 계산해 같은 slot 정렬에 우선 적용
+  - 실제 링크가 없는 후보는 정적 `overallRank` 순서를 유지
+  - 장비/가방 링크 인덱스는 rebuild당 한 번만 생성
   - 필터는 `mythicplus / raid / crafted / tier` 4개 기본 on
   - 필터 적용 후 살아남은 후보를 기준으로 visible rank를 다시 계산
   - 첫 2개는 `1순위 / 2순위`, 이후는 `3순위+` 배지로 표기
@@ -142,20 +145,25 @@
 - `Data/SilvermoonMapData.lua`
   - 한밤(Midnight) 지도 라벨 정의
 - `Data/StatPriorities.lua`
-  - 스탯 오버레이 한 줄 표시용 한밤 시즌 1 v1.3 단일 대표 우선순위
+  - 스탯 오버레이 한 줄 표시용 한밤 시즌 1 v1.7 단일 대표 우선순위
 - `Data/StatPriorityTable.lua`
-  - 메인 창 `스탯 우선순위 표` 팝업이 표시하는 한밤 시즌 1 v1.3 기준 40개 전문화 표
+  - 메인 창 `스탯 우선순위 표` 팝업이 표시하는 한밤 시즌 1 v1.7 기준 40개 전문화 표
   - 전문화별 단일 대표 우선순위와 현재 전문화 매칭용 specID map 포함
 - `Data/ItemLevelTable.lua`
   - 컨텐츠별 드랍 아이템 레벨 테이블
   - `ns.Data.BISRewardProfiles`로 BIS row가 참조할 대표 보상 트랙 정의
   - M+ hover preview용 신화 던전(M0) Champion 1/6 246 기준 제공
 - `Data/BISCatalog.lua`
-  - 런타임에서 직접 읽는 단일 BIS 카탈로그
-  - v1.10.0 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
+  - v1.11.0 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
-  - v1.10.0부터 40개 전문화 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
+  - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
+- `Data/MidnightS1MPlusDB.lua`
+  - `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`에서 설치한 컴팩트 런타임 점수 코어
+  - 실제 `itemLink`에서 아이템 레벨과 스탯을 읽어 전문화별 점수를 계산
+- `Data/BISRuntimeScoring.lua`
+  - ABPM specID, slot, sourceGroup을 v1.7 코어 키로 변환하는 네임스페이스 어댑터
 - `Data/BISData_Method.lua`
   - Wowhead `current Overall BiS` seed 입력
 - `Data/BISData.lua`
@@ -167,6 +175,10 @@
   - v1.10.0 M+/티어 카탈로그 생성용 오프라인 입력
   - 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지
   - TOC에 직접 로드하지 않으며 런타임 데이터 소스가 아니다
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`
+  - 실제 `itemLink` 점수화 정책과 UI 연동 규칙을 정리한 컴팩트 가이드
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`
+  - 40개 전문화 스탯 가중치와 런타임 점수 API를 제공하는 설치 입력
 - `scripts/refresh_wowhead_bis.py`
   - Wowhead `current Overall BiS` 40 spec 데이터를 `Data/BISData_Method.lua`로 재생성
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
@@ -175,9 +187,12 @@
   - 기존 DOC/Wowhead 경로 또는 `--addon-db` v1.3 DOC DB 경로로 `Data/BISCatalog.lua`를 생성
   - v1.3 DOC DB 경로에서는 기존 `raid 285` / `crafted 91`행을 보존하고 `mythicplus 2554` / `tier 200`행을 생성
   - dungeon/source alias canonicalization, locale 누수 검사, itemID 검증, 정적 링크 미생성 검증을 포함
-  - v1.3 점수 정책은 카탈로그 검증 메타데이터까지만 생성하며 실제 링크 기반 점수 엔진은 연결하지 않음
+  - v1.3 입력은 정적 후보 풀 생성 기준으로 유지
+- `scripts/build_bis_runtime_scoring.py`
+  - v1.7 코어를 런타임 경로에 설치하고 40개 전문화 스탯 표와 BIS 정책 메타를 갱신
 - `scripts/validate_bis_catalog.py`
-  - 40개 전문화, 기존 raid row 보존, M+ reward profile, 정적 itemLink/bonusID 미생성, crafted/tier 비프로필 정책을 검증
+  - v1.3 정적 후보 풀과 v1.7 런타임 코어를 분리 검증
+  - 40개 전문화, 기존 raid/crafted row 보존, M+ reward profile, 정적 itemLink/bonusID 미생성, crafted/tier 비프로필 정책을 검증
 - `scripts/validate_bis_reward_profiles.py`
   - M+ BIS row가 유효한 보상 프로필 key를 참조하는지 검증
 
@@ -207,7 +222,7 @@
   - 캐릭터 스탯 오버레이
   - 특화 tooltip은 현재 전문화의 Mastery spell tooltip data를 ABPM 전용 tooltip에 렌더링
 - `UI/StatPriorityDialog.lua`
-  - 한밤 시즌 1 v1.3 기준 직업/전문화별 단일 대표 스탯 우선순위 표 팝업
+  - 한밤 시즌 1 v1.7 기준 직업/전문화별 단일 대표 스탯 우선순위 표 팝업
 - `UI/ProfessionKnowledgeOverlay.lua`
   - profession 포인트 오버레이
 - `UI/SilvermoonMapOverlay.lua`
@@ -257,9 +272,10 @@
 
 1. `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`를 M+/티어 오프라인 입력으로 준비
 2. `scripts/build_bis_catalog.py --addon-db`
-3. `scripts/validate_bis_catalog.py`
-4. 생성 결과 `Data/BISCatalog.lua`를 패키지에 포함
-5. 게임 런타임에서는 `UI/BISOverlay.lua`가 `Data/BISCatalog.lua`만 읽음
+3. `scripts/build_bis_runtime_scoring.py`
+4. `scripts/validate_bis_catalog.py`
+5. 생성 결과 `Data/BISCatalog.lua`, `Data/MidnightS1MPlusDB.lua`, `Data/BISRuntimeScoring.lua`를 패키지에 포함
+6. 게임 런타임에서는 `UI/BISOverlay.lua`가 정적 후보와 실제 소유 링크 점수를 함께 사용
 
 런타임 규칙:
 
@@ -270,7 +286,8 @@
 - BIS hover tooltip은 전역 `GameTooltip:SetHyperlink()`를 호출하지 않고, tooltipData line을 수동 렌더링한다
 - M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 246 기준을 사용한다
 - M+/tier row는 정적 최종 BiS가 아니며 실제 `itemLink`/bonusID와 심크/QE/로그 검증이 필요하다는 메타를 함께 표시한다
-- v1.3 런타임 점수 정책은 생성 메타데이터로만 보관한다. 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계 범위다
+- 실제 소유 `itemLink`가 있는 후보는 v1.7 코어 점수를 슬롯 정렬에 우선 적용하고, 없는 후보는 정적 순서를 유지한다
+- 장비/가방 링크 스캔은 rebuild마다 한 번만 수행한다
 - money/currency/sell-price line은 렌더링하지 않는다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 
 ## 회귀 포인트
