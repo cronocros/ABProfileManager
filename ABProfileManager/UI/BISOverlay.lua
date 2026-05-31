@@ -3081,271 +3081,74 @@ local function isValidTooltipLinkForSource(link, sourceType)
     return isValidPreviewItemLevel(sourceType, itemLevel)
 end
 
+local function getItemIDFromLink(link)
+    if type(link) ~= "string" or link == "" then
+        return nil
+    end
+    if GetItemInfoInstant then
+        local ok, itemID = pcall(GetItemInfoInstant, link)
+        if ok and tonumber(itemID) then
+            return tonumber(itemID)
+        end
+    end
+    return tonumber(link:match("item:(%d+)"))
+end
+
+local function isMatchingItemLink(link, itemID)
+    return isItemHyperlink(link) and getItemIDFromLink(link) == tonumber(itemID)
+end
+
+local function getOwnedPlayerItemLink(itemID)
+    if not itemID or itemID <= 0 then
+        return nil
+    end
+
+    if GetInventoryItemLink then
+        for slotID = 1, (INVSLOT_LAST_EQUIPPED or 19) do
+            local link = GetInventoryItemLink("player", slotID)
+            if isMatchingItemLink(link, itemID) then
+                return link
+            end
+        end
+    end
+
+    local getNumSlots = C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
+    local getItemLink = C_Container and C_Container.GetContainerItemLink or GetContainerItemLink
+    if not getNumSlots or not getItemLink then
+        return nil
+    end
+
+    local lastBagID = NUM_BAG_SLOTS or 4
+    local reagentBagID = tonumber(Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag or REAGENTBAG_CONTAINER)
+    if reagentBagID and reagentBagID > lastBagID then
+        lastBagID = reagentBagID
+    end
+    for bagID = 0, lastBagID do
+        local ok, numSlots = pcall(getNumSlots, bagID)
+        if ok then
+            for slotID = 1, (numSlots or 0) do
+                local linkOK, link = pcall(getItemLink, bagID, slotID)
+                if linkOK and isMatchingItemLink(link, itemID) then
+                    return link
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function getPreferredOwnedItemLink(specID, itemID)
+    local liveLink = getOwnedPlayerItemLink(itemID)
+    if liveLink then
+        return liveLink
+    end
+    local savedLink = ns.DB and ns.DB.GetBISOverlayOwnedItemLink
+        and ns.DB:GetBISOverlayOwnedItemLink(specID, itemID)
+        or nil
+    return isMatchingItemLink(savedLink, itemID) and savedLink or nil
+end
+
 local showSeasonItemTooltip
-
-local BIS_STAT_LABELS = {
-    ITEM_MOD_STRENGTH_SHORT = "힘",
-    ITEM_MOD_AGILITY_SHORT = "민첩",
-    ITEM_MOD_INTELLECT_SHORT = "지능",
-    ITEM_MOD_STAMINA_SHORT = "체력",
-    ITEM_MOD_CRIT_RATING_SHORT = "치명타",
-    ITEM_MOD_HASTE_RATING_SHORT = "가속",
-    ITEM_MOD_MASTERY_RATING_SHORT = "특화",
-    ITEM_MOD_VERSATILITY = "유연",
-    ITEM_MOD_VERSATILITY_RATING_SHORT = "유연",
-}
-
-local BIS_PRIMARY_STAT_ORDER = {
-    "ITEM_MOD_STRENGTH_SHORT",
-    "ITEM_MOD_AGILITY_SHORT",
-    "ITEM_MOD_INTELLECT_SHORT",
-}
-
-local BIS_SECONDARY_STAT_ORDER = {
-    "ITEM_MOD_CRIT_RATING_SHORT",
-    "ITEM_MOD_HASTE_RATING_SHORT",
-    "ITEM_MOD_MASTERY_RATING_SHORT",
-    "ITEM_MOD_VERSATILITY",
-    "ITEM_MOD_VERSATILITY_RATING_SHORT",
-}
-
-local function buildRewardLabel(profile)
-    local source = profile and profile.sourceLabel or ns.L("bis_source_mplus")
-    local track = profile and (profile.upgradeTrackKo or profile.upgradeTrack) or "?"
-    local rank = profile and profile.upgradeRank or ""
-    local ilvl = profile and profile.itemLevel or "?"
-    local context = profile and profile.rewardContextLabel or ns.L("bis_tooltip_acquisition")
-    local key = profile and profile.minKeystoneLevel and (
-        isKoreanLanguageSelected() and ("M+" .. tostring(profile.minKeystoneLevel) .. " 이상")
-        or ("M+" .. tostring(profile.minKeystoneLevel) .. "+")
-    ) or nil
-
-    if not isKoreanLanguageSelected() then
-        source = profile and profile.source == "mythicplus" and ns.L("bis_source_mplus") or tostring(source or "")
-        track = profile and (profile.upgradeTrack or profile.upgradeTrackKo) or "?"
-        if profile and profile.rewardContext == "end_of_dungeon" then
-            context = ns.L("bis_tooltip_end_of_run")
-        elseif profile and profile.rewardContext == "great_vault_voidcore" then
-            context = ns.L("bis_tooltip_vault")
-        end
-    end
-
-    if key then
-        if isKoreanLanguageSelected() then
-            return string.format("%s %s 트랙 %s · %s · %s · %s", source, track, rank, tostring(ilvl), context, key)
-        end
-        return string.format("%s %s %s · %s · %s · %s", source, track, rank, tostring(ilvl), context, key)
-    end
-    if isKoreanLanguageSelected() then
-        return string.format("%s %s 트랙 %s · %s · %s", source, track, rank, tostring(ilvl), context)
-    end
-    return string.format("%s %s %s · %s · %s", source, track, rank, tostring(ilvl), context)
-end
-
-local function isMythTrack(profile)
-    return profile and profile.upgradeTrack == "Myth"
-end
-
-local function getDefaultRewardProfilesForEntry(entry)
-    local sourceType = getEntrySourceType(entry)
-    if sourceType == "mythicplus" then
-        local profiles = ns.Data and ns.Data.BISRewardProfiles and ns.Data.BISRewardProfiles.mythicplus
-        return profiles
-    end
-    return nil
-end
-
-local function getRewardProfilesForEntry(entry)
-    if entry and type(entry.rewardProfiles) == "table" then
-        return entry.rewardProfiles
-    end
-    return getDefaultRewardProfilesForEntry(entry)
-end
-
-local function requestRewardProfileItemLoad(itemInfo, owner, row)
-    if type(itemInfo) ~= "string" or itemInfo == "" or not Item or not Item.CreateFromItemLink then
-        return
-    end
-    local ok, item = pcall(Item.CreateFromItemLink, Item, itemInfo)
-    if not ok or not item or not item.ContinueOnItemLoad then
-        return
-    end
-    item:ContinueOnItemLoad(function()
-        local tooltip = getBISTooltip()
-        if tooltip and owner and tooltip:IsOwned(owner) then
-            showSeasonItemTooltip(owner, row)
-        end
-    end)
-end
-
-local function getFullItemInfoForProfile(profile)
-    if type(profile) ~= "table" then
-        return nil
-    end
-    if type(profile.itemLink) == "string" and profile.itemLink ~= "" then
-        return profile.itemLink
-    end
-    if type(profile.itemString) == "string" and profile.itemString ~= "" then
-        return profile.itemString
-    end
-    return nil
-end
-
-local function getDetailedItemLevelFromFullInfo(itemInfo)
-    if not itemInfo or not C_Item or not C_Item.GetDetailedItemLevelInfo then
-        return nil
-    end
-    local ok, effectiveItemLevel = pcall(C_Item.GetDetailedItemLevelInfo, itemInfo)
-    if ok and effectiveItemLevel then
-        return effectiveItemLevel
-    end
-    return nil
-end
-
-local function getItemStatsFromFullInfo(itemInfo)
-    if not itemInfo or not C_Item or not C_Item.GetItemStats then
-        return nil
-    end
-    local ok, stats = pcall(C_Item.GetItemStats, itemInfo)
-    if ok and type(stats) == "table" then
-        return stats
-    end
-    return nil
-end
-
-local function addRewardStatLine(tooltip, stats, statKey, prefix)
-    local value = stats and tonumber(stats[statKey])
-    if not value or value == 0 then
-        return false
-    end
-    tooltip:AddLine(string.format("%s%s +%d", prefix or "", BIS_STAT_LABELS[statKey] or statKey, value), 0.90, 0.92, 0.98, true)
-    return true
-end
-
-local function renderRewardProfileStats(tooltip, profile, owner, row)
-    local itemInfo = getFullItemInfoForProfile(profile)
-    if not itemInfo then
-        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_base"), 1.00, 0.45, 0.35, true)
-        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_base_warning"), 1.00, 0.45, 0.35, true)
-        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_full_required"), 1.00, 0.45, 0.35, true)
-        return
-    end
-
-    local effectiveItemLevel = getDetailedItemLevelFromFullInfo(itemInfo)
-    local stats = getItemStatsFromFullInfo(itemInfo)
-    if not effectiveItemLevel or not stats then
-        requestRewardProfileItemLoad(itemInfo, owner, row)
-        tooltip:AddLine(ns.L("bis_tooltip_item_loading"), 0.90, 0.82, 0.42, true)
-        tooltip:AddLine(ns.L("bis_tooltip_stat_calc_full"), 0.55, 0.85, 1.00, true)
-        return
-    end
-
-    tooltip:AddLine(ns.L("bis_tooltip_actual_item_level", tostring(effectiveItemLevel)), 0.55, 0.85, 1.00, true)
-    tooltip:AddLine(ns.L("bis_tooltip_actual_stats"), 1.00, 0.82, 0.44, true)
-    for _, statKey in ipairs(BIS_PRIMARY_STAT_ORDER) do
-        addRewardStatLine(tooltip, stats, statKey, "- ")
-    end
-    addRewardStatLine(tooltip, stats, "ITEM_MOD_STAMINA_SHORT", "- ")
-    for _, statKey in ipairs(BIS_SECONDARY_STAT_ORDER) do
-        addRewardStatLine(tooltip, stats, statKey, "- ")
-    end
-    tooltip:AddLine(ns.L("bis_tooltip_stat_calc_full"), 0.55, 0.85, 1.00, true)
-end
-
-local function appendBISValidationLines(tooltip, entry, sourceType)
-    if not tooltip or type(entry) ~= "table" then
-        return false
-    end
-
-    local added = false
-    local function ensureHeader()
-        if added then
-            return
-        end
-        tooltip:AddLine(" ")
-        tooltip:AddLine(ns.L("bis_tooltip_validation"), 0.42, 0.78, 1.00, true)
-        added = true
-    end
-
-    if entry.statPrioritySummary and entry.statPrioritySummary ~= "" then
-        ensureHeader()
-        tooltip:AddLine(ns.L("bis_tooltip_stat_policy") .. ": " .. tostring(localizeStatPolicyText(entry.statPrioritySummary) or entry.statPrioritySummary), 0.90, 0.92, 0.98, true)
-    end
-    if entry.staticFinalBisVerified == false then
-        ensureHeader()
-        tooltip:AddLine(ns.L("bis_tooltip_static_final_bis") .. ": " .. ns.L("bis_status_static_unverified"), 1.00, 0.68, 0.30, true)
-    end
-    if entry.runtimeItemLinkRequired then
-        ensureHeader()
-        tooltip:AddLine(ns.L("bis_tooltip_runtime_link_required") .. ": " .. ns.L("bis_status_runtime_link"), 0.55, 0.85, 1.00, true)
-    end
-    if sourceType == "mythicplus" or sourceType == "tier" then
-        ensureHeader()
-        local mythStatus = entry.mythTrackVerified and ns.L("bis_tooltip_myth_track_verified")
-            or ns.L("bis_tooltip_myth_track_candidate")
-        tooltip:AddLine(ns.L("bis_tooltip_myth_track_status") .. ": " .. mythStatus, 1.00, 0.76, 0.34, true)
-        tooltip:AddLine(ns.L("bis_tooltip_myth_track_itemid_only"), 1.00, 0.58, 0.42, true)
-    end
-
-    return added
-end
-
-local function renderTrackFirstBISTooltip(tooltip, owner, row)
-    if not tooltip or not row or not row._entry or not row.itemID or row.itemID <= 0 then
-        return false
-    end
-
-    local entry = row._entry
-    local profiles = getRewardProfilesForEntry(entry)
-    local sourceType = getEntrySourceType(entry)
-    if sourceType ~= "mythicplus" or type(profiles) ~= "table" then
-        return false
-    end
-
-    local displayName = getEntryLocalizedName(entry) or ("Item #" .. tostring(row.itemID))
-    local qc = getQualityColor(getEntryQuality(entry))
-    tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
-    tooltip:ClearLines()
-    tooltip:AddLine(displayName, qc[1], qc[2], qc[3], true)
-    if entry.nameEnUS and entry.nameEnUS ~= displayName then
-        tooltip:AddLine(entry.nameEnUS, 0.82, 0.86, 0.94, true)
-    end
-    tooltip:AddLine(ns.L("bis_tooltip_base_item_id", tostring(row.itemID)), 0.78, 0.82, 0.90, true)
-    tooltip:AddLine(ns.L("bis_tooltip_source") .. ": " .. ns.L("bis_source_mplus"), 0.35, 0.78, 1.00, true)
-    appendBISValidationLines(tooltip, entry, sourceType)
-
-    for _, profileKey in ipairs({ "mplus_great_vault_voidcore", "mplus_end_of_dungeon" }) do
-        local profile = profiles[profileKey]
-        if type(profile) == "table" then
-            local trackName = isKoreanLanguageSelected()
-                and (profile.upgradeTrackKo or profile.upgradeTrack or "?")
-                or (profile.upgradeTrack or profile.upgradeTrackKo or "?")
-            local trackLabel = trackName .. " " .. (profile.upgradeRank or "")
-            tooltip:AddLine(" ")
-            tooltip:AddLine(buildRewardLabel(profile), isMythTrack(profile) and 1.00 or 0.72, isMythTrack(profile) and 0.28 or 0.35, isMythTrack(profile) and 0.28 or 1.00, true)
-            tooltip:AddLine(ns.L("bis_tooltip_track_grade") .. ": " .. trackLabel, 0.96, 0.96, 0.96, true)
-            tooltip:AddLine(ns.L("bis_tooltip_item_level") .. ": " .. tostring(profile.itemLevel or "?"), 0.96, 0.96, 0.96, true)
-            local contextLabel = profile.rewardContextLabel or ns.L("bis_tooltip_acquisition")
-            if not isKoreanLanguageSelected() then
-                contextLabel = profile.rewardContext == "end_of_dungeon" and ns.L("bis_tooltip_end_of_run")
-                    or profile.rewardContext == "great_vault_voidcore" and ns.L("bis_tooltip_vault")
-                    or contextLabel
-            end
-            tooltip:AddLine(ns.L("bis_tooltip_reward_context") .. ": " .. tostring(contextLabel), 0.90, 0.92, 0.98, true)
-            if profile.minKeystoneLevel then
-                tooltip:AddLine(ns.L("bis_tooltip_requirement") .. ": M+" .. tostring(profile.minKeystoneLevel) .. "+", 0.90, 0.92, 0.98, true)
-            end
-            if profile.rewardContext == "end_of_dungeon" and profile.upgradeTrack == "Hero" then
-                tooltip:AddLine(ns.L("bis_tooltip_end_reward_not_myth"), 1.00, 0.68, 0.30, true)
-            end
-            renderRewardProfileStats(tooltip, profile, owner, row)
-        end
-    end
-
-    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
-    tooltip:Show()
-    return true
-end
 
 showSeasonItemTooltip = function(owner, row)
     if not row or not row.itemID or row.itemID <= 0 then return end
@@ -3379,13 +3182,7 @@ showSeasonItemTooltip = function(owner, row)
 
     local labelR, labelG, labelB = getTooltipFontColorRGB(DISABLED_FONT_COLOR, 0.62, 0.68, 0.78)
     local valueR, valueG, valueB = getTooltipFontColorRGB(HIGHLIGHT_FONT_COLOR, 0.96, 0.96, 0.96)
-    local headerR, headerG, headerB = 0.42, 0.78, 1.00
     local accentR, accentG, accentB = 1.00, 0.82, 0.44
-    local TRACK_COLORS = {
-        chmp = { 0.28, 0.68, 1.00 },
-        hero = { 0.72, 0.35, 1.00 },
-        myth = { 1.00, 0.20, 0.20 },
-    }
 
     local function addStyledTooltipLine(label, value, vr, vg, vb)
         local text = wrapTooltipTextColor((label or "") .. ":", labelR, labelG, labelB)
@@ -3394,11 +3191,6 @@ showSeasonItemTooltip = function(owner, row)
             text = text .. " " .. wrapTooltipTextColor(valueText, vr or valueR, vg or valueG, vb or valueB)
         end
         tooltip:AddLine(text, 1, 1, 1, true)
-    end
-
-    local function addTrackTooltipLine(label, value, grade)
-        local color = TRACK_COLORS[grade] or TRACK_COLORS.chmp
-        addStyledTooltipLine(label, value, color[1], color[2], color[3])
     end
 
     local function isRaidLocationLabel(label)
@@ -3471,44 +3263,6 @@ showSeasonItemTooltip = function(owner, row)
         return nil
     end
 
-    local function getMythicPlusBandText(mode, grade)
-        local tbl = ns.Data and ns.Data.ItemLevelTable
-        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-        if not entries or #entries == 0 then
-            return nil
-        end
-
-        local firstKey, lastKey, minIlvl, maxIlvl
-        for _, candidate in ipairs(entries) do
-            local currentGrade = mode == "vault" and candidate.vaultGrade or candidate.grade
-            if currentGrade == grade then
-                local key = tonumber(candidate.key)
-                local ilvl = tonumber(mode == "vault" and candidate.vault or candidate.ilvl)
-                local cap = tonumber(mode == "vault" and candidate.vaultMax or candidate.maxilvl) or ilvl
-                if not firstKey then
-                    firstKey = key
-                    minIlvl = ilvl
-                end
-                lastKey = key or lastKey
-                if ilvl and (not minIlvl or ilvl < minIlvl) then
-                    minIlvl = ilvl
-                end
-                if ilvl and (not maxIlvl or ilvl > maxIlvl) then
-                    maxIlvl = ilvl
-                end
-                if cap and (not maxIlvl or cap > maxIlvl) then
-                    maxIlvl = cap
-                end
-            end
-        end
-
-        if not firstKey or not lastKey or not minIlvl or not maxIlvl then
-            return nil
-        end
-
-        return string.format("+%d~+%d / %d~%d", firstKey, lastKey, minIlvl, maxIlvl)
-    end
-
     local function appendSeasonTooltipDetails(sourceType, sourceR, sourceG, sourceB)
         addStyledTooltipLine(ns.L("bis_tooltip_acquisition"), localizeSourceType(sourceType), sourceR, sourceG, sourceB)
 
@@ -3553,103 +3307,16 @@ showSeasonItemTooltip = function(owner, row)
         end
     end
 
-    local function appendSeasonTooltipMeta()
+    local function appendCompactSeasonTooltipMeta()
         local sourceType = getEntrySourceType(entry)
         local noteKind = row._displayNoteKind or canonicalNote(entry.note)
         local noteIndex = row._displayNoteIndex or 3
         local sr, sg, sb = getSourceTypeColor(sourceType)
 
-        tooltip:AddLine(ns.L("bis_tooltip_current_season"), headerR, headerG, headerB, true)
         addStyledTooltipLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot))
         appendSeasonTooltipDetails(sourceType, sr, sg, sb)
-        addStyledTooltipLine(ns.L("bis_tooltip_basis"), getSourceBasisLabel(sourceType))
         addStyledTooltipLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex))
-        if entry.overallRank then
-            addStyledTooltipLine(
-                ns.L("bis_tooltip_overall_rank"),
-                ns.L("bis_note_rank", tonumber(entry.overallRank) or 0)
-            )
-        end
-        if entry.sourceRank then
-            addStyledTooltipLine(
-                ns.L("bis_tooltip_source_rank"),
-                ns.L("bis_note_rank", tonumber(entry.sourceRank) or 0)
-            )
-        end
         return sourceType
-    end
-
-    local function appendSeasonTooltipRanges(sourceType)
-        if sourceType == "mythicplus" then
-            local tbl = ns.Data and ns.Data.ItemLevelTable
-            local mythic0 = tbl and tbl.mythicPlus and tbl.mythicPlus.mythic0
-            local championRun = getMythicPlusBandText("run", "chmp")
-            local heroRun = getMythicPlusBandText("run", "hero")
-            local mythVault = getMythicPlusBandText("vault", "myth")
-            if mythic0 and mythic0.ilvl then
-                addTrackTooltipLine(
-                    ns.L("bis_tooltip_mythic0_preview"),
-                    string.format(
-                        "%d / %s %d/%d",
-                        mythic0.ilvl,
-                        ns.L("ilvl_crest_" .. tostring(mythic0.grade or "chmp")),
-                        mythic0.rank or 1,
-                        mythic0.rankMax or 6
-                    ),
-                    "chmp"
-                )
-            end
-            if championRun then
-                addTrackTooltipLine(ns.L("ilvl_crest_chmp"), championRun, "chmp")
-            end
-            if heroRun then
-                addTrackTooltipLine(ns.L("ilvl_crest_hero"), heroRun, "hero")
-            end
-            if mythVault then
-                addTrackTooltipLine(ns.L("ilvl_crest_myth") .. " / " .. ns.L("bis_tooltip_vault"), mythVault, "myth")
-            end
-        elseif sourceType == "raid" or sourceType == "tier" then
-            local tbl = ns.Data and ns.Data.ItemLevelTable
-            local raid = tbl and tbl.raid
-            if raid and raid.normal then
-                addTrackTooltipLine(
-                    ns.L("ilvl_crest_chmp") .. " (" .. ns.L("ilvl_raid_normal") .. ")",
-                    string.format("%d~%d", raid.normal.min or 0, raid.normal.max or 0),
-                    "chmp"
-                )
-            end
-            if raid and raid.heroic then
-                addTrackTooltipLine(
-                    ns.L("ilvl_crest_hero") .. " (" .. ns.L("ilvl_raid_heroic") .. ")",
-                    string.format("%d~%d", raid.heroic.min or 0, raid.heroic.max or 0),
-                    "hero"
-                )
-            end
-            if raid and raid.mythic then
-                addTrackTooltipLine(
-                    ns.L("ilvl_crest_myth") .. " (" .. ns.L("ilvl_raid_mythic") .. ")",
-                    string.format("%d~%d", raid.mythic.min or 0, raid.mythic.max or 0),
-                    "myth"
-                )
-            end
-        elseif sourceType == "crafted" then
-            local tbl = ns.Data and ns.Data.ItemLevelTable
-            local crafted = tbl and tbl.crafted
-            if crafted and crafted.base and crafted.base.ilvl then
-                addTrackTooltipLine(
-                    ns.L(crafted.base.labelKey) or "Base",
-                    tostring(crafted.base.ilvl),
-                    "hero"
-                )
-            end
-            if crafted and crafted.r5 and crafted.r5.ilvl then
-                addTrackTooltipLine(
-                    ns.L(crafted.r5.labelKey) or "Max",
-                    tostring(crafted.r5.ilvl),
-                    "myth"
-                )
-            end
-        end
     end
 
     local function showSeasonFallbackTooltip()
@@ -3664,10 +3331,7 @@ showSeasonItemTooltip = function(owner, row)
         tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
         tooltip:ClearLines()
         tooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
-        fallbackSourceType = appendSeasonTooltipMeta()
-        appendBISValidationLines(tooltip, entry, fallbackSourceType)
-        tooltip:AddLine(" ")
-        appendSeasonTooltipRanges(fallbackSourceType)
+        fallbackSourceType = appendCompactSeasonTooltipMeta()
         if fallbackSourceType == "mythicplus" or fallbackSourceType == "raid" then
             tooltip:AddLine(" ")
             tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
@@ -3704,6 +3368,17 @@ showSeasonItemTooltip = function(owner, row)
     end
 
     local sourceType = getEntrySourceType(entry)
+    local specID = row._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
+    if isBISItemOwned(specID, row.itemID) then
+        local ownedItemLink = getPreferredOwnedItemLink(specID, row.itemID)
+        tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
+        if ownedItemLink and tryRenderTooltipHyperlink(ownedItemLink) then
+            ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+            tooltip:Show()
+            return
+        end
+    end
+
     if not isOverlayItemTooltipEnabled() then
         showSeasonFallbackTooltip()
         return
@@ -3739,18 +3414,12 @@ showSeasonItemTooltip = function(owner, row)
         shown = tryShowTooltipItemID(row.itemID, sourceType)
     end
     if not shown then
-        if renderTrackFirstBISTooltip(tooltip, owner, row) then
-            return
-        end
         showSeasonFallbackTooltip()
         return
     end
 
     tooltip:AddLine(" ")
-    appendSeasonTooltipMeta()
-    appendBISValidationLines(tooltip, entry, sourceType)
-    tooltip:AddLine(" ")
-    appendSeasonTooltipRanges(sourceType)
+    appendCompactSeasonTooltipMeta()
     if sourceType == "mythicplus" or sourceType == "raid" then
         tooltip:AddLine(" ")
         tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
@@ -3911,7 +3580,9 @@ local function ensureRow(frame, index)
         function(targetRow)
             local specID = targetRow._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
             if ns.DB and ns.DB.SetBISOverlayItemOwned then
-                ns.DB:SetBISOverlayItemOwned(specID, targetRow.itemID, not isBISItemOwned(specID, targetRow.itemID))
+                local owned = not isBISItemOwned(specID, targetRow.itemID)
+                local itemLink = owned and getOwnedPlayerItemLink(targetRow.itemID) or nil
+                ns.DB:SetBISOverlayItemOwned(specID, targetRow.itemID, owned, itemLink)
             end
         end
     )

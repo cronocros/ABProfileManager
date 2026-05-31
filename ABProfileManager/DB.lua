@@ -1106,8 +1106,22 @@ function DB:IsBISOverlayItemOwned(specID, itemID)
     return state and state.owned == true or false
 end
 
-function DB:SetBISOverlayItemOwned(specID, itemID, enabled)
-    return self:SetBISOverlayItemState(specID, itemID, "owned", enabled)
+function DB:GetBISOverlayOwnedItemLink(specID, itemID)
+    local state = self:GetBISOverlayItemState(specID, itemID)
+    return state and state.ownedItemLink or nil
+end
+
+function DB:SetBISOverlayItemOwned(specID, itemID, enabled, itemLink)
+    local owned = self:SetBISOverlayItemState(specID, itemID, "owned", enabled)
+    local state = self:GetBISOverlayItemState(specID, itemID)
+    if state then
+        if not owned then
+            state.ownedItemLink = nil
+        elseif type(itemLink) == "string" and itemLink ~= "" then
+            state.ownedItemLink = itemLink
+        end
+    end
+    return owned
 end
 
 function DB:IsBISOverlayItemFavorite(specID, itemID)

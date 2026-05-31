@@ -102,6 +102,8 @@ The stat overlay and stat-priority table have also been updated.
 - Localized the stat-priority table when English is selected
 - Improved favorite/owned checkbox and strikethrough legibility
 - Localized Korean BIS `Hero / Myth` track labels
+- Simplified regular BIS hover tooltips to focus on slot, source, and current rank
+- Made owned rows prefer the real item tooltip found in equipped slots or bags
 
 ## Recommended Checks After Updating
 

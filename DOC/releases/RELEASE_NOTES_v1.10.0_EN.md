@@ -29,6 +29,10 @@ Local package: `dist/ABProfileManager-v1.10.0.zip`
   Favorite and owned boxes now use Blizzard's standard check texture, and the owned-name strikethrough renders on a foreground layer.
 - **Localized Korean BIS track labels.**
   Korean UI labels now use localized Hero/Myth track names.
+- **More concise BIS hover tooltips.**
+  Regular BIS hover now focuses on slot, source, and current rank. Verbose validation and item-level range blocks were removed.
+- **Owned items prefer the real item tooltip.**
+  Owned rows prefer the real item link found in equipped slots or bags, and the link found when checking an item is stored with the per-character, per-spec state.
 
 ## In-Game Regression Checklist
 
