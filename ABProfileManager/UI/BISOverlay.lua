@@ -1864,6 +1864,25 @@ local function slotSortValue(slotName)
     return SLOT_SORT_ORDER[slotName] or 999
 end
 
+local getPlayerItemLinkIndex
+local getPreferredOwnedItemLink
+
+local function refreshEntryRuntimeScore(entry, specID, liveItemLinks)
+    entry._runtimeScore = nil
+    if not getPreferredOwnedItemLink then
+        return
+    end
+    local itemLink = getPreferredOwnedItemLink(specID, entry.itemID, liveItemLinks)
+    local scoring = ns.Data and ns.Data.BISRuntimeScoring
+    if not itemLink or not scoring or type(scoring.ScoreItemLink) ~= "function" then
+        return
+    end
+    local score = scoring:ScoreItemLink(specID, entry.slot, itemLink, getEntrySourceType(entry))
+    if score then
+        entry._runtimeScore = score
+    end
+end
+
 local function compareSlotEntries(a, b)
     local ap = tonumber(a.overallRank) or notePriority(a.note)
     local bp = tonumber(b.overallRank) or notePriority(b.note)
@@ -1881,6 +1900,30 @@ local function compareSlotEntries(a, b)
         return aSourceRank < bSourceRank
     end
     return (a.itemID or 0) < (b.itemID or 0)
+end
+
+local function applyRuntimeScoreOrdering(entries)
+    local scoredPositions, scoredEntries = {}, {}
+    for index, entry in ipairs(entries) do
+        if tonumber(entry._runtimeScore) then
+            scoredPositions[#scoredPositions + 1] = index
+            scoredEntries[#scoredEntries + 1] = entry
+        end
+    end
+    if #scoredEntries < 2 then
+        return
+    end
+    table.sort(scoredEntries, function(a, b)
+        local aRuntimeScore = tonumber(a._runtimeScore) or 0
+        local bRuntimeScore = tonumber(b._runtimeScore) or 0
+        if aRuntimeScore ~= bRuntimeScore then
+            return aRuntimeScore > bRuntimeScore
+        end
+        return compareSlotEntries(a, b)
+    end)
+    for index, position in ipairs(scoredPositions) do
+        entries[position] = scoredEntries[index]
+    end
 end
 
 local function applySlotDisplayRanks(slotName, entries)
@@ -1922,9 +1965,14 @@ local function groupBySlot(items, specID)
     end)
 
     local slots, order, favorites = {}, {}, {}
+    local liveItemLinks = getPlayerItemLinkIndex and getPlayerItemLinkIndex() or nil
     for _, slotName in ipairs(slotOrder) do
         local entries = allSlots[slotName]
+        for _, entry in ipairs(entries) do
+            refreshEntryRuntimeScore(entry, specID, liveItemLinks)
+        end
         table.sort(entries, compareSlotEntries)
+        applyRuntimeScoreOrdering(entries)
         applySlotDisplayRanks(slotName, entries)
         for _, entry in ipairs(entries) do
             if isBISItemFavorite(specID, entry.itemID) then
@@ -3098,24 +3146,24 @@ local function isMatchingItemLink(link, itemID)
     return isItemHyperlink(link) and getItemIDFromLink(link) == tonumber(itemID)
 end
 
-local function getOwnedPlayerItemLink(itemID)
-    if not itemID or itemID <= 0 then
-        return nil
+getPlayerItemLinkIndex = function()
+    local linksByItemID = {}
+    local function rememberItemLink(link)
+        local itemID = getItemIDFromLink(link)
+        if itemID and not linksByItemID[itemID] then
+            linksByItemID[itemID] = link
+        end
     end
-
     if GetInventoryItemLink then
         for slotID = 1, (INVSLOT_LAST_EQUIPPED or 19) do
-            local link = GetInventoryItemLink("player", slotID)
-            if isMatchingItemLink(link, itemID) then
-                return link
-            end
+            rememberItemLink(GetInventoryItemLink("player", slotID))
         end
     end
 
     local getNumSlots = C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
     local getItemLink = C_Container and C_Container.GetContainerItemLink or GetContainerItemLink
     if not getNumSlots or not getItemLink then
-        return nil
+        return linksByItemID
     end
 
     local lastBagID = NUM_BAG_SLOTS or 4
@@ -3128,17 +3176,25 @@ local function getOwnedPlayerItemLink(itemID)
         if ok then
             for slotID = 1, (numSlots or 0) do
                 local linkOK, link = pcall(getItemLink, bagID, slotID)
-                if linkOK and isMatchingItemLink(link, itemID) then
-                    return link
+                if linkOK then
+                    rememberItemLink(link)
                 end
             end
         end
     end
-    return nil
+    return linksByItemID
 end
 
-local function getPreferredOwnedItemLink(specID, itemID)
-    local liveLink = getOwnedPlayerItemLink(itemID)
+local function getOwnedPlayerItemLink(itemID)
+    if not itemID or itemID <= 0 then
+        return nil
+    end
+    local liveItemLinks = getPlayerItemLinkIndex and getPlayerItemLinkIndex() or {}
+    return liveItemLinks[tonumber(itemID)]
+end
+
+getPreferredOwnedItemLink = function(specID, itemID, liveItemLinks)
+    local liveLink = liveItemLinks and liveItemLinks[tonumber(itemID)] or getOwnedPlayerItemLink(itemID)
     if liveLink then
         return liveLink
     end

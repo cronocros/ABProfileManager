@@ -21,6 +21,12 @@ from build_bis_catalog import (
     trinket_matches_spec,
     weapon_matches_spec,
 )
+from build_bis_runtime_scoring import (
+    DEFAULT_SOURCE as SCORING_DOC_DB_FILE,
+    RUNTIME_TARGET as RUNTIME_SCORING_FILE,
+    parse_compact_spec_policies,
+    rewrite_header,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +34,7 @@ CATALOG_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
 DOC_DB_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.3.lua"
 STAT_PRIORITIES_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorities.lua"
 STAT_PRIORITY_TABLE_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorityTable.lua"
+TOC_FILE = REPO_ROOT / "ABProfileManager" / "ABProfileManager.toc"
 EXPECTED_SOURCE_GROUP_COUNTS = {
     "mythicplus": 2554,
     "raid": 285,
@@ -300,7 +307,7 @@ def validate_addon_source_rows(catalog: Dict[int, List[Dict[str, object]]], doc_
         raise ValueError(f"Generated DOC source rows changed. missing={missing[:10]} unexpected={unexpected[:10]}")
 
 
-def validate_doc_db_and_stat_tables(doc_db: Path) -> None:
+def validate_catalog_doc_db(doc_db: Path) -> None:
     from luaparser import ast
 
     text = doc_db.read_text(encoding="utf-8")
@@ -315,8 +322,20 @@ def validate_doc_db_and_stat_tables(doc_db: Path) -> None:
         if not secondary_order or not secondary_weights:
             raise ValueError(f"DOC DB spec {spec_id} is missing representative stat priority data")
 
-    expected_compact = render_stat_priorities(policies)
-    expected_popup = render_stat_priority_table(policies)
+
+def validate_runtime_scoring_db(scoring_db: Path) -> dict[int, dict[str, object]]:
+    from luaparser import ast
+
+    text = scoring_db.read_text(encoding="utf-8")
+    runtime = RUNTIME_SCORING_FILE.read_text(encoding="utf-8")
+    ast.parse(text)
+    ast.parse(runtime)
+    if runtime != text:
+        raise ValueError(f"Runtime scoring core is stale: {RUNTIME_SCORING_FILE}")
+
+    policies = parse_compact_spec_policies(text)
+    expected_compact = rewrite_header(render_stat_priorities(policies))
+    expected_popup = rewrite_header(render_stat_priority_table(policies))
     compact = STAT_PRIORITIES_FILE.read_text(encoding="utf-8")
     popup = STAT_PRIORITY_TABLE_FILE.read_text(encoding="utf-8")
     if compact != expected_compact:
@@ -325,17 +344,51 @@ def validate_doc_db_and_stat_tables(doc_db: Path) -> None:
         raise ValueError(f"Generated stat priority table is stale: {STAT_PRIORITY_TABLE_FILE}")
     ast.parse(compact)
     ast.parse(popup)
+    toc = TOC_FILE.read_text(encoding="utf-8")
+    for entry in ("Data\\MidnightS1MPlusDB.lua", "Data\\BISRuntimeScoring.lua"):
+        if entry not in toc:
+            raise ValueError(f"TOC is missing runtime scoring entry: {entry}")
+    return policies
+
+
+def validate_catalog_priority_metadata(
+    text: str,
+    catalog: Dict[int, List[Dict[str, object]]],
+    policies: dict[int, dict[str, object]],
+) -> None:
+    for spec_id, rows in catalog.items():
+        expected = str(policies[spec_id]["secondaryPriority"])
+        for row in rows:
+            if row.get("sourceGroup") not in {"mythicplus", "tier"}:
+                continue
+            if row.get("statPrioritySummary") != expected:
+                raise ValueError(
+                    f"Catalog stat priority is stale at line {row['line']}, "
+                    f"spec {spec_id}, item {row['itemID']}"
+                )
+
+    policy_text = text.split("ns.Data.BISSpecPolicies = {", 1)[-1]
+    for spec_id, policy in policies.items():
+        match = re.search(rf"^\s*\[{spec_id}\]\s*=\s*\{{.*$", policy_text, re.M)
+        if not match:
+            raise ValueError(f"Catalog BISSpecPolicies is missing spec {spec_id}")
+        if get_lua_field(match.group(0), "secondaryPriority") != policy["secondaryPriority"]:
+            raise ValueError(f"Catalog BISSpecPolicies priority is stale for spec {spec_id}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate generated ABProfileManager BIS catalog.")
     parser.add_argument("--catalog", type=Path, default=CATALOG_FILE)
     parser.add_argument("--doc-db", type=Path, default=DOC_DB_FILE)
+    parser.add_argument("--scoring-db", type=Path, default=SCORING_DOC_DB_FILE)
     args = parser.parse_args()
 
     if not args.doc_db.exists():
         raise FileNotFoundError(args.doc_db)
-    current = parse_catalog_text(args.catalog.read_text(encoding="utf-8"))
+    if not args.scoring_db.exists():
+        raise FileNotFoundError(args.scoring_db)
+    catalog_text = args.catalog.read_text(encoding="utf-8")
+    current = parse_catalog_text(catalog_text)
     previous = parse_catalog_text(load_previous_catalog_text())
 
     validate_specs(current)
@@ -346,7 +399,9 @@ def main() -> int:
     validate_source_group_counts(current)
     validate_en_us_fields(current)
     validate_addon_source_rows(current, args.doc_db)
-    validate_doc_db_and_stat_tables(args.doc_db)
+    validate_catalog_doc_db(args.doc_db)
+    policies = validate_runtime_scoring_db(args.scoring_db)
+    validate_catalog_priority_metadata(catalog_text, current, policies)
 
     total_rows = sum(len(rows) for rows in current.values())
     print(f"ok: specs={len(current)} rows={total_rows}")

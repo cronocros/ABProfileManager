@@ -6,6 +6,20 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.0 - 2026-06-01
+
+한밤 시즌 1 v1.7 컴팩트 런타임 점수 코어를 BIS 오버레이에 연결한 릴리스.
+
+주요 변경:
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`를 추가
+- v1.3 정적 후보 풀 `3130`행을 유지: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`
+- `Data/MidnightS1MPlusDB.lua`와 `Data/BISRuntimeScoring.lua`를 로드해 실제 소유 `itemLink`가 있는 후보끼리 v1.7 스탯/템렙 점수를 적용
+- 실제 링크가 없는 후보는 기존 정적 `overallRank` 순서를 유지해 필터, 즐겨찾기, 레이드/제작 보존 정책과 호환
+- 오버레이 rebuild마다 장비/가방 링크 인덱스를 한 번만 생성하도록 최적화
+- 40개 전문화 스탯 표와 BIS 정책 메타를 v1.7 기준으로 갱신
+- `scripts/build_bis_runtime_scoring.py`를 추가하고 `scripts/validate_bis_catalog.py`가 v1.3 정적 풀과 v1.7 런타임 코어를 분리 검증하도록 보강
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.11.0 기준으로 갱신
+
 ## 1.10.0 - 2026-05-31
 
 한밤 시즌 1 BIS v1.3 오프라인 입력과 40개 전문화 단일 대표 스탯 우선순위를 반영한 릴리스.

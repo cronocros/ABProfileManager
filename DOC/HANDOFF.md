@@ -1,8 +1,18 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.10.0 기반`
+버전 기준: `v1.11.0 기반`
 
-## 0-new. v1.10.0 메모
+## 0-new. v1.11.0 메모
+
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`는 정적 후보 풀 교체 파일이 아니다. 실제 `itemLink`를 점수화하는 컴팩트 런타임 코어다.
+- 정적 후보 풀은 v1.3 입력으로 생성한 `Data/BISCatalog.lua` 총 `3130`행을 유지한다: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`.
+- `scripts/build_bis_runtime_scoring.py`는 v1.7 코어를 `Data/MidnightS1MPlusDB.lua`로 설치하고 `Data/StatPriorities.lua`, `Data/StatPriorityTable.lua`, BIS 정책 메타를 갱신한다.
+- `Data/BISRuntimeScoring.lua`는 ABPM specID, slot, sourceGroup을 v1.7 키로 변환한다.
+- `UI/BISOverlay.lua`는 실제 소유 `itemLink`가 있는 후보끼리 v1.7 점수를 우선 적용한다. 링크가 없는 후보는 기존 정적 순서로 fallback한다.
+- 장비/가방 링크 인덱스는 rebuild마다 한 번만 만든다. 후보 행마다 가방 전체를 다시 스캔하지 않는다.
+- `scripts/validate_bis_catalog.py`는 v1.3 정적 풀과 v1.7 런타임 코어를 분리 검증한다.
+
+## 0-prev. v1.10.0 메모
 
 - `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`가 BIS 카탈로그 오프라인 생성 입력으로 추가됐다. 둘 다 TOC에 직접 로드하지 않는다.
 - v1.3 DB는 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지한다. 생성 입력을 보정할 때 중간 return을 다시 넣지 않는다.
@@ -118,7 +128,8 @@
 - BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트를 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
 - 즐겨찾기/보유 상태는 캐릭터 record 안에서 전문화별로 분리한다. 즐겨찾기 섹션 이동과 보유 취소선 갱신을 함께 확인한다.
 - M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준이다.
-- M+/tier는 `runtimeItemLinkRequired` 경고와 "정적 최종 BiS 아님/심크 필요" 안내가 빠지면 안 된다.
+- M+/tier의 정적 최종 BiS 미확정 정책은 유지한다. 장황한 hover 경고는 다시 늘리지 않는다.
+- 실제 소유 링크 점수 정렬을 건드릴 때는 rebuild당 장비/가방 스캔 1회 규칙을 유지한다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - unresolved direct ID:
   - `마이사라 동굴`
@@ -221,17 +232,22 @@
 - `ABProfileManager/UI/MythicPlusRecordOverlay.lua`
 - `ABProfileManager/Data/ItemLevelTable.lua`
 - `ABProfileManager/Data/BISCatalog.lua`
+- `ABProfileManager/Data/MidnightS1MPlusDB.lua`
+- `ABProfileManager/Data/BISRuntimeScoring.lua`
 - `ABProfileManager/Data/StatPriorityTable.lua`
 - `ABProfileManager/UI/StatPriorityDialog.lua`
 - `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
 - `scripts/build_bis_catalog.py`
+- `scripts/build_bis_runtime_scoring.py`
 - `scripts/validate_bis_catalog.py`
 - `scripts/validate_bis_reward_profiles.py`
 - `scripts/refresh_wowhead_bis.py`
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
 - `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`
 - `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
 ### profession / 지도 / 설정
 
