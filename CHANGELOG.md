@@ -6,6 +6,21 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.10.0 - 2026-05-31
+
+한밤 시즌 1 BIS v1.3 오프라인 입력과 40개 전문화 단일 대표 스탯 우선순위를 반영한 릴리스.
+
+주요 변경:
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`를 BIS 카탈로그 오프라인 생성 입력으로 추가
+- v1.3 DB의 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지하도록 정상화
+- 40개 전문화의 단일 대표 스탯 우선순위를 `Data/StatPriorities.lua`, `Data/StatPriorityTable.lua`, BIS 정책 메타에 반영
+- 애드온 언어가 영어일 때 스탯 우선순위 표가 영문 우선순위 텍스트를 표시하도록 보강
+- 단일 대표 우선순위 정책과 맞지 않던 숨김 M+ 전용 토글의 런타임 분기와 개요 표시를 제거하고 SavedVariables 호환 키만 유지
+- BIS 카탈로그 `3130`행 유지: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`
+- v1.3 런타임 점수 정책은 생성 메타데이터까지만 반영하고 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계로 분리
+- v1.9.0의 캐릭터별·전문화별 즐겨찾기/보유 상태, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선 유지
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.10.0 기준으로 갱신
+
 ## 1.9.0 - 2026-05-31
 
 BIS 오버레이에 캐릭터별·전문화별 즐겨찾기/보유 상태와 M+ M0 툴팁 미리보기를 추가한 릴리스.

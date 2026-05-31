@@ -1,8 +1,18 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.9.0 기반`
+버전 기준: `v1.10.0 기반`
 
-## 0-new. v1.9.0 메모
+## 0-new. v1.10.0 메모
+
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`가 BIS 카탈로그 오프라인 생성 입력으로 추가됐다. 둘 다 TOC에 직접 로드하지 않는다.
+- v1.3 DB는 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지한다. 생성 입력을 보정할 때 중간 return을 다시 넣지 않는다.
+- `scripts/build_bis_catalog.py --addon-db`는 40개 전문화 단일 대표 스탯 우선순위를 생성된 `Data/StatPriorities.lua`, `Data/StatPriorityTable.lua`, `Data/BISCatalog.lua` 정책 메타에 반영한다.
+- `Data/BISCatalog.lua`는 총 `3130`행을 유지한다: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`.
+- v1.3 런타임 점수 정책은 `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 같은 생성 메타데이터까지만 반영한다.
+- 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계 범위다. 현재 게임 런타임이 v1.3 DB의 점수 함수를 호출한다고 가정하면 안 된다.
+- v1.9.0의 캐릭터별·전문화별 BIS 즐겨찾기/보유 상태, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선은 그대로 유지한다.
+
+## 0-prev. v1.9.0 메모
 
 - `DB.lua`는 캐릭터 record 아래 전문화별 BIS item 상태를 저장한다. itemID마다 `favorite`, `owned`만 유지하고 둘 다 꺼지면 해당 item 상태를 제거한다.
 - `UI/BISOverlay.lua`는 아이콘 앞에 즐겨찾기/보유 체크박스를 표시한다. 즐겨찾기 item은 원래 부위 대신 `무기` 위 최상단 `즐겨찾기` 섹션에 모으고, 보유 item 이름은 취소선으로 표시한다.
@@ -11,7 +21,7 @@
 
 ## 0-prev. v1.8.0 메모
 
-- BIS M+/티어 후보는 `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`를 오프라인 입력으로 `scripts/build_bis_catalog.py --addon-db`에서 생성한다. 이 DOC DB는 TOC에 직접 로드하지 않는다.
+- BIS M+/티어 후보는 당시 `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`를 오프라인 입력으로 `scripts/build_bis_catalog.py --addon-db`에서 생성했다. 현재 입력은 v1.3으로 교체됐다.
 - 게임 런타임 BIS 데이터 소스는 계속 `ABProfileManager/Data/BISCatalog.lua` 하나다. 생성 결과에는 `ns.Data.BISItems`와 `ns.Data.BISSpecPolicies`가 함께 들어간다.
 - 새 생성 경로는 기존 `raid`와 `crafted` row를 현재 카탈로그에서 보존하고, M+/tier 후보만 새 DOC DB 기준으로 재생성한다.
 - M+ row의 `rewardProfiles`는 `mplus_end_of_dungeon` Hero 3/6 266과 `mplus_great_vault_voidcore` Myth 1/6 272 후보를 담지만, `itemString`/`itemLink`/bonusID는 정적으로 만들지 않는다.
@@ -167,14 +177,11 @@
 
 ## 3. 미완성 기능
 
-### 스탯 오버레이 쐐기(M+) 우선순위 모드
+### 스탯 오버레이 쐐기(M+) 우선순위 호환 키
 
-- `UI/ConfigPanel.lua`에서 `mythicPlusCheck:Hide()`로 UI 숨김 처리
-- 재개 시:
-  - `UI/StatsOverlay.lua`의 `BuildSnapshot` `isMplus` 분기
-  - `DB.lua`의 `IsStatsOverlayMythicPlusMode`
-  - `Data/StatPriorities.lua`의 `ns.Data.StatPrioritiesMythicPlus`
-- 새 `Data/StatPriorityTable.lua` / `UI/StatPriorityDialog.lua`는 전체 표 표시용이다. 이 기능이 생겼어도 기존 스탯 오버레이의 M+ 우선순위 모드 UI는 아직 숨김 상태다.
+- v1.10.0은 전문화별 단일 대표 우선순위를 사용하므로 M+ 전용 UI와 런타임 분기를 제거했다.
+- `DB.lua`의 `mythicPlusMode` 저장 키와 getter/setter는 이전 SavedVariables 호환을 위해 유지한다.
+- 콘텐츠별 우선순위를 다시 도입할 경우 검증된 별도 정책 입력과 UI 문구를 함께 설계해야 한다.
 
 ### BIS 오버레이 direct EJ ID 미확인
 
@@ -223,6 +230,8 @@
 - `scripts/validate_bis_reward_profiles.py`
 - `scripts/refresh_wowhead_bis.py`
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`
 
 ### profession / 지도 / 설정
 

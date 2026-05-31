@@ -62,6 +62,14 @@ local function getCurrentPlayerKey()
     return classTag, specIndex
 end
 
+local function getPriorityDisplayText(data)
+    local language = ns.Locale and ns.Locale.GetCurrentLanguage and ns.Locale:GetCurrentLanguage() or "enUS"
+    if language == "koKR" then
+        return data.priorityText or data.priorityTextEnUS or ""
+    end
+    return data.priorityTextEnUS or data.priorityText or ""
+end
+
 local function applyHeaderFont(fontString)
     if ns.UI and ns.UI.Widgets and ns.UI.Widgets.ApplyFont then
         ns.UI.Widgets.ApplyFont(fontString, 13, { domain = "ui" })
@@ -190,7 +198,7 @@ local function applyRowData(row, data, isCurrentPlayer)
         row.primaryText:SetTextColor(0.95, 0.95, 0.92, 1)
     end
 
-    row.priorityText:SetText(data.priorityText or "")
+    row.priorityText:SetText(getPriorityDisplayText(data))
     row.priorityText:SetTextColor(0.92, 0.92, 0.86, 1)
 
     if isCurrentPlayer then
@@ -223,7 +231,7 @@ local function layoutRows(rowsContainer, rows, data, currentClassTag, currentSpe
             rows[i] = row
         end
 
-        local height = measureRowHeight(entry.priorityText)
+        local height = measureRowHeight(getPriorityDisplayText(entry))
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", rowsContainer, "TOPLEFT", 0, -yOffset)
         row:SetWidth(totalWidth)

@@ -92,9 +92,12 @@
 
 - 게임 런타임은 `Data/BISCatalog.lua` 정적 카탈로그만 읽는다
 - 런타임 merge, 런타임 정규화, 런타임 웹 조회를 하지 않는다
-- `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`는 릴리스 생성/검증용 오프라인 입력이며 TOC에 직접 로드하지 않는다
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`는 릴리스 생성/검증용 오프라인 입력이며 TOC에 직접 로드하지 않는다
+- v1.3 DB는 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지한다
+- 생성된 카탈로그는 총 `3130`행이다: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`
 - locale 문자열은 생성 시점에 `koKR/enUS`로 분리 저장되며, 게임 안에서는 해당 locale 필드만 노출한다
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 Myth/Hero 트랙이나 최종 BiS를 확정하지 않는다
+- v1.3 런타임 점수 정책은 카탈로그 메타데이터 생성까지만 반영하며, 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계 범위다
 - M+ reward profile은 Hero 던전 종료 / Myth 금고 후보 템렙만 저장하고 정적 `itemLink`, `itemString`, bonusID를 만들지 않는다
 - `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도하고, `crafted`, `tier`는 랜딩 대상에서 제외한다
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다
@@ -102,7 +105,7 @@
 - M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준을 사용하고, `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트만 전용 tooltip에 렌더링한다
 - 판매가, 화폐, money line은 렌더링하지 않아 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
 - 전역 `GameTooltip:SetHyperlink()` 직접 호출을 금지해 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
-- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`, `scripts/build_bis_catalog.py`, `scripts/validate_bis_catalog.py`는 릴리스 준비용 repo 도구이며 게임 런타임에 포함된 실행 경로가 아니다
+- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `scripts/build_bis_catalog.py`, `scripts/validate_bis_catalog.py`는 릴리스 준비용 repo 도구이며 게임 런타임에 포함된 실행 경로가 아니다
 
 ### 공통 tooltip / secret-number 방어
 
