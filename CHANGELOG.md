@@ -19,6 +19,8 @@
 - BIS 카탈로그 `3130`행 유지: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`
 - v1.3 런타임 점수 정책은 생성 메타데이터까지만 반영하고 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계로 분리
 - v1.9.0의 캐릭터별·전문화별 즐겨찾기/보유 상태, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선 유지
+- 즐겨찾기/보유 체크 표시를 Blizzard 기본 체크 텍스처로 교체하고, 보유 아이템명 취소선을 전면 레이어로 보강
+- 한국어 BIS 표기에서 `Hero/Myth`를 `영웅/신화`로 현지화
 - README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.10.0 기준으로 갱신
 
 ## 1.9.0 - 2026-05-31
@@ -40,7 +42,7 @@ BIS 오버레이에 캐릭터별·전문화별 즐겨찾기/보유 상태와 M+ 
 주요 변경:
 - `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua` 기반으로 40개 전문화 M+/티어 후보를 재생성
 - 기존 레이드/제작 행은 보존하고, 게임 런타임 데이터 소스는 계속 `Data/BISCatalog.lua` 하나로 유지
-- M+ 보상 프로필을 `던전 종료 Hero 3/6 266` / `위대한 금고·Voidcore Myth 1/6 272` 후보로 분리하되 정적 `itemLink`, `itemString`, bonusID는 생성하지 않음
+- M+ 보상 프로필을 `던전 종료 영웅 3/6 266` / `위대한 금고·Voidcore 신화 1/6 272` 후보로 분리하되 정적 `itemLink`, `itemString`, bonusID는 생성하지 않음
 - BIS row와 전문화 정책에 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false`, 스탯 우선순위 검증 메타를 추가
 - BIS 오버레이 폭/열 구성을 넓히고, 헤더에 현재 전문화 스탯 정책과 "정적 최종 BiS 아님" 상태를 표시
 - BIS 툴팁에 Base ItemID, reward profile, 런타임 링크 필요 여부, Myth 트랙 후보/미검증 상태, 심크 필요 문구를 분리 표시

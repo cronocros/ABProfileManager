@@ -42,7 +42,7 @@ local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 536
 -- 아이템 행 컬럼 레이아웃
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
-local CHECK_SIZE  = 12
+local CHECK_SIZE  = 14
 local COL_FAVORITE = 16
 local COL_OWNED    = 16
 local COL_CONTROLS = COL_FAVORITE + COL_OWNED
@@ -1974,7 +1974,7 @@ local function scheduleRebuild()
     end)
 end
 
-local function updateRowCheckButtonVisual(button, checked, mark)
+local function updateRowCheckButtonVisual(button, checked)
     if not button then
         return
     end
@@ -1995,8 +1995,11 @@ local function updateRowCheckButtonVisual(button, checked, mark)
         )
     end
     if button.checkMark then
-        button.checkMark:SetText(checked and mark or "")
-        button.checkMark:SetTextColor(1, 1, 1, checked and 1 or 0.70)
+        if checked then
+            button.checkMark:Show()
+        else
+            button.checkMark:Hide()
+        end
     end
 end
 
@@ -2008,8 +2011,8 @@ local function updateRowItemStateVisual(row)
     local specID = row._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
     local favorite = isBISItemFavorite(specID, row.itemID)
     local owned = isBISItemOwned(specID, row.itemID)
-    updateRowCheckButtonVisual(row.favoriteBtn, favorite, "*")
-    updateRowCheckButtonVisual(row.ownedBtn, owned, "X")
+    updateRowCheckButtonVisual(row.favoriteBtn, favorite)
+    updateRowCheckButtonVisual(row.ownedBtn, owned)
 
     if row.nameStrike then
         row.nameStrike:ClearAllPoints()
@@ -3777,7 +3780,7 @@ local function rebuildContentPreservingScroll()
     BISOverlay:RebuildContent()
 end
 
-local function createRowCheckButton(row, xOffset, titleKey, hintKey, mark, toggleHandler)
+local function createRowCheckButton(row, xOffset, titleKey, hintKey, toggleHandler)
     local button = CreateFrame("Button", nil, row, "BackdropTemplate")
     button:SetSize(CHECK_SIZE, CHECK_SIZE)
     button:SetPoint("LEFT", row, "LEFT", xOffset, 0)
@@ -3794,11 +3797,11 @@ local function createRowCheckButton(row, xOffset, titleKey, hintKey, mark, toggl
     button.checkFill = button:CreateTexture(nil, "BACKGROUND")
     button.checkFill:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
     button.checkFill:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
-    button.checkMark = button:CreateFontString(nil, "OVERLAY")
-    button.checkMark:SetFont(FONT_PATH, 8, FONT_FLAGS)
-    button.checkMark:SetAllPoints()
-    button.checkMark:SetJustifyH("CENTER")
-    button.checkMark:SetJustifyV("MIDDLE")
+    button.checkMark = button:CreateTexture(nil, "OVERLAY", nil, 7)
+    button.checkMark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+    button.checkMark:SetSize(20, 20)
+    button.checkMark:SetPoint("CENTER")
+    button.checkMark:Hide()
     button:SetScript("OnClick", function()
         if row._entry and row.itemID then
             toggleHandler(row)
@@ -3817,7 +3820,7 @@ local function createRowCheckButton(row, xOffset, titleKey, hintKey, mark, toggl
         tooltip:Show()
     end)
     button:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
-    updateRowCheckButtonVisual(button, false, mark)
+    updateRowCheckButtonVisual(button, false)
     button:Hide()
     return button
 end
@@ -3856,9 +3859,9 @@ local function ensureRow(frame, index)
         row.nameLabel:SetMaxLines(1)
     end
 
-    row.nameStrike = row:CreateTexture(nil, "OVERLAY")
-    row.nameStrike:SetHeight(1)
-    row.nameStrike:SetColorTexture(0.92, 0.96, 1.00, 0.92)
+    row.nameStrike = row:CreateTexture(nil, "OVERLAY", nil, 7)
+    row.nameStrike:SetHeight(2)
+    row.nameStrike:SetColorTexture(0.92, 0.96, 1.00, 1.00)
     row.nameStrike:Hide()
 
     row.slotLabel = row:CreateFontString(nil, "OVERLAY")
@@ -3893,7 +3896,6 @@ local function ensureRow(frame, index)
         0,
         "bis_row_favorite",
         "bis_row_favorite_hint",
-        "*",
         function(targetRow)
             local specID = targetRow._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
             if ns.DB and ns.DB.SetBISOverlayItemFavorite then
@@ -3906,7 +3908,6 @@ local function ensureRow(frame, index)
         COL_FAVORITE,
         "bis_row_owned",
         "bis_row_owned_hint",
-        "X",
         function(targetRow)
             local specID = targetRow._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
             if ns.DB and ns.DB.SetBISOverlayItemOwned then

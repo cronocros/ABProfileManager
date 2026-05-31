@@ -25,6 +25,10 @@ Local package: `dist/ABProfileManager-v1.10.0.zip`
   v1.3 score policy is emitted as catalog metadata only. Connecting the real `itemLink`-based scoring engine remains follow-up design work.
 - **v1.9.0 behavior retained.**
   Per-character, per-spec favorites and owned state, the top Favorites section, and owned-name strikethrough remain available.
+- **More legible checks and strikethrough.**
+  Favorite and owned boxes now use Blizzard's standard check texture, and the owned-name strikethrough renders on a foreground layer.
+- **Localized Korean BIS track labels.**
+  Korean UI labels now use localized Hero/Myth track names.
 
 ## In-Game Regression Checklist
 

@@ -51,7 +51,7 @@
 
 - BIS M+/티어 후보를 새 DOC DB 기준으로 재생성했습니다.
 - 레이드/제작 행은 기존 카탈로그에서 보존하고, 런타임 데이터 소스는 계속 `Data/BISCatalog.lua` 하나만 사용합니다.
-- M+ 행은 던전 종료 Hero 3/6 266과 위대한 금고·Voidcore Myth 1/6 272 후보를 표시하지만, 정적 `itemLink`/bonusID는 만들지 않습니다.
+- M+ 행은 던전 종료 영웅 3/6 266과 위대한 금고·Voidcore 신화 1/6 272 후보를 표시하지만, 정적 `itemLink`/bonusID는 만들지 않습니다.
 - BIS 오버레이 헤더와 툴팁에 스탯 우선순위, 런타임 링크 필요 여부, Myth 트랙 미검증, "정적 최종 BiS 아님/심크 필요" 상태를 분리 표시합니다.
 - crafted/tier 비랜딩, M+/raid Encounter Journal 랜딩, visible row만 갱신하는 기존 정책을 유지합니다.
 
@@ -218,9 +218,9 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 확정 전까지 안내서만 열리고 특정 던전으로 바로 이동하지 않을 수 있습니다.
 - BIS 아이템 캐시가 늦게 들어와도 전체 오버레이를 다시 그리지 않고, 보이는 행만 갱신하도록 조정되어 있습니다.
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별로 저장됩니다. 즐겨찾기는 `무기` 위 별도 섹션으로 이동하고 보유 아이템명은 취소선으로 표시합니다.
-- 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료 Hero 3/6 266`, `위대한 금고/Voidcore Myth 1/6 272`)과 아이템 레벨을 함께 표시합니다.
+- 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료 영웅 3/6 266`, `위대한 금고/Voidcore 신화 1/6 272`)과 아이템 레벨을 함께 표시합니다.
 - M+ 아이템 hover 미리보기는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준으로 조회합니다.
-- 정적 카탈로그는 `itemID`만으로 Hero/Myth 트랙이나 최종 BiS를 확정하지 않으며, 실제 `itemLink`/bonusID와 심크 검증이 필요하다는 메타를 표시합니다.
+- 정적 카탈로그는 `itemID`만으로 영웅/신화 트랙이나 최종 BiS를 확정하지 않으며, 실제 `itemLink`/bonusID와 심크 검증이 필요하다는 메타를 표시합니다.
 - v1.3 점수 정책은 오프라인 생성 메타데이터로만 반영되어 있습니다. 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계 범위입니다.
 - BIS hover 툴팁은 전역 `GameTooltip:SetHyperlink()`를 직접 호출하지 않고, 안전한 전용 툴팁으로 검증된 tooltipData 텍스트만 렌더링합니다.
 - 갱신 스크립트:
