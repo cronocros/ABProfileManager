@@ -776,11 +776,6 @@ function StatsOverlay:ShowRowTooltip(row)
     end
 
     local tooltipTitle = self:GetTooltipTitle(row.entry) or row.entry.label or ""
-    if row.entry.key == "priority" then
-        local modeLabel = row.entry.isMplus and ns.L("stats_priority_mode_mplus") or ns.L("stats_priority_mode_pve")
-        tooltipTitle = tooltipTitle .. "  [" .. modeLabel .. "]"
-    end
-
     tooltip:SetOwner(row.tooltipRegion or row, "ANCHOR_RIGHT")
 
     local renderedNativeTooltip = false
@@ -920,14 +915,8 @@ function StatsOverlay:BuildSnapshot()
         addPercentStat(snapshot, "block", ns.L("stats_overlay_block"), getBlockPercent())
     end
 
-    local manualMplus = ns.DB and ns.DB:IsStatsOverlayMythicPlusMode()
-    local inChallengeMode = type(C_ChallengeMode) == "table"
-        and type(C_ChallengeMode.IsChallengeModeActive) == "function"
-        and C_ChallengeMode.IsChallengeModeActive()
-    local isMplus = manualMplus or (inChallengeMode and true or false)
-    local mplusBucket = isMplus and classTag and ns.Data and ns.Data.StatPrioritiesMythicPlus and ns.Data.StatPrioritiesMythicPlus[classTag]
     local classBucket = classTag and ns.Data and ns.Data.StatPriorities and ns.Data.StatPriorities[classTag]
-    local orderGroups = (mplusBucket and mplusBucket[specIndex]) or (classBucket and classBucket[specIndex]) or nil
+    local orderGroups = (classBucket and classBucket[specIndex]) or nil
     local priorityLabel, priorityText = getPriorityDisplay(specName or ns.L("stats_overlay_unknown_spec"), orderGroups)
 
     local priorityEntry = acquireEntry()
@@ -936,7 +925,6 @@ function StatsOverlay:BuildSnapshot()
     priorityEntry.value = priorityText
     priorityEntry.style = "priority"
     priorityEntry.spacingBefore = PRIORITY_ROW_GAP
-    priorityEntry.isMplus = isMplus and true or false
     snapshot[#snapshot + 1] = priorityEntry
 
     for index = 2, #snapshot do
@@ -957,17 +945,10 @@ function StatsOverlay:BuildStateSignature()
     local showTankStats = shouldShowTankDefensiveStats(specIndex)
     local typographyOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("statsOverlay") or 0
     local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or ""
-    local _manualMplus = ns.DB and ns.DB.IsStatsOverlayMythicPlusMode and ns.DB:IsStatsOverlayMythicPlusMode()
-    local _inChallengeMode = type(C_ChallengeMode) == "table"
-        and type(C_ChallengeMode.IsChallengeModeActive) == "function"
-        and C_ChallengeMode.IsChallengeModeActive()
-    local isMplus = (_manualMplus or _inChallengeMode) and 1 or 0
-
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(language)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(typographyOffset)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(classTag)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(specIndex or 0)
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(isMplus)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getEquippedItemLevel() or 0)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(CRIT_RATING_INDEX))
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(GetCritChance and GetCritChance() or 0))

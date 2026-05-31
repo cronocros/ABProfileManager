@@ -1,10 +1,27 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.8.0 기반`
+버전 기준: `v1.10.0 기반`
 
-## 0-new. v1.8.0 메모
+## 0-new. v1.10.0 메모
 
-- BIS M+/티어 후보는 `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`를 오프라인 입력으로 `scripts/build_bis_catalog.py --addon-db`에서 생성한다. 이 DOC DB는 TOC에 직접 로드하지 않는다.
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`가 BIS 카탈로그 오프라인 생성 입력으로 추가됐다. 둘 다 TOC에 직접 로드하지 않는다.
+- v1.3 DB는 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지한다. 생성 입력을 보정할 때 중간 return을 다시 넣지 않는다.
+- `scripts/build_bis_catalog.py --addon-db`는 40개 전문화 단일 대표 스탯 우선순위를 생성된 `Data/StatPriorities.lua`, `Data/StatPriorityTable.lua`, `Data/BISCatalog.lua` 정책 메타에 반영한다.
+- `Data/BISCatalog.lua`는 총 `3130`행을 유지한다: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`.
+- v1.3 런타임 점수 정책은 `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 같은 생성 메타데이터까지만 반영한다.
+- 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계 범위다. 현재 게임 런타임이 v1.3 DB의 점수 함수를 호출한다고 가정하면 안 된다.
+- v1.9.0의 캐릭터별·전문화별 BIS 즐겨찾기/보유 상태, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선은 그대로 유지한다.
+
+## 0-prev. v1.9.0 메모
+
+- `DB.lua`는 캐릭터 record 아래 전문화별 BIS item 상태를 저장한다. itemID마다 `favorite`, `owned`만 유지하고 둘 다 꺼지면 해당 item 상태를 제거한다.
+- `UI/BISOverlay.lua`는 아이콘 앞에 즐겨찾기/보유 체크박스를 표시한다. 즐겨찾기 item은 원래 부위 대신 `무기` 위 최상단 `즐겨찾기` 섹션에 모으고, 보유 item 이름은 취소선으로 표시한다.
+- M+ item hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준을 사용한다.
+- `GameTooltip:SetHyperlink()` 직접 호출 금지, source filter, `crafted/tier` 비랜딩, `mythicplus/raid` Encounter Journal guard 정책은 유지한다.
+
+## 0-prev. v1.8.0 메모
+
+- BIS M+/티어 후보는 당시 `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`를 오프라인 입력으로 `scripts/build_bis_catalog.py --addon-db`에서 생성했다. 현재 입력은 v1.3으로 교체됐다.
 - 게임 런타임 BIS 데이터 소스는 계속 `ABProfileManager/Data/BISCatalog.lua` 하나다. 생성 결과에는 `ns.Data.BISItems`와 `ns.Data.BISSpecPolicies`가 함께 들어간다.
 - 새 생성 경로는 기존 `raid`와 `crafted` row를 현재 카탈로그에서 보존하고, M+/tier 후보만 새 DOC DB 기준으로 재생성한다.
 - M+ row의 `rewardProfiles`는 `mplus_end_of_dungeon` Hero 3/6 266과 `mplus_great_vault_voidcore` Myth 1/6 272 후보를 담지만, `itemString`/`itemLink`/bonusID는 정적으로 만들지 않는다.
@@ -99,6 +116,8 @@
 - source 판정은 `sourceGroup` 정적 값을 우선 사용한다. 예전 `sourceLabel` 재분류 로직에 다시 기대지 않는 편이 안전하다.
 - `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
 - BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트를 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
+- 즐겨찾기/보유 상태는 캐릭터 record 안에서 전문화별로 분리한다. 즐겨찾기 섹션 이동과 보유 취소선 갱신을 함께 확인한다.
+- M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준이다.
 - M+/tier는 `runtimeItemLinkRequired` 경고와 "정적 최종 BiS 아님/심크 필요" 안내가 빠지면 안 된다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - unresolved direct ID:
@@ -158,14 +177,11 @@
 
 ## 3. 미완성 기능
 
-### 스탯 오버레이 쐐기(M+) 우선순위 모드
+### 스탯 오버레이 쐐기(M+) 우선순위 호환 키
 
-- `UI/ConfigPanel.lua`에서 `mythicPlusCheck:Hide()`로 UI 숨김 처리
-- 재개 시:
-  - `UI/StatsOverlay.lua`의 `BuildSnapshot` `isMplus` 분기
-  - `DB.lua`의 `IsStatsOverlayMythicPlusMode`
-  - `Data/StatPriorities.lua`의 `ns.Data.StatPrioritiesMythicPlus`
-- 새 `Data/StatPriorityTable.lua` / `UI/StatPriorityDialog.lua`는 전체 표 표시용이다. 이 기능이 생겼어도 기존 스탯 오버레이의 M+ 우선순위 모드 UI는 아직 숨김 상태다.
+- v1.10.0은 전문화별 단일 대표 우선순위를 사용하므로 M+ 전용 UI와 런타임 분기를 제거했다.
+- `DB.lua`의 `mythicPlusMode` 저장 키와 getter/setter는 이전 SavedVariables 호환을 위해 유지한다.
+- 콘텐츠별 우선순위를 다시 도입할 경우 검증된 별도 정책 입력과 UI 문구를 함께 설계해야 한다.
 
 ### BIS 오버레이 direct EJ ID 미확인
 
@@ -214,6 +230,8 @@
 - `scripts/validate_bis_reward_profiles.py`
 - `scripts/refresh_wowhead_bis.py`
 - `scripts/refresh_wowhead_mplus_fallbacks.py`
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`
 
 ### profession / 지도 / 설정
 
@@ -245,6 +263,8 @@
 - BIS 아이템 hover 후 액션바 / 모험 안내서 / Pawn 아이템 tooltip에서 `MoneyFrame.lua` 오류가 없는지 확인
 - BIS tooltip에서 런타임 링크 필요, itemID만으로 Myth 트랙 미확정, 정적 최종 BiS 아님/심크 필요 문구가 보이는지 확인
 - BIS 필터 on/off와 visible rank 재계산
+- BIS 즐겨찾기/보유 체크, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선, 캐릭터/전문화 전환 후 상태 유지
+- M+ 아이템 hover에서 Encounter Journal 신화 던전(M0) Champion 1/6 `246` preview가 사용되는지 확인
 - `레이드 off + 쐐기만 on`에서 쐐기 행이 유지되는지
 - `제작 + 티어만 on`에서 잘못된 랜딩이 없는지
 - 드랍템 레벨 오버레이 우측 `나의 문장 / 나의 열쇠` 패널 수치 확인

@@ -24,8 +24,10 @@ OVERALL_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData_Method.lua"
 FALLBACK_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData.lua"
 DOC_FINAL_FILE = REPO_ROOT / "DOC" / "wow_midnight_s1_mplus_bis_final.md"
 DOC_COMPANION_FILE = REPO_ROOT / "DOC" / "wow_midnight_s1_mplus_bis_korean_companion.md"
-ADDON_DB_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.0.lua"
+ADDON_DB_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.3.lua"
 TARGET_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
+STAT_PRIORITIES_TARGET_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorities.lua"
+STAT_PRIORITY_TABLE_TARGET_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorityTable.lua"
 WAGO_DB2_INDEX_URL = "https://wago.tools/db2"
 WAGO_DB2_URL_TEMPLATE = "https://wago.tools/db2/{table}/csv?build={build}{locale_param}"
 RETAIL_DB2_PREFIX = "12.0.1."
@@ -108,6 +110,47 @@ ADDON_DB_SPEC_KEY_ALIASES = {
     "HUNTER_MARKSMAN": "HUNTER_MARKSMANSHIP",
     "PRIEST_DISC": "PRIEST_DISCIPLINE",
 }
+
+SPEC_ID_TO_INDEX = {
+    62: 1, 63: 2, 64: 3,
+    65: 1, 66: 2, 70: 3,
+    71: 1, 72: 2, 73: 3,
+    102: 1, 103: 2, 104: 3, 105: 4,
+    250: 1, 251: 2, 252: 3,
+    253: 1, 254: 2, 255: 3,
+    256: 1, 257: 2, 258: 3,
+    259: 1, 260: 2, 261: 3,
+    262: 1, 263: 2, 264: 3,
+    265: 1, 266: 2, 267: 3,
+    268: 1, 269: 3, 270: 2,
+    577: 1, 581: 2, 1382: 3,
+    1467: 1, 1468: 2, 1473: 3,
+}
+
+PRIMARY_STAT_EN = {
+    "힘": "strength",
+    "민첩": "agility",
+    "지능": "intellect",
+}
+
+SECONDARY_STAT_KEYS = {
+    "치명타 및 극대화": "crit",
+    "가속": "haste",
+    "특화": "mastery",
+    "유연성": "versatility",
+}
+
+SECONDARY_STAT_EN_US = {
+    "치명타 및 극대화": "Critical Strike",
+    "가속": "Haste",
+    "특화": "Mastery",
+    "유연성": "Versatility",
+}
+
+STAT_PRIORITY_CLASS_ORDER = [
+    "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
+    "PALADIN", "PRIEST", "ROGUE", "SHAMAN", "WARLOCK", "WARRIOR",
+]
 
 SPEC_ID_TO_CLASS_TOKEN = {
     62: "MAGE", 63: "MAGE", 64: "MAGE",
@@ -1543,6 +1586,51 @@ def parse_bool_field(text: str, field: str) -> Optional[bool]:
     return match.group(1) == "true"
 
 
+def parse_quoted_list_field(text: str, field: str) -> List[str]:
+    match = re.search(rf'\b{re.escape(field)}\s*=\s*\{{([^}}]*)\}}', text)
+    return re.findall(r'"([^"]+)"', match.group(1)) if match else []
+
+
+def parse_stat_weight_field(text: str) -> Dict[str, int]:
+    match = re.search(r'\bsecondaryWeights\s*=\s*\{([^}]*)\}', text)
+    if not match:
+        return {}
+    return {
+        stat_name: int(weight)
+        for stat_name, weight in re.findall(r'\["([^"]+)"\]\s*=\s*(\d+)', match.group(1))
+    }
+
+
+def parse_addon_db_single_stat_priorities(text: str) -> Dict[int, Dict[str, object]]:
+    marker = "DB.SINGLE_STAT_PRIORITY_V12 = {"
+    if marker not in text:
+        return {}
+    start = text.index(marker) + len(marker)
+    end = text.find("\n}\n\nfunction DB.ApplySingleStatPriorityV12", start)
+    if end == -1:
+        raise ValueError("Could not locate the end of DB.SINGLE_STAT_PRIORITY_V12")
+
+    priorities: Dict[int, Dict[str, object]] = {}
+    for raw_line in text[start:end].splitlines():
+        match = re.match(r"\s*([A-Z_]+)\s*=\s*\{(.*)\},\s*$", raw_line)
+        if not match:
+            continue
+        raw_spec_key, raw = match.groups()
+        spec_key = ADDON_DB_SPEC_KEY_ALIASES.get(raw_spec_key, raw_spec_key)
+        spec_id = SPEC_KEY_TO_ID.get(spec_key)
+        if not spec_id:
+            raise ValueError(f"Unknown single stat priority spec key: {raw_spec_key}")
+        priorities[spec_id] = {
+            "secondaryPriority": parse_quoted_field(raw, "secondaryPriority"),
+            "secondaryOrder": parse_quoted_list_field(raw, "secondaryOrder"),
+            "secondaryWeights": parse_stat_weight_field(raw),
+            "statPriorityMode": parse_quoted_field(raw, "statPriorityMode"),
+            "statPriorityStatus": parse_quoted_field(raw, "statPriorityStatus"),
+            "statPriorityNote": parse_quoted_field(raw, "note"),
+        }
+    return priorities
+
+
 def parse_addon_db_specs(text: str) -> Tuple[Dict[int, Dict[str, object]], Dict[int, Dict[str, object]]]:
     block = extract_addon_db_block(text, "SPECS")
     specs: Dict[int, Dict[str, object]] = {}
@@ -1597,6 +1685,10 @@ def parse_addon_db_specs(text: str) -> Tuple[Dict[int, Dict[str, object]], Dict[
                 current_key = None
                 current_lines = []
     flush()
+    for spec_id, override in parse_addon_db_single_stat_priorities(text).items():
+        if spec_id not in policies:
+            raise ValueError(f"Single stat priority override has no SPECS row: {spec_id}")
+        policies[spec_id].update(override)
     return specs, policies
 
 
@@ -1759,12 +1851,20 @@ def weapon_matches_spec(row: Dict[str, object], spec_id: int, spec: Dict[str, ob
 
 
 def addon_db_validation_meta(policy: Dict[str, object], source_group: str) -> Dict[str, object]:
+    requires_runtime_link = source_group in {"mythicplus", "tier"}
     return {
         "staticFinalBisVerified": False,
         "bisValidationLevel": str(policy.get("bisValidationLevel") or "STATIC_BIS_NOT_CONFIRMED"),
         "statPriorityVerified": policy.get("statPriorityVerified") is True,
-        "runtimeItemLinkRequired": source_group in {"mythicplus", "tier"},
+        "runtimeItemLinkRequired": requires_runtime_link,
+        "requiresRuntimeItemLink": requires_runtime_link,
         "mythTrackVerified": False,
+        "staticPriorityStatus": "STATIC_POOL_ONLY_ITEMLINK_REQUIRED_FOR_REAL_PRIORITY"
+        if requires_runtime_link
+        else "PRESERVED_STATIC_SOURCE_ROW",
+        "v13Evidence": "RUNTIME_ITEMLINK_STATS_REQUIRED"
+        if requires_runtime_link
+        else "PRESERVED_SOURCE_POLICY",
         "statPrioritySummary": str(policy.get("secondaryPriority") or ""),
     }
 
@@ -1929,6 +2029,127 @@ def build_catalog_rows_from_addon_db(
     return combined, spec_policies
 
 
+def group_secondary_stats(policy: Dict[str, object]) -> List[List[str]]:
+    order = [str(value) for value in policy.get("secondaryOrder", [])]
+    weights = {
+        str(key): int(value)
+        for key, value in dict(policy.get("secondaryWeights", {})).items()
+    }
+    groups: List[List[str]] = []
+    previous_weight: Optional[int] = None
+    for stat_name in order:
+        stat_key = SECONDARY_STAT_KEYS.get(stat_name)
+        if not stat_key:
+            raise ValueError(f"Unknown secondary stat label: {stat_name!r}")
+        weight = weights.get(stat_name)
+        if groups and weight is not None and weight == previous_weight:
+            groups[-1].append(stat_key)
+        else:
+            groups.append([stat_key])
+        previous_weight = weight
+    return groups
+
+
+def translate_stat_priority_en_us(priority_text: str) -> str:
+    translated = priority_text
+    for stat_name, localized_name in SECONDARY_STAT_EN_US.items():
+        translated = translated.replace(stat_name, localized_name)
+    return translated
+
+
+def get_stat_priority_rows(spec_policies: Dict[int, Dict[str, object]]) -> List[Tuple[int, Dict[str, object]]]:
+    rows = [
+        (spec_id, policy)
+        for spec_id, policy in spec_policies.items()
+        if policy.get("secondaryOrder") and policy.get("secondaryWeights")
+    ]
+    if len(rows) != len(SPEC_NAMES):
+        raise ValueError(f"Expected {len(SPEC_NAMES)} stat priority rows, got {len(rows)}")
+    return sorted(
+        rows,
+        key=lambda row: (
+            STAT_PRIORITY_CLASS_ORDER.index(SPEC_ID_TO_CLASS_TOKEN[row[0]]),
+            SPEC_ID_TO_INDEX[row[0]],
+        ),
+    )
+
+
+def render_stat_priorities(spec_policies: Dict[int, Dict[str, object]]) -> str:
+    rows = get_stat_priority_rows(spec_policies)
+    rows_by_class: Dict[str, List[Tuple[int, Dict[str, object]]]] = defaultdict(list)
+    for spec_id, policy in rows:
+        rows_by_class[SPEC_ID_TO_CLASS_TOKEN[spec_id]].append((spec_id, policy))
+
+    lines = [
+        "local _, ns = ...",
+        "",
+        "-- Generated by scripts/build_bis_catalog.py from DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua.",
+        "-- Midnight Season 1 representative single stat priorities (v1.3 policy).",
+        "ns.Data.StatPriorities = {",
+    ]
+    for class_tag in STAT_PRIORITY_CLASS_ORDER:
+        lines.append(f"    {class_tag} = {{")
+        for spec_id, policy in rows_by_class[class_tag]:
+            groups = group_secondary_stats(policy)
+            rendered_groups = ", ".join(
+                "{ " + ", ".join(lua_string(stat) for stat in group) + " }"
+                for group in groups
+            )
+            lines.append(
+                f"        [{SPEC_ID_TO_INDEX[spec_id]}] = {{ {rendered_groups} }},"
+                f" -- {policy.get('specKo') or SPEC_NAMES[spec_id]}"
+            )
+        lines.append("    },")
+    lines.extend(
+        [
+            "}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_stat_priority_table(spec_policies: Dict[int, Dict[str, object]]) -> str:
+    rows = get_stat_priority_rows(spec_policies)
+    lines = [
+        "local _, ns = ...",
+        "",
+        "-- Generated by scripts/build_bis_catalog.py from DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua.",
+        "-- Main-window stat priority popup: one representative priority per specialization.",
+        "ns.Data.StatPriorityTable = {",
+    ]
+    for spec_id, policy in rows:
+        class_tag = SPEC_ID_TO_CLASS_TOKEN[spec_id]
+        primary_stat = PRIMARY_STAT_EN.get(str(policy.get("primary") or ""))
+        if not primary_stat:
+            raise ValueError(f"Unknown primary stat for spec {spec_id}: {policy.get('primary')!r}")
+        lines.extend(
+            [
+                f"    {{ classTag = {lua_string(class_tag)}, specIndex = {SPEC_ID_TO_INDEX[spec_id]}, "
+                f"primaryStat = {lua_string(primary_stat)},",
+                f"      priorityText = {lua_string(str(policy.get('secondaryPriority') or ''))},",
+                f"      priorityTextEnUS = {lua_string(translate_stat_priority_en_us(str(policy.get('secondaryPriority') or '')))} }},",
+            ]
+        )
+    lines.extend(
+        [
+            "}",
+            "",
+            "-- GetSpecializationInfoForClassID-compatible specID mapping.",
+            "ns.Data.StatPrioritySpecIDs = {",
+        ]
+    )
+    for class_tag in STAT_PRIORITY_CLASS_ORDER:
+        pairs = [
+            f"[{SPEC_ID_TO_INDEX[spec_id]}] = {spec_id}"
+            for spec_id, _ in rows
+            if SPEC_ID_TO_CLASS_TOKEN[spec_id] == class_tag
+        ]
+        lines.append(f"    {class_tag} = {{ {', '.join(pairs)} }},")
+    lines.extend(["}", ""])
+    return "\n".join(lines)
+
+
 def render_entry(entry: Dict[str, object]) -> str:
     def optional_string(value: str) -> str:
         return "nil" if not value else lua_string(value)
@@ -1988,7 +2209,10 @@ def render_entry(entry: Dict[str, object]) -> str:
             "bisValidationLevel",
             "statPriorityVerified",
             "runtimeItemLinkRequired",
+            "requiresRuntimeItemLink",
             "mythTrackVerified",
+            "staticPriorityStatus",
+            "v13Evidence",
             "statPrioritySummary",
         ]
         parts = [
@@ -2033,8 +2257,10 @@ def render_spec_policy(spec_id: int, policy: Dict[str, object]) -> str:
         "tierSetId",
         "tierSetKo",
         "secondaryPriority",
+        "statPriorityMode",
         "statPriorityVerified",
         "statPriorityStatus",
+        "statPriorityNote",
         "staticFinalBisVerified",
         "bisOptimalVerified",
         "bisStatus",
@@ -2135,6 +2361,19 @@ def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
                         )
                 if row.get("runtimeItemLinkRequired") is not True:
                     raise ValueError(f"Mythic+ row missing runtime link policy in spec {spec_id}, item {row['itemID']}")
+            if str(row["sourceGroup"]) in {"mythicplus", "tier"}:
+                if row.get("staticFinalBisVerified") is not False or row.get("mythTrackVerified") is not False:
+                    raise ValueError(f"Generated row missing unverified BIS/Myth metadata in spec {spec_id}, item {row['itemID']}")
+                if row.get("runtimeItemLinkRequired") is not True or row.get("requiresRuntimeItemLink") is not True:
+                    raise ValueError(f"Generated row missing runtime-link metadata in spec {spec_id}, item {row['itemID']}")
+                if row.get("bisValidationLevel") != "STRICT_STATIC_DB_CANNOT_CERTIFY_FINAL_BIS__RUNTIME_SIM_REQUIRED":
+                    raise ValueError(f"Generated row missing strict BIS validation level in spec {spec_id}, item {row['itemID']}")
+                if row.get("statPriorityVerified") is not True or not str(row.get("statPrioritySummary") or ""):
+                    raise ValueError(f"Generated row missing stat-priority metadata in spec {spec_id}, item {row['itemID']}")
+                if row.get("staticPriorityStatus") != "STATIC_POOL_ONLY_ITEMLINK_REQUIRED_FOR_REAL_PRIORITY":
+                    raise ValueError(f"Generated row missing static-priority status in spec {spec_id}, item {row['itemID']}")
+                if row.get("v13Evidence") != "RUNTIME_ITEMLINK_STATS_REQUIRED":
+                    raise ValueError(f"Generated row missing v1.3 evidence in spec {spec_id}, item {row['itemID']}")
             if not str(row["nameKoKR"]) or is_english_only(str(row["nameKoKR"])):
                 raise ValueError(
                     f"koKR item name leak in spec {spec_id}, item {row['itemID']}: {row['nameKoKR']!r}"
@@ -2143,6 +2382,18 @@ def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
                 raise ValueError(
                     f"enUS item name leak in spec {spec_id}, item {row['itemID']}: {row['nameEnUS']!r}"
                 )
+            if is_hangul_present(str(row["displaySourceEnUS"])):
+                raise ValueError(
+                    f"enUS source leak in spec {spec_id}, item {row['itemID']}: {row['displaySourceEnUS']!r}"
+                )
+            if not str(row["displaySourceEnUS"]):
+                raise ValueError(f"Missing enUS source in spec {spec_id}, item {row['itemID']}")
+            if is_hangul_present(str(row["dungeonEnUS"])):
+                raise ValueError(
+                    f"enUS dungeon leak in spec {spec_id}, item {row['itemID']}: {row['dungeonEnUS']!r}"
+                )
+            if str(row["sourceGroup"]) == "mythicplus" and not str(row["dungeonEnUS"]):
+                raise ValueError(f"Mythic+ row missing enUS source in spec {spec_id}, item {row['itemID']}")
             if str(row["displaySourceKoKR"]) and is_english_only(str(row["displaySourceKoKR"])):
                 raise ValueError(
                     f"koKR source leak in spec {spec_id}, item {row['itemID']}: {row['displaySourceKoKR']!r}"
@@ -2176,7 +2427,7 @@ def main() -> int:
         nargs="?",
         const=ADDON_DB_FILE,
         type=Path,
-        help="Optional Midnight S1 addon Lua DB source. Defaults to DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua.",
+        help="Optional Midnight S1 addon Lua DB source. Defaults to DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua.",
     )
     args = parser.parse_args()
 
@@ -2199,6 +2450,11 @@ def main() -> int:
     validate_catalog(catalog)
     TARGET_FILE.write_text(render_catalog(catalog, spec_policies), encoding="utf-8")
     print(f"Updated {TARGET_FILE}")
+    if spec_policies and all(policy.get("secondaryOrder") for policy in spec_policies.values()):
+        STAT_PRIORITIES_TARGET_FILE.write_text(render_stat_priorities(spec_policies), encoding="utf-8")
+        STAT_PRIORITY_TABLE_TARGET_FILE.write_text(render_stat_priority_table(spec_policies), encoding="utf-8")
+        print(f"Updated {STAT_PRIORITIES_TARGET_FILE}")
+        print(f"Updated {STAT_PRIORITY_TABLE_TARGET_FILE}")
     print(f"Specs: {len(catalog)}")
     print(f"Rows: {sum(len(rows) for rows in catalog.values())}")
     return 0

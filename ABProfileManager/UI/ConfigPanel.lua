@@ -133,8 +133,7 @@ local function buildOverviewText()
         ),
         ns.L(
             "config_overview_stats_options",
-            getStateLabel(ns.DB:IsStatsOverlayTankStatsEnabled()),
-            getStateLabel(ns.DB:IsStatsOverlayMythicPlusMode())
+            getStateLabel(ns.DB:IsStatsOverlayTankStatsEnabled())
         ),
         ns.L(
             "config_overview_combat_text",
@@ -201,12 +200,6 @@ function ConfigPanel:ApplyStatsOverlayTankStats(enabled, refs)
     ns.DB:SetStatsOverlayTankStatsEnabled(enabled)
     ns:RefreshUI()
     setStatus(refs, ns.L("config_saved_tank_stats", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
-end
-
-function ConfigPanel:ApplyStatsOverlayMythicPlus(enabled, refs)
-    ns.DB:SetStatsOverlayMythicPlusMode(enabled)
-    ns:RefreshUI()
-    setStatus(refs, ns.L("config_saved_mythic_plus", enabled and ns.L("state_enabled") or ns.L("state_disabled")))
 end
 
 function ConfigPanel:ApplyProfessionOverlayEnabled(enabled, refs)
@@ -326,10 +319,6 @@ function ConfigPanel:BindControlSet(refs)
         self:ApplyStatsOverlayTankStats(currentCheck:GetChecked(), refs)
     end))
 
-    refs.mythicPlusCheck:SetScript("OnClick", safeHandler("ConfigPanel:mythicPlusCheck", function(currentCheck)
-        self:ApplyStatsOverlayMythicPlus(currentCheck:GetChecked(), refs)
-    end))
-
     for _, entry in ipairs(refs.typographySliders or {}) do
         entry.slider.slider:SetScript("OnValueChanged", safeHandler("ConfigPanel:typographySlider", function(currentSlider, value)
             entry.slider:SetValueText(value)
@@ -377,7 +366,6 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.statsOverlayCheck.Text:SetText(ns.L("config_stats_overlay_show"))
     refs.professionOverlayCheck.Text:SetText(ns.L("config_profession_overlay_show"))
     refs.tankStatsCheck.Text:SetText(ns.L("config_stats_tank_stats_show"))
-    refs.mythicPlusCheck.Text:SetText(ns.L("config_stats_mythic_plus_show"))
 
     refs.overlayBox.title:SetText(ns.L("config_typography_title"))
     for _, entry in ipairs(refs.typographySliders or {}) do
@@ -411,7 +399,6 @@ function ConfigPanel:RefreshControlSet(refs)
     refs.statsOverlayCheck:SetChecked(ns.DB:IsStatsOverlayEnabled())
     refs.professionOverlayCheck:SetChecked(ns.DB:IsProfessionKnowledgeOverlayEnabled())
     refs.tankStatsCheck:SetChecked(ns.DB:IsStatsOverlayTankStatsEnabled())
-    refs.mythicPlusCheck:SetChecked(ns.DB:IsStatsOverlayMythicPlusMode())
     refs.combatTextManageCheck:SetChecked(ns.DB:IsCombatTextManaged())
     refs.combatTextDirectionalCheck:SetChecked(ns.DB:IsCombatTextDirectionalDamageEnabled())
     ns.UI.Widgets.SetButtonSelected(refs.koreanButton, ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN)
@@ -476,10 +463,6 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.tankStatsCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.tankStatsCheck:SetPoint("TOPLEFT", refs.professionOverlayCheck, "BOTTOMLEFT", 0, -8)
     refs.tankStatsCheck:Hide()
-
-    refs.mythicPlusCheck = widgets.CreateCheckButton(refs.generalBox, "")
-    refs.mythicPlusCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
-    refs.mythicPlusCheck:Hide()
 
     refs.overlayBox = widgets.CreatePanelBox(parent, columnWidth, options.overlayHeight or 360, "")
     refs.overlayBox:SetPoint("TOPLEFT", refs.generalBox, "TOPRIGHT", columnGap, 0)
@@ -559,7 +542,6 @@ function ConfigPanel:BuildControlSet(parent, options)
         refs.statsOverlayCheck,
         refs.professionOverlayCheck,
         refs.tankStatsCheck,
-        refs.mythicPlusCheck,
         refs.combatTextManageCheck,
         refs.combatTextDirectionalCheck,
     }) do

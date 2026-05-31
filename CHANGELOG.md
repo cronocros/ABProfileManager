@@ -6,6 +6,37 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.10.0 - 2026-05-31
+
+한밤 시즌 1 BIS v1.3 오프라인 입력과 40개 전문화 단일 대표 스탯 우선순위를 반영한 릴리스.
+
+주요 변경:
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`를 BIS 카탈로그 오프라인 생성 입력으로 추가
+- v1.3 DB의 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지하도록 정상화
+- 40개 전문화의 단일 대표 스탯 우선순위를 `Data/StatPriorities.lua`, `Data/StatPriorityTable.lua`, BIS 정책 메타에 반영
+- 애드온 언어가 영어일 때 스탯 우선순위 표가 영문 우선순위 텍스트를 표시하도록 보강
+- 단일 대표 우선순위 정책과 맞지 않던 숨김 M+ 전용 토글의 런타임 분기와 개요 표시를 제거하고 SavedVariables 호환 키만 유지
+- BIS 카탈로그 `3130`행 유지: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`
+- v1.3 런타임 점수 정책은 생성 메타데이터까지만 반영하고 실제 `itemLink` 기반 점수 엔진 연결은 후속 설계로 분리
+- v1.9.0의 캐릭터별·전문화별 즐겨찾기/보유 상태, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선 유지
+- 즐겨찾기/보유 체크 표시를 Blizzard 기본 체크 텍스처로 교체하고, 보유 아이템명 취소선을 전면 레이어로 보강
+- 한국어 BIS 표기에서 `Hero/Myth`를 `영웅/신화`로 현지화
+- BIS hover 툴팁은 부위, 출처, 현재 순위 중심으로 간소화하고 장황한 검증/템렙 범위 블록 제거
+- 보유 체크된 BIS 행은 장착 슬롯과 가방에서 찾은 실제 아이템 링크를 우선 렌더링하며, 체크 시 찾은 링크를 캐릭터별·전문화별 상태에 함께 저장
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.10.0 기준으로 갱신
+
+## 1.9.0 - 2026-05-31
+
+BIS 오버레이에 캐릭터별·전문화별 즐겨찾기/보유 상태와 M+ M0 툴팁 미리보기를 추가한 릴리스.
+
+주요 변경:
+- BIS 아이템 아이콘 앞에 즐겨찾기/보유 체크박스를 추가하고 캐릭터별·전문화별로 저장
+- 즐겨찾기 아이템은 `무기` 위 최상단 `즐겨찾기` 섹션으로 이동
+- 보유 아이템명은 취소선으로 표시
+- M+ 아이템 tooltip preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준으로 조회
+- `GameTooltip:SetHyperlink()` 직접 호출 금지, source filter, crafted/tier 비랜딩, M+/raid Encounter Journal guard 정책 유지
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.9.0 기준으로 갱신
+
 ## 1.8.0 - 2026-05-31
 
 한밤 시즌 1 M+/티어 BIS 후보를 새 DOC DB 기준으로 재생성하고 BIS 오버레이 표기 정책을 정리한 릴리스.
@@ -13,7 +44,7 @@
 주요 변경:
 - `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua` 기반으로 40개 전문화 M+/티어 후보를 재생성
 - 기존 레이드/제작 행은 보존하고, 게임 런타임 데이터 소스는 계속 `Data/BISCatalog.lua` 하나로 유지
-- M+ 보상 프로필을 `던전 종료 Hero 3/6 266` / `위대한 금고·Voidcore Myth 1/6 272` 후보로 분리하되 정적 `itemLink`, `itemString`, bonusID는 생성하지 않음
+- M+ 보상 프로필을 `던전 종료 영웅 3/6 266` / `위대한 금고·Voidcore 신화 1/6 272` 후보로 분리하되 정적 `itemLink`, `itemString`, bonusID는 생성하지 않음
 - BIS row와 전문화 정책에 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false`, 스탯 우선순위 검증 메타를 추가
 - BIS 오버레이 폭/열 구성을 넓히고, 헤더에 현재 전문화 스탯 정책과 "정적 최종 BiS 아님" 상태를 표시
 - BIS 툴팁에 Base ItemID, reward profile, 런타임 링크 필요 여부, Myth 트랙 후보/미검증 상태, 심크 필요 문구를 분리 표시

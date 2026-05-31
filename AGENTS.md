@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `main (v1.7.6 기반)`
+**현재 기준**: `v1.10.0 기반`
 
 ## 검증 명령어
 
@@ -20,6 +20,9 @@ print("ok")
 '@ | python -
 
 git diff --check
+
+python .\scripts\validate_bis_catalog.py
+python .\scripts\audit_bis_data.py
 
 powershell -ExecutionPolicy Bypass -File .\scripts\package_release.ps1
 ```
@@ -111,6 +114,8 @@ ABProfileManager/
 - `Data/BISData.lua`
 - `DOC/wow_midnight_s1_mplus_bis_final.md`
 - `DOC/wow_midnight_s1_mplus_bis_korean_companion.md`
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`
+- `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`
 
 생성 스크립트:
 - `scripts/refresh_wowhead_bis.py`
@@ -121,6 +126,8 @@ ABProfileManager/
 - 런타임 merge/정규화/웹 조회 금지
 - `mythicplus / raid / crafted / tier` 4개 필터 모두 기본 on
 - 필터 후 visible list 기준으로 `1순위 / 2순위 / 3순위+`를 재번호화
+- 전문화별 스탯 우선순위는 v1.3 단일 대표 정책을 사용한다
+- v1.3 점수 정책은 정적 메타데이터까지만 반영하며 실제 `itemLink` 기반 점수 엔진은 후속 설계 범위다
 
 ### 아이템 레벨 오버레이 + 문장/열쇠 패널
 
@@ -149,7 +156,7 @@ ABProfileManager/
 
 ## 미완성 기능
 
-- 스탯 오버레이 쐐기(M+) 우선순위 모드
+- 스탯 오버레이 `mythicPlusMode` 저장 키는 이전 SavedVariables 호환용으로만 유지
 - 경매장 현행 확장팩 필터 자동 선택
 - BIS 던전 direct EJ ID 추가 확인 (`마이사라 동굴`, `윈드러너 첨탑`)
 

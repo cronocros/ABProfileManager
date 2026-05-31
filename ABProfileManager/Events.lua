@@ -376,10 +376,6 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("BANKFRAME_OPENED")
     frame:RegisterEvent("BANKFRAME_CLOSED")
     frame:RegisterEvent("UI_ERROR_MESSAGE")
-    -- 쐐기(M+) 진행 상태 감지 — 스탯 오버레이 M+ 우선순위 자동 전환
-    frame:RegisterEvent("CHALLENGE_MODE_START")
-    frame:RegisterEvent("CHALLENGE_MODE_COMPLETED")
-    frame:RegisterEvent("CHALLENGE_MODE_DEATH_COUNT_UPDATED")
     -- 인던/존 이동: 스탯 오버레이가 stale signature 로 0 표시되는 문제 방지
     frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     frame:RegisterEvent("PLAYER_ENTER_COMBAT")
@@ -606,19 +602,6 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
         abpmCloseBankSessions()
         ns.Utils.Print("[ABPM] 은행이 다른 곳에서 사용 중입니다. 전투부대 은행 세션을 닫았습니다.")
     end
-end
-
--- 쐐기(M+) 상태 핸들러 — isMplus 자동 감지 경로
-function Events:CHALLENGE_MODE_START()
-    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
-end
-
-function Events:CHALLENGE_MODE_COMPLETED()
-    refreshStatsOverlayForce(STATS_REFRESH_DELAY)
-end
-
-function Events:CHALLENGE_MODE_DEATH_COUNT_UPDATED()
-    refreshStatsOverlay()
 end
 
 -- 존(인던) 이동: 인스턴스 컨텍스트 자체가 signature 의 일부이므로 force 갱신
