@@ -1,8 +1,15 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.8.0 기반`
+버전 기준: `v1.9.0 기반`
 
-## 0-new. v1.8.0 메모
+## 0-new. v1.9.0 메모
+
+- `DB.lua`는 캐릭터 record 아래 전문화별 BIS item 상태를 저장한다. itemID마다 `favorite`, `owned`만 유지하고 둘 다 꺼지면 해당 item 상태를 제거한다.
+- `UI/BISOverlay.lua`는 아이콘 앞에 즐겨찾기/보유 체크박스를 표시한다. 즐겨찾기 item은 원래 부위 대신 `무기` 위 최상단 `즐겨찾기` 섹션에 모으고, 보유 item 이름은 취소선으로 표시한다.
+- M+ item hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준을 사용한다.
+- `GameTooltip:SetHyperlink()` 직접 호출 금지, source filter, `crafted/tier` 비랜딩, `mythicplus/raid` Encounter Journal guard 정책은 유지한다.
+
+## 0-prev. v1.8.0 메모
 
 - BIS M+/티어 후보는 `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`를 오프라인 입력으로 `scripts/build_bis_catalog.py --addon-db`에서 생성한다. 이 DOC DB는 TOC에 직접 로드하지 않는다.
 - 게임 런타임 BIS 데이터 소스는 계속 `ABProfileManager/Data/BISCatalog.lua` 하나다. 생성 결과에는 `ns.Data.BISItems`와 `ns.Data.BISSpecPolicies`가 함께 들어간다.
@@ -99,6 +106,8 @@
 - source 판정은 `sourceGroup` 정적 값을 우선 사용한다. 예전 `sourceLabel` 재분류 로직에 다시 기대지 않는 편이 안전하다.
 - `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
 - BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트를 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
+- 즐겨찾기/보유 상태는 캐릭터 record 안에서 전문화별로 분리한다. 즐겨찾기 섹션 이동과 보유 취소선 갱신을 함께 확인한다.
+- M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준이다.
 - M+/tier는 `runtimeItemLinkRequired` 경고와 "정적 최종 BiS 아님/심크 필요" 안내가 빠지면 안 된다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - unresolved direct ID:
@@ -245,6 +254,8 @@
 - BIS 아이템 hover 후 액션바 / 모험 안내서 / Pawn 아이템 tooltip에서 `MoneyFrame.lua` 오류가 없는지 확인
 - BIS tooltip에서 런타임 링크 필요, itemID만으로 Myth 트랙 미확정, 정적 최종 BiS 아님/심크 필요 문구가 보이는지 확인
 - BIS 필터 on/off와 visible rank 재계산
+- BIS 즐겨찾기/보유 체크, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선, 캐릭터/전문화 전환 후 상태 유지
+- M+ 아이템 hover에서 Encounter Journal 신화 던전(M0) Champion 1/6 `246` preview가 사용되는지 확인
 - `레이드 off + 쐐기만 on`에서 쐐기 행이 유지되는지
 - `제작 + 티어만 on`에서 잘못된 랜딩이 없는지
 - 드랍템 레벨 오버레이 우측 `나의 문장 / 나의 열쇠` 패널 수치 확인

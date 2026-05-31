@@ -6,6 +6,18 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.9.0 - 2026-05-31
+
+BIS 오버레이에 캐릭터별·전문화별 즐겨찾기/보유 상태와 M+ M0 툴팁 미리보기를 추가한 릴리스.
+
+주요 변경:
+- BIS 아이템 아이콘 앞에 즐겨찾기/보유 체크박스를 추가하고 캐릭터별·전문화별로 저장
+- 즐겨찾기 아이템은 `무기` 위 최상단 `즐겨찾기` 섹션으로 이동
+- 보유 아이템명은 취소선으로 표시
+- M+ 아이템 tooltip preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준으로 조회
+- `GameTooltip:SetHyperlink()` 직접 호출 금지, source filter, crafted/tier 비랜딩, M+/raid Encounter Journal guard 정책 유지
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.9.0 기준으로 갱신
+
 ## 1.8.0 - 2026-05-31
 
 한밤 시즌 1 M+/티어 BIS 후보를 새 DOC DB 기준으로 재생성하고 BIS 오버레이 표기 정책을 정리한 릴리스.

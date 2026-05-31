@@ -1028,6 +1028,97 @@ function DB:SetBISOverlayItemTooltipEnabled(enabled)
     return self:IsBISOverlayItemTooltipEnabled()
 end
 
+local function normalizeBISOverlayItemKey(itemID)
+    local numeric = tonumber(itemID)
+    if not numeric or numeric <= 0 then
+        return nil
+    end
+    return tostring(math.floor(numeric))
+end
+
+local function normalizeBISOverlaySpecKey(specID)
+    local numeric = tonumber(specID)
+    if not numeric or numeric <= 0 then
+        return nil
+    end
+    return tostring(math.floor(numeric))
+end
+
+function DB:GetBISOverlayCharacterState()
+    local record = self:GetCharacterRecord()
+    if not record then
+        return nil
+    end
+
+    record.bisOverlay = record.bisOverlay or {}
+    record.bisOverlay.itemsBySpec = record.bisOverlay.itemsBySpec or {}
+    record.bisOverlay.stateVersionBySpec = record.bisOverlay.stateVersionBySpec or {}
+    return record.bisOverlay
+end
+
+function DB:GetBISOverlaySpecItems(specID)
+    local state = self:GetBISOverlayCharacterState()
+    local specKey = normalizeBISOverlaySpecKey(specID)
+    if not state or not specKey then
+        return nil
+    end
+
+    state.itemsBySpec[specKey] = state.itemsBySpec[specKey] or {}
+    return state.itemsBySpec[specKey], specKey, state
+end
+
+function DB:GetBISOverlayItemState(specID, itemID)
+    local items = self:GetBISOverlaySpecItems(specID)
+    local itemKey = normalizeBISOverlayItemKey(itemID)
+    return items and itemKey and items[itemKey] or nil
+end
+
+function DB:GetBISOverlayItemStateVersion(specID)
+    local state = self:GetBISOverlayCharacterState()
+    local specKey = normalizeBISOverlaySpecKey(specID)
+    return state and specKey and tonumber(state.stateVersionBySpec[specKey]) or 0
+end
+
+function DB:SetBISOverlayItemState(specID, itemID, field, enabled)
+    if field ~= "owned" and field ~= "favorite" then
+        return false
+    end
+
+    local items, specKey, state = self:GetBISOverlaySpecItems(specID)
+    local itemKey = normalizeBISOverlayItemKey(itemID)
+    if not items or not itemKey then
+        return false
+    end
+
+    local itemState = items[itemKey] or {}
+    itemState[field] = enabled and true or nil
+    if itemState.owned or itemState.favorite then
+        items[itemKey] = itemState
+    else
+        items[itemKey] = nil
+    end
+    state.stateVersionBySpec[specKey] = (tonumber(state.stateVersionBySpec[specKey]) or 0) + 1
+    return enabled and true or false
+end
+
+function DB:IsBISOverlayItemOwned(specID, itemID)
+    local state = self:GetBISOverlayItemState(specID, itemID)
+    return state and state.owned == true or false
+end
+
+function DB:SetBISOverlayItemOwned(specID, itemID, enabled)
+    return self:SetBISOverlayItemState(specID, itemID, "owned", enabled)
+end
+
+function DB:IsBISOverlayItemFavorite(specID, itemID)
+    local state = self:GetBISOverlayItemState(specID, itemID)
+    return state and state.favorite == true or false
+end
+
+function DB:SetBISOverlayItemFavorite(specID, itemID, enabled)
+    return self:SetBISOverlayItemState(specID, itemID, "favorite", enabled)
+end
+
 -- ============================================================
 -- MythicPlusRecordOverlay
 -- ============================================================

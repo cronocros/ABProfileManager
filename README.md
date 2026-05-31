@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- `v1.8.0`
+- `v1.9.0`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 최신 릴리스: `https://github.com/cronocros/ABProfileManager/releases/latest`
-- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.8.0/ABProfileManager-v1.8.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.8.0.zip`
+- 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.9.0/ABProfileManager-v1.9.0.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.9.0.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.8.0.md](./DOC/releases/RELEASE_NOTES_v1.8.0.md)
-- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.8.0_EN.md](./DOC/releases/RELEASE_NOTES_v1.8.0_EN.md)
+- 최신 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.9.0.md](./DOC/releases/RELEASE_NOTES_v1.9.0.md)
+- 최신 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.9.0_EN.md](./DOC/releases/RELEASE_NOTES_v1.9.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
@@ -29,6 +29,13 @@
 - Patch 12.0.5 기준 전클래스/전문화 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.9.0 핵심 정리
+
+- BIS 행 아이콘 앞에 캐릭터별·전문화별 즐겨찾기/보유 체크박스를 추가했습니다.
+- 즐겨찾기 아이템은 `무기` 위 최상단 `즐겨찾기` 섹션으로 이동하고, 보유 아이템명은 취소선으로 표시합니다.
+- M+ 아이템 hover 미리보기는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준을 사용합니다.
+- `GameTooltip:SetHyperlink()` 금지, source filter, crafted/tier 비랜딩, M+/raid Encounter Journal guard 정책은 유지합니다.
 
 ## v1.8.0 핵심 정리
 
@@ -129,6 +136,8 @@
   - `쐐기 / 레이드 / 제작 / 티어` 필터
   - 필터 후 살아남은 후보 전체 표시
   - `아이템명 / 드랍 출처 / 트랙·검증 상태 / 우선순위` 중심 렌더
+  - 아이콘 앞 즐겨찾기/보유 체크박스와 캐릭터별·전문화별 저장
+  - 즐겨찾기 최상단 섹션, 보유 아이템명 취소선 표시
   - 헤더에 현재 전문화 스탯 우선순위와 정적 BiS 검증 상태 표시
   - `mythicplus`, `raid`는 가능할 때 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 랜딩하지 않음
@@ -196,7 +205,9 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 제작과 티어 항목은 Encounter Journal 랜딩 대상이 아닙니다.
 - `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 확정 전까지 안내서만 열리고 특정 던전으로 바로 이동하지 않을 수 있습니다.
 - BIS 아이템 캐시가 늦게 들어와도 전체 오버레이를 다시 그리지 않고, 보이는 행만 갱신하도록 조정되어 있습니다.
+- 즐겨찾기/보유 체크는 캐릭터별·전문화별로 저장됩니다. 즐겨찾기는 `무기` 위 별도 섹션으로 이동하고 보유 아이템명은 취소선으로 표시합니다.
 - 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료 Hero 3/6 266`, `위대한 금고/Voidcore Myth 1/6 272`)과 아이템 레벨을 함께 표시합니다.
+- M+ 아이템 hover 미리보기는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준으로 조회합니다.
 - 정적 카탈로그는 `itemID`만으로 Hero/Myth 트랙이나 최종 BiS를 확정하지 않으며, 실제 `itemLink`/bonusID와 심크 검증이 필요하다는 메타를 표시합니다.
 - BIS hover 툴팁은 전역 `GameTooltip:SetHyperlink()`를 직접 호출하지 않고, 안전한 전용 툴팁으로 검증된 tooltipData 텍스트만 렌더링합니다.
 - 갱신 스크립트:

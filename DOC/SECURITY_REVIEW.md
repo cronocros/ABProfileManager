@@ -97,8 +97,9 @@
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 Myth/Hero 트랙이나 최종 BiS를 확정하지 않는다
 - M+ reward profile은 Hero 던전 종료 / Myth 금고 후보 템렙만 저장하고 정적 `itemLink`, `itemString`, bonusID를 만들지 않는다
 - `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도하고, `crafted`, `tier`는 랜딩 대상에서 제외한다
+- 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다
 - 아이템 캐시 수신 시 visible row만 갱신하고 전체 rebuild를 피하도록 보수적으로 조정했다
-- BIS hover preview는 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트만 전용 tooltip에 렌더링한다
+- M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준을 사용하고, `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트만 전용 tooltip에 렌더링한다
 - 판매가, 화폐, money line은 렌더링하지 않아 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
 - 전역 `GameTooltip:SetHyperlink()` 직접 호출을 금지해 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_DB_v1.0.lua`, `scripts/build_bis_catalog.py`, `scripts/validate_bis_catalog.py`는 릴리스 준비용 repo 도구이며 게임 런타임에 포함된 실행 경로가 아니다

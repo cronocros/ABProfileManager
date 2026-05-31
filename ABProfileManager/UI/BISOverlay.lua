@@ -37,14 +37,18 @@ local SB_GAP = 5    -- 스크롤바와 컨텐츠 사이 간격
 local HEADER_H  = TITLE_H + 8 + TABS_H + 12
 
 -- 컨텐츠 폭: 스크롤바(+갭+오른쪽 패딩) 제외
-local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 510
+local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 536
 
 -- 아이템 행 컬럼 레이아웃
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
+local CHECK_SIZE  = 12
+local COL_FAVORITE = 16
+local COL_OWNED    = 16
+local COL_CONTROLS = COL_FAVORITE + COL_OWNED
 local COL_ICON    = ICON_SIZE + 5
-local COL_NAME    = 224
-local COL_SLOT    = 156
+local COL_NAME    = 198
+local COL_SLOT    = 150
 local COL_TYPE    = 64
 local COL_NOTE    = 42
 local SPEC_PICKER_W = 162
@@ -222,6 +226,7 @@ local function renderTooltipDataWithoutMoney(tooltip, tooltipData, itemQuality)
     return rendered > 0 and tooltip:NumLines() > 0
 end
 
+local FAVORITES_SLOT = "__favorites"
 local SLOT_ORDER = {
     "무기", "보조장비", "방패", "머리", "목", "어깨", "망토", "가슴",
     "손목", "손", "허리", "다리", "발", "반지", "장신구",
@@ -233,6 +238,7 @@ for i, slotName in ipairs(SLOT_ORDER) do
 end
 
 local SLOT_LOCALE_KEYS = {
+    [FAVORITES_SLOT] = "bis_slot_favorites",
     ["무기"] = "bis_slot_weapon",
     ["보조장비"] = "bis_slot_offhand",
     ["방패"] = "bis_slot_shield",
@@ -394,18 +400,11 @@ end
 
 local function getSeasonPreviewKeyLevel()
     local tbl = ns.Data and ns.Data.ItemLevelTable
-    local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-    if entries then
-        for _, entry in ipairs(entries) do
-            if entry.grade == "hero" and entry.key then
-                return entry.key
-            end
-        end
-        if entries[1] and entries[1].key then
-            return entries[1].key
-        end
+    local mythicPlus = tbl and tbl.mythicPlus
+    if mythicPlus and mythicPlus.mythic0 and mythicPlus.mythic0.ilvl then
+        return 0
     end
-    return 6
+    return 0
 end
 
 local function getRaidPreviewDifficultyID()
@@ -590,11 +589,6 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
     local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
     local savedInstance = EJ_GetCurrentInstance and EJ_GetCurrentInstance() or nil
     local savedDifficulty = EJ_GetDifficulty and EJ_GetDifficulty() or nil
-    local savedPreviewLevel = C_EncounterJournal
-        and C_EncounterJournal.GetPreviewMythicPlusLevel
-        and C_EncounterJournal.GetPreviewMythicPlusLevel()
-        or nil
-
     local foundContext
     for _, candidate in ipairs(candidates) do
         if candidate.tier then
@@ -603,6 +597,8 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
         if EJ_SetDifficulty then
             pcall(EJ_SetDifficulty, 23)
         end
+        -- Blizzard exposes only a setter for the preview level. This scan runs
+        -- while the journal is hidden, so normalize it to the overlay's M0 contract.
         if C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
             pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, previewLevel)
         end
@@ -656,10 +652,6 @@ local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName
     if savedDifficulty and EJ_SetDifficulty then
         pcall(EJ_SetDifficulty, savedDifficulty)
     end
-    if savedPreviewLevel and C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
-        pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, savedPreviewLevel)
-    end
-
     EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = foundContext or false
     EJ_PREVIEW_LINK_CACHE[cacheKey] = foundContext and foundContext.link or false
     return foundContext
@@ -1207,6 +1199,9 @@ end
 
 local function getRenderSignature(specID)
     local filters = getSourceFilters()
+    local stateVersion = ns.DB and ns.DB.GetBISOverlayItemStateVersion
+        and ns.DB:GetBISOverlayItemStateVersion(specID)
+        or 0
     return table.concat({
         tostring(specID or 0),
         isKoreanLanguageSelected() and "koKR" or "enUS",
@@ -1214,11 +1209,20 @@ local function getRenderSignature(specID)
         filters.raid and "1" or "0",
         filters.crafted and "1" or "0",
         filters.tier and "1" or "0",
+        tostring(stateVersion),
     }, ":")
 end
 
 local function isOverlayItemTooltipEnabled()
     return ns.DB and ns.DB.IsBISOverlayItemTooltipEnabled and ns.DB:IsBISOverlayItemTooltipEnabled() or false
+end
+
+local function isBISItemOwned(specID, itemID)
+    return ns.DB and ns.DB.IsBISOverlayItemOwned and ns.DB:IsBISOverlayItemOwned(specID, itemID) or false
+end
+
+local function isBISItemFavorite(specID, itemID)
+    return ns.DB and ns.DB.IsBISOverlayItemFavorite and ns.DB:IsBISOverlayItemFavorite(specID, itemID) or false
 end
 
 getEntrySourceType = function(entry)
@@ -1860,18 +1864,56 @@ local function slotSortValue(slotName)
     return SLOT_SORT_ORDER[slotName] or 999
 end
 
-local function groupBySlot(items)
-    local slots, order = {}, {}
+local function compareSlotEntries(a, b)
+    local ap = tonumber(a.overallRank) or notePriority(a.note)
+    local bp = tonumber(b.overallRank) or notePriority(b.note)
+    if ap ~= bp then
+        return ap < bp
+    end
+    local aGroup = SOURCE_GROUP_ORDER[getEntrySourceType(a)] or 99
+    local bGroup = SOURCE_GROUP_ORDER[getEntrySourceType(b)] or 99
+    if aGroup ~= bGroup then
+        return aGroup < bGroup
+    end
+    local aSourceRank = tonumber(a.sourceRank) or 99
+    local bSourceRank = tonumber(b.sourceRank) or 99
+    if aSourceRank ~= bSourceRank then
+        return aSourceRank < bSourceRank
+    end
+    return (a.itemID or 0) < (b.itemID or 0)
+end
+
+local function applySlotDisplayRanks(slotName, entries)
+    for index, entry in ipairs(entries) do
+        local bisLimit = SHARED_BIS_LIMIT_BY_SLOT[slotName] or 1
+        if index <= bisLimit then
+            entry._displayNoteKind = "bis"
+            entry._displayNoteIndex = index
+        elseif index == bisLimit + 1 then
+            entry._displayNoteKind = "alt"
+            entry._displayNoteIndex = index
+        elseif index == bisLimit + 2 then
+            entry._displayNoteKind = "third"
+            entry._displayNoteIndex = index
+        else
+            entry._displayNoteKind = "rank"
+            entry._displayNoteIndex = index
+        end
+    end
+end
+
+local function groupBySlot(items, specID)
+    local allSlots, slotOrder = {}, {}
     for _, item in ipairs(items) do
         local slotName = item.slot or "기타"
-        if not slots[slotName] then
-            slots[slotName] = {}
-            order[#order + 1] = slotName
+        if not allSlots[slotName] then
+            allSlots[slotName] = {}
+            slotOrder[#slotOrder + 1] = slotName
         end
-        slots[slotName][#slots[slotName] + 1] = item
+        allSlots[slotName][#allSlots[slotName] + 1] = item
     end
 
-    table.sort(order, function(a, b)
+    table.sort(slotOrder, function(a, b)
         local av, bv = slotSortValue(a), slotSortValue(b)
         if av ~= bv then
             return av < bv
@@ -1879,43 +1921,35 @@ local function groupBySlot(items)
         return tostring(a) < tostring(b)
     end)
 
-    for _, slotName in ipairs(order) do
-        local entries = slots[slotName]
-        table.sort(entries, function(a, b)
-            local ap = tonumber(a.overallRank) or notePriority(a.note)
-            local bp = tonumber(b.overallRank) or notePriority(b.note)
-            if ap ~= bp then
-                return ap < bp
-            end
-            local aGroup = SOURCE_GROUP_ORDER[getEntrySourceType(a)] or 99
-            local bGroup = SOURCE_GROUP_ORDER[getEntrySourceType(b)] or 99
-            if aGroup ~= bGroup then
-                return aGroup < bGroup
-            end
-            local aSourceRank = tonumber(a.sourceRank) or 99
-            local bSourceRank = tonumber(b.sourceRank) or 99
-            if aSourceRank ~= bSourceRank then
-                return aSourceRank < bSourceRank
-            end
-            return (a.itemID or 0) < (b.itemID or 0)
-        end)
-
-        for index, entry in ipairs(entries) do
-            local bisLimit = SHARED_BIS_LIMIT_BY_SLOT[slotName] or 1
-            if index <= bisLimit then
-                entry._displayNoteKind = "bis"
-                entry._displayNoteIndex = index
-            elseif index == bisLimit + 1 then
-                entry._displayNoteKind = "alt"
-                entry._displayNoteIndex = index
-            elseif index == bisLimit + 2 then
-                entry._displayNoteKind = "third"
-                entry._displayNoteIndex = index
+    local slots, order, favorites = {}, {}, {}
+    for _, slotName in ipairs(slotOrder) do
+        local entries = allSlots[slotName]
+        table.sort(entries, compareSlotEntries)
+        applySlotDisplayRanks(slotName, entries)
+        for _, entry in ipairs(entries) do
+            if isBISItemFavorite(specID, entry.itemID) then
+                favorites[#favorites + 1] = entry
             else
-                entry._displayNoteKind = "rank"
-                entry._displayNoteIndex = index
+                slots[slotName] = slots[slotName] or {}
+                slots[slotName][#slots[slotName] + 1] = entry
             end
         end
+        if slots[slotName] and #slots[slotName] > 0 then
+            applySlotDisplayRanks(slotName, slots[slotName])
+            order[#order + 1] = slotName
+        end
+    end
+
+    if #favorites > 0 then
+        table.sort(favorites, function(a, b)
+            local av, bv = slotSortValue(a.slot), slotSortValue(b.slot)
+            if av ~= bv then
+                return av < bv
+            end
+            return compareSlotEntries(a, b)
+        end)
+        slots[FAVORITES_SLOT] = favorites
+        table.insert(order, 1, FAVORITES_SLOT)
     end
 
     return slots, order
@@ -1938,6 +1972,56 @@ local function scheduleRebuild()
             end)
         end
     end)
+end
+
+local function updateRowCheckButtonVisual(button, checked, mark)
+    if not button then
+        return
+    end
+    if button.SetBackdropBorderColor then
+        button:SetBackdropBorderColor(
+            checked and 0.34 or 0.30,
+            checked and 0.82 or 0.36,
+            checked and 1.00 or 0.50,
+            0.95
+        )
+    end
+    if button.checkFill then
+        button.checkFill:SetColorTexture(
+            checked and 0.12 or 0.04,
+            checked and 0.42 or 0.06,
+            checked and 0.68 or 0.10,
+            checked and 0.98 or 0.88
+        )
+    end
+    if button.checkMark then
+        button.checkMark:SetText(checked and mark or "")
+        button.checkMark:SetTextColor(1, 1, 1, checked and 1 or 0.70)
+    end
+end
+
+local function updateRowItemStateVisual(row)
+    if not row or not row._entry or not row.itemID then
+        return
+    end
+
+    local specID = row._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
+    local favorite = isBISItemFavorite(specID, row.itemID)
+    local owned = isBISItemOwned(specID, row.itemID)
+    updateRowCheckButtonVisual(row.favoriteBtn, favorite, "*")
+    updateRowCheckButtonVisual(row.ownedBtn, owned, "X")
+
+    if row.nameStrike then
+        row.nameStrike:ClearAllPoints()
+        row.nameStrike:SetPoint("LEFT", row.nameLabel, "LEFT", 0, 0)
+        local stringWidth = row.nameLabel.GetStringWidth and row.nameLabel:GetStringWidth() or 0
+        row.nameStrike:SetWidth(math.min(row._nameLabelWidth or COL_NAME, math.max(0, stringWidth)))
+        if owned and stringWidth > 0 then
+            row.nameStrike:Show()
+        else
+            row.nameStrike:Hide()
+        end
+    end
 end
 
 local function refreshItemRowDisplay(row)
@@ -1967,26 +2051,30 @@ local function refreshItemRowDisplay(row)
 
     if displayTexture then
         row.icon:SetTexture(displayTexture)
-        row.icon:SetPoint("LEFT", row, "LEFT", 0, 0)
+        row.icon:ClearAllPoints()
+        row.icon:SetPoint("LEFT", row, "LEFT", COL_CONTROLS, 0)
         row.icon:Show()
     else
         row.icon:Hide()
     end
 
-    local nameX = displayTexture and COL_ICON or 0
+    local nameX = COL_CONTROLS + (displayTexture and COL_ICON or 0)
     local nameW = COL_NAME + (displayTexture and 0 or COL_ICON)
     row.nameLabel:SetPoint("LEFT", row, "LEFT", nameX, 0)
     row.nameLabel:SetWidth(nameW)
+    row._nameLabelWidth = nameW
 
     if displayName and displayName ~= "" then
         local qc = getQualityColor(displayQuality)
         row.nameLabel:SetTextColor(qc[1], qc[2], qc[3], 1)
         row.nameLabel:SetText(displayName)
+        updateRowItemStateVisual(row)
         return true
     end
 
     row.nameLabel:SetTextColor(QC[4][1], QC[4][2], QC[4][3], 0.50)
     row.nameLabel:SetText("...")
+    updateRowItemStateVisual(row)
     return false
 end
 
@@ -2931,20 +3019,23 @@ local function isTimewalkingInstance()
     return difficulty == 24
 end
 
+local function getMythicZeroPreviewItemLevel()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local mythic0 = tbl and tbl.mythicPlus and tbl.mythicPlus.mythic0
+    return mythic0 and tonumber(mythic0.ilvl) or nil
+end
+
 local function isValidPreviewItemLevel(sourceType, itemLevel)
     if not itemLevel or itemLevel <= 0 then
         return false
     end
+    if sourceType == "mythicplus" then
+        local mythicZeroItemLevel = getMythicZeroPreviewItemLevel()
+        return mythicZeroItemLevel and itemLevel == mythicZeroItemLevel or false
+    end
     -- 시간여행 던전에서는 아이템이 스케일다운된 ilvl로 표시되므로 범위 검증을 우회
     if isTimewalkingInstance() then
         return true
-    end
-    if sourceType == "mythicplus" then
-        local minRun, maxRun = getSeasonalMythicPlusRange()
-        local tbl = ns.Data and ns.Data.ItemLevelTable
-        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-        local maxVault = entries and entries[#entries] and entries[#entries].vault or maxRun
-        return minRun and maxVault and itemLevel >= minRun and itemLevel <= maxVault
     end
     if sourceType == "raid" or sourceType == "tier" then
         local minRaid, maxRaid = getSeasonalRaidRange()
@@ -3487,9 +3578,24 @@ showSeasonItemTooltip = function(owner, row)
 
     local function appendSeasonTooltipRanges(sourceType)
         if sourceType == "mythicplus" then
+            local tbl = ns.Data and ns.Data.ItemLevelTable
+            local mythic0 = tbl and tbl.mythicPlus and tbl.mythicPlus.mythic0
             local championRun = getMythicPlusBandText("run", "chmp")
             local heroRun = getMythicPlusBandText("run", "hero")
             local mythVault = getMythicPlusBandText("vault", "myth")
+            if mythic0 and mythic0.ilvl then
+                addTrackTooltipLine(
+                    ns.L("bis_tooltip_mythic0_preview"),
+                    string.format(
+                        "%d / %s %d/%d",
+                        mythic0.ilvl,
+                        ns.L("ilvl_crest_" .. tostring(mythic0.grade or "chmp")),
+                        mythic0.rank or 1,
+                        mythic0.rankMax or 6
+                    ),
+                    "chmp"
+                )
+            end
             if championRun then
                 addTrackTooltipLine(ns.L("ilvl_crest_chmp"), championRun, "chmp")
             end
@@ -3578,6 +3684,10 @@ showSeasonItemTooltip = function(owner, row)
         if not itemID or itemID <= 0 then
             return false
         end
+        if sourceType == "mythicplus" then
+            requestItemData(itemID)
+            return false
+        end
         local _, itemLink = GetItemInfo(itemID)
         if itemLink and isValidTooltipLinkForSource(itemLink, sourceType) and tryRenderTooltipHyperlink(itemLink) then
             return true
@@ -3657,9 +3767,59 @@ local function isCursorOverSourceColumn(button)
     local scale = button:GetEffectiveScale() or 1
     local cursorX = select(1, GetCursorPosition()) / scale
     local localX = cursorX - left
-    local sourceLeft = COL_ICON + COL_NAME
+    local sourceLeft = COL_CONTROLS + COL_ICON + COL_NAME
     local sourceRight = sourceLeft + COL_SLOT
     return localX >= sourceLeft and localX <= sourceRight
+end
+
+local function rebuildContentPreservingScroll()
+    BISOverlay._isItemLoadRebuild = true
+    BISOverlay:RebuildContent()
+end
+
+local function createRowCheckButton(row, xOffset, titleKey, hintKey, mark, toggleHandler)
+    local button = CreateFrame("Button", nil, row, "BackdropTemplate")
+    button:SetSize(CHECK_SIZE, CHECK_SIZE)
+    button:SetPoint("LEFT", row, "LEFT", xOffset, 0)
+    button:SetFrameLevel(row:GetFrameLevel() + 3)
+    if button.SetBackdrop then
+        button:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 8, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        button:SetBackdropColor(0.04, 0.06, 0.10, 0.95)
+    end
+    button.checkFill = button:CreateTexture(nil, "BACKGROUND")
+    button.checkFill:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
+    button.checkFill:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
+    button.checkMark = button:CreateFontString(nil, "OVERLAY")
+    button.checkMark:SetFont(FONT_PATH, 8, FONT_FLAGS)
+    button.checkMark:SetAllPoints()
+    button.checkMark:SetJustifyH("CENTER")
+    button.checkMark:SetJustifyV("MIDDLE")
+    button:SetScript("OnClick", function()
+        if row._entry and row.itemID then
+            toggleHandler(row)
+            rebuildContentPreservingScroll()
+        end
+    end)
+    button:SetScript("OnEnter", function(self2)
+        local tooltip = ns.UI.Widgets.GetTooltip()
+        if not tooltip then
+            return
+        end
+        tooltip:SetOwner(self2, "ANCHOR_RIGHT")
+        tooltip:ClearLines()
+        tooltip:AddLine(ns.L(titleKey), 1.00, 0.82, 0.44, true)
+        tooltip:AddLine(ns.L(hintKey), 0.90, 0.92, 0.98, true)
+        tooltip:Show()
+    end)
+    button:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
+    updateRowCheckButtonVisual(button, false, mark)
+    button:Hide()
+    return button
 end
 
 local function ensureRow(frame, index)
@@ -3696,6 +3856,11 @@ local function ensureRow(frame, index)
         row.nameLabel:SetMaxLines(1)
     end
 
+    row.nameStrike = row:CreateTexture(nil, "OVERLAY")
+    row.nameStrike:SetHeight(1)
+    row.nameStrike:SetColorTexture(0.92, 0.96, 1.00, 0.92)
+    row.nameStrike:Hide()
+
     row.slotLabel = row:CreateFontString(nil, "OVERLAY")
     row.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
     row.slotLabel:SetJustifyH("LEFT")
@@ -3723,8 +3888,36 @@ local function ensureRow(frame, index)
     row.typeLabel:SetWidth(COL_TYPE)
     row.typeLabel:Hide()
 
+    row.favoriteBtn = createRowCheckButton(
+        row,
+        0,
+        "bis_row_favorite",
+        "bis_row_favorite_hint",
+        "*",
+        function(targetRow)
+            local specID = targetRow._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
+            if ns.DB and ns.DB.SetBISOverlayItemFavorite then
+                ns.DB:SetBISOverlayItemFavorite(specID, targetRow.itemID, not isBISItemFavorite(specID, targetRow.itemID))
+            end
+        end
+    )
+    row.ownedBtn = createRowCheckButton(
+        row,
+        COL_FAVORITE,
+        "bis_row_owned",
+        "bis_row_owned_hint",
+        "X",
+        function(targetRow)
+            local specID = targetRow._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
+            if ns.DB and ns.DB.SetBISOverlayItemOwned then
+                ns.DB:SetBISOverlayItemOwned(specID, targetRow.itemID, not isBISItemOwned(specID, targetRow.itemID))
+            end
+        end
+    )
+
     row.tooltipRegion = CreateFrame("Button", nil, row)
     row.tooltipRegion:SetAllPoints(row)
+    row.tooltipRegion:SetFrameLevel(row:GetFrameLevel() + 1)
     row.tooltipRegion:EnableMouse(true)
     row.tooltipRegion:RegisterForClicks("LeftButtonUp")
     row.tooltipRegion:SetScript("OnClick", function(self2)
@@ -3753,11 +3946,15 @@ local function resetRow(row)
     row.bg:SetColorTexture(0, 0, 0, 0)
     row.accent:SetColorTexture(0, 0, 0, 0)
     row.icon:Hide()
+    row.nameStrike:Hide()
     row.slotLabel:Hide()
     row.noteLabel:Hide()
     row.typeLabel:Hide()
+    row.favoriteBtn:Hide()
+    row.ownedBtn:Hide()
     row.itemID = nil
     row._entry = nil
+    row._specID = nil
     row._sectionDungeon = nil
     row._displayNoteKind = nil
     row._displayNoteIndex = nil
@@ -3850,7 +4047,7 @@ function BISOverlay:RebuildContent()
         row:Show()
         yOffset = yOffset + ROW_H + 4
     else
-        local slots, order = groupBySlot(filteredData)
+        local slots, order = groupBySlot(filteredData, specID)
         local itemRowCount = 0
 
         for _, slotName in ipairs(order) do
@@ -3884,6 +4081,7 @@ function BISOverlay:RebuildContent()
                 iRow:SetHeight(ROW_H)
                 iRow.itemID = entry.itemID
                 iRow._entry = entry
+                iRow._specID = specID
                 iRow._displayNoteKind = entry._displayNoteKind
                 iRow._displayNoteIndex = entry._displayNoteIndex
 
@@ -3896,12 +4094,17 @@ function BISOverlay:RebuildContent()
 
                 -- 아이템 이름/아이콘은 부분 갱신 가능하도록 별도 처리
                 refreshItemRowDisplay(iRow)
+                iRow.favoriteBtn:Show()
+                iRow.ownedBtn:Show()
 
                 -- 출처 라벨
                 local sourceLabel = getDisplaySourceLabel(entry)
+                if slotName == FAVORITES_SLOT and sourceLabel and sourceLabel ~= "" then
+                    sourceLabel = localizeSlot(entry.slot) .. " · " .. sourceLabel
+                end
                 if sourceLabel and sourceLabel ~= "" then
                     iRow.slotLabel:ClearAllPoints()
-                    iRow.slotLabel:SetPoint("LEFT", iRow, "LEFT", COL_ICON + COL_NAME, 0)
+                    iRow.slotLabel:SetPoint("LEFT", iRow, "LEFT", COL_CONTROLS + COL_ICON + COL_NAME, 0)
                     iRow.slotLabel:SetWidth(COL_SLOT)
                     iRow.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
                     iRow.slotLabel:SetTextColor(0.72, 0.72, 0.72, 1)
@@ -3912,7 +4115,7 @@ function BISOverlay:RebuildContent()
                 local sourceType = getEntrySourceType(entry)
                 local sr, sg, sb = getSourceTypeColor(sourceType)
                 iRow.typeLabel:ClearAllPoints()
-                iRow.typeLabel:SetPoint("LEFT", iRow, "LEFT", COL_ICON + COL_NAME + COL_SLOT, 0)
+                iRow.typeLabel:SetPoint("LEFT", iRow, "LEFT", COL_CONTROLS + COL_ICON + COL_NAME + COL_SLOT, 0)
                 iRow.typeLabel:SetWidth(COL_TYPE)
                 iRow.typeLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
                 iRow.typeLabel:SetTextColor(sr, sg, sb, 1)
@@ -3924,7 +4127,7 @@ function BISOverlay:RebuildContent()
                 if noteTxt and noteTxt ~= "" then
                     iRow.noteLabel:ClearAllPoints()
                     iRow.noteLabel:SetPoint("LEFT", iRow, "LEFT",
-                        COL_ICON + COL_NAME + COL_SLOT + COL_TYPE, 0)
+                        COL_CONTROLS + COL_ICON + COL_NAME + COL_SLOT + COL_TYPE, 0)
                     iRow.noteLabel:SetWidth(COL_NOTE)
                     iRow.noteLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
                     iRow.noteLabel:SetTextColor(1, 1, 1, 1)

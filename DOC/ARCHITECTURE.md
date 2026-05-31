@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.8.0 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.9.0 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -112,9 +112,12 @@
   - 필터는 `mythicplus / raid / crafted / tier` 4개 기본 on
   - 필터 적용 후 살아남은 후보를 기준으로 visible rank를 다시 계산
   - 첫 2개는 `1순위 / 2순위`, 이후는 `3순위+` 배지로 표기
+  - 아이콘 앞 즐겨찾기/보유 체크박스는 캐릭터별·전문화별 상태를 저장
+  - 즐겨찾기 항목은 `무기` 위 최상단 섹션으로 이동하고, 보유 아이템명은 취소선 표시
   - `아이템명 / 드랍 출처 / 트랙·검증 상태 / 우선순위` 중심 열 구성
   - 헤더에 현재 전문화 스탯 정책과 정적 최종 BiS 미확정 상태를 표시
   - M+ 항목은 `rewardProfiles`로 던전 종료 Hero 3/6 266 / 위대한 금고·Voidcore Myth 1/6 272 대표 후보 트랙과 템렙을 표시
+  - M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 246 기준을 사용
   - `mythicplus`, `raid`만 가능한 경우 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
   - 행 hover는 검증된 런타임/EJ preview hyperlink가 있을 때 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트를 전용 tooltip에 수동 렌더링하고, 없으면 Base ItemID와 경고/검증 메타만 표시
@@ -146,6 +149,7 @@
 - `Data/ItemLevelTable.lua`
   - 컨텐츠별 드랍 아이템 레벨 테이블
   - `ns.Data.BISRewardProfiles`로 BIS row가 참조할 대표 보상 트랙 정의
+  - M+ hover preview용 신화 던전(M0) Champion 1/6 246 기준 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 카탈로그
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
@@ -241,6 +245,7 @@
 - 캐릭터 기본 정보
 - 템플릿 작성 시 원본 캐릭터 메타데이터
 - 사용자가 켠 전투메시지 표출 방식 상태
+- 전문화별 BIS 즐겨찾기/보유 아이템 상태
 
 ## BIS 카탈로그 흐름
 
@@ -257,12 +262,14 @@
 - locale 선택은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 우선 사용하고, legacy `boss/source` 값은 런타임 alias 정규화로 마지막 누수를 막는다
 - `GET_ITEM_INFO_RECEIVED`는 icon/quality/item hyperlink 보정이 필요한 visible row만 patch
 - BIS hover tooltip은 전역 `GameTooltip:SetHyperlink()`를 호출하지 않고, tooltipData line을 수동 렌더링한다
+- M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 246 기준을 사용한다
 - M+/tier row는 정적 최종 BiS가 아니며 실제 `itemLink`/bonusID와 심크/QE/로그 검증이 필요하다는 메타를 함께 표시한다
 - money/currency/sell-price line은 렌더링하지 않는다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 
 ## 회귀 포인트
 
 - BIS 필터 on/off 후 visible rank가 기대대로 다시 계산되는지
+- 즐겨찾기/보유 체크가 캐릭터별·전문화별로 분리 저장되고, 즐겨찾기 섹션/보유 취소선이 즉시 갱신되는지
 - `레이드 off + 쐐기만 on`에서 쐐기 드랍템과 인던명이 남는지
 - M+ BIS row에 던전 종료 Hero / 위대한 금고 Myth 후보 트랙과 템렙 안내가 표시되는지
 - tooltip에 정적 최종 BiS 아님, 런타임 링크 필요, itemID만으로 Myth 트랙 미확정 문구가 표시되는지
