@@ -69,6 +69,11 @@ ns.Data.Defaults = {
                 enabled = false,
                 locked  = false,
                 itemTooltip = false,
+                mythPreviewCache = {
+                    schemaVersion = 1,
+                    baselineItemLevel = 272,
+                    itemsByID = {},
+                },
                 sources = {
                     mythicplus = true,
                     raid = true,

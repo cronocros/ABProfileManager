@@ -99,12 +99,12 @@
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 Myth/Hero 트랙이나 최종 BiS를 확정하지 않는다
 - `Data/MidnightS1MPlusDB.lua`는 저장소에 고정된 v1.7 컴팩트 코어이며 네트워크나 동적 코드 로드를 하지 않는다
 - `Data/BISRuntimeScoring.lua`는 실제 full link를 `C_Item.GetItemStats()`와 `GetDetailedItemLevelInfo()` 기반 점수 함수에 전달한다
-- 실제 장비/가방 링크를 우선하고, 상단 아이템 토글이 켜져 있으면 링크가 없는 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다
-- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 자동 점수화한다
+- 상단 아이템 토글이 켜져 있으면 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색하고, 검증 결과를 계정 SavedVariables snapshot으로 저장한다
+- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 자동 점수화한다
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
 - `itemID`만으로 `itemLink`, `itemString`, bonusID를 조립하는 경로는 금지한다
-- 점수 캐시, 아이템 요청 dedupe, 분산 큐를 사용해 자동 검색 중 rebuild 스로틀 부담을 제한한다
-- 장비/가방 링크는 overlay rebuild마다 한 번만 인덱싱한다
+- 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐를 사용해 자동 검색 중 rebuild 부담을 제한한다
+- 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용 링크를 한 번만 찾는다
 - M+ reward profile은 Hero 던전 종료 / Myth 금고 후보 템렙만 저장하고 정적 `itemLink`, `itemString`, bonusID를 만들지 않는다
 - `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도하고, `crafted`, `tier`는 랜딩 대상에서 제외한다
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다

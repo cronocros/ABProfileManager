@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.11.1 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.2 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -109,15 +109,16 @@
 - `UI/BISOverlay.lua`
   - 현재 캐릭터 클래스의 전 특성 탭과 부위별 추천 장비 카탈로그 렌더
   - 정적 `Data/BISCatalog.lua`를 읽어 slot별 후보를 구성
-  - 실제 장비/가방 `itemLink`가 있는 후보는 `Data/BISRuntimeScoring.lua` 어댑터로 v1.7 점수를 계산해 같은 slot 정렬에 최우선 적용
-  - 실제 링크가 없는 후보는 정적 `overallRank` 순서를 유지
-  - 장비/가방 링크 인덱스는 rebuild당 한 번만 생성
-  - 상단 아이템 토글이 켜져 있으면 링크가 없는 M+ 후보의 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색
-  - 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 자동 점수화
+  - 상단 아이템 토글이 켜져 있으면 M+ 후보의 검증 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색
+  - full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 tooltip line, 색상, 실제 스탯 / 실제 ilvl을 계정 SavedVariables 스냅샷으로 저장
+  - 저장 스냅샷은 `Data/BISRuntimeScoring.lua` 어댑터로 점수화하고 같은 slot 정렬에 적용
+  - 저장 스냅샷이 없는 후보는 정적 `overallRank` 순서를 유지
+  - 장비/가방 링크는 정렬 또는 hover에서 스캔하지 않고, 보유 체크 on 시 저장용 링크를 한 번만 검색
   - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지
   - `itemID`만으로 `itemLink`/bonusID를 조립하지 않음
   - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않음
-  - 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 스로틀 부담을 완화
+  - 스크롤 중 행 hover tooltip 생성을 잠시 억제하고, 가방/장비 변경 이벤트 전체 rebuild를 제거
+  - 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 부담을 완화
   - 필터는 `mythicplus / raid / crafted / tier` 4개 기본 on
   - 필터 적용 후 살아남은 후보를 기준으로 visible rank를 다시 계산
   - 첫 2개는 `1순위 / 2순위`, 이후는 `3순위+` 배지로 표기
@@ -129,7 +130,7 @@
   - M+ 자동 검색 큐는 `Data/BISMythicVaultLinks.lua`에서 full link를 찾고, 링크 자체가 위대한 금고 Myth 1/6 272로 검증된 경우에만 실제 스탯 / 실제 ilvl로 점수화
   - `mythicplus`, `raid`만 가능한 경우 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
-  - 행 hover는 검증된 런타임/EJ preview hyperlink가 있을 때 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트와 Blizzard line color, 품질 색을 전용 tooltip에 수동 렌더링하고, 없으면 Base ItemID와 경고/검증 메타만 표시
+  - M+ 행 hover는 저장된 272 스냅샷의 tooltip 텍스트와 Blizzard line color, 품질 색을 전용 tooltip에 수동 렌더링하고, 없으면 미검증 안내만 표시
   - `GET_ITEM_INFO_RECEIVED`는 전체 rebuild 대신 visible row patch만 수행
   - 헤더 마우스 휠로 0.5~2.0배 스케일 조절
   - 위치 / 스케일 / 접기 상태를 저장하고 재오픈 시 복원
@@ -161,7 +162,7 @@
   - M+ row 라벨과 자동 검색 full link 검증용 위대한 금고 Myth 1/6 272 대표 프로필 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
-  - v1.11.1 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - v1.11.2 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
   - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
@@ -170,9 +171,10 @@
   - 실제 `itemLink`에서 아이템 레벨과 스탯을 읽어 전문화별 점수를 계산
 - `Data/BISRuntimeScoring.lua`
   - ABPM specID, slot, sourceGroup을 v1.7 코어 키로 변환하는 네임스페이스 어댑터
-  - 실제 장비/가방 링크와 검증된 Myth full link 점수를 캐시
+  - 검증된 Myth snapshot과 필요 시 실제 itemLink 점수를 캐시
 - `Data/BISMythicVaultLinks.lua`
-  - 검증된 위대한 금고 Myth 1/6 272 full link만 itemID별로 보관하는 수동 갱신 DB
+  - 검증된 위대한 금고 Myth 1/6 272 full link와 선택적 사전 스캔 snapshot을 itemID별로 보관하는 수동 갱신 DB
+  - 등록 full link는 클라이언트에서 한 번 스캔한 뒤 계정 SavedVariables snapshot으로 재사용
   - 런타임이 실제 item level을 다시 검증하므로 bare itemID나 추측 bonusID를 넣지 않음
 - `Data/BISData_Method.lua`
   - Wowhead `current Overall BiS` seed 입력
@@ -290,7 +292,7 @@
 2. `scripts/rebuild_bis_database.ps1`
 3. 내부에서 `scripts/build_bis_catalog.py --addon-db` → `scripts/build_bis_runtime_scoring.py` → `scripts/validate_bis_mythic_vault_links.py` → `scripts/validate_bis_catalog.py` → `scripts/audit_bis_data.py` 순서로 실행
 4. 생성 결과 `Data/BISCatalog.lua`, `Data/MidnightS1MPlusDB.lua`, `Data/BISRuntimeScoring.lua`를 패키지에 포함
-5. 게임 런타임에서는 `UI/BISOverlay.lua`가 정적 후보, 실제 장비/가방 링크, 필요 시 `Data/BISMythicVaultLinks.lua`의 검증 full link 점수를 함께 사용
+5. 게임 런타임에서는 `UI/BISOverlay.lua`가 정적 후보와 `Data/BISMythicVaultLinks.lua`의 검증 full link에서 저장한 SavedVariables snapshot 점수를 함께 사용
 
 seed 경계:
 
@@ -307,14 +309,14 @@ seed 경계:
 - `GET_ITEM_INFO_RECEIVED`는 icon/quality/item hyperlink 보정이 필요한 visible row만 patch
 - BIS hover tooltip은 전역 `GameTooltip:SetHyperlink()`를 호출하지 않고, tooltipData line과 Blizzard line color, 품질 색을 수동 렌더링한다
 - 상단 아이템 토글이 켜져 있으면 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다
-- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 점수화한다
+- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 tooltip/stat snapshot을 SavedVariables에 저장하고 실제 스탯 / 실제 ilvl로 점수화한다
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
 - M+ 자동 검색은 `itemID`만으로 `itemLink`/bonusID를 조립하지 않는다
 - M+/tier row는 정적 최종 BiS가 아니며 실제 `itemLink`/bonusID와 심크/QE/로그 검증이 필요하다는 메타를 함께 표시한다
-- 실제 장비/가방 `itemLink`가 있는 후보는 검증 DB 링크보다 우선하고, 자동 검색 결과도 없는 후보는 정적 순서를 유지한다
-- 장비/가방 링크 스캔은 rebuild마다 한 번만 수행한다
+- 검증 snapshot이 없는 후보는 정적 순서를 유지한다
+- 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
-- 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 스로틀 부담을 완화한다
+- 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 부담을 완화한다
 - money/currency/sell-price line은 렌더링하지 않는다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 
 ## 회귀 포인트
@@ -326,7 +328,7 @@ seed 경계:
 - 상단 아이템 토글 on/off에 따라 M+ full link 자동 검색이 활성화/비활성화되는지
 - `Myth 1/6 272`로 검증된 full link만 실제 스탯 / 실제 ilvl 자동 점수화를 받는지
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지
-- 실제 장비/가방 링크가 검증 DB 링크보다 우선하는지
+- 검증된 272 snapshot이 재접속 뒤에도 재사용되는지
 - BIS hover/자동 큐 뒤 Encounter Journal hover에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지
 - 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지
 - tooltip에 정적 최종 BiS 아님, 런타임 링크 필요, itemID만으로 Myth 트랙 미확정 문구가 표시되는지

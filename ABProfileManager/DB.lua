@@ -1028,12 +1028,49 @@ function DB:SetBISOverlayItemTooltipEnabled(enabled)
     return self:IsBISOverlayItemTooltipEnabled()
 end
 
+function DB:GetBISOverlayMythPreviewCache()
+    local settings = self:GetBISOverlaySettings()
+    local cache = settings.mythPreviewCache
+    if type(cache) ~= "table"
+        or tonumber(cache.schemaVersion) ~= 1
+        or tonumber(cache.baselineItemLevel) ~= 272 then
+        cache = {
+            schemaVersion = 1,
+            baselineItemLevel = 272,
+            itemsByID = {},
+        }
+        settings.mythPreviewCache = cache
+    end
+    if type(cache.itemsByID) ~= "table" then
+        cache.itemsByID = {}
+    end
+    return cache
+end
+
 local function normalizeBISOverlayItemKey(itemID)
     local numeric = tonumber(itemID)
     if not numeric or numeric <= 0 then
         return nil
     end
     return tostring(math.floor(numeric))
+end
+
+function DB:GetBISOverlayMythPreviewSnapshot(itemID)
+    local itemKey = normalizeBISOverlayItemKey(itemID)
+    local cache = self:GetBISOverlayMythPreviewCache()
+    return itemKey and cache.itemsByID[itemKey] or nil
+end
+
+function DB:SetBISOverlayMythPreviewSnapshot(itemID, snapshot)
+    local itemKey = normalizeBISOverlayItemKey(itemID)
+    if not itemKey or type(snapshot) ~= "table" then
+        return false
+    end
+    local cache = self:GetBISOverlayMythPreviewCache()
+    cache.itemsByID[itemKey] = ns.Utils and ns.Utils.DeepCopy
+        and ns.Utils.DeepCopy(snapshot)
+        or snapshot
+    return true
 end
 
 local function normalizeBISOverlaySpecKey(specID)

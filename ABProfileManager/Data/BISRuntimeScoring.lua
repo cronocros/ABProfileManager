@@ -66,16 +66,8 @@ local function buildCacheKey(specID, slotName, itemLink, sourceGroup, options)
     }, "\031")
 end
 
-function Scoring:ScoreItemLink(specID, slotName, itemLink, sourceGroup, options)
-    local core = _G.MidnightS1MPlusDB
+local function getRuntimeContext(specID, slotName, sourceGroup, options)
     local specKey = SPEC_KEY_BY_ID[tonumber(specID)]
-    if not core or not specKey or type(itemLink) ~= "string" or itemLink == "" then
-        return nil
-    end
-    if type(core.BuildRuntimeItemRecord) ~= "function" or type(core.ScoreItemRecord) ~= "function" then
-        return nil
-    end
-
     local slotKey = SLOT_KEY_BY_NAME[slotName] or tostring(slotName or "UNKNOWN")
     local sourceKey = SOURCE_KEY_BY_GROUP[sourceGroup] or "UNKNOWN"
     local runtimeOptions = {
@@ -83,20 +75,38 @@ function Scoring:ScoreItemLink(specID, slotName, itemLink, sourceGroup, options)
         tierSetPiece = sourceGroup == "tier",
     }
     if type(options) == "table" then
-        if options.sourceKey ~= nil then
-            sourceKey = options.sourceKey
+        for _, key in ipairs({ "actualItemLevel", "baseItemId", "keyLevel", "rawStats", "sourceKey", "tierSetPiece" }) do
+            if options[key] ~= nil then
+                runtimeOptions[key] = options[key]
+            end
         end
-        if options.actualItemLevel ~= nil then
-            runtimeOptions.actualItemLevel = options.actualItemLevel
-        end
-        if options.keyLevel ~= nil then
-            runtimeOptions.keyLevel = options.keyLevel
-        end
-        if options.tierSetPiece ~= nil then
-            runtimeOptions.tierSetPiece = options.tierSetPiece
-        end
+        sourceKey = runtimeOptions.sourceKey or sourceKey
     end
     runtimeOptions.sourceKey = sourceKey
+    return specKey, slotKey, runtimeOptions
+end
+
+local function buildRawStatsKey(rawStats)
+    local parts = {}
+    for key, value in pairs(type(rawStats) == "table" and rawStats or {}) do
+        local numeric = tonumber(value)
+        if numeric then
+            parts[#parts + 1] = tostring(key) .. "=" .. tostring(numeric)
+        end
+    end
+    table.sort(parts)
+    return table.concat(parts, ",")
+end
+
+function Scoring:ScoreItemLink(specID, slotName, itemLink, sourceGroup, options)
+    local core = _G.MidnightS1MPlusDB
+    local specKey, slotKey, runtimeOptions = getRuntimeContext(specID, slotName, sourceGroup, options)
+    if not core or not specKey or type(itemLink) ~= "string" or itemLink == "" then
+        return nil
+    end
+    if type(core.BuildRuntimeItemRecord) ~= "function" or type(core.ScoreItemRecord) ~= "function" then
+        return nil
+    end
 
     local cacheKey = buildCacheKey(specID, slotName, itemLink, sourceGroup, runtimeOptions)
     local cached = SCORE_CACHE[cacheKey]
@@ -113,6 +123,62 @@ function Scoring:ScoreItemLink(specID, slotName, itemLink, sourceGroup, options)
         return nil
     end
     if type(record.rawStats) ~= "table" or not next(record.rawStats) then
+        return nil
+    end
+    local scoreOK, score, evidence = pcall(core.ScoreItemRecord, record, specKey, slotKey)
+    if not scoreOK then
+        SCORE_CACHE[cacheKey] = false
+        return nil
+    end
+    local numericScore = tonumber(score)
+    SCORE_CACHE[cacheKey] = {
+        score = numericScore,
+        evidence = evidence,
+    }
+    return numericScore, evidence
+end
+
+function Scoring:ScoreItemSnapshot(specID, slotName, snapshot, sourceGroup, options)
+    local core = _G.MidnightS1MPlusDB
+    local itemID = type(snapshot) == "table" and tonumber(snapshot.itemID) or nil
+    local rawStats = type(snapshot) == "table" and snapshot.rawStats or nil
+    local actualItemLevel = type(snapshot) == "table" and tonumber(snapshot.itemLevel) or nil
+    local specKey, slotKey, runtimeOptions = getRuntimeContext(specID, slotName, sourceGroup, options)
+    if not core or not specKey or not itemID or not actualItemLevel or type(rawStats) ~= "table" or not next(rawStats) then
+        return nil
+    end
+    if type(core.BuildRuntimeItemRecord) ~= "function" or type(core.ScoreItemRecord) ~= "function" then
+        return nil
+    end
+
+    runtimeOptions.actualItemLevel = actualItemLevel
+    runtimeOptions.baseItemId = itemID
+    runtimeOptions.rawStats = rawStats
+    local snapshotKey = table.concat({
+        "snapshot",
+        tostring(itemID),
+        tostring(actualItemLevel),
+        buildRawStatsKey(rawStats),
+    }, ":")
+    local cacheKey = buildCacheKey(specID, slotName, snapshotKey, sourceGroup, runtimeOptions)
+    local cached = SCORE_CACHE[cacheKey]
+    if cached ~= nil then
+        if cached == false then
+            return nil
+        end
+        return cached.score, cached.evidence
+    end
+
+    local ok, record = pcall(
+        core.BuildRuntimeItemRecord,
+        "item:" .. tostring(itemID),
+        specKey,
+        runtimeOptions.sourceKey,
+        runtimeOptions,
+        slotKey
+    )
+    if not ok or type(record) ~= "table" or type(record.rawStats) ~= "table" or not next(record.rawStats) then
+        SCORE_CACHE[cacheKey] = false
         return nil
     end
     local scoreOK, score, evidence = pcall(core.ScoreItemRecord, record, specKey, slotKey)

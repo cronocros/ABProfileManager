@@ -59,6 +59,7 @@ local FILTER_BTN_W = 44
 local FILTER_BTN_H = 18
 local TITLE_TOGGLE_W = 56
 local TITLE_TOGGLE_H = 18
+local SCROLL_TOOLTIP_SUPPRESS_SECONDS = 0.20
 
 local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted", "tier" }
 -- table.sort 보조 — sourceGroup → 정렬 우선순위 (낮을수록 먼저)
@@ -138,6 +139,20 @@ local function hideBISTooltip()
     end
 end
 
+local function markScrollActivity()
+    local now = type(GetTime) == "function" and GetTime() or 0
+    BISOverlay._tooltipSuppressedUntil = now + SCROLL_TOOLTIP_SUPPRESS_SECONDS
+    hideBISTooltip()
+    if ns.UI and ns.UI.Widgets and ns.UI.Widgets.HideTooltip then
+        ns.UI.Widgets.HideTooltip()
+    end
+end
+
+local function isScrollTooltipSuppressed()
+    local now = type(GetTime) == "function" and GetTime() or 0
+    return now < (BISOverlay._tooltipSuppressedUntil or 0)
+end
+
 local function safeTooltipString(value)
     if value == nil then
         return nil
@@ -211,6 +226,17 @@ local function isTooltipMoneyLine(line)
     return leftText == "Sell Price" or leftText == "판매 가격" or (sellPriceLabel and leftText == sellPriceLabel) or false
 end
 
+local function safePlainNumber(value)
+    local ok, numeric = pcall(tonumber, value)
+    if not ok or numeric == nil then
+        return nil
+    end
+    local arithmeticOK, plain = pcall(function()
+        return numeric + 0
+    end)
+    return arithmeticOK and plain or nil
+end
+
 local function getTooltipLineColor(line, key, fallbackR, fallbackG, fallbackB)
     local color = getTooltipDataField(line, key)
     if type(color) ~= "table" then
@@ -262,6 +288,54 @@ local function renderTooltipDataWithoutMoney(tooltip, tooltipData, itemQuality)
         end
     end
 
+    return rendered > 0 and tooltip:NumLines() > 0
+end
+
+local function renderTooltipSnapshot(tooltip, snapshot, itemQuality)
+    local lines = type(snapshot) == "table" and snapshot.lines or nil
+    if not tooltip or type(lines) ~= "table" then
+        return false
+    end
+
+    tooltip:ClearLines()
+    local qc = getQualityColor(itemQuality)
+    local rendered = 0
+    for _, line in ipairs(lines) do
+        if type(line) == "table" then
+            local leftText = safeTooltipString(line.leftText)
+            local rightText = safeTooltipString(line.rightText)
+            if leftText or rightText then
+                rendered = rendered + 1
+                local fallback = rendered == 1 and qc or { 0.90, 0.90, 0.90 }
+                local left = type(line.leftColor) == "table" and line.leftColor or fallback
+                local right = type(line.rightColor) == "table" and line.rightColor or { 0.90, 0.90, 0.90 }
+                if rightText and tooltip.AddDoubleLine then
+                    pcall(
+                        tooltip.AddDoubleLine,
+                        tooltip,
+                        leftText or " ",
+                        rightText,
+                        safePlainNumber(left[1]) or fallback[1],
+                        safePlainNumber(left[2]) or fallback[2],
+                        safePlainNumber(left[3]) or fallback[3],
+                        safePlainNumber(right[1]) or 0.90,
+                        safePlainNumber(right[2]) or 0.90,
+                        safePlainNumber(right[3]) or 0.90
+                    )
+                else
+                    pcall(
+                        tooltip.AddLine,
+                        tooltip,
+                        leftText or rightText or " ",
+                        safePlainNumber(left[1]) or fallback[1],
+                        safePlainNumber(left[2]) or fallback[2],
+                        safePlainNumber(left[3]) or fallback[3],
+                        true
+                    )
+                end
+            end
+        end
+    end
     return rendered > 0 and tooltip:NumLines() > 0
 end
 
@@ -347,7 +421,6 @@ local PENDING_ITEM_DATA = {}
 local PENDING_ROW_REFRESH_ITEM_IDS = {}
 local normalizeCompareText
 local getEntrySourceType
-local getSeasonalMythicPlusRange
 local getSeasonalRaidRange
 local requestItemData
 local hasRaidMetaLabel
@@ -1312,62 +1385,6 @@ local function formatSpecSelection(spec)
     return classLabel .. "/" .. specLabel
 end
 
-local function formatTrackLabel(grade, rank, rankMax)
-    if not grade then return "" end
-    local label = ns.L("ilvl_crest_" .. grade) or ns.L("ilvl_grade_" .. grade) or grade
-    if rank and rankMax then
-        return string.format("%s %d/%d", label, rank, rankMax)
-    end
-    return label
-end
-
-local function trackSummary(grades)
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    local gradeMax = tbl and tbl.gradeMax
-    if not gradeMax then return "" end
-
-    local parts = {}
-    for _, grade in ipairs(grades or {}) do
-        local maxIlvl = gradeMax[grade]
-        if maxIlvl then
-            local label = ns.L("ilvl_crest_" .. grade) or ns.L("ilvl_grade_" .. grade) or grade
-            parts[#parts + 1] = label .. " ~" .. tostring(maxIlvl)
-        end
-    end
-    return table.concat(parts, ", ")
-end
-
-local function getSeasonalMythicPlusSummary(kind)
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-    if not entries or #entries == 0 then return "" end
-
-    local first = entries[1]
-    local last = entries[#entries]
-    if kind == "run" then
-        return string.format("%d~%d (%s -> %s)",
-            first.ilvl or 0,
-            last.ilvl or 0,
-            formatTrackLabel(first.grade, first.rank, first.rankMax),
-            formatTrackLabel(last.grade, last.rank, last.rankMax)
-        )
-    end
-
-    return string.format("%d~%d (%s -> %s)",
-        first.vault or 0,
-        last.vault or 0,
-        formatTrackLabel(first.vaultGrade, first.vaultRank, first.vaultMax),
-        formatTrackLabel(last.vaultGrade, last.vaultRank, last.vaultMax)
-    )
-end
-
-getSeasonalMythicPlusRange = function()
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-    if not entries or #entries == 0 then return nil, nil end
-    return entries[1].ilvl, entries[#entries].ilvl
-end
-
 getSeasonalRaidRange = function()
     local tbl = ns.Data and ns.Data.ItemLevelTable
     local raid = tbl and tbl.raid
@@ -1377,71 +1394,18 @@ getSeasonalRaidRange = function()
     return raid.normal.min, raid.mythic.max
 end
 
-local function getSeasonalRaidSummaryLines()
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    local raid = tbl and tbl.raid
-    if not raid then
-        return {}
-    end
-
-    local order = { "normal", "heroic", "mythic" }
-    local lines = {}
-    for _, key in ipairs(order) do
-        local entry = raid[key]
-        if entry then
-            lines[#lines + 1] = {
-                label = ns.L(entry.labelKey) or key,
-                text = string.format("%d~%d", entry.min or 0, entry.max or 0),
-            }
-        end
-    end
-    return lines
-end
-
-local function getSeasonalCraftedSummaryLines()
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    local crafted = tbl and tbl.crafted
-    if not crafted then
-        return {}
-    end
-
-    local lines = {}
-    if crafted.base and crafted.base.ilvl then
-        lines[#lines + 1] = {
-            label = ns.L(crafted.base.labelKey) or "Crafted",
-            text = tostring(crafted.base.ilvl),
-        }
-    end
-    if crafted.r5 and crafted.r5.ilvl then
-        lines[#lines + 1] = {
-            label = ns.L(crafted.r5.labelKey) or "Crafted (Max)",
-            text = tostring(crafted.r5.ilvl),
-        }
-    end
-    return lines
-end
-
 local function slotSortValue(slotName)
     return SLOT_SORT_ORDER[slotName] or 999
 end
 
-local getPlayerItemLinkIndex
-local getPreferredOwnedItemLink
+local findPlayerItemLink
+local getMythPreviewSnapshot
 local getAutomaticRuntimeScore
 local scheduleAutomaticRuntimeScores
 
-local function refreshEntryRuntimeScore(entry, specID, liveItemLinks)
+local function refreshEntryRuntimeScore(entry, specID)
     entry._runtimeScore = nil
-    if not getPreferredOwnedItemLink then
-        return
-    end
-    local itemLink = getPreferredOwnedItemLink(specID, entry.itemID, liveItemLinks)
-    local scoring = ns.Data and ns.Data.BISRuntimeScoring
-    if not scoring or type(scoring.ScoreItemLink) ~= "function" then
-        return
-    end
-    local score = itemLink and scoring:ScoreItemLink(specID, entry.slot, itemLink, getEntrySourceType(entry))
-        or (getAutomaticRuntimeScore and getAutomaticRuntimeScore(entry, specID))
+    local score = getAutomaticRuntimeScore and getAutomaticRuntimeScore(entry, specID)
     if score then
         entry._runtimeScore = score
     end
@@ -1529,11 +1493,10 @@ local function groupBySlot(items, specID)
     end)
 
     local slots, order, favorites = {}, {}, {}
-    local liveItemLinks = getPlayerItemLinkIndex and getPlayerItemLinkIndex() or nil
     for _, slotName in ipairs(slotOrder) do
         local entries = allSlots[slotName]
         for _, entry in ipairs(entries) do
-            refreshEntryRuntimeScore(entry, specID, liveItemLinks)
+            refreshEntryRuntimeScore(entry, specID)
         end
         table.sort(entries, compareSlotEntries)
         applyRuntimeScoreOrdering(entries)
@@ -2268,6 +2231,7 @@ function BISOverlay:EnsureFrame()
         -(PADDING + SB_W + SB_GAP), PADDING)
     frame.scrollFrame:EnableMouseWheel(true)
     frame.scrollFrame:SetScript("OnMouseWheel", function(sf, delta)
+        markScrollActivity()
         local cur = sf:GetVerticalScroll()
         local max = sf:GetVerticalScrollRange()
         sf:SetVerticalScroll(math.max(0, math.min(max, cur - delta * 24)))
@@ -2311,6 +2275,7 @@ function BISOverlay:EnsureFrame()
     local _dragging, _dragY, _dragScroll = false, 0, 0
     local function updateThumbDrag()
         if not _dragging then return end
+        markScrollActivity()
         local curY    = select(2, GetCursorPosition()) / UIParent:GetEffectiveScale()
         local dy      = _dragY - curY
         local trackH  = math.max(1, frame.scrollBarTrack:GetHeight())
@@ -2324,6 +2289,7 @@ function BISOverlay:EnsureFrame()
     frame.scrollBarThumb:EnableMouse(true)
     frame.scrollBarThumb:SetScript("OnMouseDown", function(_, button)
         if button ~= "LeftButton" then return end
+        markScrollActivity()
         _dragging  = true
         _dragY     = select(2, GetCursorPosition()) / UIParent:GetEffectiveScale()
         _dragScroll = frame.scrollFrame:GetVerticalScroll()
@@ -2337,13 +2303,7 @@ function BISOverlay:EnsureFrame()
     -- GET_ITEM_INFO_RECEIVED 이벤트
     local evFrame = CreateFrame("Frame")
     evFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
-    evFrame:RegisterEvent("BAG_UPDATE_DELAYED")
-    evFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
-    evFrame:SetScript("OnEvent", function(_, event, itemID, success)
-        if event ~= "GET_ITEM_INFO_RECEIVED" then
-            scheduleRebuild(nil, true)
-            return
-        end
+    evFrame:SetScript("OnEvent", function(_, _, itemID, success)
         local numericID = tonumber(itemID)
         local requested = numericID and PENDING_ITEM_DATA[numericID]
         if numericID then
@@ -2666,26 +2626,9 @@ local function isTimewalkingInstance()
     return difficulty == 24
 end
 
-local function getMythicZeroPreviewItemLevel()
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    local mythic0 = tbl and tbl.mythicPlus and tbl.mythicPlus.mythic0
-    return mythic0 and tonumber(mythic0.ilvl) or nil
-end
-
 local function isValidPreviewItemLevel(sourceType, itemLevel)
     if not itemLevel or itemLevel <= 0 then
         return false
-    end
-    if sourceType == "mythicplus" then
-        local tbl = ns.Data and ns.Data.ItemLevelTable
-        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-        for _, entry in ipairs(entries or {}) do
-            if entry.key == getSeasonPreviewKeyLevel() then
-                return itemLevel == tonumber(entry.ilvl) or itemLevel == tonumber(entry.vault)
-            end
-        end
-        local mythicZeroItemLevel = getMythicZeroPreviewItemLevel()
-        return mythicZeroItemLevel and itemLevel == mythicZeroItemLevel or false
     end
     -- 시간여행 던전에서는 아이템이 스케일다운된 ilvl로 표시되므로 범위 검증을 우회
     if isTimewalkingInstance() then
@@ -2705,23 +2648,6 @@ local function isValidPreviewItemLevel(sourceType, itemLevel)
         return minCraft and maxCraft and itemLevel >= minCraft and itemLevel <= maxCraft
     end
     return true
-end
-
-local function getValidPreviewTooltipLink(context, sourceType)
-    if type(context) ~= "table" then
-        return nil
-    end
-    for _, key in ipairs({ "previewLink", "itemLink", "link" }) do
-        local link = context[key]
-        if isItemHyperlink(link) then
-            local tooltipData = getTooltipDataForHyperlink(link)
-            local itemLevel = extractTooltipItemLevel(tooltipData)
-            if isValidPreviewItemLevel(sourceType, itemLevel) then
-                return link, itemLevel
-            end
-        end
-    end
-    return nil
 end
 
 local function isValidTooltipLinkForSource(link, sourceType)
@@ -2750,46 +2676,157 @@ local function isMatchingItemLink(link, itemID)
     return isItemHyperlink(link) and getItemIDFromLink(link) == tonumber(itemID)
 end
 
-getPlayerItemLinkIndex = function()
-    local linksByItemID, levelByItemID = {}, {}
-    local function rememberItemLink(link)
-        local itemID = getItemIDFromLink(link)
-        if not itemID then
-            return
+local function getMythPreviewBaselineItemLevel()
+    local curated = ns.Data and ns.Data.BISMythicVaultLinks
+    return tonumber(curated and curated.baselineItemLevel) or 272
+end
+
+local function isValidMythPreviewSnapshot(snapshot, itemID)
+    return type(snapshot) == "table"
+        and safePlainNumber(snapshot.itemID) == tonumber(itemID)
+        and safePlainNumber(snapshot.itemLevel) == getMythPreviewBaselineItemLevel()
+        and type(snapshot.lines) == "table"
+        and #snapshot.lines > 0
+end
+
+getMythPreviewSnapshot = function(itemID)
+    local snapshot = ns.DB and ns.DB.GetBISOverlayMythPreviewSnapshot
+        and ns.DB:GetBISOverlayMythPreviewSnapshot(itemID)
+        or nil
+    if isValidMythPreviewSnapshot(snapshot, itemID) then
+        return snapshot
+    end
+
+    local curated = ns.Data and ns.Data.BISMythicVaultLinks
+    snapshot = curated and curated.snapshotsByItemID and curated.snapshotsByItemID[tonumber(itemID)] or nil
+    if isValidMythPreviewSnapshot(snapshot, itemID) then
+        if ns.DB and ns.DB.SetBISOverlayMythPreviewSnapshot then
+            ns.DB:SetBISOverlayMythPreviewSnapshot(itemID, snapshot)
         end
-        local itemLevel
-        if type(GetDetailedItemLevelInfo) == "function" then
-            local ok, resolvedLevel = pcall(function()
-                return tonumber(GetDetailedItemLevelInfo(link))
-            end)
-            itemLevel = ok and resolvedLevel or nil
-        elseif C_Item and type(C_Item.GetDetailedItemLevelInfo) == "function" then
-            local ok, resolvedLevel = pcall(function()
-                return tonumber(C_Item.GetDetailedItemLevelInfo(link))
-            end)
-            itemLevel = ok and resolvedLevel or nil
+        return snapshot
+    end
+    return nil
+end
+
+local function sanitizeTooltipLine(line, rendered)
+    if type(line) ~= "table" or isTooltipMoneyLine(line) then
+        return nil
+    end
+    local leftText = safeTooltipString(getTooltipDataField(line, "leftText"))
+        or safeTooltipString(getTooltipDataField(line, "text"))
+    local rightText = safeTooltipString(getTooltipDataField(line, "rightText"))
+    if not leftText and not rightText then
+        return nil
+    end
+
+    local fallbackR, fallbackG, fallbackB = 0.90, 0.90, 0.90
+    if rendered == 0 then
+        fallbackR, fallbackG, fallbackB = 0.80, 0.35, 1.00
+    end
+    local leftR, leftG, leftB = getTooltipLineColor(line, "leftColor", fallbackR, fallbackG, fallbackB)
+    local rightR, rightG, rightB = getTooltipLineColor(line, "rightColor", 0.90, 0.90, 0.90)
+    return {
+        leftText = leftText,
+        rightText = rightText,
+        leftColor = {
+            safePlainNumber(leftR) or fallbackR,
+            safePlainNumber(leftG) or fallbackG,
+            safePlainNumber(leftB) or fallbackB,
+        },
+        rightColor = {
+            safePlainNumber(rightR) or 0.90,
+            safePlainNumber(rightG) or 0.90,
+            safePlainNumber(rightB) or 0.90,
+        },
+    }
+end
+
+local function buildMythPreviewSnapshot(entry, link)
+    local itemID = tonumber(entry and entry.itemID)
+    if not itemID or not isMatchingItemLink(link, itemID) then
+        return nil
+    end
+    local tooltipData = getTooltipDataForHyperlink(link)
+    local itemLevel = extractTooltipItemLevel(tooltipData)
+    if itemLevel ~= getMythPreviewBaselineItemLevel() then
+        return nil
+    end
+
+    local lines = {}
+    for _, line in ipairs(type(tooltipData.lines) == "table" and tooltipData.lines or {}) do
+        local sanitized = sanitizeTooltipLine(line, #lines)
+        if sanitized then
+            lines[#lines + 1] = sanitized
         end
-        local shouldReplace = not linksByItemID[itemID]
-        if not shouldReplace and itemLevel then
-            local ok, isHigher = pcall(function()
-                return itemLevel > (levelByItemID[itemID] or 0)
-            end)
-            shouldReplace = ok and isHigher or false
+    end
+    if #lines == 0 then
+        return nil
+    end
+
+    local rawStats = {}
+    if C_Item and type(C_Item.GetItemStats) == "function" then
+        local ok, stats = pcall(C_Item.GetItemStats, link)
+        if ok and type(stats) == "table" then
+            for key, value in pairs(stats) do
+                local numeric = safePlainNumber(value)
+                if type(key) == "string" and numeric then
+                    rawStats[key] = numeric
+                end
+            end
         end
-        if shouldReplace then
-            linksByItemID[itemID], levelByItemID[itemID] = link, itemLevel
-        end
+    end
+
+    local itemName, _, quality, _, _, _, _, _, _, icon = GetItemInfo(link)
+    return {
+        itemID = itemID,
+        itemLevel = itemLevel,
+        itemLink = safeTooltipString(link),
+        name = safeTooltipString(itemName),
+        quality = safePlainNumber(quality) or getEntryQuality(entry),
+        icon = safePlainNumber(icon) or safeTooltipString(icon),
+        lines = lines,
+        rawStats = rawStats,
+        scannedAt = type(time) == "function" and safePlainNumber(time()) or nil,
+    }
+end
+
+local AUTOMATIC_SCORE_CACHE = {}
+
+local function clearAutomaticScoreCache()
+    wipe(AUTOMATIC_SCORE_CACHE)
+end
+
+local function cacheMythPreviewSnapshot(entry, link)
+    local snapshot = buildMythPreviewSnapshot(entry, link)
+    if not snapshot or not ns.DB or not ns.DB.SetBISOverlayMythPreviewSnapshot then
+        return false
+    end
+    ns.DB:SetBISOverlayMythPreviewSnapshot(entry.itemID, snapshot)
+    clearAutomaticScoreCache()
+    return true
+end
+
+findPlayerItemLink = function(itemID)
+    itemID = tonumber(itemID)
+    if not itemID or itemID <= 0 then
+        return nil
+    end
+    local function findMatching(link)
+        return isMatchingItemLink(link, itemID) and link or nil
     end
     if GetInventoryItemLink then
         for slotID = 1, (INVSLOT_LAST_EQUIPPED or 19) do
-            rememberItemLink(GetInventoryItemLink("player", slotID))
+            local link = findMatching(GetInventoryItemLink("player", slotID))
+            if link then
+                return link
+            end
         end
     end
 
     local getNumSlots = C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
     local getItemLink = C_Container and C_Container.GetContainerItemLink or GetContainerItemLink
     if not getNumSlots or not getItemLink then
-        return linksByItemID
+        return nil
     end
 
     local lastBagID = NUM_BAG_SLOTS or 4
@@ -2803,34 +2840,17 @@ getPlayerItemLinkIndex = function()
             for slotID = 1, (numSlots or 0) do
                 local linkOK, link = pcall(getItemLink, bagID, slotID)
                 if linkOK then
-                    rememberItemLink(link)
+                    link = findMatching(link)
+                    if link then
+                        return link
+                    end
                 end
             end
         end
     end
-    return linksByItemID
+    return nil
 end
 
-local function getOwnedPlayerItemLink(itemID)
-    if not itemID or itemID <= 0 then
-        return nil
-    end
-    local liveItemLinks = getPlayerItemLinkIndex and getPlayerItemLinkIndex() or {}
-    return liveItemLinks[tonumber(itemID)]
-end
-
-getPreferredOwnedItemLink = function(specID, itemID, liveItemLinks)
-    local liveLink = liveItemLinks and liveItemLinks[tonumber(itemID)] or getOwnedPlayerItemLink(itemID)
-    if liveLink then
-        return liveLink
-    end
-    local savedLink = ns.DB and ns.DB.GetBISOverlayOwnedItemLink
-        and ns.DB:GetBISOverlayOwnedItemLink(specID, itemID)
-        or nil
-    return isMatchingItemLink(savedLink, itemID) and savedLink or nil
-end
-
-local AUTOMATIC_SCORE_CACHE = {}
 local AUTOMATIC_SCORE_DELAY = 0.03
 
 local function getAutomaticScoreCacheKey(entry, specID)
@@ -2845,8 +2865,22 @@ getAutomaticRuntimeScore = function(entry, specID)
     if not isOverlayItemTooltipEnabled() or getEntrySourceType(entry) ~= "mythicplus" then
         return nil
     end
-    local cached = AUTOMATIC_SCORE_CACHE[getAutomaticScoreCacheKey(entry, specID)]
-    return type(cached) == "number" and cached or nil
+    local cacheKey = getAutomaticScoreCacheKey(entry, specID)
+    local cached = AUTOMATIC_SCORE_CACHE[cacheKey]
+    if cached ~= nil then
+        return type(cached) == "number" and cached or nil
+    end
+    local snapshot = getMythPreviewSnapshot(entry.itemID)
+    local scoring = ns.Data and ns.Data.BISRuntimeScoring
+    if not snapshot or not scoring or type(scoring.ScoreItemSnapshot) ~= "function" then
+        return nil
+    end
+    local score = scoring:ScoreItemSnapshot(specID, entry.slot, snapshot, "mythicplus", {
+        sourceKey = "MPLUS_GREAT_VAULT",
+        keyLevel = getSeasonPreviewKeyLevel(),
+    })
+    AUTOMATIC_SCORE_CACHE[cacheKey] = score or false
+    return score
 end
 
 local function getConfiguredMythicVaultItemLinks(entry)
@@ -2887,36 +2921,19 @@ local function getExactMythicVaultItemLink(entry)
     return nil, pending
 end
 
-local function resolveAutomaticRuntimeScore(entry, specID)
-    local cacheKey = getAutomaticScoreCacheKey(entry, specID)
-    local cached = AUTOMATIC_SCORE_CACHE[cacheKey]
-    if cached ~= nil then
-        return type(cached) == "number" and cached or nil
+local function resolveMythPreviewSnapshot(entry)
+    if getMythPreviewSnapshot(entry.itemID) then
+        return false
     end
-
     local previewLink, pending = getExactMythicVaultItemLink(entry)
     if not previewLink then
-        if not pending then
-            AUTOMATIC_SCORE_CACHE[cacheKey] = false
-        end
         return nil
     end
-
-    local scoring = ns.Data and ns.Data.BISRuntimeScoring
-    if not scoring or type(scoring.ScoreItemLink) ~= "function" then
-        AUTOMATIC_SCORE_CACHE[cacheKey] = false
-        return nil
-    end
-    local score = scoring:ScoreItemLink(specID, entry.slot, previewLink, "mythicplus", {
-        sourceKey = "MPLUS_GREAT_VAULT",
-        keyLevel = getSeasonPreviewKeyLevel(),
-    })
-    if score then
-        AUTOMATIC_SCORE_CACHE[cacheKey] = score
-    else
+    local cached = cacheMythPreviewSnapshot(entry, previewLink)
+    if not cached and pending then
         BISOverlay._automaticScoreNeedsRetry = true
     end
-    return score
+    return cached
 end
 
 scheduleAutomaticRuntimeScores = function(items, specID)
@@ -2929,10 +2946,11 @@ scheduleAutomaticRuntimeScores = function(items, specID)
     local queue, seen = {}, {}
     for _, entry in ipairs(items or {}) do
         if getEntrySourceType(entry) == "mythicplus"
+        and not getMythPreviewSnapshot(entry.itemID)
         and #getConfiguredMythicVaultItemLinks(entry) > 0 then
-            local cacheKey = getAutomaticScoreCacheKey(entry, specID)
-            if AUTOMATIC_SCORE_CACHE[cacheKey] == nil and not seen[cacheKey] then
-                seen[cacheKey] = true
+            local itemID = tonumber(entry.itemID)
+            if itemID and not seen[itemID] then
+                seen[itemID] = true
                 queue[#queue + 1] = entry
             end
         end
@@ -2951,7 +2969,7 @@ scheduleAutomaticRuntimeScores = function(items, specID)
         end
 
         index = index + 1
-        if resolveAutomaticRuntimeScore(queue[index], specID) then
+        if resolveMythPreviewSnapshot(queue[index]) then
             changed = true
         end
         if index < #queue then
@@ -2967,7 +2985,7 @@ end
 local showSeasonItemTooltip
 
 showSeasonItemTooltip = function(owner, row)
-    if not row or not row.itemID or row.itemID <= 0 then return end
+    if isScrollTooltipSuppressed() or not row or not row.itemID or row.itemID <= 0 then return end
 
     local tooltip = getBISTooltip()
     if not tooltip then
@@ -3155,6 +3173,10 @@ showSeasonItemTooltip = function(owner, row)
         tooltip:ClearLines()
         tooltip:AddLine(displayName, qc[1], qc[2], qc[3], 1)
         fallbackSourceType = appendCompactSeasonTooltipMeta()
+        if isOverlayItemTooltipEnabled() and fallbackSourceType == "mythicplus" then
+            tooltip:AddLine(" ")
+            tooltip:AddLine(ns.L("bis_tooltip_myth_snapshot_unavailable"), 1.00, 0.72, 0.38, true)
+        end
         if fallbackSourceType == "mythicplus" or fallbackSourceType == "raid" then
             tooltip:AddLine(" ")
             tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
@@ -3168,6 +3190,10 @@ showSeasonItemTooltip = function(owner, row)
         end
         local tooltipData = getTooltipDataForHyperlink(link)
         return renderTooltipDataWithoutMoney(tooltip, tooltipData, getEntryQuality(entry))
+    end
+
+    local function tryRenderTooltipSnapshot(snapshot)
+        return renderTooltipSnapshot(tooltip, snapshot, getEntryQuality(entry))
     end
 
     local function tryShowTooltipItemID(itemID, sourceType)
@@ -3192,10 +3218,28 @@ showSeasonItemTooltip = function(owner, row)
 
     local sourceType = getEntrySourceType(entry)
     local specID = row._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
-    if isBISItemOwned(specID, row.itemID) then
-        local ownedItemLink = getPreferredOwnedItemLink(specID, row.itemID)
+    if isOverlayItemTooltipEnabled() and sourceType == "mythicplus" then
         tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
-        if ownedItemLink and tryRenderTooltipHyperlink(ownedItemLink) then
+        local snapshot = getMythPreviewSnapshot(row.itemID)
+        if snapshot and tryRenderTooltipSnapshot(snapshot) then
+            tooltip:AddLine(" ")
+            appendCompactSeasonTooltipMeta()
+            tooltip:AddLine(" ")
+            tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
+            ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12, { preserveColors = true })
+            tooltip:Show()
+            return
+        end
+        showSeasonFallbackTooltip()
+        return
+    end
+
+    if isBISItemOwned(specID, row.itemID) then
+        local ownedItemLink = ns.DB and ns.DB.GetBISOverlayOwnedItemLink
+            and ns.DB:GetBISOverlayOwnedItemLink(specID, row.itemID)
+            or nil
+        tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
+        if isMatchingItemLink(ownedItemLink, row.itemID) and tryRenderTooltipHyperlink(ownedItemLink) then
             ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12, { preserveColors = true })
             tooltip:Show()
             return
@@ -3209,14 +3253,7 @@ showSeasonItemTooltip = function(owner, row)
 
     tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
 
-    local shown = false
-    local previewLink = sourceType == "mythicplus" and getExactMythicVaultItemLink(entry) or nil
-    if previewLink then
-        shown = tryRenderTooltipHyperlink(previewLink)
-    end
-    if not shown then
-        shown = tryShowTooltipItemID(row.itemID, sourceType)
-    end
+    local shown = tryShowTooltipItemID(row.itemID, sourceType)
     if not shown then
         showSeasonFallbackTooltip()
         return
@@ -3282,6 +3319,9 @@ local function createRowCheckButton(row, xOffset, titleKey, hintKey, toggleHandl
         end
     end)
     button:SetScript("OnEnter", function(self2)
+        if isScrollTooltipSuppressed() then
+            return
+        end
         local tooltip = ns.UI.Widgets.GetTooltip()
         if not tooltip then
             return
@@ -3385,8 +3425,11 @@ local function ensureRow(frame, index)
             local specID = targetRow._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
             if ns.DB and ns.DB.SetBISOverlayItemOwned then
                 local owned = not isBISItemOwned(specID, targetRow.itemID)
-                local itemLink = owned and getOwnedPlayerItemLink(targetRow.itemID) or nil
+                local itemLink = owned and findPlayerItemLink(targetRow.itemID) or nil
                 ns.DB:SetBISOverlayItemOwned(specID, targetRow.itemID, owned, itemLink)
+                if owned and itemLink then
+                    cacheMythPreviewSnapshot(targetRow._entry, itemLink)
+                end
             end
         end
     )
@@ -3408,7 +3451,7 @@ local function ensureRow(frame, index)
         end
     end)
     row.tooltipRegion:SetScript("OnEnter", function(self2)
-        if row._entry then
+        if row._entry and not isScrollTooltipSuppressed() then
             showSeasonItemTooltip(self2, row)
         end
     end)

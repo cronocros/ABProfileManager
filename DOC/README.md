@@ -10,10 +10,10 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [releases/RELEASE_NOTES_v1.11.1.md](./releases/RELEASE_NOTES_v1.11.1.md)
-  - 최신 로컬 한글 릴리스 노트 (v1.11.1)
-- [releases/RELEASE_NOTES_v1.11.1_EN.md](./releases/RELEASE_NOTES_v1.11.1_EN.md)
-  - 최신 로컬 영문 릴리스 노트 (v1.11.1)
+- [releases/RELEASE_NOTES_v1.11.2.md](./releases/RELEASE_NOTES_v1.11.2.md)
+  - 최신 로컬 한글 릴리스 노트 (v1.11.2)
+- [releases/RELEASE_NOTES_v1.11.2_EN.md](./releases/RELEASE_NOTES_v1.11.2_EN.md)
+  - 최신 로컬 영문 릴리스 노트 (v1.11.2)
 - [releases/RELEASE_NOTES_v1.11.0.md](./releases/RELEASE_NOTES_v1.11.0.md)
   - 원격 GitHub 공개 최신 한글 릴리스 노트 (v1.11.0)
 - [releases/RELEASE_NOTES_v1.11.0_EN.md](./releases/RELEASE_NOTES_v1.11.0_EN.md)

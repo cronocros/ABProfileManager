@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.11.1 로컬 패치 기반`
+**현재 기준**: `v1.11.2 로컬 패치 기반`
 
 ## 검증 명령어
 
@@ -67,13 +67,13 @@ ABProfileManager/
 7. `SilvermoonMapOverlay.lua`, `StatsOverlay.lua`의 재사용 버퍼
 8. `UI/BISOverlay.lua`
    - 정적 후보는 `Data/BISCatalog.lua`만 읽고, 실제 링크 점수는 `Data/BISRuntimeScoring.lua`를 통해 계산한다
-   - 실제 장비/가방 링크를 우선하고, 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 검증 full link를 자동 점수화한다
-   - 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 그 링크의 실제 스탯 / 실제 ilvl로 점수화한다
+   - 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 검증 full link를 한 번 스캔해 SavedVariables snapshot으로 저장한다
+   - full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화한다
    - 던전 종료 `Hero 3/6 266` 링크만 있으면 `Myth 1/6 272` 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
    - `itemID`만으로 `itemLink`/bonusID를 조립하지 않는다
    - 수동 tooltip 렌더러는 Blizzard tooltip line color와 품질 색을 보존한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
-   - 점수 캐시, 아이템 요청 dedupe, 분산 큐로 rebuild 스로틀을 완화한다
+   - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 rebuild 스로틀을 완화한다
    - `GET_ITEM_INFO_RECEIVED`는 visible row만 갱신한다
    - crafted/tier는 Encounter Journal 랜딩 대상이 아니다
    - 드루이드 4특성 헤더 폭과 필터 겹침 여부를 같이 확인
@@ -99,7 +99,7 @@ ABProfileManager/
 - BIS 필터 / 열 폭 / 마지막 열 가림 여부
 - BIS 상단 아이템 토글 on/off, M+ full link 자동 검색, `Myth 1/6 272` 검증 링크만 자동 점수화되는지 확인
 - 던전 종료 `Hero 3/6 266` 링크만 있을 때 `Myth 1/6 272` 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인
-- BIS tooltip의 Blizzard line color / 품질 색 보존과 실제 장비/가방 링크 우선 확인
+- BIS tooltip의 Blizzard line color / 품질 색 보존과 272 snapshot 재사용 확인
 - M+ 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지 확인
 - `레이드 off + 쐐기만 on`에서 쐐기 행과 던전명이 유지되는지
 - 드랍템 레벨 오버레이 우측 패널 수치 확인
@@ -146,10 +146,10 @@ ABProfileManager/
 - `mythicplus / raid / crafted / tier` 4개 필터 모두 기본 on
 - 필터 후 visible list 기준으로 `1순위 / 2순위 / 3순위+`를 재번호화
 - 정적 후보 풀은 v1.3 입력을 유지하고, 전문화별 스탯 우선순위와 실제 `itemLink` 점수는 v1.7 컴팩트 코어를 사용한다
-- 실제 링크가 없는 후보는 기존 정적 순서를 유지한다
-- 장비/가방 링크 인덱스는 overlay rebuild당 한 번만 만든다
-- 상단 아이템 토글이 켜지면 실제 장비/가방 링크를 우선하고, 링크가 없는 M+ 후보는 `Data/BISMythicVaultLinks.lua`의 검증 full link를 찾는다
-- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 그 링크의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다
+- 검증 snapshot이 없는 후보는 기존 정적 순서를 유지한다
+- 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
+- 상단 아이템 토글이 켜지면 M+ 후보는 `Data/BISMythicVaultLinks.lua`의 검증 full link를 찾아 계정 SavedVariables snapshot으로 저장한다
+- full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다
 - M+ 자동 검색은 `itemID`만으로 `itemLink`/bonusID를 조립하지 않으며, hover/자동 큐에서 Encounter Journal UI 상태를 변경하지 않는다
 - `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit 순서로 실행한다
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있고, 점수 정책은 v1.7 파일에서 관리한다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위다

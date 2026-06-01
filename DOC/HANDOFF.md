@@ -1,8 +1,19 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.1 로컬 패치 기반`
+버전 기준: `v1.11.2 로컬 패치 기반`
 
-## 0-new. v1.11.1 로컬 패치 메모
+## 0-new. v1.11.2 로컬 패치 메모
+
+- BIS 목록 스크롤 중에는 행 hover tooltip 생성을 `0.20초` 억제한다. 휠과 custom thumb drag가 같은 경로를 사용한다.
+- 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 검증 full link를 한 번 스캔하고 계정 공통 `global.settings.bisOverlay.mythPreviewCache`에 tooltip/stat 스냅샷을 저장한다.
+- 저장 스냅샷은 tooltip line 색상, 실제 스탯, 실제 ilvl을 포함한다. 이후 hover와 자동 점수화는 SavedVariables 스냅샷만 사용한다.
+- 정확한 `Myth 1/6 272` full link가 없는 후보는 272 수치를 추측하지 않는다. 미검증 안내만 표시한다.
+- 슬롯 정렬과 hover 경로에서 장비/가방 링크 우선 처리를 제거했다. 보유 체크 on 시 저장용 링크를 한 번 찾고, 그 링크가 실제 272이면 스냅샷에도 저장한다.
+- `BAG_UPDATE_DELAYED`, `PLAYER_EQUIPMENT_CHANGED` 기반 BIS 전체 rebuild를 제거했다.
+- 과거 Encounter Journal preview 경로의 미사용 보조 함수와 rebuild 시 가방 링크 인덱스 생성 코드를 제거했다.
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.2.zip`이다. 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0`을 유지한다.
+
+## 0-prev. v1.11.1 로컬 패치 메모
 
 - BIS item tooltip 수동 렌더러는 Blizzard tooltip line color와 품질 색을 보존한다.
 - 상단 아이템 토글이 켜져 있으면 링크가 없는 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다.
@@ -145,7 +156,7 @@
 - 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다.
 - M+ 자동 검색은 `itemID`만으로 `itemLink`/bonusID를 조립하지 않는다.
 - M+/tier의 정적 최종 BiS 미확정 정책은 유지한다. 장황한 hover 경고는 다시 늘리지 않는다.
-- 실제 장비/가방 링크는 검증 DB 링크보다 우선한다. 정렬을 건드릴 때는 rebuild당 장비/가방 스캔 1회, 점수 캐시, 아이템 요청 dedupe, 분산 큐 규칙을 유지한다.
+- 장비/가방 링크는 정렬이나 hover에서 다시 스캔하지 않는다. 보유 체크 on 시 저장용 링크를 한 번 찾고, 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐 규칙을 유지한다.
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 다시 연결하지 않는다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - unresolved direct ID:
@@ -304,7 +315,7 @@
 - BIS 상단 아이템 토글 on/off에 따라 M+ full link 자동 검색이 활성화/비활성화되는지 확인
 - 자동 검색 DB full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화가 적용되는지 확인
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인
-- 실제 장비/가방 링크가 검증 DB 링크보다 우선하는지 확인
+- 검증된 272 snapshot이 재접속 뒤에도 재사용되는지 확인
 - 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지 확인
 - `레이드 off + 쐐기만 on`에서 쐐기 행이 유지되는지
 - `제작 + 티어만 on`에서 잘못된 랜딩이 없는지
