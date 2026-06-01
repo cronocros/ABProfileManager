@@ -10,10 +10,14 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
+- [releases/RELEASE_NOTES_v1.11.1.md](./releases/RELEASE_NOTES_v1.11.1.md)
+  - 최신 로컬 한글 릴리스 노트 (v1.11.1)
+- [releases/RELEASE_NOTES_v1.11.1_EN.md](./releases/RELEASE_NOTES_v1.11.1_EN.md)
+  - 최신 로컬 영문 릴리스 노트 (v1.11.1)
 - [releases/RELEASE_NOTES_v1.11.0.md](./releases/RELEASE_NOTES_v1.11.0.md)
-  - 최신 한글 릴리스 노트 (v1.11.0)
+  - 원격 GitHub 공개 최신 한글 릴리스 노트 (v1.11.0)
 - [releases/RELEASE_NOTES_v1.11.0_EN.md](./releases/RELEASE_NOTES_v1.11.0_EN.md)
-  - 최신 영문 릴리스 노트 (v1.11.0)
+  - 원격 GitHub 공개 최신 영문 릴리스 노트 (v1.11.0)
 - [releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md](./releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md)
   - v1.7.7 이후 누적 변경 한글 공지
 - [releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md](./releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
@@ -39,13 +43,17 @@
 - BIS 통합 카탈로그 생성 스크립트:
   - `../scripts/build_bis_catalog.py --addon-db`
   - `../scripts/build_bis_runtime_scoring.py`
+  - `../scripts/validate_bis_mythic_vault_links.py`
   - `../scripts/validate_bis_catalog.py`
+  - `../scripts/rebuild_bis_database.ps1`
 - BIS v1.3 오프라인 생성 입력:
   - `MidnightS1_MPlus_Addon_Master_v1.3.md`
   - `MidnightS1_MPlus_Addon_DB_v1.3.lua`
 - BIS v1.7 런타임 점수 입력:
   - `MidnightS1_MPlus_Addon_Master_v1.7.md`
   - `MidnightS1_MPlus_Addon_DB_v1.7.lua`
+
+`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 검증된 Myth 1/6 272 full link 추가/교체는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
 
 ## 보관 문서
 

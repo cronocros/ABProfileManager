@@ -6,6 +6,26 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.1 - 2026-06-02
+
+BIS tooltip 색 보존, 검증 링크 DB 자동 점수화, MoneyFrame taint 방어를 추가한 로컬 패치.
+
+주요 변경:
+- BIS item tooltip 수동 렌더러가 Blizzard tooltip line color와 품질 색을 보존하도록 보강
+- 상단 아이템 토글을 켜면 `Data/BISMythicVaultLinks.lua`의 검증 M+ full link를 자동 점수화
+- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 자동 점수화
+- 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지
+- `itemID`만으로 `itemLink`/bonusID 조립 금지
+- 실제 장비/가방 링크를 자동 검색 링크보다 우선 적용
+- hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 제거해 `MoneyFrame` secret-number taint 경로 차단
+- M+/raid 클릭은 공개 Encounter Journal 열기 경로만 사용
+- 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 스로틀 부담 완화
+- `scripts/rebuild_bis_database.ps1` 추가: v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit
+- `scripts/validate_bis_mythic_vault_links.py` 추가
+- M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.1.zip`, 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0` 유지
+- README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.11.1 로컬 패치 기준으로 갱신
+
 ## 1.11.0 - 2026-06-01
 
 한밤 시즌 1 v1.7 컴팩트 런타임 점수 코어를 BIS 오버레이에 연결한 릴리스.

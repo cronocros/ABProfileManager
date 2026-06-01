@@ -98,17 +98,23 @@
 - locale 문자열은 생성 시점에 `koKR/enUS`로 분리 저장되며, 게임 안에서는 해당 locale 필드만 노출한다
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 Myth/Hero 트랙이나 최종 BiS를 확정하지 않는다
 - `Data/MidnightS1MPlusDB.lua`는 저장소에 고정된 v1.7 컴팩트 코어이며 네트워크나 동적 코드 로드를 하지 않는다
-- `Data/BISRuntimeScoring.lua`는 실제 소유 `itemLink`를 `C_Item.GetItemStats()`와 `GetDetailedItemLevelInfo()` 기반 점수 함수에 전달한다
-- v1.7 점수는 실제 링크가 있는 후보끼리의 정렬에만 사용하며, 링크가 없는 후보는 기존 정적 순서를 유지한다
+- `Data/BISRuntimeScoring.lua`는 실제 full link를 `C_Item.GetItemStats()`와 `GetDetailedItemLevelInfo()` 기반 점수 함수에 전달한다
+- 실제 장비/가방 링크를 우선하고, 상단 아이템 토글이 켜져 있으면 링크가 없는 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다
+- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 자동 점수화한다
+- 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
+- `itemID`만으로 `itemLink`, `itemString`, bonusID를 조립하는 경로는 금지한다
+- 점수 캐시, 아이템 요청 dedupe, 분산 큐를 사용해 자동 검색 중 rebuild 스로틀 부담을 제한한다
 - 장비/가방 링크는 overlay rebuild마다 한 번만 인덱싱한다
 - M+ reward profile은 Hero 던전 종료 / Myth 금고 후보 템렙만 저장하고 정적 `itemLink`, `itemString`, bonusID를 만들지 않는다
 - `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도하고, `crafted`, `tier`는 랜딩 대상에서 제외한다
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다
-- 아이템 캐시 수신 시 visible row만 갱신하고 전체 rebuild를 피하도록 보수적으로 조정했다
-- M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준을 사용하고, `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트만 전용 tooltip에 렌더링한다
+- 아이템 캐시 수신 시 visible row를 우선 갱신하고, 자동 점수 재시도가 필요한 경우에만 rebuild한다
+- BIS item hover는 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트만 전용 tooltip에 수동 렌더링하며 Blizzard tooltip line color와 품질 색을 보존한다
 - 판매가, 화폐, money line은 렌더링하지 않아 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
 - 전역 `GameTooltip:SetHyperlink()` 직접 호출을 금지해 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
-- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_catalog.py`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
+- hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 금지한다. M+/raid 클릭은 공개 열기 경로만 사용한다
+- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_catalog.py`, `scripts/audit_bis_data.py`, `scripts/rebuild_bis_database.ps1`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
 
 ### 공통 tooltip / secret-number 방어
 

@@ -1,0 +1,45 @@
+"""Validate curated Myth 1/6 full links used by the BIS overlay."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+LINK_DB = REPO_ROOT / "ABProfileManager" / "Data" / "BISMythicVaultLinks.lua"
+CATALOG = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
+
+
+def main() -> None:
+    text = LINK_DB.read_text(encoding="utf-8")
+    catalog_text = CATALOG.read_text(encoding="utf-8")
+
+    baseline_match = re.search(r"\bbaselineItemLevel\s*=\s*(\d+)", text)
+    if not baseline_match or int(baseline_match.group(1)) != 272:
+        raise ValueError("BISMythicVaultLinks.lua must declare baselineItemLevel = 272")
+
+    catalog_item_ids = {
+        int(value)
+        for value in re.findall(r"\bitemID\s*=\s*(\d+)", catalog_text)
+    }
+    seen: set[int] = set()
+    entries = re.findall(r'^\s*\[(\d+)\]\s*=\s*"([^"]+)"\s*,?\s*$', text, re.M)
+    for raw_item_id, link in entries:
+        item_id = int(raw_item_id)
+        if item_id in seen:
+            raise ValueError(f"Duplicate curated Myth link itemID: {item_id}")
+        seen.add(item_id)
+        if item_id not in catalog_item_ids:
+            raise ValueError(f"Curated Myth link is not present in BISCatalog.lua: {item_id}")
+        link_item_id = re.search(r"item:(\d+)", link)
+        if not link_item_id or int(link_item_id.group(1)) != item_id:
+            raise ValueError(f"Curated Myth link itemID mismatch: {item_id}")
+        if link in {f"item:{item_id}", f"|Hitem:{item_id}|h"} or link.count(":") < 2:
+            raise ValueError(f"Curated Myth link must contain the full item string: {item_id}")
+
+    print(f"ok: baseline=272 curated_myth_links={len(entries)}")
+
+
+if __name__ == "__main__":
+    main()

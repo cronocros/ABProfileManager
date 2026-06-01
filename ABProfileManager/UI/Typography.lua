@@ -153,15 +153,19 @@ function Typography:ApplyTooltip(tooltip, headerBaseSize, bodyBaseSize, options)
         if left then
             local size = index == 1 and headerSize or bodySize
             left:SetFont(FONT_PATH, size, options.flags or "")
-            if index == 1 then
-                left:SetTextColor(headerColor[1], headerColor[2], headerColor[3], headerColor[4] or 1)
-            else
-                left:SetTextColor(bodyColor[1], bodyColor[2], bodyColor[3], bodyColor[4] or 1)
+            if not options.preserveColors then
+                if index == 1 then
+                    left:SetTextColor(headerColor[1], headerColor[2], headerColor[3], headerColor[4] or 1)
+                else
+                    left:SetTextColor(bodyColor[1], bodyColor[2], bodyColor[3], bodyColor[4] or 1)
+                end
             end
         end
         if right then
             right:SetFont(FONT_PATH, bodySize, options.flags or "")
-            right:SetTextColor(bodyColor[1], bodyColor[2], bodyColor[3], bodyColor[4] or 1)
+            if not options.preserveColors then
+                right:SetTextColor(bodyColor[1], bodyColor[2], bodyColor[3], bodyColor[4] or 1)
+            end
         end
     end
 end

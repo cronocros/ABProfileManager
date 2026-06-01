@@ -44,7 +44,29 @@ local SOURCE_KEY_BY_GROUP = {
     tier = "CATALYST",
 }
 
-function Scoring:ScoreItemLink(specID, slotName, itemLink, sourceGroup)
+local SCORE_CACHE = {}
+
+local function cacheValue(value)
+    if value == nil then
+        return "nil"
+    end
+    return type(value) .. ":" .. tostring(value)
+end
+
+local function buildCacheKey(specID, slotName, itemLink, sourceGroup, options)
+    return table.concat({
+        cacheValue(specID),
+        cacheValue(slotName),
+        cacheValue(itemLink),
+        cacheValue(sourceGroup),
+        cacheValue(options.actualItemLevel),
+        cacheValue(options.keyLevel),
+        cacheValue(options.tierSetPiece),
+        cacheValue(options.sourceKey),
+    }, "\031")
+end
+
+function Scoring:ScoreItemLink(specID, slotName, itemLink, sourceGroup, options)
     local core = _G.MidnightS1MPlusDB
     local specKey = SPEC_KEY_BY_ID[tonumber(specID)]
     if not core or not specKey or type(itemLink) ~= "string" or itemLink == "" then
@@ -56,17 +78,52 @@ function Scoring:ScoreItemLink(specID, slotName, itemLink, sourceGroup)
 
     local slotKey = SLOT_KEY_BY_NAME[slotName] or tostring(slotName or "UNKNOWN")
     local sourceKey = SOURCE_KEY_BY_GROUP[sourceGroup] or "UNKNOWN"
-    local options = {
+    local runtimeOptions = {
         keyLevel = sourceGroup == "mythicplus" and 10 or nil,
         tierSetPiece = sourceGroup == "tier",
     }
-    local ok, record = pcall(core.BuildRuntimeItemRecord, itemLink, specKey, sourceKey, options, slotKey)
+    if type(options) == "table" then
+        if options.sourceKey ~= nil then
+            sourceKey = options.sourceKey
+        end
+        if options.actualItemLevel ~= nil then
+            runtimeOptions.actualItemLevel = options.actualItemLevel
+        end
+        if options.keyLevel ~= nil then
+            runtimeOptions.keyLevel = options.keyLevel
+        end
+        if options.tierSetPiece ~= nil then
+            runtimeOptions.tierSetPiece = options.tierSetPiece
+        end
+    end
+    runtimeOptions.sourceKey = sourceKey
+
+    local cacheKey = buildCacheKey(specID, slotName, itemLink, sourceGroup, runtimeOptions)
+    local cached = SCORE_CACHE[cacheKey]
+    if cached ~= nil then
+        if cached == false then
+            return nil
+        end
+        return cached.score, cached.evidence
+    end
+
+    local ok, record = pcall(core.BuildRuntimeItemRecord, itemLink, specKey, runtimeOptions.sourceKey, runtimeOptions, slotKey)
     if not ok or type(record) ~= "table" then
+        SCORE_CACHE[cacheKey] = false
+        return nil
+    end
+    if type(record.rawStats) ~= "table" or not next(record.rawStats) then
         return nil
     end
     local scoreOK, score, evidence = pcall(core.ScoreItemRecord, record, specKey, slotKey)
     if not scoreOK then
+        SCORE_CACHE[cacheKey] = false
         return nil
     end
-    return tonumber(score), evidence
+    local numericScore = tonumber(score)
+    SCORE_CACHE[cacheKey] = {
+        score = numericScore,
+        evidence = evidence,
+    }
+    return numericScore, evidence
 end

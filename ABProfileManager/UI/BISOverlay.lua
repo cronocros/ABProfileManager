@@ -48,8 +48,8 @@ local COL_OWNED    = 16
 local COL_CONTROLS = COL_FAVORITE + COL_OWNED
 local COL_ICON    = ICON_SIZE + 5
 local COL_NAME    = 198
-local COL_SLOT    = 150
-local COL_TYPE    = 64
+local COL_SLOT    = 145
+local COL_TYPE    = 90
 local COL_NOTE    = 42
 local SPEC_PICKER_W = 162
 local SPEC_PICKER_BTN_H = 22
@@ -90,15 +90,31 @@ local QC = {
     [4] = { 0.80, 0.35, 1.00 },
     [5] = { 1.00, 0.55, 0.00 },
 }
+local QUALITY_COLOR_CACHE = {}
 
 local function getSeasonDisplayQuality(itemQuality)
     -- 시즌 M+ 드랍은 구던 원본 품질이 파템이어도 최소 에픽으로 보정해서 보여준다.
-    return math.max(itemQuality or 4, 4)
+    local ok, quality = pcall(function()
+        return math.max(tonumber(itemQuality) or 4, 4)
+    end)
+    return ok and quality or 4
 end
 
 local function getQualityColor(itemQuality)
     local effectiveQ = getSeasonDisplayQuality(itemQuality)
-    return QC[effectiveQ] or QC[4], effectiveQ
+    if not QUALITY_COLOR_CACHE[effectiveQ] then
+        local fallback = QC[effectiveQ] or QC[4]
+        local color = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[effectiveQ]
+        local r, g, b = color and color.r, color and color.g, color and color.b
+        if C_Item and type(C_Item.GetItemQualityColor) == "function" then
+            local ok, apiR, apiG, apiB = pcall(C_Item.GetItemQualityColor, effectiveQ)
+            if ok and apiR and apiG and apiB then
+                r, g, b = apiR, apiG, apiB
+            end
+        end
+        QUALITY_COLOR_CACHE[effectiveQ] = { r or fallback[1], g or fallback[2], b or fallback[3] }
+    end
+    return QUALITY_COLOR_CACHE[effectiveQ], effectiveQ
 end
 
 local function getBISTooltip()
@@ -195,6 +211,26 @@ local function isTooltipMoneyLine(line)
     return leftText == "Sell Price" or leftText == "판매 가격" or (sellPriceLabel and leftText == sellPriceLabel) or false
 end
 
+local function getTooltipLineColor(line, key, fallbackR, fallbackG, fallbackB)
+    local color = getTooltipDataField(line, key)
+    if type(color) ~= "table" then
+        return fallbackR, fallbackG, fallbackB
+    end
+    if type(color.GetRGB) == "function" then
+        local ok, r, g, b = pcall(color.GetRGB, color)
+        if ok and r and g and b then
+            return r, g, b
+        end
+    end
+    local ok, r, g, b = pcall(function()
+        return color.r, color.g, color.b
+    end)
+    if ok and r and g and b then
+        return r, g, b
+    end
+    return fallbackR, fallbackG, fallbackB
+end
+
 local function renderTooltipDataWithoutMoney(tooltip, tooltipData, itemQuality)
     local lines = getTooltipDataField(tooltipData, "lines")
     if not tooltip or type(tooltipData) ~= "table" or type(lines) ~= "table" then
@@ -212,12 +248,15 @@ local function renderTooltipDataWithoutMoney(tooltip, tooltipData, itemQuality)
             local rightText = safeTooltipString(getTooltipDataField(line, "rightText"))
             if leftText or rightText then
                 rendered = rendered + 1
+                local fallbackR = rendered == 1 and qc[1] or 0.90
+                local fallbackG = rendered == 1 and qc[2] or 0.90
+                local fallbackB = rendered == 1 and qc[3] or 0.90
+                local leftR, leftG, leftB = getTooltipLineColor(line, "leftColor", fallbackR, fallbackG, fallbackB)
                 if rightText and tooltip.AddDoubleLine then
-                    local r, g, b = rendered == 1 and qc[1] or 0.90, rendered == 1 and qc[2] or 0.90, rendered == 1 and qc[3] or 0.90
-                    pcall(tooltip.AddDoubleLine, tooltip, leftText or " ", rightText, r, g, b, 0.90, 0.90, 0.90)
+                    local rightR, rightG, rightB = getTooltipLineColor(line, "rightColor", 0.90, 0.90, 0.90)
+                    pcall(tooltip.AddDoubleLine, tooltip, leftText or " ", rightText, leftR, leftG, leftB, rightR, rightG, rightB)
                 else
-                    local r, g, b = rendered == 1 and qc[1] or 0.90, rendered == 1 and qc[2] or 0.90, rendered == 1 and qc[3] or 0.90
-                    pcall(tooltip.AddLine, tooltip, leftText or rightText or " ", r, g, b, true)
+                    pcall(tooltip.AddLine, tooltip, leftText or rightText or " ", leftR, leftG, leftB, true)
                 end
             end
         end
@@ -303,13 +342,9 @@ local DUNGEON_EJ_TIERS = {
     ["공결점 제나스"] = 13,
     ["공결탑 제나스"] = 13,
 }
-local EJ_INSTANCE_CACHE = {}
-local EJ_CANDIDATE_CACHE = {}
-local EJ_RAID_CANDIDATES_CACHE = nil
 local EJ_ENCOUNTER_CACHE = {}
-local EJ_PREVIEW_LINK_CACHE = {}
-local EJ_PREVIEW_CONTEXT_CACHE = {}
-local _journalNavigationToken = 0
+local PENDING_ITEM_DATA = {}
+local PENDING_ROW_REFRESH_ITEM_IDS = {}
 local normalizeCompareText
 local getEntrySourceType
 local getSeasonalMythicPlusRange
@@ -338,8 +373,7 @@ local function ensureEncounterJournalLoaded()
         pcall(UIParentLoadAddOn, "Blizzard_EncounterJournal")
     end
 
-    return type(EJ_SelectInstance) == "function"
-        and type(EJ_GetInstanceByIndex) == "function"
+    return EncounterJournal ~= nil or type(EncounterJournal_OpenJournal) == "function"
 end
 
 local function getEnglishLocaleText(key)
@@ -386,25 +420,20 @@ local function getEntryQuality(entry)
     return quality or 4
 end
 
-local function getNow()
-    if type(GetTime) == "function" then
-        return GetTime()
-    end
-    return 0
-end
-
-local function isJournalPreviewSuspended()
-    local untilTime = BISOverlay and BISOverlay._journalPreviewSuspendUntil
-    return untilTime and untilTime > getNow() or false
-end
-
 local function getSeasonPreviewKeyLevel()
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    local mythicPlus = tbl and tbl.mythicPlus
-    if mythicPlus and mythicPlus.mythic0 and mythicPlus.mythic0.ilvl then
-        return 0
+    return 10
+end
+
+local function getMythicPlusVaultPreviewItemLevel(entry)
+    local profiles = entry and entry.rewardProfiles
+    local profile = profiles and profiles.mplus_great_vault_voidcore
+    local itemLevel = profile and tonumber(profile.itemLevel)
+    if itemLevel then
+        return itemLevel
     end
-    return 0
+    local rewardProfiles = ns.Data and ns.Data.BISRewardProfiles
+    profile = rewardProfiles and rewardProfiles.mythicplus and rewardProfiles.mythicplus.mplus_great_vault_voidcore
+    return profile and tonumber(profile.itemLevel) or 272
 end
 
 local function getRaidPreviewDifficultyID()
@@ -416,370 +445,6 @@ local function getRaidPreviewDifficultyID()
             or DifficultyUtil.ID.Raid25Heroic
     end
     return 15
-end
-
-local function getDungeonCandidates(dungeonName)
-    if not dungeonName then return nil end
-    if EJ_CANDIDATE_CACHE[dungeonName] ~= nil then
-        return EJ_CANDIDATE_CACHE[dungeonName] or {}
-    end
-    if not ensureEncounterJournalLoaded() then
-        EJ_CANDIDATE_CACHE[dungeonName] = false
-        EJ_INSTANCE_CACHE[dungeonName] = false
-        return {}
-    end
-
-    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
-    local tierCount = EJ_GetNumTiers and (EJ_GetNumTiers() or 0) or 0
-    local found = {}
-    local seen = {}
-
-    local function addCandidate(instanceID, tier)
-        if not instanceID or seen[instanceID] then
-            return
-        end
-        seen[instanceID] = true
-        found[#found + 1] = {
-            instanceID = instanceID,
-            tier = tier,
-        }
-    end
-
-    local normalizedDungeonName = normalizeCompareText and normalizeCompareText(dungeonName) or string.lower(tostring(dungeonName or ""))
-    local localeKey = DUNGEON_LOCALE_KEYS[dungeonName]
-    local localizedDungeonName = localeKey and ns.L(localeKey) or nil
-    local englishDungeonName = localeKey and getEnglishLocaleText(localeKey) or nil
-    local normalizedLocalizedName = normalizeCompareText and normalizeCompareText(localizedDungeonName)
-        or string.lower(tostring(localizedDungeonName or ""))
-    local normalizedEnglishName = normalizeCompareText and normalizeCompareText(englishDungeonName)
-        or string.lower(tostring(englishDungeonName or ""))
-
-    local function matchesDungeonName(instanceName)
-        if not instanceName or not dungeonName then
-            return false
-        end
-        if instanceName == dungeonName
-            or (localizedDungeonName and instanceName == localizedDungeonName)
-            or (englishDungeonName and instanceName == englishDungeonName) then
-            return true
-        end
-        local normalizedInstanceName = normalizeCompareText and normalizeCompareText(instanceName)
-            or string.lower(tostring(instanceName or ""))
-        return normalizedInstanceName == normalizedDungeonName
-            or (normalizedLocalizedName ~= "" and normalizedInstanceName == normalizedLocalizedName)
-            or (normalizedEnglishName ~= "" and normalizedInstanceName == normalizedEnglishName)
-    end
-
-    for tier = tierCount, 1, -1 do
-        pcall(EJ_SelectTier, tier)
-        local index = 1
-        while true do
-            local instanceID, instanceName = EJ_GetInstanceByIndex(index, false)
-            if not instanceID then
-                break
-            end
-            if matchesDungeonName(instanceName) then
-                addCandidate(instanceID, tier)
-            end
-            index = index + 1
-        end
-    end
-
-    if savedTier then
-        pcall(EJ_SelectTier, savedTier)
-    end
-
-    EJ_CANDIDATE_CACHE[dungeonName] = #found > 0 and found or false
-    EJ_INSTANCE_CACHE[dungeonName] = found[1] and found[1].instanceID or false
-    if found[1] then
-        DUNGEON_EJ_IDS[dungeonName] = found[1].instanceID
-    end
-    return found
-end
-
-local function getRaidCandidates()
-    if EJ_RAID_CANDIDATES_CACHE ~= nil then
-        return EJ_RAID_CANDIDATES_CACHE or {}
-    end
-    if not ensureEncounterJournalLoaded() then
-        EJ_RAID_CANDIDATES_CACHE = false
-        return {}
-    end
-
-    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
-    local tierCount = EJ_GetNumTiers and (EJ_GetNumTiers() or 0) or 0
-    local found = {}
-    local seen = {}
-
-    for tier = tierCount, 1, -1 do
-        pcall(EJ_SelectTier, tier)
-        local index = 1
-        while true do
-            local instanceID, instanceName = EJ_GetInstanceByIndex(index, true)
-            if not instanceID then
-                break
-            end
-            if not seen[instanceID] then
-                seen[instanceID] = true
-                found[#found + 1] = {
-                    instanceID = instanceID,
-                    tier = tier,
-                    name = instanceName,
-                }
-            end
-            index = index + 1
-        end
-    end
-
-    if savedTier then
-        pcall(EJ_SelectTier, savedTier)
-    end
-
-    EJ_RAID_CANDIDATES_CACHE = #found > 0 and found or false
-    return found
-end
-
-local function getDungeonInstanceID(dungeonName)
-    local candidates = getDungeonCandidates(dungeonName)
-    if not candidates or #candidates == 0 then
-        return nil
-    end
-    return candidates[1] and candidates[1].instanceID or nil
-end
-
-local function getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName, allowLiveScan)
-    if not dungeonName or (not itemID and not fallbackName) then return nil end
-
-    local previewLevel = getSeasonPreviewKeyLevel()
-    local targetName = fallbackName
-    if (not targetName or targetName == "") and itemID then
-        targetName = select(1, GetItemInfo(itemID))
-    end
-    local normalizedTargetName = normalizeCompareText(targetName)
-    local cacheKey = string.format(
-        "%s:%s:%s:%d",
-        dungeonName,
-        tostring(itemID or 0),
-        normalizedTargetName,
-        previewLevel
-    )
-    if EJ_PREVIEW_CONTEXT_CACHE[cacheKey] ~= nil then
-        return EJ_PREVIEW_CONTEXT_CACHE[cacheKey] or nil
-    end
-    if not allowLiveScan then
-        return nil
-    end
-    local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
-    if journalVisible or isJournalPreviewSuspended() then
-        return nil
-    end
-    if not ensureEncounterJournalLoaded() then
-        EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
-        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
-        return nil
-    end
-
-    local candidates = getDungeonCandidates(dungeonName)
-    if not candidates or #candidates == 0 then
-        EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
-        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
-        return nil
-    end
-
-    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
-    local savedInstance = EJ_GetCurrentInstance and EJ_GetCurrentInstance() or nil
-    local savedDifficulty = EJ_GetDifficulty and EJ_GetDifficulty() or nil
-    local foundContext
-    for _, candidate in ipairs(candidates) do
-        if candidate.tier then
-            pcall(EJ_SelectTier, candidate.tier)
-        end
-        if EJ_SetDifficulty then
-            pcall(EJ_SetDifficulty, 23)
-        end
-        -- Blizzard exposes only a setter for the preview level. This scan runs
-        -- while the journal is hidden, so normalize it to the overlay's M0 contract.
-        if C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
-            pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, previewLevel)
-        end
-        if pcall(EJ_SelectInstance, candidate.instanceID)
-        and C_EncounterJournal and C_EncounterJournal.GetLootInfoByIndex then
-            local lootCount = EJ_GetNumLoot and (EJ_GetNumLoot() or 0) or 0
-            for i = 1, lootCount do
-                local ok, info = pcall(C_EncounterJournal.GetLootInfoByIndex, i)
-                local matched = false
-                if ok and info then
-                    if itemID and info.itemID == itemID then
-                        matched = true
-                    elseif normalizedTargetName ~= "" then
-                        local previewName = info.name or select(1, GetItemInfo(info.link or info.itemLink or info.itemID or 0))
-                        matched = normalizeCompareText(previewName) == normalizedTargetName
-                    end
-                end
-                if matched then
-                    local previewLink = info.link or info.hyperlink or info.itemLink
-                    local itemLink = info.itemLink or info.hyperlink or info.link
-                    local foundLink = previewLink or itemLink
-                    if foundLink then
-                        foundContext = {
-                            link = foundLink,
-                            previewLink = previewLink,
-                            itemLink = itemLink,
-                            itemID = info.itemID,
-                            instanceID = candidate.instanceID,
-                            tier = candidate.tier,
-                            difficulty = 23,
-                            encounterID = info.encounterID,
-                            displaySeasonID = info.displaySeasonID,
-                            itemQuality = info.itemQuality,
-                        }
-                        break
-                    end
-                end
-            end
-        end
-        if foundContext then
-            break
-        end
-    end
-
-    if savedTier then
-        pcall(EJ_SelectTier, savedTier)
-    end
-    if savedInstance then
-        pcall(EJ_SelectInstance, savedInstance)
-    end
-    if savedDifficulty and EJ_SetDifficulty then
-        pcall(EJ_SetDifficulty, savedDifficulty)
-    end
-    EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = foundContext or false
-    EJ_PREVIEW_LINK_CACHE[cacheKey] = foundContext and foundContext.link or false
-    return foundContext
-end
-
-local function getPreviewMythicPlusLootLink(dungeonName, itemID)
-    local context = getPreviewMythicPlusLootContext(dungeonName, itemID, nil, true)
-    return context and context.link or nil
-end
-
-local function getPreviewRaidLootContext(itemID, fallbackName, allowLiveScan)
-    if (not itemID or itemID <= 0) and (not fallbackName or fallbackName == "") then
-        return nil
-    end
-
-    local targetName = fallbackName
-    if (not targetName or targetName == "") and itemID then
-        targetName = select(1, GetItemInfo(itemID))
-    end
-    local normalizedTargetName = normalizeCompareText(targetName)
-    local cacheKey = string.format("raid:%s:%s", tostring(itemID or 0), normalizedTargetName)
-    if EJ_PREVIEW_CONTEXT_CACHE[cacheKey] ~= nil then
-        return EJ_PREVIEW_CONTEXT_CACHE[cacheKey] or nil
-    end
-    if not allowLiveScan then
-        return nil
-    end
-    local journalVisible = EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()
-    if journalVisible or isJournalPreviewSuspended() then
-        return nil
-    end
-    if not ensureEncounterJournalLoaded() then
-        EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
-        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
-        return nil
-    end
-
-    local candidates = getRaidCandidates()
-    if not candidates or #candidates == 0 then
-        EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = false
-        EJ_PREVIEW_LINK_CACHE[cacheKey] = false
-        return nil
-    end
-
-    local savedTier = EJ_GetCurrentTier and EJ_GetCurrentTier() or nil
-    local savedInstance = EJ_GetCurrentInstance and EJ_GetCurrentInstance() or nil
-    local savedDifficulty = EJ_GetDifficulty and EJ_GetDifficulty() or nil
-    local difficultyID = getRaidPreviewDifficultyID()
-    local foundContext
-
-    for _, candidate in ipairs(candidates) do
-        if candidate.tier then
-            pcall(EJ_SelectTier, candidate.tier)
-        end
-        if EJ_SetDifficulty then
-            pcall(EJ_SetDifficulty, difficultyID)
-        end
-        if pcall(EJ_SelectInstance, candidate.instanceID)
-        and C_EncounterJournal and C_EncounterJournal.GetLootInfoByIndex then
-            local lootCount = EJ_GetNumLoot and (EJ_GetNumLoot() or 0) or 0
-            for i = 1, lootCount do
-                local ok, info = pcall(C_EncounterJournal.GetLootInfoByIndex, i)
-                local matched = false
-                if ok and info then
-                    if itemID and info.itemID == itemID then
-                        matched = true
-                    elseif normalizedTargetName ~= "" then
-                        local previewName = info.name or select(1, GetItemInfo(info.link or info.itemLink or info.itemID or 0))
-                        matched = normalizeCompareText(previewName) == normalizedTargetName
-                    end
-                end
-                if matched then
-                    local previewLink = info.link or info.hyperlink or info.itemLink
-                    local itemLink = info.itemLink or info.hyperlink or info.link
-                    local foundLink = previewLink or itemLink
-                    if foundLink then
-                        foundContext = {
-                            link = foundLink,
-                            previewLink = previewLink,
-                            itemLink = itemLink,
-                            itemID = info.itemID,
-                            instanceID = candidate.instanceID,
-                            tier = candidate.tier,
-                            difficulty = difficultyID,
-                            encounterID = info.encounterID,
-                            itemQuality = info.itemQuality,
-                        }
-                        break
-                    end
-                end
-            end
-        end
-        if foundContext then
-            break
-        end
-    end
-
-    if savedTier then
-        pcall(EJ_SelectTier, savedTier)
-    end
-    if savedInstance then
-        pcall(EJ_SelectInstance, savedInstance)
-    end
-    if savedDifficulty and EJ_SetDifficulty then
-        pcall(EJ_SetDifficulty, savedDifficulty)
-    end
-
-    EJ_PREVIEW_CONTEXT_CACHE[cacheKey] = foundContext or false
-    EJ_PREVIEW_LINK_CACHE[cacheKey] = foundContext and foundContext.link or false
-    return foundContext
-end
-
-local function getTooltipCompareFilter(useSpec)
-    local classID, specID
-    if useSpec then
-        if EJ_GetLootFilter then
-            classID, specID = EJ_GetLootFilter()
-        end
-        if specID == 0 and C_SpecializationInfo and C_SpecializationInfo.GetSpecialization then
-            local spec = C_SpecializationInfo.GetSpecialization()
-            if spec and classID == select(3, UnitClass("player")) then
-                specID = C_SpecializationInfo.GetSpecializationInfo(spec, nil, nil, nil, UnitSex("player"))
-            else
-                specID = -1
-            end
-        end
-    end
-    return classID, specID
 end
 
 local function getClassColorRGB(classFile)
@@ -877,26 +542,6 @@ local function getPlayerSpecID()
     return nil
 end
 
-local function getEncounterJournalContextForEntry(entry, itemID, allowLiveScan)
-    if not entry then
-        return nil
-    end
-
-    local sourceType = getEntrySourceType(entry)
-    local fallbackName = getEntryLocalizedName(entry) or (itemID and select(1, GetItemInfo(itemID)) or nil)
-    if sourceType == "mythicplus" then
-        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
-        if not dungeonName then
-            return nil
-        end
-        return getPreviewMythicPlusLootContext(dungeonName, itemID, fallbackName, allowLiveScan)
-    end
-    if sourceType == "raid" or sourceType == "tier" then
-        return getPreviewRaidLootContext(itemID, fallbackName, allowLiveScan)
-    end
-    return nil
-end
-
 local function buildEncounterHints(entry)
     local hints, seen = {}, {}
 
@@ -981,51 +626,21 @@ local function resolveFallbackJournalTarget(entry)
 
     if sourceType == "mythicplus" then
         local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
-        local candidates = dungeonName and getDungeonCandidates(dungeonName) or nil
-        local candidate = candidates and candidates[1] or nil
-        local instanceID = candidate and candidate.instanceID or (dungeonName and getDungeonInstanceID(dungeonName)) or nil
+        local instanceID = dungeonName and DUNGEON_EJ_IDS[dungeonName] or nil
         if not instanceID then
-            return nil
+            return {
+                difficulty = 23,
+            }
         end
         return {
             instanceID = instanceID,
-            tier = candidate and candidate.tier or (dungeonName and DUNGEON_EJ_TIERS[dungeonName]) or nil,
+            tier = dungeonName and DUNGEON_EJ_TIERS[dungeonName] or nil,
             difficulty = 23,
             encounterID = findEncounterIDInInstance(instanceID, encounterHints),
         }
     end
 
     if sourceType == "raid" then
-        local candidates = getRaidCandidates()
-        if not candidates or #candidates == 0 then
-            return nil
-        end
-
-        for _, candidate in ipairs(candidates) do
-            local candidateName = normalizeCompareText(candidate.name)
-            for _, hint in ipairs(encounterHints) do
-                if hint.normalized == candidateName then
-                    return {
-                        instanceID = candidate.instanceID,
-                        tier = candidate.tier,
-                        difficulty = getRaidPreviewDifficultyID(),
-                    }
-                end
-            end
-        end
-
-        for _, candidate in ipairs(candidates) do
-            local encounterID = findEncounterIDInInstance(candidate.instanceID, encounterHints)
-            if encounterID then
-                return {
-                    instanceID = candidate.instanceID,
-                    tier = candidate.tier,
-                    difficulty = getRaidPreviewDifficultyID(),
-                    encounterID = encounterID,
-                }
-            end
-        end
-
         return {
             difficulty = getRaidPreviewDifficultyID(),
         }
@@ -1046,42 +661,16 @@ local function openEncounterJournalForEntry(entry, itemID)
         return
     end
 
-    _journalNavigationToken = _journalNavigationToken + 1
-    local navigationToken = _journalNavigationToken
-    BISOverlay._journalPreviewSuspendUntil = getNow() + 1.0
-
     local target = resolveFallbackJournalTarget(entry) or {}
-    local context = getEncounterJournalContextForEntry(entry, itemID, false)
-    if not context or not context.instanceID or not context.itemID or (sourceType == "raid" and not context.encounterID) then
-        local ok, resolvedContext
-        BISOverlay._allowLiveJournalScan = true
-        ok, resolvedContext = pcall(getEncounterJournalContextForEntry, entry, itemID, true)
-        BISOverlay._allowLiveJournalScan = false
-        if ok and resolvedContext then
-            context = resolvedContext
-        end
-    end
-
-    local instanceID = target.instanceID or (context and context.instanceID) or nil
-    local tier = target.tier or (context and context.tier) or nil
-    local journalItemID = (context and context.itemID) or itemID
-    local encounterID = target.encounterID or (context and context.encounterID) or nil
-    local difficultyID = target.difficulty or (context and context.difficulty)
+    local instanceID = target.instanceID
+    local tier = target.tier
+    local encounterID = target.encounterID
+    local difficultyID = target.difficulty
         or (sourceType == "raid" and getRaidPreviewDifficultyID() or 23)
 
     pcall(function()
         if not ensureEncounterJournalLoaded() then
             return
-        end
-        if tier then
-            pcall(EJ_SelectTier, tier)
-        end
-        if EJ_SetDifficulty then
-            pcall(EJ_SetDifficulty, difficultyID)
-        end
-        if sourceType == "mythicplus"
-        and C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
-            pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, getSeasonPreviewKeyLevel())
         end
         if EncounterJournal then
             if not EncounterJournal:IsShown() then
@@ -1092,35 +681,7 @@ local function openEncounterJournalForEntry(entry, itemID)
                 end
             end
             if instanceID and type(EncounterJournal_OpenJournal) == "function" then
-                pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, journalItemID, tier)
-            end
-            if instanceID then
-                C_Timer.After(0.1, function()
-                    if navigationToken ~= _journalNavigationToken then
-                        return
-                    end
-                    if tier then
-                        pcall(EJ_SelectTier, tier)
-                    end
-                    if EJ_SetDifficulty then
-                        pcall(EJ_SetDifficulty, difficultyID)
-                    end
-                    if sourceType == "mythicplus"
-                    and C_EncounterJournal and C_EncounterJournal.SetPreviewMythicPlusLevel then
-                        pcall(C_EncounterJournal.SetPreviewMythicPlusLevel, getSeasonPreviewKeyLevel())
-                    end
-                    pcall(EJ_SelectInstance, instanceID)
-                    if encounterID and EJ_SelectEncounter then
-                        pcall(EJ_SelectEncounter, encounterID)
-                    end
-                    local lootTab = EncounterJournal
-                        and EncounterJournal.encounter
-                        and EncounterJournal.encounter.info
-                        and EncounterJournal.encounter.info.lootTab
-                    if lootTab and lootTab.Click then
-                        pcall(lootTab.Click, lootTab)
-                    end
-                end)
+                pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, itemID, tier)
             end
         end
     end)
@@ -1335,7 +896,7 @@ end
 local function getEntryTrackStatusLabel(entry)
     local sourceType = getEntrySourceType(entry)
     if sourceType == "mythicplus" then
-        return ns.L("bis_track_mplus_runtime")
+        return ns.L("bis_track_mplus_myth_baseline", getMythicPlusVaultPreviewItemLevel(entry))
     end
     if sourceType == "tier" then
         return ns.L("bis_status_tier_candidate")
@@ -1866,6 +1427,8 @@ end
 
 local getPlayerItemLinkIndex
 local getPreferredOwnedItemLink
+local getAutomaticRuntimeScore
+local scheduleAutomaticRuntimeScores
 
 local function refreshEntryRuntimeScore(entry, specID, liveItemLinks)
     entry._runtimeScore = nil
@@ -1874,10 +1437,11 @@ local function refreshEntryRuntimeScore(entry, specID, liveItemLinks)
     end
     local itemLink = getPreferredOwnedItemLink(specID, entry.itemID, liveItemLinks)
     local scoring = ns.Data and ns.Data.BISRuntimeScoring
-    if not itemLink or not scoring or type(scoring.ScoreItemLink) ~= "function" then
+    if not scoring or type(scoring.ScoreItemLink) ~= "function" then
         return
     end
-    local score = scoring:ScoreItemLink(specID, entry.slot, itemLink, getEntrySourceType(entry))
+    local score = itemLink and scoring:ScoreItemLink(specID, entry.slot, itemLink, getEntrySourceType(entry))
+        or (getAutomaticRuntimeScore and getAutomaticRuntimeScore(entry, specID))
     if score then
         entry._runtimeScore = score
     end
@@ -2008,17 +1572,30 @@ end
 -- ============================================================
 
 local _rebuildPending = false
-local function scheduleRebuild()
+local _fullRebuildPending = false
+local function scheduleRebuild(itemID, fullRebuild)
+    if itemID then
+        PENDING_ROW_REFRESH_ITEM_IDS[tonumber(itemID) or itemID] = true
+    end
+    _fullRebuildPending = _fullRebuildPending or fullRebuild == true
     if _rebuildPending then return end
     _rebuildPending = true
     C_Timer.After(0.3, function()
         _rebuildPending = false
         if BISOverlay.frame and BISOverlay.frame:IsShown() then
             pcall(function()
-                BISOverlay:RefreshVisibleItemRows()
-                BISOverlay:UpdateScrollThumb()
+                if _fullRebuildPending
+                or (BISOverlay._automaticScoreNeedsRetry and isOverlayItemTooltipEnabled()) then
+                    BISOverlay._automaticScoreNeedsRetry = false
+                    BISOverlay._isItemLoadRebuild = true
+                    BISOverlay:RebuildContent()
+                else
+                    BISOverlay:RefreshVisibleItemRows(PENDING_ROW_REFRESH_ITEM_IDS)
+                end
             end)
         end
+        wipe(PENDING_ROW_REFRESH_ITEM_IDS)
+        _fullRebuildPending = false
     end)
 end
 
@@ -2292,6 +1869,7 @@ function BISOverlay:EnsureFrame()
     end)
     frame:SetScript("OnHide",      function(f)
         f:StopMovingOrSizing()
+        BISOverlay._automaticScoreQueueToken = (BISOverlay._automaticScoreQueueToken or 0) + 1
         if f.specPicker then f.specPicker:Hide() end
     end)
 
@@ -2433,6 +2011,8 @@ function BISOverlay:EnsureFrame()
             ns.DB:SetBISOverlayItemTooltipEnabled(not isOverlayItemTooltipEnabled())
         end
         updateBISItemTooltipVisual()
+        BISOverlay._isItemLoadRebuild = true
+        BISOverlay:RebuildContent()
     end)
     frame.itemTooltipBtn = itemTooltipBtn
     frame.updateBISItemTooltipVisual = updateBISItemTooltipVisual
@@ -2757,8 +2337,19 @@ function BISOverlay:EnsureFrame()
     -- GET_ITEM_INFO_RECEIVED 이벤트
     local evFrame = CreateFrame("Frame")
     evFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
-    evFrame:SetScript("OnEvent", function(_, _, _, success)
-        if success then scheduleRebuild() end
+    evFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+    evFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    evFrame:SetScript("OnEvent", function(_, event, itemID, success)
+        if event ~= "GET_ITEM_INFO_RECEIVED" then
+            scheduleRebuild(nil, true)
+            return
+        end
+        local numericID = tonumber(itemID)
+        local requested = numericID and PENDING_ITEM_DATA[numericID]
+        if numericID then
+            PENDING_ITEM_DATA[numericID] = nil
+        end
+        if success and requested then scheduleRebuild(numericID) end
     end)
 
     frame.rows = {}
@@ -3040,9 +2631,14 @@ end
 -- ============================================================
 
 requestItemData = function(itemID)
-    if not itemID or itemID <= 0 then return end
+    itemID = tonumber(itemID)
+    if not itemID or itemID <= 0 or PENDING_ITEM_DATA[itemID] then return end
     if C_Item and C_Item.RequestLoadItemDataByID then
-        pcall(C_Item.RequestLoadItemDataByID, itemID)
+        PENDING_ITEM_DATA[itemID] = true
+        local ok = pcall(C_Item.RequestLoadItemDataByID, itemID)
+        if not ok then
+            PENDING_ITEM_DATA[itemID] = nil
+        end
     end
 end
 
@@ -3081,6 +2677,13 @@ local function isValidPreviewItemLevel(sourceType, itemLevel)
         return false
     end
     if sourceType == "mythicplus" then
+        local tbl = ns.Data and ns.Data.ItemLevelTable
+        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
+        for _, entry in ipairs(entries or {}) do
+            if entry.key == getSeasonPreviewKeyLevel() then
+                return itemLevel == tonumber(entry.ilvl) or itemLevel == tonumber(entry.vault)
+            end
+        end
         local mythicZeroItemLevel = getMythicZeroPreviewItemLevel()
         return mythicZeroItemLevel and itemLevel == mythicZeroItemLevel or false
     end
@@ -3108,7 +2711,8 @@ local function getValidPreviewTooltipLink(context, sourceType)
     if type(context) ~= "table" then
         return nil
     end
-    for _, link in ipairs({ context.previewLink, context.itemLink, context.link }) do
+    for _, key in ipairs({ "previewLink", "itemLink", "link" }) do
+        local link = context[key]
         if isItemHyperlink(link) then
             local tooltipData = getTooltipDataForHyperlink(link)
             local itemLevel = extractTooltipItemLevel(tooltipData)
@@ -3147,11 +2751,33 @@ local function isMatchingItemLink(link, itemID)
 end
 
 getPlayerItemLinkIndex = function()
-    local linksByItemID = {}
+    local linksByItemID, levelByItemID = {}, {}
     local function rememberItemLink(link)
         local itemID = getItemIDFromLink(link)
-        if itemID and not linksByItemID[itemID] then
-            linksByItemID[itemID] = link
+        if not itemID then
+            return
+        end
+        local itemLevel
+        if type(GetDetailedItemLevelInfo) == "function" then
+            local ok, resolvedLevel = pcall(function()
+                return tonumber(GetDetailedItemLevelInfo(link))
+            end)
+            itemLevel = ok and resolvedLevel or nil
+        elseif C_Item and type(C_Item.GetDetailedItemLevelInfo) == "function" then
+            local ok, resolvedLevel = pcall(function()
+                return tonumber(C_Item.GetDetailedItemLevelInfo(link))
+            end)
+            itemLevel = ok and resolvedLevel or nil
+        end
+        local shouldReplace = not linksByItemID[itemID]
+        if not shouldReplace and itemLevel then
+            local ok, isHigher = pcall(function()
+                return itemLevel > (levelByItemID[itemID] or 0)
+            end)
+            shouldReplace = ok and isHigher or false
+        end
+        if shouldReplace then
+            linksByItemID[itemID], levelByItemID[itemID] = link, itemLevel
         end
     end
     if GetInventoryItemLink then
@@ -3202,6 +2828,140 @@ getPreferredOwnedItemLink = function(specID, itemID, liveItemLinks)
         and ns.DB:GetBISOverlayOwnedItemLink(specID, itemID)
         or nil
     return isMatchingItemLink(savedLink, itemID) and savedLink or nil
+end
+
+local AUTOMATIC_SCORE_CACHE = {}
+local AUTOMATIC_SCORE_DELAY = 0.03
+
+local function getAutomaticScoreCacheKey(entry, specID)
+    return table.concat({
+        tostring(specID or 0),
+        tostring(entry and entry.slot or ""),
+        tostring(entry and entry.itemID or 0),
+    }, ":")
+end
+
+getAutomaticRuntimeScore = function(entry, specID)
+    if not isOverlayItemTooltipEnabled() or getEntrySourceType(entry) ~= "mythicplus" then
+        return nil
+    end
+    local cached = AUTOMATIC_SCORE_CACHE[getAutomaticScoreCacheKey(entry, specID)]
+    return type(cached) == "number" and cached or nil
+end
+
+local function getConfiguredMythicVaultItemLinks(entry)
+    local profiles = entry and entry.rewardProfiles
+    local profile = profiles and profiles.mplus_great_vault_voidcore
+    local curated = ns.Data and ns.Data.BISMythicVaultLinks
+    local linksByItemID = curated and curated.linksByItemID
+    local links = {}
+    local function addLink(link)
+        if type(link) == "string" and link ~= "" then
+            links[#links + 1] = link
+        end
+    end
+    addLink(profile and profile.itemLink)
+    addLink(profile and profile.itemString)
+    addLink(linksByItemID and linksByItemID[tonumber(entry and entry.itemID)])
+    return links
+end
+
+local function getExactMythicVaultItemLink(entry)
+    local baselineItemLevel = getMythicPlusVaultPreviewItemLevel(entry)
+    local pending = false
+    local links = getConfiguredMythicVaultItemLinks(entry)
+    for _, link in ipairs(links) do
+        if isMatchingItemLink(link, entry.itemID) then
+            local tooltipData = getTooltipDataForHyperlink(link)
+            local itemLevel = extractTooltipItemLevel(tooltipData)
+            if itemLevel == baselineItemLevel then
+                return link, false
+            end
+            if not tooltipData then
+                pending = true
+                BISOverlay._automaticScoreNeedsRetry = true
+                requestItemData(entry.itemID)
+            end
+        end
+    end
+    return nil, pending
+end
+
+local function resolveAutomaticRuntimeScore(entry, specID)
+    local cacheKey = getAutomaticScoreCacheKey(entry, specID)
+    local cached = AUTOMATIC_SCORE_CACHE[cacheKey]
+    if cached ~= nil then
+        return type(cached) == "number" and cached or nil
+    end
+
+    local previewLink, pending = getExactMythicVaultItemLink(entry)
+    if not previewLink then
+        if not pending then
+            AUTOMATIC_SCORE_CACHE[cacheKey] = false
+        end
+        return nil
+    end
+
+    local scoring = ns.Data and ns.Data.BISRuntimeScoring
+    if not scoring or type(scoring.ScoreItemLink) ~= "function" then
+        AUTOMATIC_SCORE_CACHE[cacheKey] = false
+        return nil
+    end
+    local score = scoring:ScoreItemLink(specID, entry.slot, previewLink, "mythicplus", {
+        sourceKey = "MPLUS_GREAT_VAULT",
+        keyLevel = getSeasonPreviewKeyLevel(),
+    })
+    if score then
+        AUTOMATIC_SCORE_CACHE[cacheKey] = score
+    else
+        BISOverlay._automaticScoreNeedsRetry = true
+    end
+    return score
+end
+
+scheduleAutomaticRuntimeScores = function(items, specID)
+    BISOverlay._automaticScoreQueueToken = (BISOverlay._automaticScoreQueueToken or 0) + 1
+    local queueToken = BISOverlay._automaticScoreQueueToken
+    if not isOverlayItemTooltipEnabled() or not C_Timer or type(C_Timer.After) ~= "function" then
+        return
+    end
+
+    local queue, seen = {}, {}
+    for _, entry in ipairs(items or {}) do
+        if getEntrySourceType(entry) == "mythicplus"
+        and #getConfiguredMythicVaultItemLinks(entry) > 0 then
+            local cacheKey = getAutomaticScoreCacheKey(entry, specID)
+            if AUTOMATIC_SCORE_CACHE[cacheKey] == nil and not seen[cacheKey] then
+                seen[cacheKey] = true
+                queue[#queue + 1] = entry
+            end
+        end
+    end
+    if #queue == 0 then
+        return
+    end
+
+    local index, changed = 0, false
+    local function processNext()
+        if queueToken ~= BISOverlay._automaticScoreQueueToken
+        or not isOverlayItemTooltipEnabled()
+        or not BISOverlay.frame
+        or not BISOverlay.frame:IsShown() then
+            return
+        end
+
+        index = index + 1
+        if resolveAutomaticRuntimeScore(queue[index], specID) then
+            changed = true
+        end
+        if index < #queue then
+            C_Timer.After(AUTOMATIC_SCORE_DELAY, processNext)
+        elseif changed then
+            BISOverlay._isItemLoadRebuild = true
+            BISOverlay:RebuildContent()
+        end
+    end
+    C_Timer.After(0, processNext)
 end
 
 local showSeasonItemTooltip
@@ -3370,6 +3130,13 @@ showSeasonItemTooltip = function(owner, row)
         local sr, sg, sb = getSourceTypeColor(sourceType)
 
         addStyledTooltipLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot))
+        if sourceType == "mythicplus" then
+            addStyledTooltipLine(
+                ns.L("bis_tooltip_myth_baseline"),
+                ns.L("bis_track_mplus_myth_baseline", getMythicPlusVaultPreviewItemLevel(entry)),
+                sr, sg, sb
+            )
+        end
         appendSeasonTooltipDetails(sourceType, sr, sg, sb)
         addStyledTooltipLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex))
         return sourceType
@@ -3429,7 +3196,7 @@ showSeasonItemTooltip = function(owner, row)
         local ownedItemLink = getPreferredOwnedItemLink(specID, row.itemID)
         tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
         if ownedItemLink and tryRenderTooltipHyperlink(ownedItemLink) then
-            ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+            ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12, { preserveColors = true })
             tooltip:Show()
             return
         end
@@ -3440,29 +3207,10 @@ showSeasonItemTooltip = function(owner, row)
         return
     end
 
-    local context = (sourceType == "mythicplus" or sourceType == "raid" or sourceType == "tier")
-        and getEncounterJournalContextForEntry(entry, row.itemID, false)
-        or nil
-    if (not context or not getValidPreviewTooltipLink(context, sourceType))
-        and (sourceType == "mythicplus" or sourceType == "raid" or sourceType == "tier")
-        and not BISOverlay._tooltipPreviewScanActive
-        and not isJournalPreviewSuspended()
-        and not (EncounterJournal and EncounterJournal.IsShown and EncounterJournal:IsShown()) then
-        local ok, resolvedContext
-        BISOverlay._tooltipPreviewScanActive = true
-        BISOverlay._allowLiveJournalScan = true
-        ok, resolvedContext = pcall(getEncounterJournalContextForEntry, entry, row.itemID, true)
-        BISOverlay._allowLiveJournalScan = false
-        BISOverlay._tooltipPreviewScanActive = false
-        if ok and resolvedContext then
-            context = resolvedContext
-        end
-    end
-
     tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
 
     local shown = false
-    local previewLink = getValidPreviewTooltipLink(context, sourceType)
+    local previewLink = sourceType == "mythicplus" and getExactMythicVaultItemLink(entry) or nil
     if previewLink then
         shown = tryRenderTooltipHyperlink(previewLink)
     end
@@ -3480,7 +3228,7 @@ showSeasonItemTooltip = function(owner, row)
         tooltip:AddLine(" ")
         tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
     end
-    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
+    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12, { preserveColors = true })
     tooltip:Show()
 end
 
@@ -3688,7 +3436,7 @@ local function resetRow(row)
     row._displayNoteIndex = nil
 end
 
-function BISOverlay:RefreshVisibleItemRows()
+function BISOverlay:RefreshVisibleItemRows(itemIDs)
     local frame = self.frame
     if not frame or not frame.rows then
         return false
@@ -3696,7 +3444,8 @@ function BISOverlay:RefreshVisibleItemRows()
 
     local refreshed = false
     for _, row in ipairs(frame.rows) do
-        if row:IsShown() and row.itemID and row.itemID > 0 then
+        if row:IsShown() and row.itemID and row.itemID > 0
+        and (not itemIDs or itemIDs[row.itemID]) then
             refreshed = refreshItemRowDisplay(row) or refreshed
         end
     end
@@ -3876,6 +3625,9 @@ function BISOverlay:RebuildContent()
     local visH   = math.min(MAX_SCROLL_H, yOffset)
     local totalH = HEADER_H + math.max(20, visH) + PADDING
     frame:SetHeight(totalH)
+    if scheduleAutomaticRuntimeScores then
+        scheduleAutomaticRuntimeScores(filteredData, specID)
+    end
 
     -- 스크롤 복원(아이템 로드) 또는 초기화(스펙 변경), 썸 업데이트 (레이아웃 확정 후)
     C_Timer.After(0, function()

@@ -1,8 +1,22 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.0 기반`
+버전 기준: `v1.11.1 로컬 패치 기반`
 
-## 0-new. v1.11.0 메모
+## 0-new. v1.11.1 로컬 패치 메모
+
+- BIS item tooltip 수동 렌더러는 Blizzard tooltip line color와 품질 색을 보존한다.
+- 상단 아이템 토글이 켜져 있으면 링크가 없는 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다.
+- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 자동 점수화한다.
+- 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다.
+- `itemID`만으로 `itemLink`/bonusID를 조립하지 않는다.
+- 실제 장비/가방 링크가 있으면 검증 DB 링크보다 우선한다.
+- hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 제거해 `MoneyFrame` taint 경로를 차단했다.
+- 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 스로틀 부담을 줄였다.
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit 순서로 실행한다.
+- M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리한다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위다.
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.1.zip`이다. 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0`을 유지한다.
+
+## 0-prev. v1.11.0 메모
 
 - `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`는 정적 후보 풀 교체 파일이 아니다. 실제 `itemLink`를 점수화하는 컴팩트 런타임 코어다.
 - 정적 후보 풀은 v1.3 입력으로 생성한 `Data/BISCatalog.lua` 총 `3130`행을 유지한다: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`.
@@ -125,11 +139,14 @@
 - `UI/BISOverlay.lua`는 폭/열 간격/스크롤 영역 민감도가 높다. 열 폭만 조정하지 말고 실제 스크롤 thumb와 마지막 열 가림 여부까지 같이 확인해야 한다.
 - source 판정은 `sourceGroup` 정적 값을 우선 사용한다. 예전 `sourceLabel` 재분류 로직에 다시 기대지 않는 편이 안전하다.
 - `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
-- BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트를 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
+- BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트와 Blizzard line color, 품질 색을 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
 - 즐겨찾기/보유 상태는 캐릭터 record 안에서 전문화별로 분리한다. 즐겨찾기 섹션 이동과 보유 취소선 갱신을 함께 확인한다.
-- M+ hover preview는 Encounter Journal 신화 던전(M0) Champion 1/6 `246` 기준이다.
+- 상단 아이템 토글이 켜져 있으면 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다.
+- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다.
+- M+ 자동 검색은 `itemID`만으로 `itemLink`/bonusID를 조립하지 않는다.
 - M+/tier의 정적 최종 BiS 미확정 정책은 유지한다. 장황한 hover 경고는 다시 늘리지 않는다.
-- 실제 소유 링크 점수 정렬을 건드릴 때는 rebuild당 장비/가방 스캔 1회 규칙을 유지한다.
+- 실제 장비/가방 링크는 검증 DB 링크보다 우선한다. 정렬을 건드릴 때는 rebuild당 장비/가방 스캔 1회, 점수 캐시, 아이템 요청 dedupe, 분산 큐 규칙을 유지한다.
+- hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 다시 연결하지 않는다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - unresolved direct ID:
   - `마이사라 동굴`
@@ -238,8 +255,11 @@
 - `ABProfileManager/UI/StatPriorityDialog.lua`
 - `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
+- `ABProfileManager/Data/BISMythicVaultLinks.lua`
 - `scripts/build_bis_catalog.py`
 - `scripts/build_bis_runtime_scoring.py`
+- `scripts/validate_bis_mythic_vault_links.py`
+- `scripts/rebuild_bis_database.ps1`
 - `scripts/validate_bis_catalog.py`
 - `scripts/validate_bis_reward_profiles.py`
 - `scripts/refresh_wowhead_bis.py`
@@ -264,6 +284,7 @@
 ## 5. 검증 습관
 
 - 먼저 `luaparser` 전체 파싱
+- BIS 데이터 재생성이 필요하면 `powershell -ExecutionPolicy Bypass -File .\scripts\rebuild_bis_database.ps1`
 - `python .\scripts\validate_bis_catalog.py`
 - 그 다음 `git diff --check`
 - 릴리스 작업이면 그 다음 패키징
@@ -280,7 +301,11 @@
 - BIS tooltip에서 런타임 링크 필요, itemID만으로 Myth 트랙 미확정, 정적 최종 BiS 아님/심크 필요 문구가 보이는지 확인
 - BIS 필터 on/off와 visible rank 재계산
 - BIS 즐겨찾기/보유 체크, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선, 캐릭터/전문화 전환 후 상태 유지
-- M+ 아이템 hover에서 Encounter Journal 신화 던전(M0) Champion 1/6 `246` preview가 사용되는지 확인
+- BIS 상단 아이템 토글 on/off에 따라 M+ full link 자동 검색이 활성화/비활성화되는지 확인
+- 자동 검색 DB full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화가 적용되는지 확인
+- 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인
+- 실제 장비/가방 링크가 검증 DB 링크보다 우선하는지 확인
+- 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지 확인
 - `레이드 off + 쐐기만 on`에서 쐐기 행이 유지되는지
 - `제작 + 티어만 on`에서 잘못된 랜딩이 없는지
 - 드랍템 레벨 오버레이 우측 `나의 문장 / 나의 열쇠` 패널 수치 확인
