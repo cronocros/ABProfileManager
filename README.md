@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- 로컬 패치: `v1.11.4`
+- 로컬 패치: `v1.11.5`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.11.4.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.11.5.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.4.md](./DOC/releases/RELEASE_NOTES_v1.11.4.md)
-- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.4_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.4_EN.md)
+- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.5.md](./DOC/releases/RELEASE_NOTES_v1.11.5.md)
+- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.5_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.5_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
@@ -30,6 +30,14 @@
 - 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.11.5 로컬 패치 핵심 정리
+
+- BIS 드랍 출처 클릭의 Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출을 제거했습니다.
+- 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지합니다.
+- 비전투 중 M+ 랜딩은 현재 시즌 tier 선선택, availability guard, 검증된 `JournalInstanceID` 경로를 유지합니다.
+- 로컬 배포는 작업공간의 `dist/ABProfileManager-v1.11.5.zip` 생성까지만 수행하며 WoW 설치 폴더로 자동 복사하지 않습니다.
+- 원격 GitHub 공개 최신 릴리스는 계속 `v1.11.0`입니다.
 
 ## v1.11.4 로컬 패치 핵심 정리
 
@@ -199,7 +207,7 @@
   - 아이콘 앞 즐겨찾기/보유 체크박스와 캐릭터별·전문화별 저장
   - 즐겨찾기 최상단 섹션, 보유 아이템명 취소선 표시
   - 헤더에 현재 전문화 스탯 우선순위와 정적 BiS 검증 상태 표시
-  - `mythicplus`, `raid`는 가능할 때 Encounter Journal loot 탭 랜딩
+  - `mythicplus`, `raid`는 비전투 중 가능할 때 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 랜딩하지 않음
   - 상단 아이템 토글 on 시 내장 selector `12801`로 M+ `Myth 1/6 272` preview 자동 생성
   - 생성 preview 또는 수동 override full link가 실제 `272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화
@@ -276,7 +284,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 필터 적용 후 남은 후보만 다시 정렬하므로, `레이드 off`, `쐐기만 on`, `제작 + 티어만 on` 모두 실제 후보 목록이 유지됩니다.
 - `공결탑 제나스`, `알게타르 대학` 같은 source alias는 생성기에서 canonical name으로 정규화합니다.
 - 제작과 티어 항목은 Encounter Journal 랜딩 대상이 아닙니다.
-- M+ Encounter Journal 랜딩은 현재 시즌 tier를 먼저 선택하고 사용 가능 여부를 확인한 뒤 검증된 `JournalInstanceID`를 사용합니다: `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`.
+- M+ Encounter Journal 랜딩은 비전투 중에만 현재 시즌 tier를 먼저 선택하고 사용 가능 여부를 확인한 뒤 검증된 `JournalInstanceID`를 사용합니다: `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`.
+- Encounter Journal 랜딩에서는 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않습니다. 전투 중 드랍 출처 클릭은 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지합니다.
 - BIS 아이템 캐시가 늦게 들어오면 visible row를 우선 갱신하고, selector preview hyperlink가 아직 로드되지 않은 경우 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증합니다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션에서 최대 2회로 제한합니다. 저장 snapshot이 없는 M+ 행 hover도 즉시 해석을 한 번 시도합니다. 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 연속 rebuild 부담을 줄였습니다.
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별로 저장됩니다. 즐겨찾기는 `무기` 위 별도 섹션으로 이동하고 보유 아이템명은 취소선으로 표시합니다.
 - 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료 영웅 3/6 266`, `위대한 금고/Voidcore 신화 1/6 272`)과 아이템 레벨을 함께 표시합니다.
@@ -284,7 +293,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 정적 카탈로그는 `itemID`만으로 영웅/신화 트랙이나 최종 BiS를 확정하지 않으며, 실제 `itemLink`/bonusID와 심크 검증이 필요하다는 메타를 표시합니다.
 - `scripts/build_bis_runtime_scoring.py`는 v1.7 코어를 설치하고 40개 전문화 스탯 표와 BIS 정책 메타를 갱신합니다.
 - BIS hover 툴팁은 전역 `GameTooltip:SetHyperlink()`를 직접 호출하지 않고, 안전한 전용 툴팁으로 검증된 tooltipData 텍스트만 렌더링합니다. 수동 렌더러는 Blizzard tooltip line color와 품질 색을 보존합니다.
-- hover/자동 큐는 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않습니다. M+/raid 행 클릭은 공개 열기 경로만 사용합니다.
+- hover/자동 큐는 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않습니다. M+/raid 행 클릭은 비전투 중 공개 열기 경로만 사용합니다.
 - `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서로 실행합니다.
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있고, 점수 정책은 v1.7 파일에서 관리합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
 - 시즌 selector 교체 또는 예외 항목용 `Myth 1/6 272` full link override 추가는 `Data/BISMythicVaultLinks.lua`만 갱신하고 `python .\scripts\validate_bis_mythic_vault_links.py`로 확인합니다.
@@ -298,6 +307,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 
 ## 현재 제약
 
+- 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행합니다. WoW 설치 폴더로 자동 복사하지 않습니다.
 - 실제 액션바 변경 허용 범위는 `1-132`, `145-180`입니다.
 - 바 모델은 현재 `1~9번 바`까지 지원합니다.
 - `9번 바`는 비행 중 페이지 전환 바입니다.

@@ -734,11 +734,7 @@ local function selectEncounterJournalDungeonTab()
     if not tab or type(EJ_ContentTab_Select) ~= "function" then
         return false
     end
-    local tabID = tab:GetID()
-    if C_EncounterJournal and type(C_EncounterJournal.SetTab) == "function" then
-        pcall(C_EncounterJournal.SetTab, tabID)
-    end
-    return pcall(EJ_ContentTab_Select, tabID)
+    return pcall(EJ_ContentTab_Select, tab:GetID())
 end
 
 local function selectEncounterJournalTier(tierIndex)
@@ -786,6 +782,13 @@ local function openEncounterJournalForEntry(entry, itemID)
     local sourceType = getEntrySourceType(entry)
     local sourceLabel = entry and (entry.sourceLabel or entry.boss or "")
     if sourceType == "crafted" or sourceType == "tier" or hasRaidMetaLabel(sourceLabel) then
+        return
+    end
+
+    if InCombatLockdown and InCombatLockdown() then
+        if ns.Utils and ns.Utils.Print then
+            ns.Utils.Print("[ABPM] 전투 중에는 모험 안내서 자동 이동을 사용할 수 없습니다.")
+        end
         return
     end
 

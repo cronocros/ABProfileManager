@@ -6,6 +6,18 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.5 - 2026-06-03
+
+BIS 출처 클릭의 Encounter Journal 랜딩 보호 경로를 보강한 로컬 패치.
+
+주요 변경:
+- Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출 제거
+- 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업 방지
+- 비전투 중 M+ 랜딩은 현재 시즌 tier 선선택, availability guard, 검증된 `JournalInstanceID` 경로 유지
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.5.zip` 생성까지만 수행하고 WoW 설치 폴더 복사는 하지 않음
+- 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0` 유지
+- AGENTS, README, ADDON_INTRO, ARCHITECTURE, HANDOFF, DOC index, 릴리스 노트를 v1.11.5 로컬 패치 기준으로 갱신
+
 ## 1.11.4 - 2026-06-03
 
 M+ Encounter Journal 랜딩과 selector preview hyperlink 비동기 로드 재시도를 보강한 로컬 패치.

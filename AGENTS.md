@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.11.4 로컬 패치 기반`
+**현재 기준**: `v1.11.5 로컬 패치 기반`
 
 ## 검증 명령어
 
@@ -77,6 +77,8 @@ ABProfileManager/
    - 수동 tooltip 렌더러는 Blizzard tooltip line color와 품질 색을 보존한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
    - M+ 클릭 랜딩은 `Data/BISEncounterJournal.lua`의 검증 `JournalInstanceID`만 사용하고, 현재 시즌 tier 선선택과 availability guard를 유지한다
+   - Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않는다
+   - 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지한다
    - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 rebuild 스로틀을 완화한다
    - `GET_ITEM_INFO_RECEIVED`는 visible row만 갱신한다
    - crafted/tier는 Encounter Journal 랜딩 대상이 아니다
@@ -99,7 +101,8 @@ ABProfileManager/
 - 퀘스트 목록 패널이 정상 표시되는지
 - 퀘스트 ID 링크 클릭 동작
 - 스탯 overlay drag/hitbox
-- BIS 오버레이 드랍 출처 클릭 → 모험 안내서 loot 탭 랜딩
+- BIS 오버레이 드랍 출처 클릭 → 비전투 중 모험 안내서 loot 탭 랜딩
+- 전투 중 BIS 드랍 출처 클릭 → 자동 랜딩 생략, Blizzard 보호 기능 차단 팝업 없음
 - BIS 필터 / 열 폭 / 마지막 열 가림 여부
 - BIS 상단 아이템 토글 on/off, M+ selector preview 자동 생성, `Myth 1/6 272` 검증 preview만 자동 점수화되는지 확인
 - 던전 종료 `Hero 3/6 266` 링크만 있을 때 `Myth 1/6 272` 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인
@@ -159,6 +162,7 @@ ABProfileManager/
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다
 - selector 또는 item string 템플릿 변경 시 기존 snapshot cache는 초기화한다. 다른 템렙으로 해석된 preview는 같은 세션에서 다시 큐에 넣지 않는다
 - M+ 자동 검색은 임의 bonusID를 조립하지 않으며, hover/자동 큐에서 Encounter Journal UI 상태를 변경하지 않는다
+- Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출을 사용하지 않으며, 전투 중에는 자동 랜딩을 건너뛴다
 - `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서로 실행한다
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있고, 점수 정책은 v1.7 파일에서 관리한다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위다
 - 시즌 selector 교체 또는 예외 항목용 `Myth 1/6 272` full link override 추가는 `Data/BISMythicVaultLinks.lua`만 갱신하고 `scripts/validate_bis_mythic_vault_links.py`로 확인한다
@@ -202,6 +206,7 @@ ABProfileManager/
 현재 로컬 패키지 정책:
 - `dist/` 루트에는 최신 ZIP만 유지
 - 이전 로컬 ZIP은 `dist/archive/`로 이동
+- 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하고 WoW 설치 폴더로 복사하지 않는다
 
 ## 문서 위치
 

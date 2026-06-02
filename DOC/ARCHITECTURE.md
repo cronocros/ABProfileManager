@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.11.4 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.5 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -132,8 +132,10 @@
   - 헤더에 현재 전문화 스탯 정책과 정적 최종 BiS 미확정 상태를 표시
   - M+ 항목은 `rewardProfiles`로 던전 종료 Hero 3/6 266 / 위대한 금고·Voidcore Myth 1/6 272 대표 후보 트랙과 템렙을 표시
   - M+ 자동 검색 큐는 내장 selector preview를 만들고 수동 override full link를 우선 적용하며, 링크 자체가 위대한 금고 Myth 1/6 272로 검증된 경우에만 실제 스탯 / 실제 ilvl로 점수화
-  - `mythicplus`, `raid`만 가능한 경우 Encounter Journal loot 탭 랜딩
+  - `mythicplus`, `raid`만 비전투 중 가능한 경우 Encounter Journal loot 탭 랜딩
   - M+ 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 검증된 `JournalInstanceID`로 대상 던전을 오픈
+  - Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않음
+  - 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지
   - 한밤 시즌 1 M+ `JournalInstanceID`: `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
   - M+ 행 hover는 저장된 272 스냅샷의 tooltip 텍스트와 Blizzard line color, 품질 색을 전용 tooltip에 수동 렌더링하고, 없으면 미검증 안내만 표시
@@ -168,7 +170,7 @@
   - M+ row 라벨과 자동 검색 full link 검증용 위대한 금고 Myth 1/6 272 대표 프로필 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
-  - v1.11.4 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - v1.11.5 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
   - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
@@ -329,7 +331,8 @@ seed 경계:
 - selector preview hyperlink가 아직 로드되지 않아 snapshot이 없으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증한다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션 최대 2회로 제한한다. M+ 행 hover도 snapshot이 없을 때 즉시 해석을 한 번 시도한다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
-- M+ Encounter Journal 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 검증된 `JournalInstanceID`를 사용한다
+- M+ Encounter Journal 랜딩은 비전투 중에만 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우 검증된 `JournalInstanceID`를 사용한다
+- Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않는다. 전투 중에는 자동 랜딩을 건너뛴다
 - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 부담을 완화한다
 - money/currency/sell-price line은 렌더링하지 않는다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 
@@ -349,7 +352,8 @@ seed 경계:
 - 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지
 - tooltip에 정적 최종 BiS 아님, 런타임 링크 필요, itemID만으로 Myth 트랙 미확정 문구가 표시되는지
 - `제작 + 티어만 on`에서 Encounter Journal 잘못 랜딩이 없는지
-- M+ 드랍 출처 클릭 시 현재 시즌 tier preselection과 availability guard를 거쳐 8개 검증 `JournalInstanceID`로 랜딩하는지
+- 비전투 중 M+ 드랍 출처 클릭 시 현재 시즌 tier preselection과 availability guard를 거쳐 8개 검증 `JournalInstanceID`로 랜딩하는지
+- 전투 중 BIS 드랍 출처 클릭 시 자동 랜딩을 건너뛰고 Blizzard 보호 기능 차단 팝업이 뜨지 않는지
 - BIS hover 뒤 액션바 / 모험 안내서 / Pawn item tooltip에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지
 - BIS 수동 tooltip이 Blizzard line color와 품질 색을 보존하는지
 - `koKR`에서 영어 누수, `enUS`에서 한글 누수가 없는지

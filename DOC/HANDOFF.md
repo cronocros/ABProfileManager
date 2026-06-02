@@ -1,8 +1,16 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.4 로컬 패치 기반`
+버전 기준: `v1.11.5 로컬 패치 기반`
 
-## 0-new. v1.11.4 로컬 패치 메모
+## 0-new. v1.11.5 로컬 패치 메모
+
+- BIS 드랍 출처 클릭의 Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출을 제거했다.
+- 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지한다.
+- 비전투 중 M+ 랜딩은 현재 시즌 tier 선선택, availability guard, 검증된 `JournalInstanceID` 경로를 유지한다.
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.5.zip` 생성까지만 수행한다. WoW 설치 폴더로 복사하지 않는다.
+- 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0`을 유지한다.
+
+## 0-prev. v1.11.4 로컬 패치 메모
 
 - M+ Encounter Journal 랜딩은 검증된 `JournalInstanceID`를 사용한다. 한밤 시즌 1 기준은 `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`이다.
 - M+ 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 대상 던전 loot 탭을 연다.
@@ -153,8 +161,9 @@
 - 한글명은 `공식 KR 표기 > Wowhead koKR > DOC companion 검증 통과값` 우선순위로 생성한다.
 - `공결탑 제나스`, `알게타르 대학` 같은 alias는 생성기에서 canonical name으로 정규화한다. 런타임에서는 canonical label만 읽는다.
 - 오버레이 open/spec/filter 전환은 단일 rebuild 경로를 유지한다. `GET_ITEM_INFO_RECEIVED`는 visible row patch만 처리한다.
-- crafted/tier는 Encounter Journal 랜딩 대상이 아니다. `mythicplus/raid`만 랜딩을 유지한다.
+- crafted/tier는 Encounter Journal 랜딩 대상이 아니다. `mythicplus/raid`만 비전투 중 랜딩을 유지한다.
 - v1.11.4에서 한밤 시즌 1 M+ 8개 던전 direct `JournalInstanceID`를 검증값으로 고정했다.
+- v1.11.5에서 보호된 `C_EncounterJournal.SetTab` 직접 호출을 제거하고, 전투 중 자동 랜딩을 건너뛰도록 보강했다.
 
 ## 0-prev. v1.6.0 오버레이 UX 핫픽스 메모
 
@@ -179,7 +188,8 @@
 - M+/tier의 정적 최종 BiS 미확정 정책은 유지한다. 장황한 hover 경고는 다시 늘리지 않는다.
 - 장비/가방 링크는 정렬이나 hover에서 다시 스캔하지 않는다. 보유 체크 on 시 저장용 링크를 한 번 찾고, 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐 규칙을 유지한다.
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 다시 연결하지 않는다.
-- M+ Encounter Journal 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 검증된 `JournalInstanceID`로 loot 탭을 연다.
+- M+ Encounter Journal 랜딩은 비전투 중에만 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우 검증된 `JournalInstanceID`로 loot 탭을 연다.
+- Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않는다. 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지한다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
 - 검증된 한밤 시즌 1 M+ `JournalInstanceID`:
   - `Magisters' Terrace = 1300`
@@ -320,6 +330,7 @@
 - `python .\scripts\validate_bis_catalog.py`
 - 그 다음 `git diff --check`
 - 릴리스 작업이면 그 다음 패키징
+- 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하고 WoW 설치 폴더로 복사하지 않음
 - 마지막에 푸시, 필요 시 GitHub release
 
 인게임 회귀 포인트:
@@ -328,7 +339,8 @@
 - profession overlay 상세/요약/최소
 - 전투메시지 설정 체크박스와 `위로 / 아래로 / 부채꼴` 버튼 선택 상태
 - 지도 오버레이가 외부 월드맵에서만 표시되는지
-- BIS 오버레이 드랍 출처 클릭 → 모험 안내서 loot 탭 랜딩
+- 비전투 중 BIS 오버레이 드랍 출처 클릭 → 모험 안내서 loot 탭 랜딩
+- 전투 중 BIS 오버레이 드랍 출처 클릭 → 자동 랜딩 생략, Blizzard 보호 기능 차단 팝업 없음
 - BIS 아이템 hover 후 액션바 / 모험 안내서 / Pawn 아이템 tooltip에서 `MoneyFrame.lua` 오류가 없는지 확인
 - BIS tooltip에서 런타임 링크 필요, itemID만으로 Myth 트랙 미확정, 정적 최종 BiS 아님/심크 필요 문구가 보이는지 확인
 - BIS 필터 on/off와 visible rank 재계산
