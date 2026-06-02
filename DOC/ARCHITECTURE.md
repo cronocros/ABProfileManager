@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.11.3 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.4 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -114,6 +114,8 @@
   - 저장 스냅샷은 `Data/BISRuntimeScoring.lua` 어댑터로 점수화하고 같은 slot 정렬에 적용
   - selector 또는 item string 템플릿 변경 시 기존 SavedVariables snapshot cache를 초기화
   - 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시에 넣어 반복 큐잉을 방지
+  - selector preview hyperlink가 아직 로드되지 않아 snapshot이 비어 있으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증하고, 실패 callback은 timeout으로 정리하며 링크별 재시도는 세션 최대 2회로 제한
+  - M+ 행 hover도 저장 snapshot이 없을 때 selector preview hyperlink의 즉시 해석을 한 번 시도
   - 저장 스냅샷이 없는 후보는 정적 `overallRank` 순서를 유지
   - 장비/가방 링크는 정렬 또는 hover에서 스캔하지 않고, 보유 체크 on 시 저장용 링크를 한 번만 검색
   - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지
@@ -131,6 +133,8 @@
   - M+ 항목은 `rewardProfiles`로 던전 종료 Hero 3/6 266 / 위대한 금고·Voidcore Myth 1/6 272 대표 후보 트랙과 템렙을 표시
   - M+ 자동 검색 큐는 내장 selector preview를 만들고 수동 override full link를 우선 적용하며, 링크 자체가 위대한 금고 Myth 1/6 272로 검증된 경우에만 실제 스탯 / 실제 ilvl로 점수화
   - `mythicplus`, `raid`만 가능한 경우 Encounter Journal loot 탭 랜딩
+  - M+ 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 검증된 `JournalInstanceID`로 대상 던전을 오픈
+  - 한밤 시즌 1 M+ `JournalInstanceID`: `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
   - M+ 행 hover는 저장된 272 스냅샷의 tooltip 텍스트와 Blizzard line color, 품질 색을 전용 tooltip에 수동 렌더링하고, 없으면 미검증 안내만 표시
   - `GET_ITEM_INFO_RECEIVED`는 전체 rebuild 대신 visible row patch만 수행
@@ -164,7 +168,7 @@
   - M+ row 라벨과 자동 검색 full link 검증용 위대한 금고 Myth 1/6 272 대표 프로필 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
-  - v1.11.3 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - v1.11.4 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
   - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
@@ -178,6 +182,9 @@
   - Midnight 시즌 1 M+10 금고 Myth 1/6 selector `12801`, 예외 항목용 full link override, 선택적 사전 스캔 snapshot을 보관
   - selector preview와 등록 override는 클라이언트에서 한 번 스캔한 뒤 계정 SavedVariables snapshot으로 재사용
   - 런타임이 실제 item level을 다시 검증하므로 검토되지 않은 bonusID를 넣지 않음
+- `Data/BISEncounterJournal.lua`
+  - 현재 시즌 M+ 도감 랜딩용 UI tier index, DB2 `JournalTierID`, 검증 build, 검증된 `JournalInstanceID`를 보관
+  - `MapID`는 `EJ_SelectInstance()` 입력으로 사용하지 않음
 - `Data/BISData_Method.lua`
   - Wowhead `current Overall BiS` seed 입력
 - `Data/BISData.lua`
@@ -202,6 +209,8 @@
   - v1.3 DOC DB 경로에서는 기존 `raid 285` / `crafted 91`행을 보존하고 `mythicplus 2554` / `tier 200`행을 생성
   - dungeon/source alias canonicalization, locale 누수 검사, itemID 검증, 정적 링크 미생성 검증을 포함
   - v1.3 입력은 정적 후보 풀 생성 기준으로 유지
+- `scripts/validate_bis_encounter_journal.py`
+  - 현재 시즌 M+ 도감 tier와 `JournalInstanceID` 매핑, TOC 로드 여부를 검증
 - `scripts/build_bis_runtime_scoring.py`
   - v1.7 코어를 런타임 경로에 설치하고 40개 전문화 스탯 표와 BIS 정책 메타를 갱신
 - `scripts/rebuild_bis_database.ps1`
@@ -317,8 +326,10 @@ seed 경계:
 - M+/tier row는 정적 최종 BiS가 아니며 실제 `itemLink`/bonusID와 심크/QE/로그 검증이 필요하다는 메타를 함께 표시한다
 - 검증 snapshot이 없는 후보는 정적 순서를 유지한다
 - selector 또는 item string 템플릿 변경 시 이전 SavedVariables snapshot cache를 초기화하고, 다른 템렙으로 해석된 preview는 같은 세션에서 반복 재시도하지 않는다
+- selector preview hyperlink가 아직 로드되지 않아 snapshot이 없으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증한다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션 최대 2회로 제한한다. M+ 행 hover도 snapshot이 없을 때 즉시 해석을 한 번 시도한다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
+- M+ Encounter Journal 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 검증된 `JournalInstanceID`를 사용한다
 - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 부담을 완화한다
 - money/currency/sell-price line은 렌더링하지 않는다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 
@@ -330,12 +341,15 @@ seed 경계:
 - M+ BIS row에 위대한 금고 Myth 1/6 272 baseline이 표시되는지
 - 상단 아이템 토글 on/off에 따라 M+ selector preview 자동 생성이 활성화/비활성화되는지
 - `Myth 1/6 272`로 검증된 selector preview 또는 override만 실제 스탯 / 실제 ilvl 자동 점수화를 받는지
+- selector preview hyperlink가 첫 조회에서 비어 있어도 비동기 아이템 로드 뒤 snapshot이 채워지는지
+- snapshot이 없는 M+ 행 hover에서 preview hyperlink 즉시 해석이 가능한 경우 tooltip이 바로 채워지는지
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지
 - 검증된 272 snapshot이 재접속 뒤에도 재사용되는지
 - BIS hover/자동 큐 뒤 Encounter Journal hover에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지
 - 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지
 - tooltip에 정적 최종 BiS 아님, 런타임 링크 필요, itemID만으로 Myth 트랙 미확정 문구가 표시되는지
 - `제작 + 티어만 on`에서 Encounter Journal 잘못 랜딩이 없는지
+- M+ 드랍 출처 클릭 시 현재 시즌 tier preselection과 availability guard를 거쳐 8개 검증 `JournalInstanceID`로 랜딩하는지
 - BIS hover 뒤 액션바 / 모험 안내서 / Pawn item tooltip에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지
 - BIS 수동 tooltip이 Blizzard line color와 품질 색을 보존하는지
 - `koKR`에서 영어 누수, `enUS`에서 한글 누수가 없는지

@@ -6,6 +6,17 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.4 - 2026-06-03
+
+M+ Encounter Journal 랜딩과 selector preview hyperlink 비동기 로드 재시도를 보강한 로컬 패치.
+
+주요 변경:
+- M+ 드랍 출처 클릭 시 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 검증된 `JournalInstanceID`로 대상 던전 loot 탭 오픈
+- 한밤 시즌 1 M+ 던전 ID 고정: `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`
+- selector preview hyperlink가 아직 로드되지 않아 snapshot이 비어 있으면 비동기 아이템 로드 뒤 exact selector 링크 재검증. 실패 callback timeout 정리와 링크별 세션 최대 2회 재시도 적용
+- 저장 snapshot이 없는 M+ 행 hover도 selector preview hyperlink 즉시 해석을 한 번 시도
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.4.zip`, 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0` 유지
+
 ## 1.11.3 - 2026-06-02
 
 가방에 없는 M+ 후보도 Myth 1/6 272 tooltip/stat preview를 자동 생성하는 로컬 패치.
@@ -225,7 +236,7 @@ WoW Patch 12.0.5 호환성 업데이트.
 - 루트 `README`, `ADDON_INTRO`, `AGENTS`, `DOC/ARCHITECTURE`, `DOC/HANDOFF`, `DOC/SECURITY_REVIEW`, `DOC/README`, 릴리스 노트를 현재 동작 기준으로 전면 갱신
 - BIS 인던 드랍 정보 오버레이를 최종 QA 상태로 정리: `드랍 출처 / 유형 / BIS 여부` 열, 체크박스형 `쐐기 / 레이드 / 제작` 필터, 참고용 안내 문구, 제작/촉매 비랜딩, 아이템 hover 툴팁 비활성화
 - BIS 데이터는 Method 시즌 데이터와 기존 수동 던전 fallback을 함께 병합해 부위별 `BIS / 대체 / 3순위` 구성을 다시 복구
-- BIS 모험 안내서 랜딩은 `공결탑 제나스`(tier 13 / instanceID 1314)와 `알게타르 대학`(instanceID 2526) 한글명/직접 ID 보정을 반영
+- BIS 모험 안내서 랜딩은 당시 `공결탑 제나스`와 `알게타르 대학` 한글명/직접 ID 보정을 반영했으며, ID 값은 v1.11.4에서 `JournalInstanceID` 기준으로 재검증
 - 아이템 캐시 지연 시 BIS 전체 재빌드 대신 보이는 행만 갱신해 깜빡임과 불필요한 새로고침을 줄임
 - 시즌 최고기록 오버레이는 `평점 + 던전명`만 하단 정렬로 표시하고, 긴 한글 던전명은 지정 규칙대로 강제 줄바꿈
 - 릴리스 메타데이터를 `v1.5.8`로 올리고 패키징 경로/다운로드 링크도 함께 갱신

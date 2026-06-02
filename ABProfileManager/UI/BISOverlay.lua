@@ -405,24 +405,23 @@ local SOURCE_TYPE_COLOR = {
     tier = { 0.88, 0.58, 1.00 },
 }
 
--- 던전 → 모험 안내서 instanceID 매핑 (returning 던전 확인값, Midnight 신규 던전은 미확인)
-local DUNGEON_EJ_IDS = {
-    ["공결점 제나스"] = 1314,
-    ["공결탑 제나스"] = 1314,
-    ["알게타르 아카데미"] = 2526,
-    ["알게타르 대학"] = 2526,
-}
-local DUNGEON_EJ_TIERS = {
-    ["공결점 제나스"] = 13,
-    ["공결탑 제나스"] = 13,
-}
+local BIS_EJ_DATA = ns.Data and ns.Data.BISEncounterJournal or {}
+local DUNGEON_EJ_IDS = BIS_EJ_DATA.instanceIDsByDungeon or {}
+local CURRENT_SEASON_EJ_TIER_INDEX = tonumber(BIS_EJ_DATA.currentSeasonTierIndex) or 13
 local EJ_ENCOUNTER_CACHE = {}
 local PENDING_ITEM_DATA = {}
+local PENDING_MYTH_PREVIEW_LINKS = {}
+local MYTH_PREVIEW_LINK_LOAD_ATTEMPTS = {}
+local PENDING_MYTH_PREVIEW_ENTRIES = {}
+local REJECTED_MYTH_PREVIEW_LINKS = {}
 local PENDING_ROW_REFRESH_ITEM_IDS = {}
+local MYTH_PREVIEW_LINK_MAX_ATTEMPTS = 2
+local MYTH_PREVIEW_LINK_LOAD_TIMEOUT = 1.5
 local normalizeCompareText
 local getEntrySourceType
 local getSeasonalRaidRange
 local requestItemData
+local retryMythPreviewSnapshot
 local hasRaidMetaLabel
 local isCraftingSourceLabel
 local isEnglishOnlyLabel
@@ -707,7 +706,7 @@ local function resolveFallbackJournalTarget(entry)
         end
         return {
             instanceID = instanceID,
-            tier = dungeonName and DUNGEON_EJ_TIERS[dungeonName] or nil,
+            tier = CURRENT_SEASON_EJ_TIER_INDEX,
             difficulty = 23,
             encounterID = findEncounterIDInInstance(instanceID, encounterHints),
         }
@@ -720,6 +719,62 @@ local function resolveFallbackJournalTarget(entry)
     end
 
     return nil
+end
+
+local function isValidEncounterJournalTierIndex(tierIndex)
+    if not tierIndex or type(EJ_GetNumTiers) ~= "function" then
+        return false
+    end
+    local ok, numTiers = pcall(EJ_GetNumTiers)
+    return ok and tonumber(numTiers) and tierIndex >= 1 and tierIndex <= numTiers
+end
+
+local function selectEncounterJournalDungeonTab()
+    local tab = EncounterJournal and EncounterJournal.dungeonsTab
+    if not tab or type(EJ_ContentTab_Select) ~= "function" then
+        return false
+    end
+    local tabID = tab:GetID()
+    if C_EncounterJournal and type(C_EncounterJournal.SetTab) == "function" then
+        pcall(C_EncounterJournal.SetTab, tabID)
+    end
+    return pcall(EJ_ContentTab_Select, tabID)
+end
+
+local function selectEncounterJournalTier(tierIndex)
+    if not isValidEncounterJournalTierIndex(tierIndex)
+        or type(EncounterJournal_ExpansionDropdown_Select) ~= "function" then
+        return false
+    end
+    return pcall(EncounterJournal_ExpansionDropdown_Select, EncounterJournal, tierIndex)
+end
+
+local function selectEncounterJournalTierForInstance(instanceID, tierIndex)
+    if not instanceID or type(EJ_GetInstanceByIndex) ~= "function"
+        or not selectEncounterJournalDungeonTab()
+        or not selectEncounterJournalTier(tierIndex) then
+        return false
+    end
+
+    local index = 1
+    while true do
+        local ok, listedInstanceID = pcall(EJ_GetInstanceByIndex, index, false)
+        if not ok or not listedInstanceID then
+            return false
+        end
+        if tonumber(listedInstanceID) == tonumber(instanceID) then
+            return true
+        end
+        index = index + 1
+    end
+end
+
+local function openEncounterJournalDungeonTierList(tierIndex)
+    selectEncounterJournalDungeonTab()
+    if selectEncounterJournalTier(tierIndex)
+        and type(EncounterJournal_ListInstances) == "function" then
+        pcall(EncounterJournal_ListInstances)
+    end
 end
 
 -- 모험 안내서 열기 (safe — pcall 보호)
@@ -753,8 +808,12 @@ local function openEncounterJournalForEntry(entry, itemID)
                     ToggleEncounterJournal()
                 end
             end
-            if instanceID and type(EncounterJournal_OpenJournal) == "function" then
+            if instanceID
+            and selectEncounterJournalTierForInstance(instanceID, tier)
+            and type(EncounterJournal_OpenJournal) == "function" then
                 pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, itemID, tier)
+            elseif sourceType == "mythicplus" then
+                openEncounterJournalDungeonTierList(tier or CURRENT_SEASON_EJ_TIER_INDEX)
             end
         end
     end)
@@ -1547,9 +1606,7 @@ local function scheduleRebuild(itemID, fullRebuild)
         _rebuildPending = false
         if BISOverlay.frame and BISOverlay.frame:IsShown() then
             pcall(function()
-                if _fullRebuildPending
-                or (BISOverlay._automaticScoreNeedsRetry and isOverlayItemTooltipEnabled()) then
-                    BISOverlay._automaticScoreNeedsRetry = false
+                if _fullRebuildPending then
                     BISOverlay._isItemLoadRebuild = true
                     BISOverlay:RebuildContent()
                 else
@@ -2306,8 +2363,13 @@ function BISOverlay:EnsureFrame()
     evFrame:SetScript("OnEvent", function(_, _, itemID, success)
         local numericID = tonumber(itemID)
         local requested = numericID and PENDING_ITEM_DATA[numericID]
+        local previewEntry = numericID and PENDING_MYTH_PREVIEW_ENTRIES[numericID]
         if numericID then
             PENDING_ITEM_DATA[numericID] = nil
+            PENDING_MYTH_PREVIEW_ENTRIES[numericID] = nil
+        end
+        if success and previewEntry and retryMythPreviewSnapshot then
+            retryMythPreviewSnapshot(previewEntry)
         end
         if success and requested then scheduleRebuild(numericID) end
     end)
@@ -2607,6 +2669,52 @@ local function isItemHyperlink(link)
         and (link:find("|Hitem:", 1, true) ~= nil or link:find("^item:") ~= nil)
 end
 
+local function requestMythPreviewLinkData(link, entry)
+    local itemID = tonumber(entry and entry.itemID)
+    if not isItemHyperlink(link) or not itemID or itemID <= 0 then
+        return
+    end
+
+    PENDING_MYTH_PREVIEW_ENTRIES[itemID] = entry
+    requestItemData(itemID)
+    if PENDING_MYTH_PREVIEW_LINKS[link]
+        or (MYTH_PREVIEW_LINK_LOAD_ATTEMPTS[link] or 0) >= MYTH_PREVIEW_LINK_MAX_ATTEMPTS then
+        return
+    end
+
+    local attempt = (MYTH_PREVIEW_LINK_LOAD_ATTEMPTS[link] or 0) + 1
+    MYTH_PREVIEW_LINK_LOAD_ATTEMPTS[link] = attempt
+    if type(Item) ~= "table" or type(Item.CreateFromItemLink) ~= "function" then
+        return
+    end
+
+    local ok, item = pcall(Item.CreateFromItemLink, Item, link)
+    if not ok or type(item) ~= "table" or type(item.ContinueOnItemLoad) ~= "function" then
+        return
+    end
+
+    PENDING_MYTH_PREVIEW_LINKS[link] = attempt
+    local function retryLoadedPreview()
+        if PENDING_MYTH_PREVIEW_LINKS[link] ~= attempt then
+            return
+        end
+        PENDING_MYTH_PREVIEW_LINKS[link] = nil
+        if PENDING_MYTH_PREVIEW_ENTRIES[itemID] == entry then
+            PENDING_MYTH_PREVIEW_ENTRIES[itemID] = nil
+        end
+        if retryMythPreviewSnapshot then
+            retryMythPreviewSnapshot(entry)
+        end
+    end
+    local continueOK = pcall(item.ContinueOnItemLoad, item, retryLoadedPreview)
+    if not continueOK then
+        PENDING_MYTH_PREVIEW_LINKS[link] = nil
+    elseif PENDING_MYTH_PREVIEW_LINKS[link] == attempt
+        and C_Timer and type(C_Timer.After) == "function" then
+        C_Timer.After(MYTH_PREVIEW_LINK_LOAD_TIMEOUT, retryLoadedPreview)
+    end
+end
+
 local function getTooltipDataForHyperlink(link)
     if not isItemHyperlink(link) or not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
         return nil
@@ -2883,8 +2991,6 @@ getAutomaticRuntimeScore = function(entry, specID)
     return score
 end
 
-local REJECTED_MYTH_PREVIEW_LINKS = {}
-
 local function getConfiguredMythicVaultItemLinks(entry)
     local profiles = entry and entry.rewardProfiles
     local profile = profiles and profiles.mplus_great_vault_voidcore
@@ -2924,7 +3030,6 @@ end
 
 local function getExactMythicVaultItemLink(entry)
     local baselineItemLevel = getMythicPlusVaultPreviewItemLevel(entry)
-    local pending = false
     local links = getConfiguredMythicVaultItemLinks(entry)
     for _, link in ipairs(links) do
         if isMatchingItemLink(link, entry.itemID) then
@@ -2933,31 +3038,31 @@ local function getExactMythicVaultItemLink(entry)
             if itemLevel == baselineItemLevel then
                 return link, false
             end
-            if not tooltipData or not itemLevel then
-                pending = true
-                BISOverlay._automaticScoreNeedsRetry = true
-                requestItemData(entry.itemID)
-            elseif itemLevel ~= baselineItemLevel then
+            if (MYTH_PREVIEW_LINK_LOAD_ATTEMPTS[link] or 0) < MYTH_PREVIEW_LINK_MAX_ATTEMPTS then
+                requestMythPreviewLinkData(link, entry)
+            else
                 REJECTED_MYTH_PREVIEW_LINKS[link] = true
             end
         end
     end
-    return nil, pending
+    return nil
 end
 
 local function resolveMythPreviewSnapshot(entry)
     if getMythPreviewSnapshot(entry.itemID) then
         return false
     end
-    local previewLink, pending = getExactMythicVaultItemLink(entry)
+    local previewLink = getExactMythicVaultItemLink(entry)
     if not previewLink then
         return nil
     end
-    local cached = cacheMythPreviewSnapshot(entry, previewLink)
-    if not cached and pending then
-        BISOverlay._automaticScoreNeedsRetry = true
+    return cacheMythPreviewSnapshot(entry, previewLink)
+end
+
+retryMythPreviewSnapshot = function(entry)
+    if resolveMythPreviewSnapshot(entry) then
+        scheduleRebuild(entry.itemID, true)
     end
-    return cached
 end
 
 scheduleAutomaticRuntimeScores = function(items, specID)
@@ -3245,6 +3350,10 @@ showSeasonItemTooltip = function(owner, row)
     if isOverlayItemTooltipEnabled() and sourceType == "mythicplus" then
         tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
         local snapshot = getMythPreviewSnapshot(row.itemID)
+        if not snapshot and resolveMythPreviewSnapshot(entry) then
+            snapshot = getMythPreviewSnapshot(row.itemID)
+            scheduleRebuild(row.itemID, true)
+        end
         if snapshot and tryRenderTooltipSnapshot(snapshot) then
             tooltip:AddLine(" ")
             appendCompactSeasonTooltipMeta()

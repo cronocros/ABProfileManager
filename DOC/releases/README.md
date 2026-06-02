@@ -4,8 +4,8 @@
 
 기준:
 
-- 최신 로컬 한글 릴리스 노트: `RELEASE_NOTES_v1.11.3.md`
-- 최신 로컬 영문 릴리스 노트: `RELEASE_NOTES_v1.11.3_EN.md`
+- 최신 로컬 한글 릴리스 노트: `RELEASE_NOTES_v1.11.4.md`
+- 최신 로컬 영문 릴리스 노트: `RELEASE_NOTES_v1.11.4_EN.md`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0`
 - 원격 GitHub 공개 최신 한글 릴리스 노트: `RELEASE_NOTES_v1.11.0.md`
 - 원격 GitHub 공개 최신 영문 릴리스 노트: `RELEASE_NOTES_v1.11.0_EN.md`

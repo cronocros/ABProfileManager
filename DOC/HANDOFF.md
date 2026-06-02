@@ -1,8 +1,16 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.3 로컬 패치 기반`
+버전 기준: `v1.11.4 로컬 패치 기반`
 
-## 0-new. v1.11.3 로컬 패치 메모
+## 0-new. v1.11.4 로컬 패치 메모
+
+- M+ Encounter Journal 랜딩은 검증된 `JournalInstanceID`를 사용한다. 한밤 시즌 1 기준은 `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`이다.
+- M+ 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 대상 던전 loot 탭을 연다.
+- selector preview hyperlink가 아직 로드되지 않아 snapshot이 비어 있으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증한다. 실패 콜백은 timeout으로 정리하고 링크별 재시도는 세션에서 최대 2회로 제한한다.
+- M+ 행 hover도 저장 snapshot이 없을 때 selector preview hyperlink의 즉시 해석을 한 번 시도한다.
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.4.zip`이다. 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0`을 유지한다.
+
+## 0-prev. v1.11.3 로컬 패치 메모
 
 - `Data/BISMythicVaultLinks.lua`에 Midnight 시즌 1 M+10 금고 Myth 1/6 selector `12801`을 고정했다.
 - 상단 아이템 토글이 켜져 있으면 수동 full link가 없는 M+ 후보도 `item:<itemID>...:1:12801` preview item string을 자동 생성한다.
@@ -146,7 +154,7 @@
 - `공결탑 제나스`, `알게타르 대학` 같은 alias는 생성기에서 canonical name으로 정규화한다. 런타임에서는 canonical label만 읽는다.
 - 오버레이 open/spec/filter 전환은 단일 rebuild 경로를 유지한다. `GET_ITEM_INFO_RECEIVED`는 visible row patch만 처리한다.
 - crafted/tier는 Encounter Journal 랜딩 대상이 아니다. `mythicplus/raid`만 랜딩을 유지한다.
-- `마이사라 동굴`, `윈드러너 첨탑` direct EJ ID는 아직 미확정이다.
+- v1.11.4에서 한밤 시즌 1 M+ 8개 던전 direct `JournalInstanceID`를 검증값으로 고정했다.
 
 ## 0-prev. v1.6.0 오버레이 UX 핫픽스 메모
 
@@ -166,14 +174,22 @@
 - 즐겨찾기/보유 상태는 캐릭터 record 안에서 전문화별로 분리한다. 즐겨찾기 섹션 이동과 보유 취소선 갱신을 함께 확인한다.
 - 상단 아이템 토글이 켜져 있으면 M+ 후보는 `Data/BISMythicVaultLinks.lua`의 selector `12801` preview를 자동 생성한다.
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다.
+- selector preview hyperlink가 아직 로드되지 않아 snapshot이 없으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증한다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션 최대 2회로 제한한다. M+ 행 hover도 snapshot이 없을 때 즉시 해석을 한 번 시도한다.
 - M+ 자동 검색은 검토되지 않은 bonusID를 임의 조립하지 않는다.
 - M+/tier의 정적 최종 BiS 미확정 정책은 유지한다. 장황한 hover 경고는 다시 늘리지 않는다.
 - 장비/가방 링크는 정렬이나 hover에서 다시 스캔하지 않는다. 보유 체크 on 시 저장용 링크를 한 번 찾고, 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐 규칙을 유지한다.
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 다시 연결하지 않는다.
+- M+ Encounter Journal 랜딩은 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우에만 검증된 `JournalInstanceID`로 loot 탭을 연다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
-- unresolved direct ID:
-  - `마이사라 동굴`
-  - `윈드러너 첨탑`
+- 검증된 한밤 시즌 1 M+ `JournalInstanceID`:
+  - `Magisters' Terrace = 1300`
+  - `Maisara Caverns = 1315`
+  - `Nexus-Point Xenas = 1316`
+  - `Windrunner Spire = 1299`
+  - `Algeth'ar Academy = 1201`
+  - `Seat of the Triumvirate = 945`
+  - `Skyreach = 476`
+  - `Pit of Saron = 278`
 
 ### 드랍템 레벨 오버레이
 
@@ -233,13 +249,6 @@
 - v1.10.0은 전문화별 단일 대표 우선순위를 사용하므로 M+ 전용 UI와 런타임 분기를 제거했다.
 - `DB.lua`의 `mythicPlusMode` 저장 키와 getter/setter는 이전 SavedVariables 호환을 위해 유지한다.
 - 콘텐츠별 우선순위를 다시 도입할 경우 검증된 별도 정책 입력과 UI 문구를 함께 설계해야 한다.
-
-### BIS 오버레이 direct EJ ID 미확인
-
-- 현재 추가 확인이 필요한 던전:
-  - `마이사라 동굴`
-  - `윈드러너 첨탑`
-- 현 클라이언트에서는 `EJ_GetInstanceByIndex()` 기반 확인이 더 안전하다.
 
 ### 경매장 현행 확장팩 필터 자동 선택
 
@@ -326,6 +335,8 @@
 - BIS 즐겨찾기/보유 체크, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선, 캐릭터/전문화 전환 후 상태 유지
 - BIS 상단 아이템 토글 on/off에 따라 M+ selector preview 자동 생성이 활성화/비활성화되는지 확인
 - selector preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화가 적용되는지 확인
+- selector preview hyperlink가 첫 조회에서 비어 있어도 비동기 아이템 로드 뒤 snapshot이 채워지는지 확인
+- snapshot이 없는 M+ 행 hover에서 preview hyperlink 즉시 해석이 가능한 경우 tooltip이 바로 채워지는지 확인
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인
 - 검증된 272 snapshot이 재접속 뒤에도 재사용되는지 확인
 - 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지 확인
@@ -339,4 +350,4 @@
 
 - UI 퍼블리싱은 이미 사용자가 맞춘 상태를 선호하므로, overflow 보정이나 안전장치 위주로만 접근하는 편이 안전하다.
 - BIS 시즌 변경 시에는 `DOC` seed를 출발점으로 삼되, 최종 truth는 외부 검증 결과와 itemID 확인이다.
-- 일부 신규 던전 direct ID가 비어 있으므로, 사용자 제보가 오면 먼저 인게임 Encounter Journal 이름과 instanceID부터 확인하는 게 맞다.
+- 시즌 던전 풀이 바뀌면 현재 시즌 tier preselection과 availability guard를 유지한 채 `JournalInstanceID`를 다시 검증한다.

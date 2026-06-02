@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- 로컬 패치: `v1.11.3`
+- 로컬 패치: `v1.11.4`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.11.3.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.11.4.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.3.md](./DOC/releases/RELEASE_NOTES_v1.11.3.md)
-- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.3_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.3_EN.md)
+- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.4.md](./DOC/releases/RELEASE_NOTES_v1.11.4.md)
+- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.4_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.4_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
@@ -30,6 +30,14 @@
 - 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.11.4 로컬 패치 핵심 정리
+
+- M+ 드랍 출처 클릭 시 현재 시즌 tier를 먼저 선택하고, 사용 가능 여부를 확인한 뒤 검증된 `JournalInstanceID`로 Encounter Journal loot 탭에 랜딩합니다.
+- 한밤 시즌 1 던전 ID는 `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`입니다.
+- selector preview hyperlink가 아직 로드되지 않아 snapshot이 비어 있으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증합니다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션에서 최대 2회로 제한합니다.
+- M+ 행 hover도 저장 snapshot이 없을 때 preview hyperlink의 즉시 해석을 한 번 시도합니다.
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.4.zip`이며, 원격 GitHub 공개 최신 릴리스는 계속 `v1.11.0`입니다.
 
 ## v1.11.3 로컬 패치 핵심 정리
 
@@ -268,8 +276,8 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 필터 적용 후 남은 후보만 다시 정렬하므로, `레이드 off`, `쐐기만 on`, `제작 + 티어만 on` 모두 실제 후보 목록이 유지됩니다.
 - `공결탑 제나스`, `알게타르 대학` 같은 source alias는 생성기에서 canonical name으로 정규화합니다.
 - 제작과 티어 항목은 Encounter Journal 랜딩 대상이 아닙니다.
-- `마이사라 동굴`, `윈드러너 첨탑`은 Encounter Journal instanceID 확정 전까지 안내서만 열리고 특정 던전으로 바로 이동하지 않을 수 있습니다.
-- BIS 아이템 캐시가 늦게 들어오면 visible row를 우선 갱신하고, 자동 점수 재시도가 필요한 경우에만 rebuild합니다. 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 연속 rebuild 부담을 줄였습니다.
+- M+ Encounter Journal 랜딩은 현재 시즌 tier를 먼저 선택하고 사용 가능 여부를 확인한 뒤 검증된 `JournalInstanceID`를 사용합니다: `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`.
+- BIS 아이템 캐시가 늦게 들어오면 visible row를 우선 갱신하고, selector preview hyperlink가 아직 로드되지 않은 경우 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증합니다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션에서 최대 2회로 제한합니다. 저장 snapshot이 없는 M+ 행 hover도 즉시 해석을 한 번 시도합니다. 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 연속 rebuild 부담을 줄였습니다.
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별로 저장됩니다. 즐겨찾기는 `무기` 위 별도 섹션으로 이동하고 보유 아이템명은 취소선으로 표시합니다.
 - 쐐기 BIS 항목은 대표 보상 프로필(`던전 종료 영웅 3/6 266`, `위대한 금고/Voidcore 신화 1/6 272`)과 아이템 레벨을 함께 표시합니다.
 - M+ 자동 검색 큐는 내장 selector preview를 우선 만들고 `Data/BISMythicVaultLinks.lua`의 수동 full link override를 먼저 적용합니다. 자동 점수는 preview 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 계산합니다.

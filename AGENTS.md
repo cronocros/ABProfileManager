@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.11.3 로컬 패치 기반`
+**현재 기준**: `v1.11.4 로컬 패치 기반`
 
 ## 검증 명령어
 
@@ -23,6 +23,7 @@ git diff --check
 
 python .\scripts\validate_bis_catalog.py
 python .\scripts\validate_bis_mythic_vault_links.py
+python .\scripts\validate_bis_encounter_journal.py
 python .\scripts\audit_bis_data.py
 
 powershell -ExecutionPolicy Bypass -File .\scripts\package_release.ps1
@@ -70,10 +71,12 @@ ABProfileManager/
    - 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 내장 selector `12801`로 M+ `Myth 1/6 272` preview를 만들고 한 번 스캔해 SavedVariables snapshot으로 저장한다
    - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화한다
    - selector 또는 item string 템플릿이 바뀌면 이전 snapshot cache를 초기화하고, 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도를 막는다
+   - preview hyperlink 비동기 로드는 itemID wake signal로만 사용하고, 완료 뒤 exact selector 링크를 다시 검증한다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션 최대 2회로 제한한다
    - 던전 종료 `Hero 3/6 266` 링크만 있으면 `Myth 1/6 272` 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
    - 임의 bonusID를 조립하지 않는다. 검토된 시즌 selector만 `Data/BISMythicVaultLinks.lua`에서 관리한다
    - 수동 tooltip 렌더러는 Blizzard tooltip line color와 품질 색을 보존한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
+   - M+ 클릭 랜딩은 `Data/BISEncounterJournal.lua`의 검증 `JournalInstanceID`만 사용하고, 현재 시즌 tier 선선택과 availability guard를 유지한다
    - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 rebuild 스로틀을 완화한다
    - `GET_ITEM_INFO_RECEIVED`는 visible row만 갱신한다
    - crafted/tier는 Encounter Journal 랜딩 대상이 아니다
@@ -123,6 +126,8 @@ ABProfileManager/
 - `Data/BISCatalog.lua`
 - `Data/MidnightS1MPlusDB.lua`
 - `Data/BISRuntimeScoring.lua`
+- `Data/BISMythicVaultLinks.lua`
+- `Data/BISEncounterJournal.lua`
 
 생성 입력:
 - `Data/BISData_Method.lua`
@@ -140,6 +145,7 @@ ABProfileManager/
 - `scripts/build_bis_catalog.py`
 - `scripts/build_bis_runtime_scoring.py`
 - `scripts/validate_bis_mythic_vault_links.py`
+- `scripts/validate_bis_encounter_journal.py`
 - `scripts/rebuild_bis_database.ps1`
 
 중요 규칙:
@@ -156,6 +162,7 @@ ABProfileManager/
 - `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서로 실행한다
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있고, 점수 정책은 v1.7 파일에서 관리한다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위다
 - 시즌 selector 교체 또는 예외 항목용 `Myth 1/6 272` full link override 추가는 `Data/BISMythicVaultLinks.lua`만 갱신하고 `scripts/validate_bis_mythic_vault_links.py`로 확인한다
+- 시즌 M+ 던전 풀이 바뀌면 `Data/BISEncounterJournal.lua`의 현재 시즌 tier와 `JournalInstanceID`만 갱신하고 `scripts/validate_bis_encounter_journal.py`로 확인한다
 
 ### 아이템 레벨 오버레이 + 문장/열쇠 패널
 
@@ -186,7 +193,7 @@ ABProfileManager/
 
 - 스탯 오버레이 `mythicPlusMode` 저장 키는 이전 SavedVariables 호환용으로만 유지
 - 경매장 현행 확장팩 필터 자동 선택
-- BIS 던전 direct EJ ID 추가 확인 (`마이사라 동굴`, `윈드러너 첨탑`)
+- 시즌 교체 시 BIS M+ 던전 `JournalInstanceID`와 현재 시즌 tier 재검증
 
 ## 릴리스 프로세스
 
