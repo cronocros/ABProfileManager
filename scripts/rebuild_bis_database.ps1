@@ -54,7 +54,7 @@ Push-Location $repoRoot
 try {
     Invoke-PythonStep "Build BIS catalog" "scripts/build_bis_catalog.py" @("--addon-db", $catalogPath)
     Invoke-PythonStep "Build BIS runtime scoring" "scripts/build_bis_runtime_scoring.py" @("--source", $scoringPath)
-    Invoke-PythonStep "Validate curated Myth links" "scripts/validate_bis_mythic_vault_links.py"
+    Invoke-PythonStep "Validate Myth preview selector and overrides" "scripts/validate_bis_mythic_vault_links.py"
     Invoke-PythonStep "Validate BIS catalog" "scripts/validate_bis_catalog.py"
     Invoke-PythonStep "Audit BIS data" "scripts/audit_bis_data.py"
 }

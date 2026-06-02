@@ -70,8 +70,10 @@ ns.Data.Defaults = {
                 locked  = false,
                 itemTooltip = false,
                 mythPreviewCache = {
-                    schemaVersion = 1,
+                    schemaVersion = 2,
                     baselineItemLevel = 272,
+                    generatedPreviewBonusListID = 12801,
+                    generatedPreviewItemStringTemplate = "item:%d::::::::::::1:%d",
                     itemsByID = {},
                 },
                 sources = {

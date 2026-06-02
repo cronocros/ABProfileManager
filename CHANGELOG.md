@@ -6,6 +6,22 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.3 - 2026-06-02
+
+가방에 없는 M+ 후보도 Myth 1/6 272 tooltip/stat preview를 자동 생성하는 로컬 패치.
+
+주요 변경:
+- `Data/BISMythicVaultLinks.lua`에 Midnight 시즌 1 M+10 금고 Myth 1/6 selector `12801` 고정
+- 수동 full link가 없는 M+ 후보도 selector preview item string을 자동 생성
+- 생성 preview 또는 수동 override가 클라이언트에서 실제 `272`로 검증된 경우에만 tooltip/stat snapshot 저장 및 점수화
+- snapshot은 계정 SavedVariables에 저장해 이후 hover와 자동 점수화에서 재사용
+- selector 또는 item string 템플릿 변경 시 기존 snapshot cache 자동 초기화
+- 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도 차단
+- 수동 `linksByItemID`는 예외 항목용 override로 유지
+- `scripts/validate_bis_mythic_vault_links.py`가 baseline과 selector `12801`, override 형식을 함께 검증
+- 검토되지 않은 bonusID 임의 조립 금지 정책 유지
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.3.zip`, 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0` 유지
+
 ## 1.11.1 - 2026-06-02
 
 BIS tooltip 색 보존, 검증 링크 DB 자동 점수화, MoneyFrame taint 방어를 추가한 로컬 패치.

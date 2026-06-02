@@ -2,14 +2,17 @@ local addonName, ns = ...
 
 ns.Data = ns.Data or {}
 
--- Curated Myth 1/6 links only. Keep this separate from the generated catalog:
--- itemID identifies the candidate, while the full link proves the 272 variant.
--- The overlay verifies the resolved item level, scans each link once, and
--- persists a tooltip/stat snapshot in SavedVariables for later sessions.
+-- Midnight Season 1 M+10 Great Vault Myth 1/6 preview selector plus optional
+-- curated overrides. Bonus list 12801 is the reviewed group-612 sequence-1
+-- selector. The overlay still verifies the resolved 272 item level, scans each
+-- link once, and persists a tooltip/stat snapshot in SavedVariables.
 ns.Data.BISMythicVaultLinks = {
-    schemaVersion = 1,
+    schemaVersion = 2,
     baselineItemLevel = 272,
+    generatedPreviewBonusListID = 12801,
+    generatedPreviewItemStringTemplate = "item:%d::::::::::::1:%d",
     linksByItemID = {
+        -- Optional observed full-link overrides:
         -- [251111] = "item:251111:...",
     },
     snapshotsByItemID = {

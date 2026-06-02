@@ -1,8 +1,20 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.2 로컬 패치 기반`
+버전 기준: `v1.11.3 로컬 패치 기반`
 
-## 0-new. v1.11.2 로컬 패치 메모
+## 0-new. v1.11.3 로컬 패치 메모
+
+- `Data/BISMythicVaultLinks.lua`에 Midnight 시즌 1 M+10 금고 Myth 1/6 selector `12801`을 고정했다.
+- 상단 아이템 토글이 켜져 있으면 수동 full link가 없는 M+ 후보도 `item:<itemID>...:1:12801` preview item string을 자동 생성한다.
+- selector `12801`은 샘플 신형/구형 던전 아이템에서 `272`, `Myth 1/6`, 2차 스탯 반환을 오프라인 검증했다.
+- 생성 preview도 클라이언트 tooltip이 실제 `272`로 확인된 경우에만 SavedVariables snapshot으로 저장하고 점수화한다.
+- selector 또는 item string 템플릿 변경 시 기존 SavedVariables snapshot cache를 초기화한다.
+- 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시에 넣어 rebuild마다 다시 큐잉하지 않는다.
+- `linksByItemID`는 자동 생성으로 처리할 수 없는 예외 항목용 수동 override로 유지한다.
+- 검토되지 않은 bonusID를 임의로 조립하지 않는다.
+- 로컬 패키지는 `dist/ABProfileManager-v1.11.3.zip`이다. 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0`을 유지한다.
+
+## 0-prev. v1.11.2 로컬 패치 메모
 
 - BIS 목록 스크롤 중에는 행 hover tooltip 생성을 `0.20초` 억제한다. 휠과 custom thumb drag가 같은 경로를 사용한다.
 - 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 검증 full link를 한 번 스캔하고 계정 공통 `global.settings.bisOverlay.mythPreviewCache`에 tooltip/stat 스냅샷을 저장한다.
@@ -152,9 +164,9 @@
 - `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
 - BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트와 Blizzard line color, 품질 색을 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
 - 즐겨찾기/보유 상태는 캐릭터 record 안에서 전문화별로 분리한다. 즐겨찾기 섹션 이동과 보유 취소선 갱신을 함께 확인한다.
-- 상단 아이템 토글이 켜져 있으면 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다.
-- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다.
-- M+ 자동 검색은 `itemID`만으로 `itemLink`/bonusID를 조립하지 않는다.
+- 상단 아이템 토글이 켜져 있으면 M+ 후보는 `Data/BISMythicVaultLinks.lua`의 selector `12801` preview를 자동 생성한다.
+- 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다.
+- M+ 자동 검색은 검토되지 않은 bonusID를 임의 조립하지 않는다.
 - M+/tier의 정적 최종 BiS 미확정 정책은 유지한다. 장황한 hover 경고는 다시 늘리지 않는다.
 - 장비/가방 링크는 정렬이나 hover에서 다시 스캔하지 않는다. 보유 체크 on 시 저장용 링크를 한 번 찾고, 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐 규칙을 유지한다.
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 다시 연결하지 않는다.
@@ -312,8 +324,8 @@
 - BIS tooltip에서 런타임 링크 필요, itemID만으로 Myth 트랙 미확정, 정적 최종 BiS 아님/심크 필요 문구가 보이는지 확인
 - BIS 필터 on/off와 visible rank 재계산
 - BIS 즐겨찾기/보유 체크, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선, 캐릭터/전문화 전환 후 상태 유지
-- BIS 상단 아이템 토글 on/off에 따라 M+ full link 자동 검색이 활성화/비활성화되는지 확인
-- 자동 검색 DB full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화가 적용되는지 확인
+- BIS 상단 아이템 토글 on/off에 따라 M+ selector preview 자동 생성이 활성화/비활성화되는지 확인
+- selector preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화가 적용되는지 확인
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인
 - 검증된 272 snapshot이 재접속 뒤에도 재사용되는지 확인
 - 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지 확인

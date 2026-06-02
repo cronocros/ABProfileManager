@@ -10,10 +10,10 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [releases/RELEASE_NOTES_v1.11.2.md](./releases/RELEASE_NOTES_v1.11.2.md)
-  - 최신 로컬 한글 릴리스 노트 (v1.11.2)
-- [releases/RELEASE_NOTES_v1.11.2_EN.md](./releases/RELEASE_NOTES_v1.11.2_EN.md)
-  - 최신 로컬 영문 릴리스 노트 (v1.11.2)
+- [releases/RELEASE_NOTES_v1.11.3.md](./releases/RELEASE_NOTES_v1.11.3.md)
+  - 최신 로컬 한글 릴리스 노트 (v1.11.3)
+- [releases/RELEASE_NOTES_v1.11.3_EN.md](./releases/RELEASE_NOTES_v1.11.3_EN.md)
+  - 최신 로컬 영문 릴리스 노트 (v1.11.3)
 - [releases/RELEASE_NOTES_v1.11.0.md](./releases/RELEASE_NOTES_v1.11.0.md)
   - 원격 GitHub 공개 최신 한글 릴리스 노트 (v1.11.0)
 - [releases/RELEASE_NOTES_v1.11.0_EN.md](./releases/RELEASE_NOTES_v1.11.0_EN.md)
@@ -53,7 +53,7 @@
   - `MidnightS1_MPlus_Addon_Master_v1.7.md`
   - `MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
-`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 검증된 Myth 1/6 272 full link 추가/교체는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
+`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 시즌 selector 교체 또는 예외 항목용 Myth 1/6 272 full link override 추가는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
 
 ## 보관 문서
 

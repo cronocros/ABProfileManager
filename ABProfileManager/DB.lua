@@ -1031,12 +1031,19 @@ end
 function DB:GetBISOverlayMythPreviewCache()
     local settings = self:GetBISOverlaySettings()
     local cache = settings.mythPreviewCache
+    local previewDB = ns.Data and ns.Data.BISMythicVaultLinks
+    local previewBonusListID = tonumber(previewDB and previewDB.generatedPreviewBonusListID)
+    local previewItemStringTemplate = previewDB and previewDB.generatedPreviewItemStringTemplate
     if type(cache) ~= "table"
-        or tonumber(cache.schemaVersion) ~= 1
-        or tonumber(cache.baselineItemLevel) ~= 272 then
+        or tonumber(cache.schemaVersion) ~= 2
+        or tonumber(cache.baselineItemLevel) ~= 272
+        or tonumber(cache.generatedPreviewBonusListID) ~= previewBonusListID
+        or cache.generatedPreviewItemStringTemplate ~= previewItemStringTemplate then
         cache = {
-            schemaVersion = 1,
+            schemaVersion = 2,
             baselineItemLevel = 272,
+            generatedPreviewBonusListID = previewBonusListID,
+            generatedPreviewItemStringTemplate = previewItemStringTemplate,
             itemsByID = {},
         }
         settings.mythPreviewCache = cache

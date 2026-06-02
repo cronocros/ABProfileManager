@@ -99,10 +99,11 @@
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 Myth/Hero 트랙이나 최종 BiS를 확정하지 않는다
 - `Data/MidnightS1MPlusDB.lua`는 저장소에 고정된 v1.7 컴팩트 코어이며 네트워크나 동적 코드 로드를 하지 않는다
 - `Data/BISRuntimeScoring.lua`는 실제 full link를 `C_Item.GetItemStats()`와 `GetDetailedItemLevelInfo()` 기반 점수 함수에 전달한다
-- 상단 아이템 토글이 켜져 있으면 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색하고, 검증 결과를 계정 SavedVariables snapshot으로 저장한다
-- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 자동 점수화한다
+- 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 검토된 시즌 selector `12801`로 M+ 후보 preview item string을 생성하고, 검증 결과를 계정 SavedVariables snapshot으로 저장한다
+- 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 자동 점수화한다
+- selector 또는 item string 템플릿 변경 시 기존 SavedVariables snapshot cache를 초기화하고, 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도를 차단한다
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
-- `itemID`만으로 `itemLink`, `itemString`, bonusID를 조립하는 경로는 금지한다
+- 검토되지 않은 bonusID를 `itemID`와 임의 조합하는 경로는 금지한다. 내장 selector 교체는 `Data/BISMythicVaultLinks.lua`와 validator를 함께 갱신한다
 - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐를 사용해 자동 검색 중 rebuild 부담을 제한한다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용 링크를 한 번만 찾는다
 - M+ reward profile은 Hero 던전 종료 / Myth 금고 후보 템렙만 저장하고 정적 `itemLink`, `itemString`, bonusID를 만들지 않는다
@@ -114,7 +115,7 @@
 - 전역 `GameTooltip:SetHyperlink()` 직접 호출을 금지해 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 금지한다. M+/raid 클릭은 공개 열기 경로만 사용한다
 - `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_catalog.py`, `scripts/audit_bis_data.py`, `scripts/rebuild_bis_database.ps1`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
-- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
 
 ### 공통 tooltip / secret-number 방어
 

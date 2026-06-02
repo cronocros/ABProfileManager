@@ -2883,20 +2883,42 @@ getAutomaticRuntimeScore = function(entry, specID)
     return score
 end
 
+local REJECTED_MYTH_PREVIEW_LINKS = {}
+
 local function getConfiguredMythicVaultItemLinks(entry)
     local profiles = entry and entry.rewardProfiles
     local profile = profiles and profiles.mplus_great_vault_voidcore
     local curated = ns.Data and ns.Data.BISMythicVaultLinks
     local linksByItemID = curated and curated.linksByItemID
-    local links = {}
+    local generatedPreviewBonusListID = tonumber(curated and curated.generatedPreviewBonusListID)
+    local generatedPreviewItemStringTemplate = curated and curated.generatedPreviewItemStringTemplate
+    local itemID = tonumber(entry and entry.itemID)
+    local links, seen = {}, {}
     local function addLink(link)
-        if type(link) == "string" and link ~= "" then
+        if type(link) == "string"
+        and link ~= ""
+        and not seen[link]
+        and not REJECTED_MYTH_PREVIEW_LINKS[link] then
+            seen[link] = true
             links[#links + 1] = link
         end
     end
     addLink(profile and profile.itemLink)
     addLink(profile and profile.itemString)
-    addLink(linksByItemID and linksByItemID[tonumber(entry and entry.itemID)])
+    addLink(linksByItemID and linksByItemID[itemID])
+    if itemID and generatedPreviewBonusListID and type(generatedPreviewItemStringTemplate) == "string" then
+        -- Retail ItemLink fields before numBonusIDs:
+        -- enchant, four gems, suffix, unique, link level, spec, mask, context.
+        local ok, generatedLink = pcall(
+            string.format,
+            generatedPreviewItemStringTemplate,
+            itemID,
+            generatedPreviewBonusListID
+        )
+        if ok then
+            addLink(generatedLink)
+        end
+    end
     return links
 end
 
@@ -2911,10 +2933,12 @@ local function getExactMythicVaultItemLink(entry)
             if itemLevel == baselineItemLevel then
                 return link, false
             end
-            if not tooltipData then
+            if not tooltipData or not itemLevel then
                 pending = true
                 BISOverlay._automaticScoreNeedsRetry = true
                 requestItemData(entry.itemID)
+            elseif itemLevel ~= baselineItemLevel then
+                REJECTED_MYTH_PREVIEW_LINKS[link] = true
             end
         end
     end

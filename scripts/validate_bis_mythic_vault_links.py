@@ -1,4 +1,4 @@
-"""Validate curated Myth 1/6 full links used by the BIS overlay."""
+"""Validate the Myth 1/6 preview selector and curated full-link overrides."""
 
 from __future__ import annotations
 
@@ -9,15 +9,48 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LINK_DB = REPO_ROOT / "ABProfileManager" / "Data" / "BISMythicVaultLinks.lua"
 CATALOG = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
+EXPECTED_PREVIEW_BONUS_LIST_ID = 12801
+EXPECTED_SCHEMA_VERSION = 2
+EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE = "item:%d::::::::::::1:%d"
 
 
 def main() -> None:
     text = LINK_DB.read_text(encoding="utf-8")
     catalog_text = CATALOG.read_text(encoding="utf-8")
 
+    schema_match = re.search(r"\bschemaVersion\s*=\s*(\d+)", text)
+    if not schema_match or int(schema_match.group(1)) != EXPECTED_SCHEMA_VERSION:
+        raise ValueError(
+            "BISMythicVaultLinks.lua must declare "
+            f"schemaVersion = {EXPECTED_SCHEMA_VERSION}"
+        )
+
     baseline_match = re.search(r"\bbaselineItemLevel\s*=\s*(\d+)", text)
     if not baseline_match or int(baseline_match.group(1)) != 272:
         raise ValueError("BISMythicVaultLinks.lua must declare baselineItemLevel = 272")
+
+    preview_bonus_match = re.search(r"\bgeneratedPreviewBonusListID\s*=\s*(\d+)", text)
+    if (
+        not preview_bonus_match
+        or int(preview_bonus_match.group(1)) != EXPECTED_PREVIEW_BONUS_LIST_ID
+    ):
+        raise ValueError(
+            "BISMythicVaultLinks.lua must declare generatedPreviewBonusListID = "
+            f"{EXPECTED_PREVIEW_BONUS_LIST_ID}"
+        )
+
+    preview_template_match = re.search(
+        r'\bgeneratedPreviewItemStringTemplate\s*=\s*"([^"]+)"',
+        text,
+    )
+    if (
+        not preview_template_match
+        or preview_template_match.group(1) != EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE
+    ):
+        raise ValueError(
+            "BISMythicVaultLinks.lua must declare generatedPreviewItemStringTemplate = "
+            f'"{EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE}"'
+        )
 
     catalog_item_ids = {
         int(value)
@@ -38,7 +71,13 @@ def main() -> None:
         if link in {f"item:{item_id}", f"|Hitem:{item_id}|h"} or link.count(":") < 2:
             raise ValueError(f"Curated Myth link must contain the full item string: {item_id}")
 
-    print(f"ok: baseline=272 curated_myth_links={len(entries)}")
+    print(
+        "ok: baseline=272 "
+        f"schema={EXPECTED_SCHEMA_VERSION} "
+        f"generated_preview_bonus={EXPECTED_PREVIEW_BONUS_LIST_ID} "
+        f"template={EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE} "
+        f"curated_myth_links={len(entries)}"
+    )
 
 
 if __name__ == "__main__":

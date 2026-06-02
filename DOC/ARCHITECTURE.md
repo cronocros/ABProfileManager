@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.11.2 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.3 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -109,13 +109,15 @@
 - `UI/BISOverlay.lua`
   - 현재 캐릭터 클래스의 전 특성 탭과 부위별 추천 장비 카탈로그 렌더
   - 정적 `Data/BISCatalog.lua`를 읽어 slot별 후보를 구성
-  - 상단 아이템 토글이 켜져 있으면 M+ 후보의 검증 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색
-  - full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 tooltip line, 색상, 실제 스탯 / 실제 ilvl을 계정 SavedVariables 스냅샷으로 저장
+  - 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 내장 selector `12801`로 M+ 후보의 `Myth 1/6 272` preview item string을 자동 생성
+  - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 tooltip line, 색상, 실제 스탯 / 실제 ilvl을 계정 SavedVariables 스냅샷으로 저장
   - 저장 스냅샷은 `Data/BISRuntimeScoring.lua` 어댑터로 점수화하고 같은 slot 정렬에 적용
+  - selector 또는 item string 템플릿 변경 시 기존 SavedVariables snapshot cache를 초기화
+  - 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시에 넣어 반복 큐잉을 방지
   - 저장 스냅샷이 없는 후보는 정적 `overallRank` 순서를 유지
   - 장비/가방 링크는 정렬 또는 hover에서 스캔하지 않고, 보유 체크 on 시 저장용 링크를 한 번만 검색
   - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지
-  - `itemID`만으로 `itemLink`/bonusID를 조립하지 않음
+  - 임의 bonusID는 조립하지 않고, 오프라인으로 검토한 시즌 selector만 `Data/BISMythicVaultLinks.lua`에서 관리
   - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않음
   - 스크롤 중 행 hover tooltip 생성을 잠시 억제하고, 가방/장비 변경 이벤트 전체 rebuild를 제거
   - 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 부담을 완화
@@ -127,7 +129,7 @@
   - `아이템명 / 드랍 출처 / 트랙·검증 상태 / 우선순위` 중심 열 구성
   - 헤더에 현재 전문화 스탯 정책과 정적 최종 BiS 미확정 상태를 표시
   - M+ 항목은 `rewardProfiles`로 던전 종료 Hero 3/6 266 / 위대한 금고·Voidcore Myth 1/6 272 대표 후보 트랙과 템렙을 표시
-  - M+ 자동 검색 큐는 `Data/BISMythicVaultLinks.lua`에서 full link를 찾고, 링크 자체가 위대한 금고 Myth 1/6 272로 검증된 경우에만 실제 스탯 / 실제 ilvl로 점수화
+  - M+ 자동 검색 큐는 내장 selector preview를 만들고 수동 override full link를 우선 적용하며, 링크 자체가 위대한 금고 Myth 1/6 272로 검증된 경우에만 실제 스탯 / 실제 ilvl로 점수화
   - `mythicplus`, `raid`만 가능한 경우 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
   - M+ 행 hover는 저장된 272 스냅샷의 tooltip 텍스트와 Blizzard line color, 품질 색을 전용 tooltip에 수동 렌더링하고, 없으면 미검증 안내만 표시
@@ -162,7 +164,7 @@
   - M+ row 라벨과 자동 검색 full link 검증용 위대한 금고 Myth 1/6 272 대표 프로필 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
-  - v1.11.2 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - v1.11.3 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
   - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
@@ -173,9 +175,9 @@
   - ABPM specID, slot, sourceGroup을 v1.7 코어 키로 변환하는 네임스페이스 어댑터
   - 검증된 Myth snapshot과 필요 시 실제 itemLink 점수를 캐시
 - `Data/BISMythicVaultLinks.lua`
-  - 검증된 위대한 금고 Myth 1/6 272 full link와 선택적 사전 스캔 snapshot을 itemID별로 보관하는 수동 갱신 DB
-  - 등록 full link는 클라이언트에서 한 번 스캔한 뒤 계정 SavedVariables snapshot으로 재사용
-  - 런타임이 실제 item level을 다시 검증하므로 bare itemID나 추측 bonusID를 넣지 않음
+  - Midnight 시즌 1 M+10 금고 Myth 1/6 selector `12801`, 예외 항목용 full link override, 선택적 사전 스캔 snapshot을 보관
+  - selector preview와 등록 override는 클라이언트에서 한 번 스캔한 뒤 계정 SavedVariables snapshot으로 재사용
+  - 런타임이 실제 item level을 다시 검증하므로 검토되지 않은 bonusID를 넣지 않음
 - `Data/BISData_Method.lua`
   - Wowhead `current Overall BiS` seed 입력
 - `Data/BISData.lua`
@@ -203,14 +205,14 @@
 - `scripts/build_bis_runtime_scoring.py`
   - v1.7 코어를 런타임 경로에 설치하고 40개 전문화 스탯 표와 BIS 정책 메타를 갱신
 - `scripts/rebuild_bis_database.ps1`
-  - v1.3 카탈로그 입력 → v1.7 scoring 입력 → curated Myth link validate → catalog validate → audit 순서의 통합 재생성 진입점
+  - v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서의 통합 재생성 진입점
   - M+/tier 추가는 v1.3 파일만 갱신 가능하고, 점수 정책은 v1.7 파일에서 관리
   - raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위
 - `scripts/validate_bis_catalog.py`
   - v1.3 정적 후보 풀과 v1.7 런타임 코어를 분리 검증
   - 40개 전문화, 기존 raid/crafted row 보존, M+ reward profile, 정적 itemLink/bonusID 미생성, crafted/tier 비프로필 정책을 검증
 - `scripts/validate_bis_mythic_vault_links.py`
-  - `Data/BISMythicVaultLinks.lua`의 baseline, 카탈로그 itemID 포함 여부, full item string 형식을 검증
+  - `Data/BISMythicVaultLinks.lua`의 baseline, 시즌 selector `12801`, override 카탈로그 itemID 포함 여부, full item string 형식을 검증
 - `scripts/validate_bis_reward_profiles.py`
   - M+ BIS row가 유효한 보상 프로필 key를 참조하는지 검증
 
@@ -292,13 +294,13 @@
 2. `scripts/rebuild_bis_database.ps1`
 3. 내부에서 `scripts/build_bis_catalog.py --addon-db` → `scripts/build_bis_runtime_scoring.py` → `scripts/validate_bis_mythic_vault_links.py` → `scripts/validate_bis_catalog.py` → `scripts/audit_bis_data.py` 순서로 실행
 4. 생성 결과 `Data/BISCatalog.lua`, `Data/MidnightS1MPlusDB.lua`, `Data/BISRuntimeScoring.lua`를 패키지에 포함
-5. 게임 런타임에서는 `UI/BISOverlay.lua`가 정적 후보와 `Data/BISMythicVaultLinks.lua`의 검증 full link에서 저장한 SavedVariables snapshot 점수를 함께 사용
+5. 게임 런타임에서는 `UI/BISOverlay.lua`가 정적 후보와 `Data/BISMythicVaultLinks.lua`의 selector preview 또는 override에서 저장한 SavedVariables snapshot 점수를 함께 사용
 
 seed 경계:
 
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있다.
 - 점수 정책은 v1.7 파일에서 관리한다.
-- 검증된 Myth 1/6 272 full link 추가/교체는 `Data/BISMythicVaultLinks.lua`만 갱신한다.
+- 시즌 selector 교체 또는 예외 항목용 Myth 1/6 272 full link override 추가는 `Data/BISMythicVaultLinks.lua`만 갱신한다.
 - raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위다.
 
 런타임 규칙:
@@ -308,12 +310,13 @@ seed 경계:
 - locale 선택은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 우선 사용하고, legacy `boss/source` 값은 런타임 alias 정규화로 마지막 누수를 막는다
 - `GET_ITEM_INFO_RECEIVED`는 icon/quality/item hyperlink 보정이 필요한 visible row만 patch
 - BIS hover tooltip은 전역 `GameTooltip:SetHyperlink()`를 호출하지 않고, tooltipData line과 Blizzard line color, 품질 색을 수동 렌더링한다
-- 상단 아이템 토글이 켜져 있으면 M+ 후보 full link를 `Data/BISMythicVaultLinks.lua`에서 자동 검색한다
-- 자동 검색 full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 tooltip/stat snapshot을 SavedVariables에 저장하고 실제 스탯 / 실제 ilvl로 점수화한다
+- 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 selector `12801`로 M+ 후보 preview item string을 자동 생성한다
+- 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 tooltip/stat snapshot을 SavedVariables에 저장하고 실제 스탯 / 실제 ilvl로 점수화한다
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
-- M+ 자동 검색은 `itemID`만으로 `itemLink`/bonusID를 조립하지 않는다
+- M+ 자동 검색은 검토되지 않은 bonusID를 조립하지 않는다
 - M+/tier row는 정적 최종 BiS가 아니며 실제 `itemLink`/bonusID와 심크/QE/로그 검증이 필요하다는 메타를 함께 표시한다
 - 검증 snapshot이 없는 후보는 정적 순서를 유지한다
+- selector 또는 item string 템플릿 변경 시 이전 SavedVariables snapshot cache를 초기화하고, 다른 템렙으로 해석된 preview는 같은 세션에서 반복 재시도하지 않는다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
 - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 부담을 완화한다
@@ -325,8 +328,8 @@ seed 경계:
 - 즐겨찾기/보유 체크가 캐릭터별·전문화별로 분리 저장되고, 즐겨찾기 섹션/보유 취소선이 즉시 갱신되는지
 - `레이드 off + 쐐기만 on`에서 쐐기 드랍템과 인던명이 남는지
 - M+ BIS row에 위대한 금고 Myth 1/6 272 baseline이 표시되는지
-- 상단 아이템 토글 on/off에 따라 M+ full link 자동 검색이 활성화/비활성화되는지
-- `Myth 1/6 272`로 검증된 full link만 실제 스탯 / 실제 ilvl 자동 점수화를 받는지
+- 상단 아이템 토글 on/off에 따라 M+ selector preview 자동 생성이 활성화/비활성화되는지
+- `Myth 1/6 272`로 검증된 selector preview 또는 override만 실제 스탯 / 실제 ilvl 자동 점수화를 받는지
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지
 - 검증된 272 snapshot이 재접속 뒤에도 재사용되는지
 - BIS hover/자동 큐 뒤 Encounter Journal hover에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지
