@@ -230,9 +230,8 @@ end
 --
 -- Fallback chain (중요):
 --   1) tostring→tonumber 성공 → 일반 number (secret 플래그 제거 완료)
---   2) 실패해도 type 이 number 면 원본 보존 (전투 중 secret number 가
---      tostring 으로 numeric 문자열을 반환하지 않을 때 0 으로 깎이는 부작용 방지)
---   3) 그 외(nil/string 등) → tonumber 또는 0
+--   2) 실패 → 0. 원본 secret number 를 반환하면 이후 산술/렌더 경로로
+--      오염 값이 다시 전파될 수 있으므로 보존하지 않는다.
 -- pcall 로 감싸 tostring 자체가 taint 오류를 일으키는 극단 케이스도 흡수한다.
 function Utils.SafeNumber(value)
     local convertOk, stripped = pcall(function()
@@ -242,11 +241,7 @@ function Utils.SafeNumber(value)
         return stripped
     end
 
-    if type(value) == "number" then
-        return value
-    end
-
-    return tonumber(value) or 0
+    return 0
 end
 
 function Utils.SortedKeys(tbl)

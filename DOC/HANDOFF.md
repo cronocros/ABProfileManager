@@ -1,8 +1,19 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.5 로컬 패치 기반`
+버전 기준: `v1.11.6 로컬 패치 기반`
 
-## 0-new. v1.11.5 로컬 패치 메모
+## 0-new. v1.11.6 로컬 패치 메모
+
+- Midnight 시즌 selector `12801`은 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토했다.
+- 상단 아이템 토글이 켜져 있으면 검증된 `Myth/신화 1/6 272` full item link를 계정 SavedVariables snapshot schema v3로 한 번 저장하고 이후 hover/점수화에서 재사용한다.
+- M+ BIS hover는 snapshot full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 Blizzard 원본 2차 스탯을 표시한다.
+- BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다.
+- `StatsOverlay`에서 미사용 `PaperDollFrame_Set*` setter를 제거했다.
+- `Utils.SafeNumber()`는 secret 값을 일반 숫자로 정규화하지 못하면 원본을 돌려주지 않고 `0`으로 fallback한다.
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.6.zip` 생성까지만 수행한다. WoW 설치 폴더로 복사하지 않는다.
+- 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0`을 유지한다.
+
+## 0-prev. v1.11.5 로컬 패치 메모
 
 - BIS 드랍 출처 클릭의 Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출을 제거했다.
 - 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지한다.
@@ -179,15 +190,16 @@
 - `UI/BISOverlay.lua`는 폭/열 간격/스크롤 영역 민감도가 높다. 열 폭만 조정하지 말고 실제 스크롤 thumb와 마지막 열 가림 여부까지 같이 확인해야 한다.
 - source 판정은 `sourceGroup` 정적 값을 우선 사용한다. 예전 `sourceLabel` 재분류 로직에 다시 기대지 않는 편이 안전하다.
 - `crafted`, `tier`는 랜딩하지 않는다. 이 경로를 건드릴 때는 `openEncounterJournalForEntry()`의 조기 return을 같이 본다.
-- BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 tooltipData 텍스트와 Blizzard line color, 품질 색을 수동 렌더링한다. 전역 `GameTooltip:SetHyperlink()`로 되돌리면 `MoneyFrame` taint가 재발할 수 있다.
+- M+ BIS hover preview는 전용 `ABProfileManagerBISTooltip`에 저장 snapshot의 full item link를 `SetHyperlink()`로 전달해 Blizzard 원본 2차 스탯을 표시한다. 이 addon-owned item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다.
 - 즐겨찾기/보유 상태는 캐릭터 record 안에서 전문화별로 분리한다. 즐겨찾기 섹션 이동과 보유 취소선 갱신을 함께 확인한다.
-- 상단 아이템 토글이 켜져 있으면 M+ 후보는 `Data/BISMythicVaultLinks.lua`의 selector `12801` preview를 자동 생성한다.
+- 상단 아이템 토글이 켜져 있으면 M+ 후보는 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 selector `12801` preview를 자동 생성한다.
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다.
 - selector preview hyperlink가 아직 로드되지 않아 snapshot이 없으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증한다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션 최대 2회로 제한한다. M+ 행 hover도 snapshot이 없을 때 즉시 해석을 한 번 시도한다.
 - M+ 자동 검색은 검토되지 않은 bonusID를 임의 조립하지 않는다.
 - M+/tier의 정적 최종 BiS 미확정 정책은 유지한다. 장황한 hover 경고는 다시 늘리지 않는다.
 - 장비/가방 링크는 정렬이나 hover에서 다시 스캔하지 않는다. 보유 체크 on 시 저장용 링크를 한 번 찾고, 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐 규칙을 유지한다.
 - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 다시 연결하지 않는다.
+- `StatsOverlay`에 미사용 `PaperDollFrame_Set*` tooltip setter를 다시 연결하지 않는다. `Utils.SafeNumber()`가 정규화하지 못한 secret 값을 원본 그대로 반환하게 바꾸지 않는다.
 - M+ Encounter Journal 랜딩은 비전투 중에만 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우 검증된 `JournalInstanceID`로 loot 탭을 연다.
 - Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않는다. 전투 중에는 자동 랜딩을 건너뛰어 Blizzard 보호 기능 차단 팝업을 방지한다.
 - locale 누수는 build 단계에서 먼저 막되, 현재 `boss` 필드는 legacy 한국어 값이 남아 있을 수 있어 `UI/BISOverlay.lua`의 런타임 alias 매핑까지 같이 확인해야 한다.
@@ -298,9 +310,12 @@
 - `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
 - `ABProfileManager/Data/BISMythicVaultLinks.lua`
+- `ABProfileManager/Data/BISEncounterJournal.lua`
 - `scripts/build_bis_catalog.py`
 - `scripts/build_bis_runtime_scoring.py`
 - `scripts/validate_bis_mythic_vault_links.py`
+- `scripts/validate_bis_tooltip_contract.py`
+- `scripts/validate_bis_encounter_journal.py`
 - `scripts/rebuild_bis_database.ps1`
 - `scripts/validate_bis_catalog.py`
 - `scripts/validate_bis_reward_profiles.py`
@@ -327,11 +342,14 @@
 
 - 먼저 `luaparser` 전체 파싱
 - BIS 데이터 재생성이 필요하면 `powershell -ExecutionPolicy Bypass -File .\scripts\rebuild_bis_database.ps1`
+- `python .\scripts\validate_bis_mythic_vault_links.py`
+- `python .\scripts\validate_bis_tooltip_contract.py`
+- `python .\scripts\validate_bis_encounter_journal.py`
 - `python .\scripts\validate_bis_catalog.py`
 - 그 다음 `git diff --check`
 - 릴리스 작업이면 그 다음 패키징
 - 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하고 WoW 설치 폴더로 복사하지 않음
-- 마지막에 푸시, 필요 시 GitHub release
+- 원격 공개를 명시적으로 요청받은 경우에만 마지막에 푸시와 GitHub release 진행
 
 인게임 회귀 포인트:
 

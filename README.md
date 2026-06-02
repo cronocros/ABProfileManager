@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- 로컬 패치: `v1.11.5`
+- 로컬 패치: `v1.11.6`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.11.5.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.11.6.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.5.md](./DOC/releases/RELEASE_NOTES_v1.11.5.md)
-- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.5_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.5_EN.md)
+- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.6.md](./DOC/releases/RELEASE_NOTES_v1.11.6.md)
+- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.6_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.6_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
@@ -30,6 +30,15 @@
 - 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.11.6 로컬 패치 핵심 정리
+
+- Midnight 시즌 selector `12801`은 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토했습니다.
+- 상단 아이템 토글을 켜면 M+ 후보의 검증된 `Myth/신화 1/6 272` full item link를 계정 SavedVariables snapshot schema v3로 한 번 저장하고 재사용합니다.
+- M+ 아이템 hover는 snapshot의 full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 Blizzard 원본 2차 스탯을 표시합니다.
+- BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단합니다.
+- `StatsOverlay`의 미사용 `PaperDollFrame_Set*` setter 호출을 제거하고, `SafeNumber()`가 secret 값을 일반 숫자로 바꾸지 못하면 `0`으로 fallback하도록 정리했습니다.
+- 로컬 배포는 작업공간의 `dist/ABProfileManager-v1.11.6.zip` 생성까지만 수행하며 WoW 설치 폴더로 자동 복사하지 않습니다.
 
 ## v1.11.5 로컬 패치 핵심 정리
 
@@ -209,13 +218,13 @@
   - 헤더에 현재 전문화 스탯 우선순위와 정적 BiS 검증 상태 표시
   - `mythicplus`, `raid`는 비전투 중 가능할 때 Encounter Journal loot 탭 랜딩
   - `crafted`, `tier`는 랜딩하지 않음
-  - 상단 아이템 토글 on 시 내장 selector `12801`로 M+ `Myth 1/6 272` preview 자동 생성
+  - 상단 아이템 토글 on 시 DB2 검토 selector `12801`로 M+ `Myth 1/6 272` preview 자동 생성
   - 생성 preview 또는 수동 override full link가 실제 `272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화
   - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 미검증 fallback 유지
   - 임의 bonusID 조립 금지. 검토된 시즌 selector만 `Data/BISMythicVaultLinks.lua`에서 관리
-  - 검증 preview는 한 번 스캔해 SavedVariables snapshot으로 저장하고 재사용
+  - 검증 preview full item link는 한 번 스캔해 계정 SavedVariables snapshot schema v3로 저장하고 재사용
   - 스크롤 중 행 hover tooltip 렌더 억제로 끊김 완화
-  - 아이템 hover 시 전용 안전 툴팁으로 Base ItemID, 보상 프로필, 런타임 링크 검증 상태 표시
+  - M+ 아이템 hover 시 snapshot full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 원본 2차 스탯 표시
   - 커서 앵커 툴팁, 드랍처/보스 보강, 챔피언/영웅/신화 트랙 색상 요약
   - 마우스 휠 스케일 조절과 위치 저장/복원
 - 드랍 아이템 레벨 오버레이
@@ -277,10 +286,10 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `BISData_Method.lua`, `BISData.lua`는 더 이상 런타임 병합 대상이 아니라 생성용 seed 입력입니다.
 - 새 DOC DB는 TOC에 직접 로드하지 않고 `scripts/build_bis_catalog.py --addon-db`의 오프라인 입력으로만 사용합니다.
 - v1.7 컴팩트 코어는 `Data/MidnightS1MPlusDB.lua`로 로드하고, `Data/BISRuntimeScoring.lua` 어댑터를 통해 검증 snapshot을 점수화합니다.
-- 상단 아이템 토글을 켜면 M+ 후보는 `Data/BISMythicVaultLinks.lua`의 내장 selector `12801`로 `Myth 1/6 272` preview item string을 만들고 계정 SavedVariables snapshot으로 저장합니다.
+- 상단 아이템 토글을 켜면 M+ 후보는 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 내장 selector `12801`로 `Myth 1/6 272` preview item string을 만들고 계정 SavedVariables snapshot schema v3로 저장합니다.
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화합니다.
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하지만 점수는 미검증 fallback으로 유지합니다.
-- M+ 자동 검색은 임의 bonusID를 조립하지 않습니다. 오프라인으로 검토한 시즌 selector `12801`만 사용합니다.
+- M+ 자동 검색은 임의 bonusID를 조립하지 않습니다. extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 시즌 selector `12801`만 사용합니다.
 - 필터 적용 후 남은 후보만 다시 정렬하므로, `레이드 off`, `쐐기만 on`, `제작 + 티어만 on` 모두 실제 후보 목록이 유지됩니다.
 - `공결탑 제나스`, `알게타르 대학` 같은 source alias는 생성기에서 canonical name으로 정규화합니다.
 - 제작과 티어 항목은 Encounter Journal 랜딩 대상이 아닙니다.
@@ -292,9 +301,9 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - M+ 자동 검색 큐는 내장 selector preview를 우선 만들고 `Data/BISMythicVaultLinks.lua`의 수동 full link override를 먼저 적용합니다. 자동 점수는 preview 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 해당 링크의 실제 스탯 / 실제 ilvl로 계산합니다.
 - 정적 카탈로그는 `itemID`만으로 영웅/신화 트랙이나 최종 BiS를 확정하지 않으며, 실제 `itemLink`/bonusID와 심크 검증이 필요하다는 메타를 표시합니다.
 - `scripts/build_bis_runtime_scoring.py`는 v1.7 코어를 설치하고 40개 전문화 스탯 표와 BIS 정책 메타를 갱신합니다.
-- BIS hover 툴팁은 전역 `GameTooltip:SetHyperlink()`를 직접 호출하지 않고, 안전한 전용 툴팁으로 검증된 tooltipData 텍스트만 렌더링합니다. 수동 렌더러는 Blizzard tooltip line color와 품질 색을 보존합니다.
+- M+ BIS hover 툴팁은 전역 `GameTooltip`이 아니라 addon-owned Blizzard item tooltip에 검증 snapshot의 full item link를 `SetHyperlink()`로 전달합니다. Blizzard 원본 2차 스탯을 렌더링하고, shopping tooltip 경로로 sell price `MoneyFrame` 렌더링은 차단합니다.
 - hover/자동 큐는 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않습니다. M+/raid 행 클릭은 비전투 중 공개 열기 경로만 사용합니다.
-- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서로 실행합니다.
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다.
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있고, 점수 정책은 v1.7 파일에서 관리합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
 - 시즌 selector 교체 또는 예외 항목용 `Myth 1/6 272` full link override 추가는 `Data/BISMythicVaultLinks.lua`만 갱신하고 `python .\scripts\validate_bis_mythic_vault_links.py`로 확인합니다.
 - 갱신 스크립트:
@@ -302,6 +311,9 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
   - `scripts/refresh_wowhead_mplus_fallbacks.py`
   - `scripts/build_bis_catalog.py --addon-db`
   - `scripts/build_bis_runtime_scoring.py`
+  - `scripts/validate_bis_mythic_vault_links.py`
+  - `scripts/validate_bis_tooltip_contract.py`
+  - `scripts/validate_bis_encounter_journal.py`
   - `scripts/validate_bis_catalog.py`
   - `scripts/rebuild_bis_database.ps1`
 

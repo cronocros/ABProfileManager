@@ -10,7 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LINK_DB = REPO_ROOT / "ABProfileManager" / "Data" / "BISMythicVaultLinks.lua"
 CATALOG = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
 EXPECTED_PREVIEW_BONUS_LIST_ID = 12801
-EXPECTED_SCHEMA_VERSION = 2
+EXPECTED_SCHEMA_VERSION = 3
+EXPECTED_DB2_BUILD = "12.0.1.66838"
 EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE = "item:%d::::::::::::1:%d"
 
 
@@ -23,6 +24,13 @@ def main() -> None:
         raise ValueError(
             "BISMythicVaultLinks.lua must declare "
             f"schemaVersion = {EXPECTED_SCHEMA_VERSION}"
+        )
+
+    db2_build_match = re.search(r'\bverifiedDB2Build\s*=\s*"([^"]+)"', text)
+    if not db2_build_match or db2_build_match.group(1) != EXPECTED_DB2_BUILD:
+        raise ValueError(
+            "BISMythicVaultLinks.lua must declare verifiedDB2Build = "
+            f'"{EXPECTED_DB2_BUILD}"'
         )
 
     baseline_match = re.search(r"\bbaselineItemLevel\s*=\s*(\d+)", text)
@@ -74,6 +82,7 @@ def main() -> None:
     print(
         "ok: baseline=272 "
         f"schema={EXPECTED_SCHEMA_VERSION} "
+        f"db2_build={EXPECTED_DB2_BUILD} "
         f"generated_preview_bonus={EXPECTED_PREVIEW_BONUS_LIST_ID} "
         f"template={EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE} "
         f"curated_myth_links={len(entries)}"

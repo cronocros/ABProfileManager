@@ -1,6 +1,6 @@
 # ABProfileManager Security Review
 
-검토 기준일: `2026-06-01`
+검토 기준일: `2026-06-03`
 
 ## 범위
 
@@ -29,7 +29,8 @@
 - 외부 네트워크 전송 없음
 - import는 코드 실행이 아니라 데이터 파싱 방식
 - 지도/BIS/드랍 오버레이는 로컬 정적 데이터와 Blizzard API 조회만 사용
-- hover 설명은 애드온 전용 tooltip frame을 사용하며, 전역 `GameTooltip:SetHyperlink()`로 Blizzard money tooltip을 직접 열지 않음
+- 일반 hover 설명은 애드온 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에만 검증 full item link를 `SetHyperlink()`로 전달하고 shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
+- 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하며 WoW 설치 폴더로 복사하지 않는다
 - TomTom 연동은 선택적 로컬 애드온 호출뿐이며, 미설치 시 fail-safe로 빠짐
 - ABPM 보호 오류 로그는 세션 메모리 안에만 저장하며 외부 전송이나 파일 쓰기를 하지 않음
 - Lua 오류 팝업을 전역으로 숨기는 `scriptErrors` CVar 변경은 하지 않음
@@ -99,7 +100,7 @@
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 Myth/Hero 트랙이나 최종 BiS를 확정하지 않는다
 - `Data/MidnightS1MPlusDB.lua`는 저장소에 고정된 v1.7 컴팩트 코어이며 네트워크나 동적 코드 로드를 하지 않는다
 - `Data/BISRuntimeScoring.lua`는 실제 full link를 `C_Item.GetItemStats()`와 `GetDetailedItemLevelInfo()` 기반 점수 함수에 전달한다
-- 상단 아이템 토글이 켜져 있으면 `Data/BISMythicVaultLinks.lua`의 검토된 시즌 selector `12801`로 M+ 후보 preview item string을 생성하고, 검증 결과를 계정 SavedVariables snapshot으로 저장한다
+- 상단 아이템 토글이 켜져 있으면 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 시즌 selector `12801`로 M+ 후보 preview item string을 생성하고, 검증 결과를 계정 SavedVariables snapshot schema v3로 저장한다
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 자동 점수화한다
 - selector 또는 item string 템플릿 변경 시 기존 SavedVariables snapshot cache를 초기화하고, 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도를 차단한다
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
@@ -110,18 +111,20 @@
 - `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도하고, `crafted`, `tier`는 랜딩 대상에서 제외한다
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다
 - 아이템 캐시 수신 시 visible row를 우선 갱신하고, 자동 점수 재시도가 필요한 경우에만 rebuild한다
-- BIS item hover는 `C_TooltipInfo.GetHyperlink()`의 tooltipData 텍스트만 전용 tooltip에 수동 렌더링하며 Blizzard tooltip line color와 품질 색을 보존한다
-- 판매가, 화폐, money line은 렌더링하지 않아 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
-- 전역 `GameTooltip:SetHyperlink()` 직접 호출을 금지해 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
+- M+ BIS item hover는 addon-owned Blizzard item tooltip에 검증 snapshot의 full item link를 `SetHyperlink()`로 전달해 Blizzard 원본 2차 스탯을 렌더링한다
+- BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단하고 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
+- 전역 `GameTooltip`을 BIS hover 대상으로 직접 사용하지 않아 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 금지한다. M+/raid 클릭은 공개 열기 경로만 사용한다
-- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_catalog.py`, `scripts/audit_bis_data.py`, `scripts/rebuild_bis_database.ps1`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
-- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
+- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_tooltip_contract.py`, `scripts/validate_bis_encounter_journal.py`, `scripts/validate_bis_catalog.py`, `scripts/audit_bis_data.py`, `scripts/rebuild_bis_database.ps1`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
 
 ### 공통 tooltip / secret-number 방어
 
 - `UI/Widgets.lua`의 `Widgets.GetTooltip()` / `Widgets.HideTooltip()`가 ABPM 자체 hover 설명용 전용 tooltip frame을 관리한다
 - 액션바 패널, 전문기술 UI, 지도/스탯/BIS/드랍 오버레이 등 ABPM UI hover는 이 전용 frame을 사용한다
-- WoW 12.0.5+의 secret-number 값은 `Utils.SafeNumber()`와 개별 `pcall` 보호 경로를 통해 필요한 곳에서만 숫자로 정규화한다
+- M+ BIS 아이템 hover 전용 frame은 addon-owned Blizzard item tooltip이며 shopping tooltip 경로로 sell price `MoneyFrame`을 열지 않는다
+- `StatsOverlay`의 미사용 `PaperDollFrame_Set*` tooltip setter 호출은 제거했다
+- WoW 12.0.5+의 secret-number 값은 `Utils.SafeNumber()`와 개별 `pcall` 보호 경로를 통해 필요한 곳에서만 숫자로 정규화한다. 정규화에 실패하면 원본 secret 값을 전파하지 않고 `0`으로 fallback한다
 - `ns:SafeCall(...)`은 모듈 refresh/이벤트 진입점의 예외를 `pcall`로 감싸, 일시적 taint 오류가 전체 UI 오류창으로 번지는 것을 줄인다
 
 ### 스탯 우선순위 표

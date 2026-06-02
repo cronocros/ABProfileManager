@@ -128,6 +128,10 @@ local function getBISTooltip()
 
     local tooltip = CreateFrame("GameTooltip", "ABProfileManagerBISTooltip", UIParent, "GameTooltipTemplate")
     tooltip:SetFrameStrata("TOOLTIP")
+    -- Blizzard's SellPrice rule skips MoneyFrame rendering for shopping
+    -- tooltips. Keep this addon-owned item tooltip on that path so the default
+    -- Blizzard stat renderer can be used without propagating MoneyFrame taint.
+    tooltip.isShopping = true
     BISOverlay._hoverTooltip = tooltip
     return tooltip
 end
@@ -255,88 +259,6 @@ local function getTooltipLineColor(line, key, fallbackR, fallbackG, fallbackB)
         return r, g, b
     end
     return fallbackR, fallbackG, fallbackB
-end
-
-local function renderTooltipDataWithoutMoney(tooltip, tooltipData, itemQuality)
-    local lines = getTooltipDataField(tooltipData, "lines")
-    if not tooltip or type(tooltipData) ~= "table" or type(lines) ~= "table" then
-        return false
-    end
-
-    tooltip:ClearLines()
-    local qc = getQualityColor(itemQuality)
-    local rendered = 0
-
-    for _, line in ipairs(lines) do
-        if type(line) == "table" and not isTooltipMoneyLine(line) then
-            local leftText = safeTooltipString(getTooltipDataField(line, "leftText"))
-                or safeTooltipString(getTooltipDataField(line, "text"))
-            local rightText = safeTooltipString(getTooltipDataField(line, "rightText"))
-            if leftText or rightText then
-                rendered = rendered + 1
-                local fallbackR = rendered == 1 and qc[1] or 0.90
-                local fallbackG = rendered == 1 and qc[2] or 0.90
-                local fallbackB = rendered == 1 and qc[3] or 0.90
-                local leftR, leftG, leftB = getTooltipLineColor(line, "leftColor", fallbackR, fallbackG, fallbackB)
-                if rightText and tooltip.AddDoubleLine then
-                    local rightR, rightG, rightB = getTooltipLineColor(line, "rightColor", 0.90, 0.90, 0.90)
-                    pcall(tooltip.AddDoubleLine, tooltip, leftText or " ", rightText, leftR, leftG, leftB, rightR, rightG, rightB)
-                else
-                    pcall(tooltip.AddLine, tooltip, leftText or rightText or " ", leftR, leftG, leftB, true)
-                end
-            end
-        end
-    end
-
-    return rendered > 0 and tooltip:NumLines() > 0
-end
-
-local function renderTooltipSnapshot(tooltip, snapshot, itemQuality)
-    local lines = type(snapshot) == "table" and snapshot.lines or nil
-    if not tooltip or type(lines) ~= "table" then
-        return false
-    end
-
-    tooltip:ClearLines()
-    local qc = getQualityColor(itemQuality)
-    local rendered = 0
-    for _, line in ipairs(lines) do
-        if type(line) == "table" then
-            local leftText = safeTooltipString(line.leftText)
-            local rightText = safeTooltipString(line.rightText)
-            if leftText or rightText then
-                rendered = rendered + 1
-                local fallback = rendered == 1 and qc or { 0.90, 0.90, 0.90 }
-                local left = type(line.leftColor) == "table" and line.leftColor or fallback
-                local right = type(line.rightColor) == "table" and line.rightColor or { 0.90, 0.90, 0.90 }
-                if rightText and tooltip.AddDoubleLine then
-                    pcall(
-                        tooltip.AddDoubleLine,
-                        tooltip,
-                        leftText or " ",
-                        rightText,
-                        safePlainNumber(left[1]) or fallback[1],
-                        safePlainNumber(left[2]) or fallback[2],
-                        safePlainNumber(left[3]) or fallback[3],
-                        safePlainNumber(right[1]) or 0.90,
-                        safePlainNumber(right[2]) or 0.90,
-                        safePlainNumber(right[3]) or 0.90
-                    )
-                else
-                    pcall(
-                        tooltip.AddLine,
-                        tooltip,
-                        leftText or rightText or " ",
-                        safePlainNumber(left[1]) or fallback[1],
-                        safePlainNumber(left[2]) or fallback[2],
-                        safePlainNumber(left[3]) or fallback[3],
-                        true
-                    )
-                end
-            end
-        end
-    end
-    return rendered > 0 and tooltip:NumLines() > 0
 end
 
 local FAVORITES_SLOT = "__favorites"
@@ -1407,6 +1329,43 @@ local function extractTooltipItemLevel(tooltipData)
     return nil
 end
 
+local function getDetailedItemLevel(link, tooltipData)
+    if type(link) == "string" and link ~= "" then
+        local getter = C_Item and C_Item.GetDetailedItemLevelInfo or GetDetailedItemLevelInfo
+        if type(getter) == "function" then
+            local ok, itemLevel = pcall(getter, link)
+            itemLevel = ok and safePlainNumber(itemLevel) or nil
+            if itemLevel and itemLevel > 0 then
+                return math.floor(itemLevel + 0.5)
+            end
+        end
+    end
+    return extractTooltipItemLevel(tooltipData)
+end
+
+local function tooltipDataHasMythOneOfSix(tooltipData)
+    local lines = getTooltipDataField(tooltipData, "lines")
+    if type(lines) ~= "table" then
+        return false
+    end
+    for _, line in ipairs(lines) do
+        for _, key in ipairs({ "leftText", "rightText", "text" }) do
+            local text = safeTooltipString(getTooltipDataField(line, key))
+            local rankOK, hasRank = pcall(string.find, text or "", "1/6", 1, true)
+            if rankOK and hasRank then
+                local lowerOK, lower = pcall(string.lower, text)
+                local koreanOK, hasKorean = pcall(string.find, text, "신화", 1, true)
+                local mythOK, hasMyth = pcall(string.find, lower or "", "myth", 1, true)
+                if (koreanOK and hasKorean)
+                    or (lowerOK and mythOK and hasMyth) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
 local function canonicalNote(note)
     if note == "BIS" then
         return "bis"
@@ -1894,6 +1853,10 @@ function BISOverlay:EnsureFrame()
         f:StopMovingOrSizing()
         BISOverlay._automaticScoreQueueToken = (BISOverlay._automaticScoreQueueToken or 0) + 1
         if f.specPicker then f.specPicker:Hide() end
+        hideBISTooltip()
+        if ns.UI and ns.UI.Widgets and ns.UI.Widgets.HideTooltip then
+            ns.UI.Widgets.HideTooltip()
+        end
     end)
 
     -- ─── 제목 바 배경 ───────────────────────────────────────
@@ -2005,6 +1968,7 @@ function BISOverlay:EnsureFrame()
         end
 
         tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+        tooltip:ClearLines()
         tooltip:SetText(ns.L("bis_overlay_item_tooltip"), 1, 1, 1, 1, true)
         tooltip:AddLine(ns.L("bis_overlay_item_tooltip_hint"), 0.70, 0.78, 0.90, true)
         ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12)
@@ -2766,7 +2730,7 @@ local function isValidTooltipLinkForSource(link, sourceType)
         return false
     end
     local tooltipData = getTooltipDataForHyperlink(link)
-    local itemLevel = extractTooltipItemLevel(tooltipData)
+    local itemLevel = getDetailedItemLevel(link, tooltipData)
     return isValidPreviewItemLevel(sourceType, itemLevel)
 end
 
@@ -2793,9 +2757,13 @@ local function getMythPreviewBaselineItemLevel()
 end
 
 local function isValidMythPreviewSnapshot(snapshot, itemID)
+    local itemLink = type(snapshot) == "table" and snapshot.itemLink or nil
     return type(snapshot) == "table"
         and safePlainNumber(snapshot.itemID) == tonumber(itemID)
         and safePlainNumber(snapshot.itemLevel) == getMythPreviewBaselineItemLevel()
+        and snapshot.trackVerified == true
+        and type(itemLink) == "string"
+        and tonumber(itemLink:match("item:(%d+)")) == tonumber(itemID)
         and type(snapshot.lines) == "table"
         and #snapshot.lines > 0
 end
@@ -2858,13 +2826,14 @@ local function buildMythPreviewSnapshot(entry, link)
         return nil
     end
     local tooltipData = getTooltipDataForHyperlink(link)
-    local itemLevel = extractTooltipItemLevel(tooltipData)
-    if itemLevel ~= getMythPreviewBaselineItemLevel() then
+    local itemLevel = getDetailedItemLevel(link, tooltipData)
+    if itemLevel ~= getMythPreviewBaselineItemLevel() or not tooltipDataHasMythOneOfSix(tooltipData) then
         return nil
     end
 
     local lines = {}
-    for _, line in ipairs(type(tooltipData.lines) == "table" and tooltipData.lines or {}) do
+    local tooltipLines = getTooltipDataField(tooltipData, "lines")
+    for _, line in ipairs(type(tooltipLines) == "table" and tooltipLines or {}) do
         local sanitized = sanitizeTooltipLine(line, #lines)
         if sanitized then
             lines[#lines + 1] = sanitized
@@ -2897,6 +2866,9 @@ local function buildMythPreviewSnapshot(entry, link)
         icon = safePlainNumber(icon) or safeTooltipString(icon),
         lines = lines,
         rawStats = rawStats,
+        upgradeTrack = "Myth",
+        upgradeRank = "1/6",
+        trackVerified = true,
         scannedAt = type(time) == "function" and safePlainNumber(time()) or nil,
     }
 end
@@ -3037,8 +3009,8 @@ local function getExactMythicVaultItemLink(entry)
     for _, link in ipairs(links) do
         if isMatchingItemLink(link, entry.itemID) then
             local tooltipData = getTooltipDataForHyperlink(link)
-            local itemLevel = extractTooltipItemLevel(tooltipData)
-            if itemLevel == baselineItemLevel then
+            local itemLevel = getDetailedItemLevel(link, tooltipData)
+            if itemLevel == baselineItemLevel and tooltipDataHasMythOneOfSix(tooltipData) then
                 return link, false
             end
             if (MYTH_PREVIEW_LINK_LOAD_ATTEMPTS[link] or 0) < MYTH_PREVIEW_LINK_MAX_ATTEMPTS then
@@ -3316,16 +3288,19 @@ showSeasonItemTooltip = function(owner, row)
         tooltip:Show()
     end
 
-    local function tryRenderTooltipHyperlink(link)
-        if type(link) ~= "string" or link == "" then
+    local function tryShowBlizzardItemTooltip(link)
+        if type(link) ~= "string" or link == "" or type(tooltip.SetHyperlink) ~= "function" then
             return false
         end
-        local tooltipData = getTooltipDataForHyperlink(link)
-        return renderTooltipDataWithoutMoney(tooltip, tooltipData, getEntryQuality(entry))
-    end
-
-    local function tryRenderTooltipSnapshot(snapshot)
-        return renderTooltipSnapshot(tooltip, snapshot, getEntryQuality(entry))
+        tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
+        tooltip:ClearLines()
+        tooltip.isShopping = true
+        local ok = pcall(tooltip.SetHyperlink, tooltip, link)
+        if not ok or tooltip:NumLines() == 0 then
+            return false
+        end
+        tooltip:Show()
+        return true
     end
 
     local function tryShowTooltipItemID(itemID, sourceType)
@@ -3337,11 +3312,11 @@ showSeasonItemTooltip = function(owner, row)
             return false
         end
         local _, itemLink = GetItemInfo(itemID)
-        if itemLink and isValidTooltipLinkForSource(itemLink, sourceType) and tryRenderTooltipHyperlink(itemLink) then
+        if itemLink and isValidTooltipLinkForSource(itemLink, sourceType) and tryShowBlizzardItemTooltip(itemLink) then
             return true
         end
         local bareLink = "item:" .. tostring(itemID)
-        if isValidTooltipLinkForSource(bareLink, sourceType) and tryRenderTooltipHyperlink(bareLink) then
+        if isValidTooltipLinkForSource(bareLink, sourceType) and tryShowBlizzardItemTooltip(bareLink) then
             return true
         end
         requestItemData(itemID)
@@ -3351,19 +3326,12 @@ showSeasonItemTooltip = function(owner, row)
     local sourceType = getEntrySourceType(entry)
     local specID = row._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
     if isOverlayItemTooltipEnabled() and sourceType == "mythicplus" then
-        tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
         local snapshot = getMythPreviewSnapshot(row.itemID)
         if not snapshot and resolveMythPreviewSnapshot(entry) then
             snapshot = getMythPreviewSnapshot(row.itemID)
             scheduleRebuild(row.itemID, true)
         end
-        if snapshot and tryRenderTooltipSnapshot(snapshot) then
-            tooltip:AddLine(" ")
-            appendCompactSeasonTooltipMeta()
-            tooltip:AddLine(" ")
-            tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
-            ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12, { preserveColors = true })
-            tooltip:Show()
+        if snapshot and tryShowBlizzardItemTooltip(snapshot.itemLink) then
             return
         end
         showSeasonFallbackTooltip()
@@ -3374,10 +3342,7 @@ showSeasonItemTooltip = function(owner, row)
         local ownedItemLink = ns.DB and ns.DB.GetBISOverlayOwnedItemLink
             and ns.DB:GetBISOverlayOwnedItemLink(specID, row.itemID)
             or nil
-        tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
-        if isMatchingItemLink(ownedItemLink, row.itemID) and tryRenderTooltipHyperlink(ownedItemLink) then
-            ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12, { preserveColors = true })
-            tooltip:Show()
+        if isMatchingItemLink(ownedItemLink, row.itemID) and tryShowBlizzardItemTooltip(ownedItemLink) then
             return
         end
     end
@@ -3387,22 +3352,10 @@ showSeasonItemTooltip = function(owner, row)
         return
     end
 
-    tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
-
-    local shown = tryShowTooltipItemID(row.itemID, sourceType)
-    if not shown then
+    if not tryShowTooltipItemID(row.itemID, sourceType) then
         showSeasonFallbackTooltip()
         return
     end
-
-    tooltip:AddLine(" ")
-    appendCompactSeasonTooltipMeta()
-    if sourceType == "mythicplus" or sourceType == "raid" then
-        tooltip:AddLine(" ")
-        tooltip:AddLine(ns.L("bis_tooltip_open_journal"), 0.35, 0.85, 1.00, true)
-    end
-    ns.UI.Widgets.ApplyTooltip(tooltip, 13, 12, { preserveColors = true })
-    tooltip:Show()
 end
 
 local function isCursorOverSourceColumn(button)

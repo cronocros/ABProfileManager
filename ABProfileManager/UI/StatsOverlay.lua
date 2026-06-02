@@ -52,16 +52,6 @@ local PRIORITY_VALUE_SIZE = 15
 local FONT_FLAGS = "OUTLINE"
 local SECONDARY_DR_THRESHOLDS = { 30, 39, 47, 54, 66 }
 local VALUE_PART_GAP = 4
-local PAPERDOLL_TOOLTIP_SETTERS = {
-    crit = "PaperDollFrame_SetCritChance",
-    haste = "PaperDollFrame_SetHaste",
-    mastery = "PaperDollFrame_SetMastery",
-    versatility = "PaperDollFrame_SetVersatility",
-    dodge = "PaperDollFrame_SetDodge",
-    parry = "PaperDollFrame_SetParry",
-    block = "PaperDollFrame_SetBlock",
-}
-
 local function safeTooltipString(value)
     if value == nil then
         return nil
@@ -129,16 +119,15 @@ local function getOverlayScale()
 end
 
 local function safeNumber(value)
-    -- ns.Utils.SafeNumber 로 위임. fallback chain 으로 secret number 가 0 으로
-    -- 깎이지 않도록 보호한다(전투 중 PaperDoll API 등이 secret 반환 시 부작용).
+    -- ns.Utils.SafeNumber 로 위임. secret number 는 평문 숫자로 변환되지 않으면
+    -- 0 으로 격리해 렌더 경로로 전파하지 않는다.
     if ns.Utils and ns.Utils.SafeNumber then
         return ns.Utils.SafeNumber(value)
     end
-    -- Utils 미로드 시 폴백 (Core.lua 가 SafeCall 정의 시 호출되는 경우 등)
-    local stripped = tonumber(tostring(value))
-    if stripped then return stripped end
-    if type(value) == "number" then return value end
-    return tonumber(value) or 0
+    local ok, stripped = pcall(function()
+        return tonumber(tostring(value))
+    end)
+    return ok and stripped or 0
 end
 
 local function roundToInteger(value)
@@ -462,18 +451,6 @@ local function applyPercentTextStyle(row, size, r, g, b)
     row.percentTailValue:SetJustifyH("LEFT")
 end
 
-local function applyTooltipProxyFont(fontString, fontObject)
-    if not fontString then
-        return
-    end
-
-    local baseSize = fontObject == GameFontHighlight and 13 or 12
-    ns.UI.Typography:ApplyFont(fontString, baseSize, { domain = "tooltip", transient = true })
-
-    fontString:SetJustifyH("LEFT")
-    fontString:SetJustifyV("TOP")
-end
-
 function StatsOverlay:CreateRow()
     local row = CreateFrame("Frame", nil, self.frame)
     row:SetSize(MIN_FRAME_WIDTH, 20)
@@ -595,24 +572,6 @@ function StatsOverlay:GetTooltipBody(entry)
     return text
 end
 
-function StatsOverlay:GetTooltipProxyFrame()
-    if self.tooltipProxyFrame then
-        return self.tooltipProxyFrame
-    end
-
-    local frame = CreateFrame("Frame", nil, self.frame or UIParent)
-    frame:SetSize(1, 1)
-    frame:Hide()
-
-    frame.Label = frame:CreateFontString(nil, "OVERLAY")
-    frame.Value = frame:CreateFontString(nil, "OVERLAY")
-    applyTooltipProxyFont(frame.Label, GameFontNormal)
-    applyTooltipProxyFont(frame.Value, GameFontHighlight)
-
-    self.tooltipProxyFrame = frame
-    return frame
-end
-
 function StatsOverlay:GetMeasurementFontString()
     if self.measurementFontString then
         return self.measurementFontString
@@ -633,38 +592,6 @@ function StatsOverlay:MeasureTextWidth(text, size)
     })
     measure:SetText(text or "")
     return math.ceil(measure:GetStringWidth() or 0)
-end
-
-function StatsOverlay:PreparePaperDollTooltip(entry, owner)
-    local setterName = entry and entry.key and PAPERDOLL_TOOLTIP_SETTERS[entry.key]
-    local setter = setterName and _G[setterName]
-    if type(setter) ~= "function" then
-        return nil
-    end
-
-    local proxy = self:GetTooltipProxyFrame()
-    proxy:ClearAllPoints()
-    if owner then
-        proxy:SetParent(owner)
-        proxy:SetAllPoints(owner)
-    else
-        proxy:SetParent(self.frame or UIParent)
-    end
-
-    proxy.tooltip = nil
-    proxy.tooltip2 = nil
-    proxy.tooltip3 = nil
-    proxy.onEnterFunc = nil
-    proxy.UpdateTooltip = nil
-    proxy.numericValue = nil
-    applyTooltipProxyFont(proxy.Label, GameFontNormal)
-    applyTooltipProxyFont(proxy.Value, GameFontHighlight)
-
-    local ok = pcall(setter, proxy, "player")
-    if not ok then
-        return nil
-    end
-    return proxy
 end
 
 function StatsOverlay:GetCurrentMasterySpellIDs()
@@ -785,7 +712,6 @@ function StatsOverlay:ShowRowTooltip(row)
     end
 
     if not renderedNativeTooltip then
-        self:PreparePaperDollTooltip(row.entry, row.tooltipRegion)
         tooltip:SetText(tooltipTitle, 0.96, 0.82, 0.30)
 
         local body = self:GetTooltipBody(row.entry)

@@ -6,6 +6,21 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.6 - 2026-06-03
+
+BIS M+ hover를 Blizzard 원본 아이템 툴팁과 1회 저장 snapshot 재사용 경로로 전환한 로컬 패치.
+
+주요 변경:
+- selector `12801`을 extracted ItemBonus DB2 build `12.0.1.66838` 기준으로 검토
+- 상단 아이템 토글 on 시 검증된 `Myth/신화 1/6 272` full item link를 계정 SavedVariables snapshot schema v3로 한 번 저장하고 이후 hover/점수화에서 재사용
+- M+ BIS hover는 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 원본 2차 스탯을 렌더링
+- BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링 차단
+- `StatsOverlay`의 미사용 `PaperDollFrame_Set*` setter 제거
+- `SafeNumber()`가 secret 값을 일반 숫자로 정규화하지 못하면 `0`으로 fallback
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.6.zip` 생성까지만 수행하고 WoW 설치 폴더 복사는 하지 않음
+- 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0` 유지
+- AGENTS, README, ADDON_INTRO, ARCHITECTURE, HANDOFF, SECURITY_REVIEW, DOC index, 릴리스 노트를 v1.11.6 로컬 패치 기준으로 갱신
+
 ## 1.11.5 - 2026-06-03
 
 BIS 출처 클릭의 Encounter Journal 랜딩 보호 경로를 보강한 로컬 패치.
