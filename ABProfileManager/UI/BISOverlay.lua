@@ -337,6 +337,7 @@ local MYTH_PREVIEW_LINK_LOAD_ATTEMPTS = {}
 local PENDING_MYTH_PREVIEW_ENTRIES = {}
 local REJECTED_MYTH_PREVIEW_LINKS = {}
 local PENDING_ROW_REFRESH_ITEM_IDS = {}
+local DEFAULT_ITEM_TOOLTIP_LINK_CACHE = {}
 local MYTH_PREVIEW_LINK_MAX_ATTEMPTS = 2
 local MYTH_PREVIEW_LINK_LOAD_TIMEOUT = 1.5
 local normalizeCompareText
@@ -349,6 +350,7 @@ local isCraftingSourceLabel
 local isEnglishOnlyLabel
 local localizeSourceLabel
 local resolveSeasonDungeonName
+local isItemHyperlink
 
 -- ============================================================
 -- Helper 함수들
@@ -833,6 +835,10 @@ end
 
 local function isOverlayItemTooltipEnabled()
     return ns.DB and ns.DB.IsBISOverlayItemTooltipEnabled and ns.DB:IsBISOverlayItemTooltipEnabled() or false
+end
+
+local function usesDefaultBlizzardItemTooltip(sourceType)
+    return sourceType == "raid" or sourceType == "crafted" or sourceType == "tier"
 end
 
 local function isBISItemOwned(specID, itemID)
@@ -2334,6 +2340,10 @@ function BISOverlay:EnsureFrame()
         if numericID then
             PENDING_ITEM_DATA[numericID] = nil
             PENDING_MYTH_PREVIEW_ENTRIES[numericID] = nil
+            local _, itemLink = GetItemInfo(numericID)
+            if isItemHyperlink(itemLink) then
+                DEFAULT_ITEM_TOOLTIP_LINK_CACHE[numericID] = itemLink
+            end
         end
         if success and previewEntry and retryMythPreviewSnapshot then
             retryMythPreviewSnapshot(previewEntry)
@@ -2631,7 +2641,7 @@ requestItemData = function(itemID)
     end
 end
 
-local function isItemHyperlink(link)
+isItemHyperlink = function(link)
     return type(link) == "string"
         and (link:find("|Hitem:", 1, true) ~= nil or link:find("^item:") ~= nil)
 end
@@ -3311,12 +3321,26 @@ showSeasonItemTooltip = function(owner, row)
             requestItemData(itemID)
             return false
         end
+
+        local useDefaultTooltip = usesDefaultBlizzardItemTooltip(sourceType)
+        local cachedLink = useDefaultTooltip and DEFAULT_ITEM_TOOLTIP_LINK_CACHE[itemID] or nil
+        if cachedLink and tryShowBlizzardItemTooltip(cachedLink) then
+            return true
+        end
+
         local _, itemLink = GetItemInfo(itemID)
+        if itemLink and useDefaultTooltip and tryShowBlizzardItemTooltip(itemLink) then
+            DEFAULT_ITEM_TOOLTIP_LINK_CACHE[itemID] = itemLink
+            return true
+        end
         if itemLink and isValidTooltipLinkForSource(itemLink, sourceType) and tryShowBlizzardItemTooltip(itemLink) then
             return true
         end
+
         local bareLink = "item:" .. tostring(itemID)
-        if isValidTooltipLinkForSource(bareLink, sourceType) and tryShowBlizzardItemTooltip(bareLink) then
+        if not useDefaultTooltip
+            and isValidTooltipLinkForSource(bareLink, sourceType)
+            and tryShowBlizzardItemTooltip(bareLink) then
             return true
         end
         requestItemData(itemID)

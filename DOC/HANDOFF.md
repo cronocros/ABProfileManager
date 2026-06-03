@@ -1,8 +1,16 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.6 로컬 패치 기반`
+버전 기준: `v1.11.7 로컬 패치 기반`
 
-## 0-new. v1.11.6 로컬 패치 메모
+## 0-new. v1.11.7 로컬 패치 메모
+
+- 레이드 / 제작 / 티어 BIS hover도 상단 아이템 토글 on 시 addon-owned Blizzard `GameTooltip:SetHyperlink()` 기본 item tooltip을 표시한다.
+- 이 출처들은 검증된 시즌 full link가 없는 정적 `itemID` 후보이므로 임의 bonusID를 조립하지 않는다.
+- 클라이언트가 로드한 기본 `itemLink`는 세션 메모리 `DEFAULT_ITEM_TOOLTIP_LINK_CACHE`에 재사용한다.
+- M+ `Myth/신화 1/6 272` snapshot과 shopping tooltip 기반 `MoneyFrame` 차단은 유지한다.
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.7.zip` 생성까지만 수행한다. WoW 설치 폴더로 복사하지 않는다.
+
+## 0-prev. v1.11.6 로컬 패치 메모
 
 - Midnight 시즌 selector `12801`은 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토했다.
 - 상단 아이템 토글이 켜져 있으면 검증된 `Myth/신화 1/6 272` full item link를 계정 SavedVariables snapshot schema v3로 한 번 저장하고 이후 hover/점수화에서 재사용한다.

@@ -29,7 +29,7 @@
 - 외부 네트워크 전송 없음
 - import는 코드 실행이 아니라 데이터 파싱 방식
 - 지도/BIS/드랍 오버레이는 로컬 정적 데이터와 Blizzard API 조회만 사용
-- 일반 hover 설명은 애드온 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에만 검증 full item link를 `SetHyperlink()`로 전달하고 shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
+- 일반 hover 설명은 애드온 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에만 검증 full item link를 `SetHyperlink()`로 전달한다. raid/crafted/tier hover는 임의 bonusID 없이 클라이언트가 로드한 기본 `itemLink`만 같은 경로로 표시한다. shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
 - 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하며 WoW 설치 폴더로 복사하지 않는다
 - TomTom 연동은 선택적 로컬 애드온 호출뿐이며, 미설치 시 fail-safe로 빠짐
 - ABPM 보호 오류 로그는 세션 메모리 안에만 저장하며 외부 전송이나 파일 쓰기를 하지 않음
@@ -112,6 +112,7 @@
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다
 - 아이템 캐시 수신 시 visible row를 우선 갱신하고, 자동 점수 재시도가 필요한 경우에만 rebuild한다
 - M+ BIS item hover는 addon-owned Blizzard item tooltip에 검증 snapshot의 full item link를 `SetHyperlink()`로 전달해 Blizzard 원본 2차 스탯을 렌더링한다
+- raid/crafted/tier BIS hover는 검증된 시즌 full link가 없으면 기본 Blizzard `itemLink` tooltip만 표시하고, 성공한 링크를 세션 캐시에 재사용한다
 - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단하고 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
 - 전역 `GameTooltip`을 BIS hover 대상으로 직접 사용하지 않아 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 금지한다. M+/raid 클릭은 공개 열기 경로만 사용한다

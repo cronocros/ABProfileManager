@@ -6,6 +6,18 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.7 - 2026-06-03
+
+BIS 레이드/제작/티어 hover도 Blizzard 기본 아이템 툴팁으로 표시하도록 확장한 로컬 패치.
+
+주요 변경:
+- 상단 아이템 토글 on 시 raid/crafted/tier 후보는 클라이언트가 로드한 기본 `itemLink`를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달
+- 검증된 시즌 full link가 없는 raid/crafted/tier 후보에는 임의 bonusID를 조립하지 않음
+- 성공한 기본 itemLink는 세션 캐시에 재사용해 반복 hover 로딩 부담 완화
+- `scripts/validate_bis_tooltip_contract.py`에 raid/crafted/tier 기본 Blizzard tooltip 계약 추가
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.7.zip` 생성까지만 수행하고 WoW 설치 폴더 복사는 하지 않음
+- 원격 GitHub 공개 최신 릴리스와 직접 다운로드는 아직 `v1.11.0` 유지
+
 ## 1.11.6 - 2026-06-03
 
 BIS M+ hover를 Blizzard 원본 아이템 툴팁과 1회 저장 snapshot 재사용 경로로 전환한 로컬 패치.

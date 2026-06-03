@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.11.6 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.7 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -27,7 +27,7 @@
 - 글자 크기 변경은 도메인별 typography 계층으로 통합한다.
 - 파괴적 작업은 확인창과 입력 검증을 우선한다.
 - BIS 정적 후보는 생성된 카탈로그만 읽고, 열기 시점의 병합/웹 조회를 금지한다.
-- 애드온 hover 설명은 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에 검증 full item link를 `SetHyperlink()`로 전달하고, shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다.
+- 애드온 hover 설명은 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에 검증 full item link를 `SetHyperlink()`로 전달한다. raid/crafted/tier hover는 임의 bonusID 없이 클라이언트가 로드한 기본 `itemLink`를 같은 경로로 표시한다. BIS item tooltip은 shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다.
 - 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하고 WoW 설치 폴더로 복사하지 않는다.
 
 ## 부트스트랩
@@ -140,6 +140,7 @@
   - 한밤 시즌 1 M+ `JournalInstanceID`: `Magisters' Terrace 1300`, `Maisara Caverns 1315`, `Nexus-Point Xenas 1316`, `Windrunner Spire 1299`, `Algeth'ar Academy 1201`, `Seat of the Triumvirate 945`, `Skyreach 476`, `Pit of Saron 278`
   - `crafted`, `tier`는 Encounter Journal 랜딩 대상에서 제외
   - M+ 행 hover는 저장된 272 snapshot의 full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 원본 2차 스탯을 표시하고, 없으면 미검증 안내만 표시
+  - raid/crafted/tier 행 hover는 검증 시즌 full link가 없으면 기본 `itemLink`를 세션 캐시에 저장하고 같은 Blizzard item tooltip 경로로 표시
   - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단
   - `GET_ITEM_INFO_RECEIVED`는 전체 rebuild 대신 visible row patch만 수행
   - 헤더 마우스 휠로 0.5~2.0배 스케일 조절
@@ -172,7 +173,7 @@
   - M+ row 라벨과 자동 검색 full link 검증용 위대한 금고 Myth 1/6 272 대표 프로필 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
-  - v1.11.6 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - v1.11.7 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
   - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
@@ -328,6 +329,7 @@ seed 경계:
 - locale 선택은 row에 저장된 `nameKoKR/nameEnUS`, `displaySourceKoKR/displaySourceEnUS`를 우선 사용하고, legacy `boss/source` 값은 런타임 alias 정규화로 마지막 누수를 막는다
 - `GET_ITEM_INFO_RECEIVED`는 icon/quality/item hyperlink 보정이 필요한 visible row만 patch
 - M+ BIS hover tooltip은 전역 `GameTooltip`이 아니라 addon-owned Blizzard item tooltip에 검증 snapshot의 full item link를 `SetHyperlink()`로 전달해 원본 2차 스탯을 렌더링한다
+- raid/crafted/tier BIS hover tooltip은 검증 시즌 full link가 없는 경우 기본 `itemLink`를 세션 캐시에 저장해 같은 addon-owned Blizzard item tooltip 경로로 표시한다
 - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다
 - 상단 아이템 토글이 켜져 있으면 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 selector `12801`로 M+ 후보 preview item string을 자동 생성한다
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 tooltip/stat snapshot을 SavedVariables에 저장하고 실제 스탯 / 실제 ilvl로 점수화한다

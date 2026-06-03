@@ -66,6 +66,18 @@ def main() -> None:
         BIS_OVERLAY,
         "cached Myth snapshots must carry a verified-track marker",
     )
+    require_contains(
+        bis_overlay,
+        "DEFAULT_ITEM_TOOLTIP_LINK_CACHE",
+        BIS_OVERLAY,
+        "raid/crafted/tier default Blizzard item links must be cached after loading",
+    )
+    require_contains(
+        bis_overlay,
+        'sourceType == "raid" or sourceType == "crafted" or sourceType == "tier"',
+        BIS_OVERLAY,
+        "raid/crafted/tier rows must be allowed to use base Blizzard item tooltips",
+    )
     require_absent(
         bis_overlay,
         "renderTooltipSnapshot",
@@ -111,7 +123,8 @@ def main() -> None:
 
     print(
         "ok: BIS tooltip contract uses Blizzard SetHyperlink rendering, "
-        "requires verified Myth 1/6 snapshots, blocks removed manual renderers, "
+        "requires verified Myth 1/6 snapshots, allows raid/crafted/tier base itemLink cache, "
+        "blocks removed manual renderers, "
         "and keeps SafeNumber fallback taint-safe"
     )
 
