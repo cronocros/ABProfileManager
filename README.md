@@ -17,6 +17,8 @@
 - 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.10.md](./DOC/releases/RELEASE_NOTES_v1.11.10.md)
 - 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.10_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.10_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
+- v1.10.0 이후 영문 업데이트 공지: [DOC/releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md)
+- 최신 영문 소개 페이지 문안: [DOC/releases/ADDON_DESCRIPTION_v1.11.10_EN.md](./DOC/releases/ADDON_DESCRIPTION_v1.11.10_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약

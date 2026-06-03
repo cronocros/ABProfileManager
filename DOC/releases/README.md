@@ -11,6 +11,8 @@
 - 원격 GitHub 공개 최신 영문 릴리스 노트: `RELEASE_NOTES_v1.11.0_EN.md`
 - v1.7.7 이후 누적 변경 한글 공지: `UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md`
 - v1.7.7 이후 누적 변경 영문 공지: `UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md`
+- v1.10.0 이후 누적 변경 영문 공지: `UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md`
+- 최신 영문 소개 페이지: `ADDON_DESCRIPTION_v1.11.10_EN.md`
 
 기존 v1.11.0 릴리스 노트와 누적 공지는 원격 공개 최신 v1.11.0 근거로 유지합니다. 더 이전 릴리스 노트는 `DOC/archive/release-notes/`로 이동합니다.
 

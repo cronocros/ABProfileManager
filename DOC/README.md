@@ -22,6 +22,10 @@
   - v1.7.7 이후 누적 변경 한글 공지
 - [releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md](./releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
   - v1.7.7 이후 누적 변경 영문 공지
+- [releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md](./releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md)
+  - v1.10.0 이후 누적 변경 영문 공지
+- [releases/ADDON_DESCRIPTION_v1.11.10_EN.md](./releases/ADDON_DESCRIPTION_v1.11.10_EN.md)
+  - 최신 외부 소개 페이지용 영문 문안
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름
 - [HANDOFF.md](./HANDOFF.md)
