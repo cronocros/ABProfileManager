@@ -10,6 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BIS_OVERLAY = REPO_ROOT / "ABProfileManager" / "UI" / "BISOverlay.lua"
 STATS_OVERLAY = REPO_ROOT / "ABProfileManager" / "UI" / "StatsOverlay.lua"
 UTILS = REPO_ROOT / "ABProfileManager" / "Utils.lua"
+DB = REPO_ROOT / "ABProfileManager" / "DB.lua"
+DEFAULTS = REPO_ROOT / "ABProfileManager" / "Data" / "Defaults.lua"
 
 
 def require_contains(text: str, needle: str, source: Path, reason: str) -> None:
@@ -41,6 +43,8 @@ def main() -> None:
     bis_overlay = BIS_OVERLAY.read_text(encoding="utf-8")
     stats_overlay = STATS_OVERLAY.read_text(encoding="utf-8")
     utils = UTILS.read_text(encoding="utf-8")
+    db = DB.read_text(encoding="utf-8")
+    defaults = DEFAULTS.read_text(encoding="utf-8")
 
     require_contains(
         bis_overlay,
@@ -77,6 +81,30 @@ def main() -> None:
         'sourceType == "raid" or sourceType == "crafted" or sourceType == "tier"',
         BIS_OVERLAY,
         "raid/crafted/tier rows must be allowed to use base Blizzard item tooltips",
+    )
+    require_contains(
+        bis_overlay,
+        "if useDefaultTooltip and tryShowBlizzardItemTooltip(bareLink) then",
+        BIS_OVERLAY,
+        "tier/base itemID rows must attempt a bare item link before falling back",
+    )
+    require_contains(
+        db,
+        "settings.bisOverlay.itemTooltip = true",
+        DB,
+        "BIS overlay item tooltip checkbox must default to enabled",
+    )
+    require_contains(
+        db,
+        "settings._itemTooltipUserConfiguredV1 = true",
+        DB,
+        "BIS overlay item tooltip user choices must be remembered after toggling",
+    )
+    require_contains(
+        defaults,
+        "itemTooltip = true",
+        DEFAULTS,
+        "new SavedVariables defaults must enable the BIS overlay item tooltip checkbox",
     )
     require_absent(
         bis_overlay,
@@ -123,7 +151,8 @@ def main() -> None:
 
     print(
         "ok: BIS tooltip contract uses Blizzard SetHyperlink rendering, "
-        "requires verified Myth 1/6 snapshots, allows raid/crafted/tier base itemLink cache, "
+        "requires verified Myth 1/6 snapshots, allows raid/crafted/tier base itemLink and bare itemID cache, "
+        "defaults the BIS item tooltip checkbox on, "
         "blocks removed manual renderers, "
         "and keeps SafeNumber fallback taint-safe"
     )

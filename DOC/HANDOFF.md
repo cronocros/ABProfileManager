@@ -1,8 +1,17 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.7 로컬 패치 기반`
+버전 기준: `v1.11.8 로컬 패치 기반`
 
-## 0-new. v1.11.7 로컬 패치 메모
+## 0-new. v1.11.8 로컬 패치 메모
+
+- BIS 오버레이 상단 아이템 툴팁 체크박스는 신규 기본값과 기존 SavedVariables 1회 마이그레이션 모두 on으로 둔다.
+- 사용자가 체크박스를 직접 토글하면 `_itemTooltipUserConfiguredV1`을 저장해 이후 선택을 유지한다.
+- 티어 BIS hover에서 클라이언트가 full `itemLink`를 아직 반환하지 않으면 기본 `item:<itemID>` 링크도 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 시도한다.
+- 성공한 기본 itemID 링크는 `DEFAULT_ITEM_TOOLTIP_LINK_CACHE`에 저장해 같은 세션에서 재사용한다.
+- 임의 bonusID 조립 금지, M+ `Myth/신화 1/6 272` snapshot, shopping tooltip 기반 `MoneyFrame` 차단은 유지한다.
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.8.zip` 생성까지만 수행한다. WoW 설치 폴더로 복사하지 않는다.
+
+## 0-prev. v1.11.7 로컬 패치 메모
 
 - 레이드 / 제작 / 티어 BIS hover도 상단 아이템 토글 on 시 addon-owned Blizzard `GameTooltip:SetHyperlink()` 기본 item tooltip을 표시한다.
 - 이 출처들은 검증된 시즌 full link가 없는 정적 `itemID` 후보이므로 임의 bonusID를 조립하지 않는다.

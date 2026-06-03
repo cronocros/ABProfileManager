@@ -995,8 +995,14 @@ function DB:GetBISOverlaySettings()
         end
         settings.bisOverlay._allSourcesMigrationV2 = true
     end
+    if settings.bisOverlay._itemTooltipDefaultOnV1 ~= true then
+        if settings.bisOverlay._itemTooltipUserConfiguredV1 ~= true then
+            settings.bisOverlay.itemTooltip = true
+        end
+        settings.bisOverlay._itemTooltipDefaultOnV1 = true
+    end
     if type(settings.bisOverlay.itemTooltip) ~= "boolean" then
-        settings.bisOverlay.itemTooltip = false
+        settings.bisOverlay.itemTooltip = true
     end
     return settings.bisOverlay
 end
@@ -1024,7 +1030,9 @@ function DB:IsBISOverlayItemTooltipEnabled()
 end
 
 function DB:SetBISOverlayItemTooltipEnabled(enabled)
-    self:GetBISOverlaySettings().itemTooltip = enabled and true or false
+    local settings = self:GetBISOverlaySettings()
+    settings.itemTooltip = enabled and true or false
+    settings._itemTooltipUserConfiguredV1 = true
     return self:IsBISOverlayItemTooltipEnabled()
 end
 

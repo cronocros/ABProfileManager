@@ -3338,6 +3338,10 @@ showSeasonItemTooltip = function(owner, row)
         end
 
         local bareLink = "item:" .. tostring(itemID)
+        if useDefaultTooltip and tryShowBlizzardItemTooltip(bareLink) then
+            DEFAULT_ITEM_TOOLTIP_LINK_CACHE[itemID] = bareLink
+            return true
+        end
         if not useDefaultTooltip
             and isValidTooltipLinkForSource(bareLink, sourceType)
             and tryShowBlizzardItemTooltip(bareLink) then

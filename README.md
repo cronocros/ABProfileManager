@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- 로컬 패치: `v1.11.7`
+- 로컬 패치: `v1.11.8`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.11.7.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.11.8.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.7.md](./DOC/releases/RELEASE_NOTES_v1.11.7.md)
-- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.7_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.7_EN.md)
+- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.8.md](./DOC/releases/RELEASE_NOTES_v1.11.8.md)
+- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.8_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.8_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
@@ -30,6 +30,14 @@
 - 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.11.8 로컬 패치 핵심 정리
+
+- BIS 오버레이 상단 아이템 툴팁 체크박스는 기본 선택 상태로 시작합니다. 기존 저장값도 1회 마이그레이션으로 켜고, 이후 사용자가 직접 끄면 그 선택을 유지합니다.
+- 티어 BIS hover에서 클라이언트가 아직 full `itemLink`를 돌려주지 않아도 기본 `item:<itemID>` 링크를 Blizzard tooltip에 먼저 시도합니다.
+- 성공한 기본 링크는 세션 캐시에 저장해 이후 hover 로딩 부담을 줄입니다.
+- 임의 bonusID 조립 금지, M+ `Myth/신화 1/6 272` snapshot, shopping tooltip 기반 `MoneyFrame` 차단 경로는 유지합니다.
+- 로컬 배포는 작업공간의 `dist/ABProfileManager-v1.11.8.zip` 생성까지만 수행하며 WoW 설치 폴더로 자동 복사하지 않습니다.
 
 ## v1.11.7 로컬 패치 핵심 정리
 

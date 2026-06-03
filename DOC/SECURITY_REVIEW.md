@@ -29,7 +29,7 @@
 - 외부 네트워크 전송 없음
 - import는 코드 실행이 아니라 데이터 파싱 방식
 - 지도/BIS/드랍 오버레이는 로컬 정적 데이터와 Blizzard API 조회만 사용
-- 일반 hover 설명은 애드온 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에만 검증 full item link를 `SetHyperlink()`로 전달한다. raid/crafted/tier hover는 임의 bonusID 없이 클라이언트가 로드한 기본 `itemLink`만 같은 경로로 표시한다. shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
+- 일반 hover 설명은 애드온 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에만 검증 full item link를 `SetHyperlink()`로 전달한다. raid/crafted/tier hover는 임의 bonusID 없이 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`만 같은 경로로 표시한다. shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
 - 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하며 WoW 설치 폴더로 복사하지 않는다
 - TomTom 연동은 선택적 로컬 애드온 호출뿐이며, 미설치 시 fail-safe로 빠짐
 - ABPM 보호 오류 로그는 세션 메모리 안에만 저장하며 외부 전송이나 파일 쓰기를 하지 않음
@@ -101,6 +101,7 @@
 - `Data/MidnightS1MPlusDB.lua`는 저장소에 고정된 v1.7 컴팩트 코어이며 네트워크나 동적 코드 로드를 하지 않는다
 - `Data/BISRuntimeScoring.lua`는 실제 full link를 `C_Item.GetItemStats()`와 `GetDetailedItemLevelInfo()` 기반 점수 함수에 전달한다
 - 상단 아이템 토글이 켜져 있으면 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 시즌 selector `12801`로 M+ 후보 preview item string을 생성하고, 검증 결과를 계정 SavedVariables snapshot schema v3로 저장한다
+- 상단 아이템 토글 기본값은 on이며, 사용자가 직접 토글하면 사용자 설정 플래그를 저장해 이후 선택을 보존한다
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 자동 점수화한다
 - selector 또는 item string 템플릿 변경 시 기존 SavedVariables snapshot cache를 초기화하고, 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도를 차단한다
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
@@ -112,7 +113,7 @@
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다
 - 아이템 캐시 수신 시 visible row를 우선 갱신하고, 자동 점수 재시도가 필요한 경우에만 rebuild한다
 - M+ BIS item hover는 addon-owned Blizzard item tooltip에 검증 snapshot의 full item link를 `SetHyperlink()`로 전달해 Blizzard 원본 2차 스탯을 렌더링한다
-- raid/crafted/tier BIS hover는 검증된 시즌 full link가 없으면 기본 Blizzard `itemLink` tooltip만 표시하고, 성공한 링크를 세션 캐시에 재사용한다
+- raid/crafted/tier BIS hover는 검증된 시즌 full link가 없으면 기본 Blizzard `itemLink` 또는 `item:<itemID>` tooltip만 표시하고, 성공한 링크를 세션 캐시에 재사용한다
 - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단하고 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
 - 전역 `GameTooltip`을 BIS hover 대상으로 직접 사용하지 않아 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 금지한다. M+/raid 클릭은 공개 열기 경로만 사용한다

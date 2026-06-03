@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.11.7 로컬 패치 기반`
+**현재 기준**: `v1.11.8 로컬 패치 기반`
 
 ## 검증 명령어
 
@@ -70,13 +70,14 @@ ABProfileManager/
 8. `UI/BISOverlay.lua`
    - 정적 후보는 `Data/BISCatalog.lua`만 읽고, 실제 링크 점수는 `Data/BISRuntimeScoring.lua`를 통해 계산한다
    - 상단 아이템 토글이 켜져 있으면 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 내장 selector `12801`로 M+ `Myth 1/6 272` preview를 만들고 한 번 스캔해 계정 SavedVariables snapshot schema v3로 저장한다
+   - 상단 아이템 토글은 기본 on이며, 기존 SavedVariables는 1회 마이그레이션으로 on 처리한다. 사용자가 직접 끄면 이후 선택을 유지한다
    - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화한다
    - selector 또는 item string 템플릿이 바뀌면 이전 snapshot cache를 초기화하고, 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도를 막는다
    - preview hyperlink 비동기 로드는 itemID wake signal로만 사용하고, 완료 뒤 exact selector 링크를 다시 검증한다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션 최대 2회로 제한한다
    - 던전 종료 `Hero 3/6 266` 링크만 있으면 `Myth 1/6 272` 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
    - 임의 bonusID를 조립하지 않는다. 검토된 시즌 selector만 `Data/BISMythicVaultLinks.lua`에서 관리한다
    - M+ hover는 검증 snapshot의 full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 Blizzard 원본 2차 스탯을 렌더링한다
-   - raid/crafted/tier hover는 검증된 시즌 full link가 없으면 임의 bonusID를 만들지 않고 클라이언트가 로드한 기본 `itemLink`를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 표시한다
+   - raid/crafted/tier hover는 검증된 시즌 full link가 없으면 임의 bonusID를 만들지 않고 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 표시한다
    - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
    - M+ 클릭 랜딩은 `Data/BISEncounterJournal.lua`의 검증 `JournalInstanceID`만 사용하고, 현재 시즌 tier 선선택과 availability guard를 유지한다
@@ -107,9 +108,10 @@ ABProfileManager/
 - BIS 오버레이 드랍 출처 클릭 → 비전투 중 모험 안내서 loot 탭 랜딩
 - 전투 중 BIS 드랍 출처 클릭 → 자동 랜딩 생략, Blizzard 보호 기능 차단 팝업 없음
 - BIS 필터 / 열 폭 / 마지막 열 가림 여부
+- BIS 상단 아이템 토글이 기본 on으로 표시되고, 직접 off 후 재오픈해도 off 선택이 유지되는지 확인
 - BIS 상단 아이템 토글 on/off, M+ selector preview 자동 생성, `Myth 1/6 272` 검증 preview만 자동 점수화되는지 확인
 - 던전 종료 `Hero 3/6 266` 링크만 있을 때 `Myth 1/6 272` 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인
-- BIS tooltip이 addon-owned Blizzard `GameTooltip:SetHyperlink()` 경로로 원본 2차 스탯을 표시하고 M+ 272 snapshot / raid-craft-tier 기본 itemLink 캐시를 재사용하는지 확인
+- BIS tooltip이 addon-owned Blizzard `GameTooltip:SetHyperlink()` 경로로 원본 2차 스탯을 표시하고 M+ 272 snapshot / raid-craft-tier 기본 itemLink 또는 itemID 캐시를 재사용하는지 확인
 - BIS hover 뒤 액션바 / 모험 안내서 tooltip에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지 확인
 - M+ 자동 점수 분산 큐가 rebuild를 과도하게 반복하지 않는지 확인
 - `레이드 off + 쐐기만 on`에서 쐐기 행과 던전명이 유지되는지
@@ -164,9 +166,10 @@ ABProfileManager/
 - 검증 snapshot이 없는 후보는 기존 정적 순서를 유지한다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
 - 상단 아이템 토글이 켜지면 M+ 후보는 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 내장 selector `12801`로 preview item string을 만들고 계정 SavedVariables snapshot schema v3로 저장한다
+- 상단 아이템 토글 기본값은 on이다. `SetBISOverlayItemTooltipEnabled()`는 사용자 토글 플래그를 저장해 이후 선택을 보존한다
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다
 - M+ hover는 검증 snapshot의 full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 원본 2차 스탯을 표시하고, shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
-- raid/crafted/tier hover는 검증된 시즌 full link가 없으면 클라이언트가 로드한 기본 `itemLink`를 세션 캐시에 저장하고 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다
+- raid/crafted/tier hover는 검증된 시즌 full link가 없으면 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`를 세션 캐시에 저장하고 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다
 - selector 또는 item string 템플릿 변경 시 기존 snapshot cache는 초기화한다. 다른 템렙으로 해석된 preview는 같은 세션에서 다시 큐에 넣지 않는다
 - M+ 자동 검색은 임의 bonusID를 조립하지 않으며, hover/자동 큐에서 Encounter Journal UI 상태를 변경하지 않는다
 - Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출을 사용하지 않으며, 전투 중에는 자동 랜딩을 건너뛴다
