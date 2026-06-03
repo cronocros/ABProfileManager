@@ -1,8 +1,16 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.9 로컬 패치 기반`
+버전 기준: `v1.11.10 로컬 패치 기반`
 
-## 0-new. v1.11.9 로컬 패치 메모
+## 0-new. v1.11.10 로컬 패치 메모
+
+- `UI/BISOverlay.lua` 로드 시 발생한 `main function has more than 200 local variables` 오류를 수정했다.
+- 시즌 preview 상태와 helper를 `SourcePreview` 테이블 필드로 묶어 top-level local 개수를 `194`로 낮췄다.
+- `scripts/validate_bis_tooltip_contract.py`가 BISOverlay top-level local 개수 예산도 검증한다.
+- raid/tier/crafted 시즌 preview와 M+ `Myth/신화 1/6 272` snapshot 경로는 유지한다.
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.10.zip` 생성까지만 수행한다. WoW 설치 폴더로 복사하지 않는다.
+
+## 0-prev. v1.11.9 로컬 패치 메모
 
 - `Data/BISSeasonPreviewLinks.lua`를 추가해 raid Myth, tier Myth, crafted r5 285 hover preview item string을 별도 로컬 DB로 관리한다.
 - raid/tier BIS hover는 preview link가 실제 `272~289` item level 범위와 `Myth/신화` tooltip text를 통과한 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다.

@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- 로컬 패치: `v1.11.9`
+- 로컬 패치: `v1.11.10`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.11.9.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.11.10.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.9.md](./DOC/releases/RELEASE_NOTES_v1.11.9.md)
-- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.9_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.9_EN.md)
+- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.10.md](./DOC/releases/RELEASE_NOTES_v1.11.10.md)
+- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.10_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.10_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
@@ -30,6 +30,13 @@
 - 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.11.10 로컬 패치 핵심 정리
+
+- BISOverlay의 시즌 preview helper를 `SourcePreview` 테이블로 묶어 WoW Lua chunk의 `main function has more than 200 local variables` 로드 오류를 수정했습니다.
+- `scripts/validate_bis_tooltip_contract.py`에 BISOverlay top-level local 개수 예산 검증을 추가해 같은 문제가 재발하지 않게 했습니다.
+- 레이드/티어/제작 시즌 preview, M+ `Myth/신화 1/6 272` snapshot, 상단 아이템 툴팁 체크박스 기본 on, `MoneyFrame` 차단 경로는 유지합니다.
+- 로컬 배포는 작업공간의 `dist/ABProfileManager-v1.11.10.zip` 생성까지만 수행하며 WoW 설치 폴더로 자동 복사하지 않습니다.
 
 ## v1.11.9 로컬 패치 핵심 정리
 

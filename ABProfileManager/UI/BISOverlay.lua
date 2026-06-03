@@ -336,14 +336,16 @@ local PENDING_MYTH_PREVIEW_LINKS = {}
 local MYTH_PREVIEW_LINK_LOAD_ATTEMPTS = {}
 local PENDING_MYTH_PREVIEW_ENTRIES = {}
 local REJECTED_MYTH_PREVIEW_LINKS = {}
-local PENDING_SOURCE_PREVIEW_LINKS = {}
-local SOURCE_PREVIEW_LINK_LOAD_ATTEMPTS = {}
-local REJECTED_SOURCE_PREVIEW_LINKS = {}
 local PENDING_ROW_REFRESH_ITEM_IDS = {}
 local DEFAULT_ITEM_TOOLTIP_LINK_CACHE = {}
+local SourcePreview = {
+    pendingLinks = {},
+    loadAttempts = {},
+    rejectedLinks = {},
+    maxAttempts = 2,
+}
 local MYTH_PREVIEW_LINK_MAX_ATTEMPTS = 2
 local MYTH_PREVIEW_LINK_LOAD_TIMEOUT = 1.5
-local SOURCE_PREVIEW_LINK_MAX_ATTEMPTS = 2
 local normalizeCompareText
 local getEntrySourceType
 local getSeasonalRaidRange
@@ -355,7 +357,6 @@ local isEnglishOnlyLabel
 local localizeSourceLabel
 local resolveSeasonDungeonName
 local isItemHyperlink
-local getDefaultTooltipCacheKey
 
 -- ============================================================
 -- Helper 함수들
@@ -1377,7 +1378,7 @@ local function tooltipDataHasMythOneOfSix(tooltipData)
     return false
 end
 
-local function tooltipDataHasMythText(tooltipData)
+function SourcePreview.tooltipDataHasMythText(tooltipData)
     local lines = getTooltipDataField(tooltipData, "lines")
     if type(lines) ~= "table" then
         return false
@@ -2367,7 +2368,7 @@ function BISOverlay:EnsureFrame()
             local _, itemLink = GetItemInfo(numericID)
             if isItemHyperlink(itemLink) then
                 for _, sourceType in ipairs({ "raid", "crafted", "tier" }) do
-                    local cacheKey = getDefaultTooltipCacheKey(sourceType, numericID)
+                    local cacheKey = SourcePreview.getDefaultTooltipCacheKey(sourceType, numericID)
                     if not DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] then
                         DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] = itemLink
                     end
@@ -2791,26 +2792,26 @@ local function isMatchingItemLink(link, itemID)
     return isItemHyperlink(link) and getItemIDFromLink(link) == tonumber(itemID)
 end
 
-getDefaultTooltipCacheKey = function(sourceType, itemID)
+function SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)
     return tostring(sourceType or "item") .. ":" .. tostring(tonumber(itemID) or itemID or 0)
 end
 
-local function getSeasonPreviewProfile(sourceType)
+function SourcePreview.getSeasonPreviewProfile(sourceType)
     local db = ns.Data and ns.Data.BISSeasonPreviewLinks
     local profiles = db and db.sourceProfiles
     local profile = profiles and profiles[sourceType]
     return type(profile) == "table" and profile or nil
 end
 
-local function addSourcePreviewLink(links, seen, link)
-    if isItemHyperlink(link) and not seen[link] and not REJECTED_SOURCE_PREVIEW_LINKS[link] then
+function SourcePreview.addSourcePreviewLink(links, seen, link)
+    if isItemHyperlink(link) and not seen[link] and not SourcePreview.rejectedLinks[link] then
         seen[link] = true
         links[#links + 1] = link
     end
 end
 
-local function getConfiguredSourcePreviewItemLinks(itemID, sourceType)
-    local profile = getSeasonPreviewProfile(sourceType)
+function SourcePreview.getConfiguredSourcePreviewItemLinks(itemID, sourceType)
+    local profile = SourcePreview.getSeasonPreviewProfile(sourceType)
     local itemIDNumber = tonumber(itemID)
     if not profile or not itemIDNumber then
         return {}, nil
@@ -2820,13 +2821,13 @@ local function getConfiguredSourcePreviewItemLinks(itemID, sourceType)
     local links, seen = {}, {}
     local overridesBySource = db and db.linksBySourceAndItemID
     local sourceOverrides = overridesBySource and overridesBySource[sourceType]
-    addSourcePreviewLink(links, seen, sourceOverrides and sourceOverrides[itemIDNumber])
+    SourcePreview.addSourcePreviewLink(links, seen, sourceOverrides and sourceOverrides[itemIDNumber])
 
     for _, template in ipairs(type(profile.itemStringTemplates) == "table" and profile.itemStringTemplates or {}) do
         if type(template) == "string" then
             local ok, generatedLink = pcall(string.format, template, itemIDNumber)
             if ok then
-                addSourcePreviewLink(links, seen, generatedLink)
+                SourcePreview.addSourcePreviewLink(links, seen, generatedLink)
             end
         end
     end
@@ -2834,19 +2835,19 @@ local function getConfiguredSourcePreviewItemLinks(itemID, sourceType)
     return links, profile
 end
 
-local function requestSourcePreviewLinkData(link, itemID)
+function SourcePreview.requestSourcePreviewLinkData(link, itemID)
     itemID = tonumber(itemID)
     if not isItemHyperlink(link) or not itemID or itemID <= 0 then
         return
     end
     requestItemData(itemID)
-    if PENDING_SOURCE_PREVIEW_LINKS[link]
-        or (SOURCE_PREVIEW_LINK_LOAD_ATTEMPTS[link] or 0) >= SOURCE_PREVIEW_LINK_MAX_ATTEMPTS then
+    if SourcePreview.pendingLinks[link]
+        or (SourcePreview.loadAttempts[link] or 0) >= SourcePreview.maxAttempts then
         return
     end
 
-    local attempt = (SOURCE_PREVIEW_LINK_LOAD_ATTEMPTS[link] or 0) + 1
-    SOURCE_PREVIEW_LINK_LOAD_ATTEMPTS[link] = attempt
+    local attempt = (SourcePreview.loadAttempts[link] or 0) + 1
+    SourcePreview.loadAttempts[link] = attempt
     if type(Item) ~= "table" or type(Item.CreateFromItemLink) ~= "function" then
         return
     end
@@ -2856,24 +2857,24 @@ local function requestSourcePreviewLinkData(link, itemID)
         return
     end
 
-    PENDING_SOURCE_PREVIEW_LINKS[link] = attempt
+    SourcePreview.pendingLinks[link] = attempt
     local function refreshLoadedPreview()
-        if PENDING_SOURCE_PREVIEW_LINKS[link] ~= attempt then
+        if SourcePreview.pendingLinks[link] ~= attempt then
             return
         end
-        PENDING_SOURCE_PREVIEW_LINKS[link] = nil
+        SourcePreview.pendingLinks[link] = nil
         scheduleRebuild(itemID)
     end
     local continueOK = pcall(item.ContinueOnItemLoad, item, refreshLoadedPreview)
     if not continueOK then
-        PENDING_SOURCE_PREVIEW_LINKS[link] = nil
-    elseif PENDING_SOURCE_PREVIEW_LINKS[link] == attempt
+        SourcePreview.pendingLinks[link] = nil
+    elseif SourcePreview.pendingLinks[link] == attempt
         and C_Timer and type(C_Timer.After) == "function" then
         C_Timer.After(MYTH_PREVIEW_LINK_LOAD_TIMEOUT, refreshLoadedPreview)
     end
 end
 
-local function isSourcePreviewItemLevelVerified(itemLevel, profile)
+function SourcePreview.isSourcePreviewItemLevelVerified(itemLevel, profile)
     itemLevel = tonumber(itemLevel)
     if not itemLevel or itemLevel <= 0 or type(profile) ~= "table" then
         return false
@@ -2890,41 +2891,41 @@ local function isSourcePreviewItemLevelVerified(itemLevel, profile)
     return true
 end
 
-local function isSourcePreviewLinkVerified(link, itemID, sourceType, profile)
+function SourcePreview.isSourcePreviewLinkVerified(link, itemID, sourceType, profile)
     if not isMatchingItemLink(link, itemID) then
         return false
     end
     local tooltipData = getTooltipDataForHyperlink(link)
     local itemLevel = getDetailedItemLevel(link, tooltipData)
-    if not isSourcePreviewItemLevelVerified(itemLevel, profile) then
+    if not SourcePreview.isSourcePreviewItemLevelVerified(itemLevel, profile) then
         return false
     end
-    if profile and profile.requireMythText and not tooltipDataHasMythText(tooltipData) then
+    if profile and profile.requireMythText and not SourcePreview.tooltipDataHasMythText(tooltipData) then
         return false
     end
     return true
 end
 
-local function getVerifiedSourcePreviewItemLink(itemID, sourceType)
-    local links, profile = getConfiguredSourcePreviewItemLinks(itemID, sourceType)
+function SourcePreview.getVerifiedSourcePreviewItemLink(itemID, sourceType)
+    local links, profile = SourcePreview.getConfiguredSourcePreviewItemLinks(itemID, sourceType)
     if not profile then
         return nil
     end
-    local cacheKey = getDefaultTooltipCacheKey(sourceType, itemID)
+    local cacheKey = SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)
     local cachedLink = DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey]
-    if cachedLink and isSourcePreviewLinkVerified(cachedLink, itemID, sourceType, profile) then
+    if cachedLink and SourcePreview.isSourcePreviewLinkVerified(cachedLink, itemID, sourceType, profile) then
         return cachedLink
     end
 
     for _, link in ipairs(links) do
-        if isSourcePreviewLinkVerified(link, itemID, sourceType, profile) then
+        if SourcePreview.isSourcePreviewLinkVerified(link, itemID, sourceType, profile) then
             DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] = link
             return link
         end
-        if (SOURCE_PREVIEW_LINK_LOAD_ATTEMPTS[link] or 0) < SOURCE_PREVIEW_LINK_MAX_ATTEMPTS then
-            requestSourcePreviewLinkData(link, itemID)
+        if (SourcePreview.loadAttempts[link] or 0) < SourcePreview.maxAttempts then
+            SourcePreview.requestSourcePreviewLinkData(link, itemID)
         else
-            REJECTED_SOURCE_PREVIEW_LINKS[link] = true
+            SourcePreview.rejectedLinks[link] = true
         end
     end
     return nil
@@ -3493,14 +3494,14 @@ showSeasonItemTooltip = function(owner, row)
 
         local useDefaultTooltip = usesDefaultBlizzardItemTooltip(sourceType)
         if useDefaultTooltip then
-            local previewLink = getVerifiedSourcePreviewItemLink(itemID, sourceType)
+            local previewLink = SourcePreview.getVerifiedSourcePreviewItemLink(itemID, sourceType)
             if previewLink and tryShowBlizzardItemTooltip(previewLink) then
-                DEFAULT_ITEM_TOOLTIP_LINK_CACHE[getDefaultTooltipCacheKey(sourceType, itemID)] = previewLink
+                DEFAULT_ITEM_TOOLTIP_LINK_CACHE[SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)] = previewLink
                 return true
             end
         end
 
-        local cacheKey = getDefaultTooltipCacheKey(sourceType, itemID)
+        local cacheKey = SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)
         local cachedLink = useDefaultTooltip and DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] or nil
         if cachedLink and tryShowBlizzardItemTooltip(cachedLink) then
             return true

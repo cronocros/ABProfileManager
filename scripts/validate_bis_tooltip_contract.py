@@ -5,6 +5,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from luaparser import ast as lua_ast
+from luaparser.astnodes import LocalAssign, LocalFunction
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BIS_OVERLAY = REPO_ROOT / "ABProfileManager" / "UI" / "BISOverlay.lua"
@@ -12,6 +15,7 @@ STATS_OVERLAY = REPO_ROOT / "ABProfileManager" / "UI" / "StatsOverlay.lua"
 UTILS = REPO_ROOT / "ABProfileManager" / "Utils.lua"
 DB = REPO_ROOT / "ABProfileManager" / "DB.lua"
 DEFAULTS = REPO_ROOT / "ABProfileManager" / "Data" / "Defaults.lua"
+MAX_BIS_OVERLAY_TOP_LEVEL_LOCALS = 198
 
 
 def require_contains(text: str, needle: str, source: Path, reason: str) -> None:
@@ -39,12 +43,31 @@ def get_safe_number_body(text: str) -> str:
     return match.group(1)
 
 
+def count_top_level_lua_locals(text: str) -> int:
+    tree = lua_ast.parse(text)
+    count = 0
+    for node in tree.body.body:
+        if isinstance(node, LocalAssign):
+            count += len(node.targets)
+        elif isinstance(node, LocalFunction):
+            count += 1
+    return count
+
+
 def main() -> None:
     bis_overlay = BIS_OVERLAY.read_text(encoding="utf-8")
     stats_overlay = STATS_OVERLAY.read_text(encoding="utf-8")
     utils = UTILS.read_text(encoding="utf-8")
     db = DB.read_text(encoding="utf-8")
     defaults = DEFAULTS.read_text(encoding="utf-8")
+    bis_top_level_locals = count_top_level_lua_locals(bis_overlay)
+
+    if bis_top_level_locals > MAX_BIS_OVERLAY_TOP_LEVEL_LOCALS:
+        raise ValueError(
+            f"{BIS_OVERLAY.relative_to(REPO_ROOT)}: top-level local count "
+            f"{bis_top_level_locals} exceeds safe budget {MAX_BIS_OVERLAY_TOP_LEVEL_LOCALS}; "
+            "WoW Lua chunks fail when the main function crosses the 200-local limit"
+        )
 
     require_contains(
         bis_overlay,
@@ -167,6 +190,7 @@ def main() -> None:
         "tries verified raid/crafted/tier season preview links first, "
         "defaults the BIS item tooltip checkbox on, "
         "blocks removed manual renderers, "
+        f"keeps BISOverlay top-level locals at {bis_top_level_locals}, "
         "and keeps SafeNumber fallback taint-safe"
     )
 

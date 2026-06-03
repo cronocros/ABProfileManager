@@ -6,6 +6,17 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.10 - 2026-06-03
+
+BISOverlay Lua local 변수 제한 초과 로드 오류를 수정한 로컬 핫픽스.
+
+주요 변경:
+- 시즌 preview 상태와 helper를 `SourcePreview` 테이블 필드로 묶어 `UI/BISOverlay.lua` top-level local 개수를 `194`로 낮춤
+- WoW Lua chunk 로드 시 발생하던 `main function has more than 200 local variables` 오류 수정
+- `scripts/validate_bis_tooltip_contract.py`에 BISOverlay top-level local 개수 예산 검증 추가
+- raid/tier/crafted 시즌 preview와 M+ `Myth/신화 1/6 272` snapshot 동작은 유지
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.10.zip` 생성까지만 수행하고 WoW 설치 폴더 복사는 하지 않음
+
 ## 1.11.9 - 2026-06-03
 
 BIS 레이드/티어/제작 hover를 시즌 기준 preview 링크로 보강한 로컬 패치.

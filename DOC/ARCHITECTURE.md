@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.11.9 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.10 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -120,6 +120,7 @@
   - M+ 행 hover도 저장 snapshot이 없을 때 selector preview hyperlink의 즉시 해석을 한 번 시도
   - raid/tier 행 hover는 `Data/BISSeasonPreviewLinks.lua`의 검토된 시즌 preview item string을 먼저 시도하고, 실제 tooltip item level이 `272~289` 범위이며 `Myth/신화` 텍스트가 확인된 경우에만 표시
   - crafted 행 hover는 `Data/BISSeasonPreviewLinks.lua`의 r5 `285` preview item string을 먼저 시도하고, 실제 tooltip item level이 `285`인 경우에만 표시
+  - 시즌 preview helper는 `SourcePreview` 테이블 필드로 묶어 WoW Lua chunk top-level local 제한을 넘지 않게 유지
   - 저장 스냅샷이 없는 후보는 정적 `overallRank` 순서를 유지
   - 장비/가방 링크는 정렬 또는 hover에서 스캔하지 않고, 보유 체크 on 시 저장용 링크를 한 번만 검색
   - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지
@@ -177,7 +178,7 @@
   - M+ row 라벨과 자동 검색 full link 검증용 위대한 금고 Myth 1/6 272 대표 프로필 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
-  - v1.11.9 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - v1.11.10 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
   - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
@@ -325,6 +326,7 @@
 5. 게임 런타임에서는 `UI/BISOverlay.lua`가 정적 후보와 `Data/BISMythicVaultLinks.lua`의 selector preview 또는 override에서 저장한 SavedVariables snapshot 점수를 함께 사용하고, raid/tier/crafted hover에는 `Data/BISSeasonPreviewLinks.lua`의 검증 preview를 먼저 시도
 
 `scripts/validate_bis_tooltip_contract.py`는 addon-owned Blizzard item tooltip, shopping sell-price 차단, snapshot schema v3, StatsOverlay setter 제거, `SafeNumber()` fallback 계약을 별도로 정적 검증한다.
+또한 `UI/BISOverlay.lua`의 top-level local 개수를 검사해 WoW Lua chunk의 200-local 제한 초과를 방지한다.
 
 seed 경계:
 
@@ -359,6 +361,7 @@ seed 경계:
 - M+ Encounter Journal 랜딩은 비전투 중에만 현재 시즌 tier를 먼저 선택하고 availability guard를 통과한 경우 검증된 `JournalInstanceID`를 사용한다
 - Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않는다. 전투 중에는 자동 랜딩을 건너뛴다
 - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 자동 검색 중 rebuild 부담을 완화한다
+- `SourcePreview` helper 구조와 top-level local 개수 예산 검증을 유지해 `main function has more than 200 local variables` 로드 오류를 방지한다
 - addon-owned BIS item tooltip의 shopping 경로로 sell-price `MoneyFrame` 렌더링을 차단한다. 이 규칙은 `Blizzard_MoneyFrame` secret-number taint 회귀 방지용이다
 - `Utils.SafeNumber()`는 secret 값을 일반 숫자로 정규화하지 못하면 원본을 전파하지 않고 `0`으로 fallback한다
 

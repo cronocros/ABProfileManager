@@ -117,11 +117,13 @@
 - raid/tier BIS hover는 검증된 시즌 preview가 실제 `272~289`와 `Myth/신화` tooltip text를 통과한 경우 먼저 표시한다
 - crafted BIS hover는 검증된 r5 preview가 실제 `285`를 통과한 경우 먼저 표시한다
 - raid/crafted/tier BIS hover는 검증된 시즌 preview가 없으면 기본 Blizzard `itemLink` 또는 `item:<itemID>` tooltip만 표시하고, 성공한 링크를 세션 캐시에 재사용한다
+- 시즌 preview 상태와 helper는 `SourcePreview` 테이블 필드로 묶어 WoW Lua chunk의 200-local 제한을 넘지 않게 유지한다
 - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단하고 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
 - 전역 `GameTooltip`을 BIS hover 대상으로 직접 사용하지 않아 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 금지한다. M+/raid 클릭은 공개 열기 경로만 사용한다
 - `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_season_preview_links.py`, `scripts/validate_bis_tooltip_contract.py`, `scripts/validate_bis_encounter_journal.py`, `scripts/validate_bis_catalog.py`, `scripts/audit_bis_data.py`, `scripts/rebuild_bis_database.ps1`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
 - `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
+- `scripts/validate_bis_tooltip_contract.py`는 `UI/BISOverlay.lua` top-level local 개수도 검사해 `main function has more than 200 local variables` 로드 오류 재발을 막는다
 
 ### 공통 tooltip / secret-number 방어
 
