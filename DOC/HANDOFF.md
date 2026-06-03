@@ -1,8 +1,18 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.8 로컬 패치 기반`
+버전 기준: `v1.11.9 로컬 패치 기반`
 
-## 0-new. v1.11.8 로컬 패치 메모
+## 0-new. v1.11.9 로컬 패치 메모
+
+- `Data/BISSeasonPreviewLinks.lua`를 추가해 raid Myth, tier Myth, crafted r5 285 hover preview item string을 별도 로컬 DB로 관리한다.
+- raid/tier BIS hover는 preview link가 실제 `272~289` item level 범위와 `Myth/신화` tooltip text를 통과한 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다.
+- crafted BIS hover는 preview link가 실제 `285` item level로 확인된 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다.
+- 검증된 시즌 preview가 없거나 클라이언트가 아직 로드하지 못한 경우 기존처럼 기본 `itemLink` 또는 `item:<itemID>`로 fallback한다.
+- M+ `Myth/신화 1/6 272` snapshot, 상단 아이템 툴팁 체크박스 기본 on, shopping tooltip 기반 `MoneyFrame` 차단은 유지한다.
+- `scripts/validate_bis_season_preview_links.py`를 추가했고 `scripts/rebuild_bis_database.ps1` 순서에 연결했다.
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.9.zip` 생성까지만 수행한다. WoW 설치 폴더로 복사하지 않는다.
+
+## 0-prev. v1.11.8 로컬 패치 메모
 
 - BIS 오버레이 상단 아이템 툴팁 체크박스는 신규 기본값과 기존 SavedVariables 1회 마이그레이션 모두 on으로 둔다.
 - 사용자가 체크박스를 직접 토글하면 `_itemTooltipUserConfiguredV1`을 저장해 이후 선택을 유지한다.
@@ -327,10 +337,12 @@
 - `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
 - `ABProfileManager/Data/BISMythicVaultLinks.lua`
+- `ABProfileManager/Data/BISSeasonPreviewLinks.lua`
 - `ABProfileManager/Data/BISEncounterJournal.lua`
 - `scripts/build_bis_catalog.py`
 - `scripts/build_bis_runtime_scoring.py`
 - `scripts/validate_bis_mythic_vault_links.py`
+- `scripts/validate_bis_season_preview_links.py`
 - `scripts/validate_bis_tooltip_contract.py`
 - `scripts/validate_bis_encounter_journal.py`
 - `scripts/rebuild_bis_database.ps1`
@@ -360,6 +372,7 @@
 - 먼저 `luaparser` 전체 파싱
 - BIS 데이터 재생성이 필요하면 `powershell -ExecutionPolicy Bypass -File .\scripts\rebuild_bis_database.ps1`
 - `python .\scripts\validate_bis_mythic_vault_links.py`
+- `python .\scripts\validate_bis_season_preview_links.py`
 - `python .\scripts\validate_bis_tooltip_contract.py`
 - `python .\scripts\validate_bis_encounter_journal.py`
 - `python .\scripts\validate_bis_catalog.py`
@@ -382,6 +395,9 @@
 - BIS 즐겨찾기/보유 체크, 최상단 즐겨찾기 섹션, 보유 아이템명 취소선, 캐릭터/전문화 전환 후 상태 유지
 - BIS 상단 아이템 토글 on/off에 따라 M+ selector preview 자동 생성이 활성화/비활성화되는지 확인
 - selector preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 실제 스탯 / 실제 ilvl 자동 점수화가 적용되는지 확인
+- raid/tier BIS hover가 검증된 시즌 preview에서 `Myth/신화` tooltip text와 `272~289` item level을 통과한 경우 Blizzard 원본 툴팁으로 표시되는지 확인
+- crafted BIS hover가 검증된 r5 `285` preview를 통과한 경우 Blizzard 원본 툴팁으로 표시되는지 확인
+- raid/tier/crafted preview 검증 실패 시 기본 `itemLink` 또는 `item:<itemID>` fallback이 유지되는지 확인
 - selector preview hyperlink가 첫 조회에서 비어 있어도 비동기 아이템 로드 뒤 snapshot이 채워지는지 확인
 - snapshot이 없는 M+ 행 hover에서 preview hyperlink 즉시 해석이 가능한 경우 tooltip이 바로 채워지는지 확인
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시되고 점수는 미검증 fallback으로 유지되는지 확인

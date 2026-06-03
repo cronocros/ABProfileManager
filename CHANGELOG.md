@@ -6,6 +6,18 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.9 - 2026-06-03
+
+BIS 레이드/티어/제작 hover를 시즌 기준 preview 링크로 보강한 로컬 패치.
+
+주요 변경:
+- `Data/BISSeasonPreviewLinks.lua` 추가: raid Myth, tier Myth, crafted r5 285 preview 템플릿을 로컬 DB로 관리
+- raid/tier hover는 preview link가 실제 신화 tooltip text와 시즌 신화 ilvl 범위를 통과한 경우에만 Blizzard `SetHyperlink()`로 표시
+- crafted hover는 preview link가 실제 285로 확인된 경우에만 Blizzard `SetHyperlink()`로 표시
+- 실패 시 기존 기본 `itemLink` / `item:<itemID>` fallback 유지
+- `scripts/validate_bis_season_preview_links.py` 추가 및 tooltip contract 확장
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.9.zip` 생성까지만 수행하고 WoW 설치 폴더 복사는 하지 않음
+
 ## 1.11.8 - 2026-06-03
 
 BIS 티어 hover 첫 표시를 기본 itemID 링크까지 보강한 로컬 패치.

@@ -10,10 +10,10 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [releases/RELEASE_NOTES_v1.11.8.md](./releases/RELEASE_NOTES_v1.11.8.md)
-  - 최신 로컬 한글 릴리스 노트 (v1.11.8)
-- [releases/RELEASE_NOTES_v1.11.8_EN.md](./releases/RELEASE_NOTES_v1.11.8_EN.md)
-  - 최신 로컬 영문 릴리스 노트 (v1.11.8)
+- [releases/RELEASE_NOTES_v1.11.9.md](./releases/RELEASE_NOTES_v1.11.9.md)
+  - 최신 로컬 한글 릴리스 노트 (v1.11.9)
+- [releases/RELEASE_NOTES_v1.11.9_EN.md](./releases/RELEASE_NOTES_v1.11.9_EN.md)
+  - 최신 로컬 영문 릴리스 노트 (v1.11.9)
 - [releases/RELEASE_NOTES_v1.11.0.md](./releases/RELEASE_NOTES_v1.11.0.md)
   - 원격 GitHub 공개 최신 한글 릴리스 노트 (v1.11.0)
 - [releases/RELEASE_NOTES_v1.11.0_EN.md](./releases/RELEASE_NOTES_v1.11.0_EN.md)
@@ -44,6 +44,7 @@
   - `../scripts/build_bis_catalog.py --addon-db`
   - `../scripts/build_bis_runtime_scoring.py`
   - `../scripts/validate_bis_mythic_vault_links.py`
+  - `../scripts/validate_bis_season_preview_links.py`
   - `../scripts/validate_bis_tooltip_contract.py`
   - `../scripts/validate_bis_encounter_journal.py`
   - `../scripts/validate_bis_catalog.py`
@@ -55,7 +56,7 @@
   - `MidnightS1_MPlus_Addon_Master_v1.7.md`
   - `MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
-`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 시즌 selector 교체 또는 예외 항목용 Myth 1/6 272 full link override 추가는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
+`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 시즌 selector 교체 또는 예외 항목용 Myth 1/6 272 full link override 추가는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/tier/crafted 시즌 preview selector 또는 예외 override는 `../ABProfileManager/Data/BISSeasonPreviewLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
 
 현재 로컬 배포는 작업공간 `../dist/` ZIP 생성까지만 수행합니다. WoW 설치 폴더로 애드온을 복사하지 않습니다.
 

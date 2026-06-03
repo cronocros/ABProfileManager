@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.11.8 로컬 패치 기반`
+**현재 기준**: `v1.11.9 로컬 패치 기반`
 
 ## 검증 명령어
 
@@ -23,6 +23,7 @@ git diff --check
 
 python .\scripts\validate_bis_catalog.py
 python .\scripts\validate_bis_mythic_vault_links.py
+python .\scripts\validate_bis_season_preview_links.py
 python .\scripts\validate_bis_tooltip_contract.py
 python .\scripts\validate_bis_encounter_journal.py
 python .\scripts\audit_bis_data.py
@@ -75,9 +76,11 @@ ABProfileManager/
    - selector 또는 item string 템플릿이 바뀌면 이전 snapshot cache를 초기화하고, 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도를 막는다
    - preview hyperlink 비동기 로드는 itemID wake signal로만 사용하고, 완료 뒤 exact selector 링크를 다시 검증한다. 실패 callback은 timeout으로 정리하고 링크별 재시도는 세션 최대 2회로 제한한다
    - 던전 종료 `Hero 3/6 266` 링크만 있으면 `Myth 1/6 272` 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
-   - 임의 bonusID를 조립하지 않는다. 검토된 시즌 selector만 `Data/BISMythicVaultLinks.lua`에서 관리한다
+   - 임의 bonusID를 조립하지 않는다. M+ 검토 selector는 `Data/BISMythicVaultLinks.lua`, raid/tier/crafted 검토 preview selector는 `Data/BISSeasonPreviewLinks.lua`에서 관리한다
    - M+ hover는 검증 snapshot의 full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 Blizzard 원본 2차 스탯을 렌더링한다
-   - raid/crafted/tier hover는 검증된 시즌 full link가 없으면 임의 bonusID를 만들지 않고 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 표시한다
+   - raid/tier hover는 `Data/BISSeasonPreviewLinks.lua`의 검토된 시즌 preview item string을 먼저 시도하고, 실제 tooltip item level이 `272~289` 범위이며 `Myth/신화` 텍스트가 확인된 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달한다
+   - crafted hover는 `Data/BISSeasonPreviewLinks.lua`의 r5 `285` preview item string을 먼저 시도하고, 실제 tooltip item level이 `285`로 확인된 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달한다
+   - raid/crafted/tier hover는 검증된 시즌 preview가 없으면 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`로 fallback한다
    - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
    - M+ 클릭 랜딩은 `Data/BISEncounterJournal.lua`의 검증 `JournalInstanceID`만 사용하고, 현재 시즌 tier 선선택과 availability guard를 유지한다
@@ -136,6 +139,7 @@ ABProfileManager/
 - `Data/MidnightS1MPlusDB.lua`
 - `Data/BISRuntimeScoring.lua`
 - `Data/BISMythicVaultLinks.lua`
+- `Data/BISSeasonPreviewLinks.lua`
 - `Data/BISEncounterJournal.lua`
 
 생성 입력:
@@ -154,6 +158,7 @@ ABProfileManager/
 - `scripts/build_bis_catalog.py`
 - `scripts/build_bis_runtime_scoring.py`
 - `scripts/validate_bis_mythic_vault_links.py`
+- `scripts/validate_bis_season_preview_links.py`
 - `scripts/validate_bis_tooltip_contract.py`
 - `scripts/validate_bis_encounter_journal.py`
 - `scripts/rebuild_bis_database.ps1`
@@ -169,13 +174,16 @@ ABProfileManager/
 - 상단 아이템 토글 기본값은 on이다. `SetBISOverlayItemTooltipEnabled()`는 사용자 토글 플래그를 저장해 이후 선택을 보존한다
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 점수화한다. 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨만 표시하고 점수는 미검증 fallback으로 유지한다
 - M+ hover는 검증 snapshot의 full item link를 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달해 원본 2차 스탯을 표시하고, shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
-- raid/crafted/tier hover는 검증된 시즌 full link가 없으면 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`를 세션 캐시에 저장하고 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다
+- raid/tier hover는 `Data/BISSeasonPreviewLinks.lua`의 검토된 시즌 preview item string을 먼저 시도하고, 실제 tooltip item level이 `272~289` 범위이며 `Myth/신화` 텍스트가 확인된 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다
+- crafted hover는 `Data/BISSeasonPreviewLinks.lua`의 r5 `285` preview item string을 먼저 시도하고, 실제 tooltip item level이 `285`로 확인된 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다
+- raid/crafted/tier hover는 검증된 시즌 preview가 없으면 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`를 세션 캐시에 저장하고 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 fallback 표시한다
 - selector 또는 item string 템플릿 변경 시 기존 snapshot cache는 초기화한다. 다른 템렙으로 해석된 preview는 같은 세션에서 다시 큐에 넣지 않는다
 - M+ 자동 검색은 임의 bonusID를 조립하지 않으며, hover/자동 큐에서 Encounter Journal UI 상태를 변경하지 않는다
 - Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출을 사용하지 않으며, 전투 중에는 자동 랜딩을 건너뛴다
-- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있고, 점수 정책은 v1.7 파일에서 관리한다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위다
 - 시즌 selector 교체 또는 예외 항목용 `Myth 1/6 272` full link override 추가는 `Data/BISMythicVaultLinks.lua`만 갱신하고 `scripts/validate_bis_mythic_vault_links.py`로 확인한다
+- raid/tier/crafted 시즌 preview selector 교체 또는 예외 full link override 추가는 `Data/BISSeasonPreviewLinks.lua`만 갱신하고 `scripts/validate_bis_season_preview_links.py`로 확인한다
 - 시즌 M+ 던전 풀이 바뀌면 `Data/BISEncounterJournal.lua`의 현재 시즌 tier와 `JournalInstanceID`만 갱신하고 `scripts/validate_bis_encounter_journal.py`로 확인한다
 
 ### 아이템 레벨 오버레이 + 문장/열쇠 패널

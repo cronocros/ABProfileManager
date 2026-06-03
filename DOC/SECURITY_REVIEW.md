@@ -29,7 +29,7 @@
 - 외부 네트워크 전송 없음
 - import는 코드 실행이 아니라 데이터 파싱 방식
 - 지도/BIS/드랍 오버레이는 로컬 정적 데이터와 Blizzard API 조회만 사용
-- 일반 hover 설명은 애드온 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에만 검증 full item link를 `SetHyperlink()`로 전달한다. raid/crafted/tier hover는 임의 bonusID 없이 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`만 같은 경로로 표시한다. shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
+- 일반 hover 설명은 애드온 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에만 검증 full item link를 `SetHyperlink()`로 전달한다. raid/tier hover는 검토된 시즌 preview가 실제 `272~289`와 `Myth/신화` tooltip text를 통과한 경우 먼저 표시하고, crafted hover는 r5 `285` preview가 실제 285로 확인된 경우 먼저 표시한다. 실패 시 raid/crafted/tier는 기본 `itemLink` 또는 기본 `item:<itemID>`로 fallback한다. shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
 - 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하며 WoW 설치 폴더로 복사하지 않는다
 - TomTom 연동은 선택적 로컬 애드온 호출뿐이며, 미설치 시 fail-safe로 빠짐
 - ABPM 보호 오류 로그는 세션 메모리 안에만 저장하며 외부 전송이나 파일 쓰기를 하지 않음
@@ -103,9 +103,10 @@
 - 상단 아이템 토글이 켜져 있으면 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 시즌 selector `12801`로 M+ 후보 preview item string을 생성하고, 검증 결과를 계정 SavedVariables snapshot schema v3로 저장한다
 - 상단 아이템 토글 기본값은 on이며, 사용자가 직접 토글하면 사용자 설정 플래그를 저장해 이후 선택을 보존한다
 - 생성 preview 또는 수동 override full link 자체가 위대한 금고 `Myth 1/6 272`로 검증된 경우에만 snapshot의 실제 스탯 / 실제 ilvl로 자동 점수화한다
+- `Data/BISSeasonPreviewLinks.lua`는 같은 DB2 build 검토 기준으로 raid Myth, tier Myth, crafted r5 preview item string 템플릿을 보관한다. 런타임은 이를 그대로 신뢰하지 않고 Blizzard tooltip의 실제 item level과 Myth text를 다시 확인한다
 - selector 또는 item string 템플릿 변경 시 기존 SavedVariables snapshot cache를 초기화하고, 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시로 반복 재시도를 차단한다
 - 던전 종료 `Hero 3/6 266` 링크만 있으면 272 기준 라벨은 표시하되 점수는 미검증 fallback으로 유지한다
-- 검토되지 않은 bonusID를 `itemID`와 임의 조합하는 경로는 금지한다. 내장 selector 교체는 `Data/BISMythicVaultLinks.lua`와 validator를 함께 갱신한다
+- 검토되지 않은 bonusID를 `itemID`와 임의 조합하는 경로는 금지한다. 내장 selector 교체는 `Data/BISMythicVaultLinks.lua` 또는 `Data/BISSeasonPreviewLinks.lua`와 validator를 함께 갱신한다
 - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐를 사용해 자동 검색 중 rebuild 부담을 제한한다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용 링크를 한 번만 찾는다
 - M+ reward profile은 Hero 던전 종료 / Myth 금고 후보 템렙만 저장하고 정적 `itemLink`, `itemString`, bonusID를 만들지 않는다
@@ -113,12 +114,14 @@
 - 즐겨찾기/보유 체크는 캐릭터별·전문화별 SavedVariables boolean 상태만 저장하며 외부 입력이나 실행 경로를 추가하지 않는다
 - 아이템 캐시 수신 시 visible row를 우선 갱신하고, 자동 점수 재시도가 필요한 경우에만 rebuild한다
 - M+ BIS item hover는 addon-owned Blizzard item tooltip에 검증 snapshot의 full item link를 `SetHyperlink()`로 전달해 Blizzard 원본 2차 스탯을 렌더링한다
-- raid/crafted/tier BIS hover는 검증된 시즌 full link가 없으면 기본 Blizzard `itemLink` 또는 `item:<itemID>` tooltip만 표시하고, 성공한 링크를 세션 캐시에 재사용한다
+- raid/tier BIS hover는 검증된 시즌 preview가 실제 `272~289`와 `Myth/신화` tooltip text를 통과한 경우 먼저 표시한다
+- crafted BIS hover는 검증된 r5 preview가 실제 `285`를 통과한 경우 먼저 표시한다
+- raid/crafted/tier BIS hover는 검증된 시즌 preview가 없으면 기본 Blizzard `itemLink` 또는 `item:<itemID>` tooltip만 표시하고, 성공한 링크를 세션 캐시에 재사용한다
 - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단하고 `Blizzard_MoneyFrame` secret-number 산술 경로를 피한다
 - 전역 `GameTooltip`을 BIS hover 대상으로 직접 사용하지 않아 액션바, 모험 안내서, Pawn 비교 툴팁으로 taint가 이어지는 경로를 줄였다
 - hover/자동 큐에서 Encounter Journal UI 상태 변경과 숨은 loot scan을 금지한다. M+/raid 클릭은 공개 열기 경로만 사용한다
-- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_tooltip_contract.py`, `scripts/validate_bis_encounter_journal.py`, `scripts/validate_bis_catalog.py`, `scripts/audit_bis_data.py`, `scripts/rebuild_bis_database.ps1`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
-- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
+- `BISData_Method.lua`, `BISData.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`, `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`, `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`, `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_season_preview_links.py`, `scripts/validate_bis_tooltip_contract.py`, `scripts/validate_bis_encounter_journal.py`, `scripts/validate_bis_catalog.py`, `scripts/audit_bis_data.py`, `scripts/rebuild_bis_database.ps1`는 릴리스 준비용 repo 도구다. 이 중 런타임에는 검토된 v1.7 Lua 복사본만 `Data/MidnightS1MPlusDB.lua`로 포함한다
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다. M+/tier 추가는 v1.3 파일, 점수 정책은 v1.7 파일에서 관리하며 raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이다
 
 ### 공통 tooltip / secret-number 방어
 

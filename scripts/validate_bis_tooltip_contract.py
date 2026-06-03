@@ -89,6 +89,18 @@ def main() -> None:
         "tier/base itemID rows must attempt a bare item link before falling back",
     )
     require_contains(
+        bis_overlay,
+        "getVerifiedSourcePreviewItemLink(itemID, sourceType)",
+        BIS_OVERLAY,
+        "raid/crafted/tier rows must attempt verified season preview links before base item links",
+    )
+    require_contains(
+        bis_overlay,
+        "tooltipDataHasMythText",
+        BIS_OVERLAY,
+        "raid/tier season preview links must be checked for Myth tooltip text",
+    )
+    require_contains(
         db,
         "settings.bisOverlay.itemTooltip = true",
         DB,
@@ -152,6 +164,7 @@ def main() -> None:
     print(
         "ok: BIS tooltip contract uses Blizzard SetHyperlink rendering, "
         "requires verified Myth 1/6 snapshots, allows raid/crafted/tier base itemLink and bare itemID cache, "
+        "tries verified raid/crafted/tier season preview links first, "
         "defaults the BIS item tooltip checkbox on, "
         "blocks removed manual renderers, "
         "and keeps SafeNumber fallback taint-safe"

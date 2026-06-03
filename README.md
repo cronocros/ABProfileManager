@@ -7,15 +7,15 @@
 
 ## 현재 버전
 
-- 로컬 패치: `v1.11.8`
+- 로컬 패치: `v1.11.9`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.11.8.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.11.9.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.8.md](./DOC/releases/RELEASE_NOTES_v1.11.8.md)
-- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.8_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.8_EN.md)
+- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.9.md](./DOC/releases/RELEASE_NOTES_v1.11.9.md)
+- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.9_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.9_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
@@ -30,6 +30,14 @@
 - 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.11.9 로컬 패치 핵심 정리
+
+- 레이드 / 티어 BIS hover는 검증된 시즌 preview 링크를 먼저 시도해 신화 트랙 Blizzard 기본 아이템 툴팁을 표시합니다.
+- 제작 BIS hover는 r5 285 제작 preview 링크를 먼저 시도합니다. 실제 클라이언트 tooltip이 285로 확인된 경우에만 표시하고, 실패하면 기존 기본 링크로 fallback합니다.
+- raid/tier는 tooltip에 `Myth/신화` 텍스트가 확인된 경우에만 시즌 preview를 사용합니다.
+- 상단 아이템 툴팁 체크박스 기본 on, M+ `Myth/신화 1/6 272` snapshot, shopping tooltip 기반 `MoneyFrame` 차단 경로는 유지합니다.
+- 로컬 배포는 작업공간의 `dist/ABProfileManager-v1.11.9.zip` 생성까지만 수행하며 WoW 설치 폴더로 자동 복사하지 않습니다.
 
 ## v1.11.8 로컬 패치 핵심 정리
 
@@ -318,15 +326,17 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - `scripts/build_bis_runtime_scoring.py`는 v1.7 코어를 설치하고 40개 전문화 스탯 표와 BIS 정책 메타를 갱신합니다.
 - M+ BIS hover 툴팁은 전역 `GameTooltip`이 아니라 addon-owned Blizzard item tooltip에 검증 snapshot의 full item link를 `SetHyperlink()`로 전달합니다. Blizzard 원본 2차 스탯을 렌더링하고, shopping tooltip 경로로 sell price `MoneyFrame` 렌더링은 차단합니다.
 - hover/자동 큐는 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않습니다. M+/raid 행 클릭은 비전투 중 공개 열기 경로만 사용합니다.
-- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다.
+- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다.
 - M+/tier 추가는 v1.3 파일만 갱신할 수 있고, 점수 정책은 v1.7 파일에서 관리합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
 - 시즌 selector 교체 또는 예외 항목용 `Myth 1/6 272` full link override 추가는 `Data/BISMythicVaultLinks.lua`만 갱신하고 `python .\scripts\validate_bis_mythic_vault_links.py`로 확인합니다.
+- raid/tier/crafted 시즌 preview selector 교체 또는 예외 full link override 추가는 `Data/BISSeasonPreviewLinks.lua`만 갱신하고 `python .\scripts\validate_bis_season_preview_links.py`로 확인합니다.
 - 갱신 스크립트:
   - `scripts/refresh_wowhead_bis.py`
   - `scripts/refresh_wowhead_mplus_fallbacks.py`
   - `scripts/build_bis_catalog.py --addon-db`
   - `scripts/build_bis_runtime_scoring.py`
   - `scripts/validate_bis_mythic_vault_links.py`
+  - `scripts/validate_bis_season_preview_links.py`
   - `scripts/validate_bis_tooltip_contract.py`
   - `scripts/validate_bis_encounter_journal.py`
   - `scripts/validate_bis_catalog.py`
