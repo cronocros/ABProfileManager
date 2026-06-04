@@ -193,3 +193,55 @@ function Scoring:ScoreItemSnapshot(specID, slotName, snapshot, sourceGroup, opti
     }
     return numericScore, evidence
 end
+
+function Scoring:ScoreItemSnapshotSecondaryPriority(specID, slotName, snapshot)
+    local core = _G.MidnightS1MPlusDB
+    local itemID = type(snapshot) == "table" and tonumber(snapshot.itemID) or nil
+    local rawStats = type(snapshot) == "table" and snapshot.rawStats or nil
+    local actualItemLevel = type(snapshot) == "table" and tonumber(snapshot.itemLevel) or nil
+    local specKey, slotKey = getRuntimeContext(specID, slotName, "mythicplus", nil)
+    local spec = core and core.SPECS and core.SPECS[specKey]
+    if not core or not spec or not itemID or type(rawStats) ~= "table" or not next(rawStats) then
+        return nil
+    end
+    if type(core.NormalizeStats) ~= "function" then
+        return nil
+    end
+
+    local snapshotKey = table.concat({
+        "secondary-snapshot",
+        tostring(itemID),
+        tostring(actualItemLevel),
+        buildRawStatsKey(rawStats),
+    }, ":")
+    local cacheKey = buildCacheKey(specID, slotKey, snapshotKey, "secondary", {})
+    local cached = SCORE_CACHE[cacheKey]
+    if cached ~= nil then
+        if cached == false then
+            return nil
+        end
+        return cached.score, cached.evidence
+    end
+
+    local stats = core.NormalizeStats(rawStats)
+    local score = 0
+    local evidence = { notes = {}, specKey = specKey, priority = spec.priority, secondaryOnly = true }
+    for statKo, weight in pairs(spec.weights or {}) do
+        local value = tonumber(stats[statKo] or 0) or 0
+        if value > 0 then
+            score = score + value * weight
+            evidence.notes[#evidence.notes + 1] = statKo .. "=" .. value .. "*" .. weight
+        end
+    end
+    if score <= 0 then
+        SCORE_CACHE[cacheKey] = false
+        return nil
+    end
+
+    evidence.score = score
+    SCORE_CACHE[cacheKey] = {
+        score = score,
+        evidence = evidence,
+    }
+    return score, evidence
+end

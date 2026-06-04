@@ -15,6 +15,7 @@ STATS_OVERLAY = REPO_ROOT / "ABProfileManager" / "UI" / "StatsOverlay.lua"
 UTILS = REPO_ROOT / "ABProfileManager" / "Utils.lua"
 DB = REPO_ROOT / "ABProfileManager" / "DB.lua"
 DEFAULTS = REPO_ROOT / "ABProfileManager" / "Data" / "Defaults.lua"
+RUNTIME_SCORING = REPO_ROOT / "ABProfileManager" / "Data" / "BISRuntimeScoring.lua"
 MAX_BIS_OVERLAY_TOP_LEVEL_LOCALS = 198
 
 
@@ -60,6 +61,7 @@ def main() -> None:
     utils = UTILS.read_text(encoding="utf-8")
     db = DB.read_text(encoding="utf-8")
     defaults = DEFAULTS.read_text(encoding="utf-8")
+    runtime_scoring = RUNTIME_SCORING.read_text(encoding="utf-8")
     bis_top_level_locals = count_top_level_lua_locals(bis_overlay)
 
     if bis_top_level_locals > MAX_BIS_OVERLAY_TOP_LEVEL_LOCALS:
@@ -73,13 +75,43 @@ def main() -> None:
         bis_overlay,
         "tooltip.isShopping = true",
         BIS_OVERLAY,
-        "addon-owned Blizzard tooltips must skip MoneyFrame sell-price rendering",
+        "addon-owned non-M+ Blizzard hyperlink tooltips must skip MoneyFrame sell-price rendering",
     )
     require_contains(
         bis_overlay,
         "tooltip.SetHyperlink",
         BIS_OVERLAY,
-        "BIS hover must use Blizzard's hyperlink tooltip renderer",
+        "raid/crafted/tier BIS hover can still use Blizzard's hyperlink tooltip renderer",
+    )
+    require_contains(
+        bis_overlay,
+        "resetBISTooltipState",
+        BIS_OVERLAY,
+        "addon-owned BIS tooltips must clear transient Blizzard tooltip flags when hidden",
+    )
+    require_contains(
+        bis_overlay,
+        "tryShowSnapshotTooltip",
+        BIS_OVERLAY,
+        "M+ Myth preview hover must render verified snapshot lines without re-feeding Myth links to GameTooltip",
+    )
+    require_contains(
+        bis_overlay,
+        'GameTooltip:HookScript("OnShow", hideBISTooltip)',
+        BIS_OVERLAY,
+        "global/bag item tooltips must hide the addon-owned BIS tooltip instead of being overlapped",
+    )
+    require_contains(
+        bis_overlay,
+        "areContainerFramesShown() or not C_Timer",
+        BIS_OVERLAY,
+        "automatic Myth preview scans must not run while container frames are visible",
+    )
+    require_contains(
+        bis_overlay,
+        "not snapshot and not areContainerFramesShown() and resolveMythPreviewSnapshot(entry)",
+        BIS_OVERLAY,
+        "hover-triggered Myth preview scans must not run while bags are open",
     )
     require_contains(
         bis_overlay,
@@ -153,6 +185,78 @@ def main() -> None:
         BIS_OVERLAY,
         "manual tooltip-data hover rendering must not replace Blizzard item tooltips",
     )
+    require_absent(
+        bis_overlay,
+        "tryShowBlizzardItemTooltip(snapshot.itemLink)",
+        BIS_OVERLAY,
+        "M+ Myth preview links must not be passed to GameTooltip display after snapshot validation",
+    )
+    require_absent(
+        bis_overlay,
+        "cacheMythPreviewSnapshot(targetRow._entry, itemLink)",
+        BIS_OVERLAY,
+        "actual owned bag item links must not be promoted into Myth preview snapshot cache",
+    )
+    require_absent(
+        bis_overlay,
+        "_runtimeScore",
+        BIS_OVERLAY,
+        "the old checkbox-gated runtime ranking field must stay removed",
+    )
+    require_contains(
+        bis_overlay,
+        "ScoreItemSnapshotSecondaryPriority",
+        BIS_OVERLAY,
+        "verified Myth 1/6 snapshots should drive secondary-stat-priority preview ranking",
+    )
+    require_contains(
+        runtime_scoring,
+        "function Scoring:ScoreItemSnapshotSecondaryPriority",
+        RUNTIME_SCORING,
+        "secondary-stat-only snapshot scoring must be available to the overlay",
+    )
+    require_contains(
+        runtime_scoring,
+        "secondaryOnly = true",
+        RUNTIME_SCORING,
+        "secondary-stat ranking evidence must mark that primary stat and item level were excluded",
+    )
+    require_absent(
+        bis_overlay,
+        "ScoreItemSnapshot(specID",
+        BIS_OVERLAY,
+        "BIS overlay ranking should use secondary-stat-only preview scoring",
+    )
+    require_contains(
+        bis_overlay,
+        "BISRuntimeScoring",
+        BIS_OVERLAY,
+        "BIS overlay ranking must use the shared stat-priority scoring helper",
+    )
+    require_contains(
+        bis_overlay,
+        "PREVIEW_RANKING_SCORE_CACHE",
+        BIS_OVERLAY,
+        "preview ranking scores should be cached independently from tooltip rendering",
+    )
+    require_absent(
+        bis_overlay,
+        'if not isOverlayItemTooltipEnabled() or getEntrySourceType(entry) ~= "mythicplus" then',
+        BIS_OVERLAY,
+        "preview ranking score calculation must not depend on the item tooltip checkbox",
+    )
+    require_absent(
+        bis_overlay,
+        "if not isOverlayItemTooltipEnabled() or not C_Timer",
+        BIS_OVERLAY,
+        "preview ranking snapshot queue must not depend on the item tooltip checkbox",
+    )
+    require_absent(
+        bis_overlay,
+        "or not isOverlayItemTooltipEnabled()\n        or not BISOverlay.frame",
+        BIS_OVERLAY,
+        "preview ranking queue processing must not stop when tooltip rendering is disabled",
+    )
 
     require_absent(
         stats_overlay,
@@ -190,6 +294,9 @@ def main() -> None:
         "tries verified raid/crafted/tier season preview links first, "
         "defaults the BIS item tooltip checkbox on, "
         "blocks removed manual renderers, "
+        "renders M+ snapshots without re-feeding Myth links to GameTooltip, "
+        "pauses Myth preview scans while bags are open, "
+        "keeps secondary-stat preview ranking independent from the checkbox, "
         f"keeps BISOverlay top-level locals at {bis_top_level_locals}, "
         "and keeps SafeNumber fallback taint-safe"
     )

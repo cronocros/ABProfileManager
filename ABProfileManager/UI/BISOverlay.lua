@@ -128,18 +128,28 @@ local function getBISTooltip()
 
     local tooltip = CreateFrame("GameTooltip", "ABProfileManagerBISTooltip", UIParent, "GameTooltipTemplate")
     tooltip:SetFrameStrata("TOOLTIP")
-    -- Blizzard's SellPrice rule skips MoneyFrame rendering for shopping
-    -- tooltips. Keep this addon-owned item tooltip on that path so the default
-    -- Blizzard stat renderer can be used without propagating MoneyFrame taint.
-    tooltip.isShopping = true
     BISOverlay._hoverTooltip = tooltip
     return tooltip
+end
+
+local function resetBISTooltipState(tooltip)
+    if not tooltip then
+        return
+    end
+    tooltip.isShopping = nil
+    if tooltip.ClearLines then
+        tooltip:ClearLines()
+    end
+    if tooltip.SetMinimumWidth then
+        tooltip:SetMinimumWidth(0)
+    end
 end
 
 local function hideBISTooltip()
     local tooltip = BISOverlay and BISOverlay._hoverTooltip
     if tooltip and tooltip.Hide then
         tooltip:Hide()
+        resetBISTooltipState(tooltip)
     end
 end
 
@@ -155,6 +165,19 @@ end
 local function isScrollTooltipSuppressed()
     local now = type(GetTime) == "function" and GetTime() or 0
     return now < (BISOverlay._tooltipSuppressedUntil or 0)
+end
+
+local function areContainerFramesShown()
+    if ContainerFrameCombinedBags and ContainerFrameCombinedBags.IsShown and ContainerFrameCombinedBags:IsShown() then
+        return true
+    end
+    for index = 1, (NUM_CONTAINER_FRAMES or 13) do
+        local frame = _G and _G["ContainerFrame" .. tostring(index)]
+        if frame and frame.IsShown and frame:IsShown() then
+            return true
+        end
+    end
+    return false
 end
 
 local function safeTooltipString(value)
@@ -1452,14 +1475,14 @@ end
 
 local findPlayerItemLink
 local getMythPreviewSnapshot
-local getAutomaticRuntimeScore
+local getPreviewRankingScore
 local scheduleAutomaticRuntimeScores
 
-local function refreshEntryRuntimeScore(entry, specID)
-    entry._runtimeScore = nil
-    local score = getAutomaticRuntimeScore and getAutomaticRuntimeScore(entry, specID)
+local function refreshEntryPreviewRankingScore(entry, specID)
+    entry._previewRankingScore = nil
+    local score = getPreviewRankingScore and getPreviewRankingScore(entry, specID)
     if score then
-        entry._runtimeScore = score
+        entry._previewRankingScore = score
     end
 end
 
@@ -1482,10 +1505,10 @@ local function compareSlotEntries(a, b)
     return (a.itemID or 0) < (b.itemID or 0)
 end
 
-local function applyRuntimeScoreOrdering(entries)
+local function applyPreviewScoreOrdering(entries)
     local scoredPositions, scoredEntries = {}, {}
     for index, entry in ipairs(entries) do
-        if tonumber(entry._runtimeScore) then
+        if tonumber(entry._previewRankingScore) then
             scoredPositions[#scoredPositions + 1] = index
             scoredEntries[#scoredEntries + 1] = entry
         end
@@ -1494,10 +1517,10 @@ local function applyRuntimeScoreOrdering(entries)
         return
     end
     table.sort(scoredEntries, function(a, b)
-        local aRuntimeScore = tonumber(a._runtimeScore) or 0
-        local bRuntimeScore = tonumber(b._runtimeScore) or 0
-        if aRuntimeScore ~= bRuntimeScore then
-            return aRuntimeScore > bRuntimeScore
+        local aScore = tonumber(a._previewRankingScore) or 0
+        local bScore = tonumber(b._previewRankingScore) or 0
+        if aScore ~= bScore then
+            return aScore > bScore
         end
         return compareSlotEntries(a, b)
     end)
@@ -1548,10 +1571,10 @@ local function groupBySlot(items, specID)
     for _, slotName in ipairs(slotOrder) do
         local entries = allSlots[slotName]
         for _, entry in ipairs(entries) do
-            refreshEntryRuntimeScore(entry, specID)
+            refreshEntryPreviewRankingScore(entry, specID)
         end
         table.sort(entries, compareSlotEntries)
-        applyRuntimeScoreOrdering(entries)
+        applyPreviewScoreOrdering(entries)
         applySlotDisplayRanks(slotName, entries)
         for _, entry in ipairs(entries) do
             if isBISItemFavorite(specID, entry.itemID) then
@@ -3053,10 +3076,10 @@ local function buildMythPreviewSnapshot(entry, link)
     }
 end
 
-local AUTOMATIC_SCORE_CACHE = {}
+local PREVIEW_RANKING_SCORE_CACHE = {}
 
-local function clearAutomaticScoreCache()
-    wipe(AUTOMATIC_SCORE_CACHE)
+local function clearPreviewRankingScoreCache()
+    wipe(PREVIEW_RANKING_SCORE_CACHE)
 end
 
 local function cacheMythPreviewSnapshot(entry, link)
@@ -3065,7 +3088,7 @@ local function cacheMythPreviewSnapshot(entry, link)
         return false
     end
     ns.DB:SetBISOverlayMythPreviewSnapshot(entry.itemID, snapshot)
-    clearAutomaticScoreCache()
+    clearPreviewRankingScoreCache()
     return true
 end
 
@@ -3116,7 +3139,7 @@ end
 
 local AUTOMATIC_SCORE_DELAY = 0.03
 
-local function getAutomaticScoreCacheKey(entry, specID)
+local function getPreviewRankingScoreCacheKey(entry, specID)
     return table.concat({
         tostring(specID or 0),
         tostring(entry and entry.slot or ""),
@@ -3124,25 +3147,22 @@ local function getAutomaticScoreCacheKey(entry, specID)
     }, ":")
 end
 
-getAutomaticRuntimeScore = function(entry, specID)
-    if not isOverlayItemTooltipEnabled() or getEntrySourceType(entry) ~= "mythicplus" then
+getPreviewRankingScore = function(entry, specID)
+    if getEntrySourceType(entry) ~= "mythicplus" then
         return nil
     end
-    local cacheKey = getAutomaticScoreCacheKey(entry, specID)
-    local cached = AUTOMATIC_SCORE_CACHE[cacheKey]
+    local cacheKey = getPreviewRankingScoreCacheKey(entry, specID)
+    local cached = PREVIEW_RANKING_SCORE_CACHE[cacheKey]
     if cached ~= nil then
         return type(cached) == "number" and cached or nil
     end
     local snapshot = getMythPreviewSnapshot(entry.itemID)
     local scoring = ns.Data and ns.Data.BISRuntimeScoring
-    if not snapshot or not scoring or type(scoring.ScoreItemSnapshot) ~= "function" then
+    if not snapshot or not scoring or type(scoring.ScoreItemSnapshotSecondaryPriority) ~= "function" then
         return nil
     end
-    local score = scoring:ScoreItemSnapshot(specID, entry.slot, snapshot, "mythicplus", {
-        sourceKey = "MPLUS_GREAT_VAULT",
-        keyLevel = getSeasonPreviewKeyLevel(),
-    })
-    AUTOMATIC_SCORE_CACHE[cacheKey] = score or false
+    local score = scoring:ScoreItemSnapshotSecondaryPriority(specID, entry.slot, snapshot)
+    PREVIEW_RANKING_SCORE_CACHE[cacheKey] = score or false
     return score
 end
 
@@ -3223,7 +3243,7 @@ end
 scheduleAutomaticRuntimeScores = function(items, specID)
     BISOverlay._automaticScoreQueueToken = (BISOverlay._automaticScoreQueueToken or 0) + 1
     local queueToken = BISOverlay._automaticScoreQueueToken
-    if not isOverlayItemTooltipEnabled() or not C_Timer or type(C_Timer.After) ~= "function" then
+    if areContainerFramesShown() or not C_Timer or type(C_Timer.After) ~= "function" then
         return
     end
 
@@ -3246,7 +3266,7 @@ scheduleAutomaticRuntimeScores = function(items, specID)
     local index, changed = 0, false
     local function processNext()
         if queueToken ~= BISOverlay._automaticScoreQueueToken
-        or not isOverlayItemTooltipEnabled()
+        or areContainerFramesShown()
         or not BISOverlay.frame
         or not BISOverlay.frame:IsShown() then
             return
@@ -3468,15 +3488,49 @@ showSeasonItemTooltip = function(owner, row)
         tooltip:Show()
     end
 
+    local function tryShowSnapshotTooltip(snapshot)
+        if type(snapshot) ~= "table" or type(snapshot.lines) ~= "table" or #snapshot.lines == 0 then
+            return false
+        end
+        tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
+        resetBISTooltipState(tooltip)
+        for _, line in ipairs(snapshot.lines) do
+            local leftText = safeTooltipString(line.leftText)
+            local rightText = safeTooltipString(line.rightText)
+            local leftColor = type(line.leftColor) == "table" and line.leftColor or nil
+            local rightColor = type(line.rightColor) == "table" and line.rightColor or nil
+            local lr = safePlainNumber(leftColor and leftColor[1]) or 0.90
+            local lg = safePlainNumber(leftColor and leftColor[2]) or 0.90
+            local lb = safePlainNumber(leftColor and leftColor[3]) or 0.90
+            local rr = safePlainNumber(rightColor and rightColor[1]) or 0.90
+            local rg = safePlainNumber(rightColor and rightColor[2]) or 0.90
+            local rb = safePlainNumber(rightColor and rightColor[3]) or 0.90
+            if rightText and rightText ~= "" and tooltip.AddDoubleLine then
+                tooltip:AddDoubleLine(leftText or " ", rightText, lr, lg, lb, rr, rg, rb)
+            elseif leftText and leftText ~= "" then
+                tooltip:AddLine(leftText, lr, lg, lb, true)
+            end
+        end
+        if tooltip:NumLines() == 0 then
+            return false
+        end
+        tooltip:Show()
+        return true
+    end
+
     local function tryShowBlizzardItemTooltip(link)
         if type(link) ~= "string" or link == "" or type(tooltip.SetHyperlink) ~= "function" then
             return false
         end
         tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
-        tooltip:ClearLines()
+        resetBISTooltipState(tooltip)
+        -- Blizzard's SellPrice rule skips MoneyFrame rendering for shopping
+        -- tooltips. Set this only for the single SetHyperlink call, then clear
+        -- it when the addon-owned tooltip is hidden.
         tooltip.isShopping = true
         local ok = pcall(tooltip.SetHyperlink, tooltip, link)
         if not ok or tooltip:NumLines() == 0 then
+            resetBISTooltipState(tooltip)
             return false
         end
         tooltip:Show()
@@ -3534,11 +3588,11 @@ showSeasonItemTooltip = function(owner, row)
     local specID = row._specID or BISOverlay.selectedSpecID or getPlayerSpecID()
     if isOverlayItemTooltipEnabled() and sourceType == "mythicplus" then
         local snapshot = getMythPreviewSnapshot(row.itemID)
-        if not snapshot and resolveMythPreviewSnapshot(entry) then
+        if not snapshot and not areContainerFramesShown() and resolveMythPreviewSnapshot(entry) then
             snapshot = getMythPreviewSnapshot(row.itemID)
             scheduleRebuild(row.itemID, true)
         end
-        if snapshot and tryShowBlizzardItemTooltip(snapshot.itemLink) then
+        if snapshot and tryShowSnapshotTooltip(snapshot) then
             return
         end
         showSeasonFallbackTooltip()
@@ -3723,9 +3777,6 @@ local function ensureRow(frame, index)
                 local owned = not isBISItemOwned(specID, targetRow.itemID)
                 local itemLink = owned and findPlayerItemLink(targetRow.itemID) or nil
                 ns.DB:SetBISOverlayItemOwned(specID, targetRow.itemID, owned, itemLink)
-                if owned and itemLink then
-                    cacheMythPreviewSnapshot(targetRow._entry, itemLink)
-                end
             end
         end
     )
@@ -4084,6 +4135,7 @@ function BISOverlay:Initialize()
             self:Refresh()
         end)
         pve:HookScript("OnHide", function()
+            hideBISTooltip()
             if self.frame then self.frame:Hide() end
         end)
 
@@ -4103,5 +4155,21 @@ function BISOverlay:Initialize()
                 f:SetScript("OnEvent", nil)
             end
         end)
+    end
+
+    if not self._externalTooltipGuarded then
+        self._externalTooltipGuarded = true
+        if GameTooltip and GameTooltip.HookScript then
+            GameTooltip:HookScript("OnShow", hideBISTooltip)
+        end
+        if type(hooksecurefunc) == "function" then
+            if type(ContainerFrameItemButton_OnEnter) == "function" then
+                hooksecurefunc("ContainerFrameItemButton_OnEnter", hideBISTooltip)
+            end
+            if type(ContainerFrameItemButtonMixin) == "table"
+                and type(ContainerFrameItemButtonMixin.OnEnter) == "function" then
+                hooksecurefunc(ContainerFrameItemButtonMixin, "OnEnter", hideBISTooltip)
+            end
+        end
     end
 end
