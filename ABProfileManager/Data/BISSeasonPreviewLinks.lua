@@ -14,7 +14,7 @@ ns.Data.BISSeasonPreviewLinks = {
         raid = {
             label = "Raid Mythic",
             minItemLevel = 272,
-            maxItemLevel = 289,
+            maxItemLevel = 298,
             requireMythText = true,
             itemStringTemplates = {
                 "item:%d::::::::::::3:6652:13335:12806",

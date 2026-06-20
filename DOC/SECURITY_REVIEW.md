@@ -95,7 +95,7 @@
 - 런타임 merge와 런타임 웹 조회를 하지 않는다
 - `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`는 릴리스 생성/검증용 오프라인 입력이며 TOC에 직접 로드하지 않는다
 - v1.3 DB는 중간 `return DB`를 제거하고 EOF의 최종 `return DB` 하나만 유지한다
-- 생성된 카탈로그는 총 `3130`행이다: `mythicplus 2554`, 기존 `raid 285`, 기존 `crafted 91`, `tier 200`
+- 생성된 카탈로그는 총 `3330`행이다: `mythicplus 2554`, `raid 485`, 기존 `crafted 91`, `tier 200`
 - locale 문자열은 생성 시점에 `koKR/enUS`로 분리 저장되며, 게임 안에서는 해당 locale 필드만 노출한다
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 Myth/Hero 트랙이나 최종 BiS를 확정하지 않는다
 - `Data/MidnightS1MPlusDB.lua`는 저장소에 고정된 v1.7 컴팩트 코어이며 네트워크나 동적 코드 로드를 하지 않는다

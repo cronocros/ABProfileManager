@@ -1,8 +1,18 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.11.10 로컬 패치 기반`
+버전 기준: `v1.11.11 로컬 패치 기반`
 
-## 0-new. v1.11.10 로컬 패치 메모
+## 0-new. v1.11.11 로컬 패치 메모
+
+- WoW 12.0.7 신규 단일 보스 레이드 `진균나락(Sporefall)`의 `부식수렁(Rotmire)` 드랍 11종을 BIS raid 후보로 추가했다.
+- `Data/BISCatalog.lua`는 총 `3330`행이다: `mythicplus 2554`, `raid 485`, `crafted 91`, `tier 200`.
+- 신규 raid 행은 착용 가능 방어구 타입, 전역 목/반지/장신구 슬롯, v1.7 스탯 우선순위를 기준으로 slot별 우선순위를 다시 계산했다.
+- `Data/BISSeasonPreviewLinks.lua`의 raid Myth preview 허용 범위는 12.0.7 진균나락 Mythic `298`까지 열고, tier Myth preview 범위는 기존 `272~289`를 유지한다.
+- BIS hover/출처 라벨에 `진균나락(Sporefall)` / `부식수렁(Rotmire)` locale을 추가했고, Encounter Journal tier fallback은 현재 시즌 tier가 실패해도 전체 tier를 한 번 순회한다.
+- 12.0.7 호환 점검으로 StatsOverlay secret number 변환, 전투부대 은행 세션 감지, 액션바 cursor mutation, 구렁 API/PVE refresh 보호 경로를 보강했다.
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.11.zip` 생성까지만 수행한다. WoW 설치 폴더로 복사하지 않는다.
+
+## 0-prev. v1.11.10 로컬 패치 메모
 
 - `UI/BISOverlay.lua` 로드 시 발생한 `main function has more than 200 local variables` 오류를 수정했다.
 - 시즌 preview 상태와 helper를 `SourcePreview` 테이블 필드로 묶어 top-level local 개수를 `194`로 낮췄다.

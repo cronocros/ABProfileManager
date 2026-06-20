@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-버전 기준: `v1.11.10 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
+버전 기준: `v1.11.11 로컬 패치 기반, Interface 120005, 120007 / WoW Patch 12.0.5·12.0.7 계열`
 
 ## 목적
 
@@ -27,7 +27,7 @@
 - 글자 크기 변경은 도메인별 typography 계층으로 통합한다.
 - 파괴적 작업은 확인창과 입력 검증을 우선한다.
 - BIS 정적 후보는 생성된 카탈로그만 읽고, 열기 시점의 병합/웹 조회를 금지한다.
-- 애드온 hover 설명은 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에 검증 full item link를 `SetHyperlink()`로 전달한다. raid/tier hover는 검토된 시즌 preview가 실제 `272~289`와 `Myth/신화` tooltip text를 통과한 경우 먼저 표시하고, crafted hover는 r5 `285` preview가 실제 285로 확인된 경우 먼저 표시한다. 실패 시 raid/crafted/tier는 기본 `itemLink` 또는 기본 `item:<itemID>`로 fallback한다. BIS item tooltip은 shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다.
+- 애드온 hover 설명은 전용 tooltip frame을 사용한다. M+ BIS 아이템 hover는 addon-owned Blizzard item tooltip에 검증 full item link를 `SetHyperlink()`로 전달한다. raid hover는 검토된 시즌 preview가 실제 `272~298`와 `Myth/신화` tooltip text를 통과한 경우 먼저 표시하고, tier hover는 `272~289` Myth preview를 유지한다. crafted hover는 r5 `285` preview가 실제 285로 확인된 경우 먼저 표시한다. 실패 시 raid/crafted/tier는 기본 `itemLink` 또는 기본 `item:<itemID>`로 fallback한다. BIS item tooltip은 shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다.
 - 로컬 배포는 작업공간 `dist/` ZIP 생성까지만 수행하고 WoW 설치 폴더로 복사하지 않는다.
 
 ## 부트스트랩
@@ -118,7 +118,8 @@
   - 실제 다른 템렙으로 해석된 preview는 세션 음성 캐시에 넣어 반복 큐잉을 방지
   - selector preview hyperlink가 아직 로드되지 않아 snapshot이 비어 있으면 비동기 아이템 로드 뒤 exact selector 링크를 다시 검증하고, 실패 callback은 timeout으로 정리하며 링크별 재시도는 세션 최대 2회로 제한
   - M+ 행 hover도 저장 snapshot이 없을 때 selector preview hyperlink의 즉시 해석을 한 번 시도
-  - raid/tier 행 hover는 `Data/BISSeasonPreviewLinks.lua`의 검토된 시즌 preview item string을 먼저 시도하고, 실제 tooltip item level이 `272~289` 범위이며 `Myth/신화` 텍스트가 확인된 경우에만 표시
+  - raid 행 hover는 `Data/BISSeasonPreviewLinks.lua`의 검토된 시즌 preview item string을 먼저 시도하고, 실제 tooltip item level이 `272~298` 범위이며 `Myth/신화` 텍스트가 확인된 경우에만 표시
+  - tier 행 hover는 검토된 시즌 preview item string이 실제 tooltip item level `272~289` 범위와 `Myth/신화` 텍스트를 통과한 경우에만 표시
   - crafted 행 hover는 `Data/BISSeasonPreviewLinks.lua`의 r5 `285` preview item string을 먼저 시도하고, 실제 tooltip item level이 `285`인 경우에만 표시
   - 시즌 preview helper는 `SourcePreview` 테이블 필드로 묶어 WoW Lua chunk top-level local 제한을 넘지 않게 유지
   - 저장 스냅샷이 없는 후보는 정적 `overallRank` 순서를 유지
@@ -178,7 +179,7 @@
   - M+ row 라벨과 자동 검색 full link 검증용 위대한 금고 Myth 1/6 272 대표 프로필 제공
 - `Data/BISCatalog.lua`
   - 런타임에서 직접 읽는 단일 BIS 정적 후보 카탈로그
-  - v1.11.10 기준 총 `3130`행: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`
+  - v1.11.11 기준 총 `3330`행: `mythicplus 2554`, `raid 485`, `crafted 91`, `tier 200`
   - row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank` 보관
   - `dungeon / boss / profession / catalyst / rewardProfiles` 등 source detail과 locale별 표기를 함께 저장
   - v1.11.0부터 v1.7 단일 대표 우선순위와 M+/tier row별 `staticFinalBisVerified`, `bisValidationLevel`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`, `mythTrackVerified`, `staticPriorityStatus`, `v13Evidence`, `statPrioritySummary` 메타를 함께 저장
@@ -194,7 +195,8 @@
   - 런타임이 실제 item level을 다시 검증하므로 검토되지 않은 bonusID를 넣지 않음
 - `Data/BISSeasonPreviewLinks.lua`
   - extracted ItemBonus DB2 build `12.0.1.66838` 검토 기준의 raid Myth, tier Myth, crafted r5 preview item string 템플릿과 예외 full link override를 보관
-  - raid/tier preview는 클라이언트 tooltip에서 실제 item level `272~289`와 `Myth/신화` 텍스트가 확인된 경우에만 hover에 사용
+  - raid preview는 클라이언트 tooltip에서 실제 item level `272~298`와 `Myth/신화` 텍스트가 확인된 경우에만 hover에 사용
+  - tier preview는 클라이언트 tooltip에서 실제 item level `272~289`와 `Myth/신화` 텍스트가 확인된 경우에만 hover에 사용
   - crafted preview는 클라이언트 tooltip에서 실제 item level `285`가 확인된 경우에만 hover에 사용
   - 실패한 preview link는 세션 음성 캐시에 넣어 반복 로딩을 줄이고, 기본 `itemLink`/`item:<itemID>` fallback은 유지
 - `Data/BISEncounterJournal.lua`
@@ -221,7 +223,7 @@
   - Wowhead M+ 추천 후보를 `Data/BISData.lua`로 재생성
 - `scripts/build_bis_catalog.py`
   - 기존 DOC/Wowhead 경로 또는 `--addon-db` v1.3 DOC DB 경로로 `Data/BISCatalog.lua`를 생성
-  - v1.3 DOC DB 경로에서는 기존 `raid 285` / `crafted 91`행을 보존하고 `mythicplus 2554` / `tier 200`행을 생성
+  - v1.3 DOC DB 경로에서는 기존 `raid 485` / `crafted 91`행을 보존하고 `mythicplus 2554` / `tier 200`행을 생성
   - dungeon/source alias canonicalization, locale 누수 검사, itemID 검증, 정적 링크 미생성 검증을 포함
   - v1.3 입력은 정적 후보 풀 생성 기준으로 유지
 - `scripts/validate_bis_encounter_journal.py`

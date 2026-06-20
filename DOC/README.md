@@ -10,10 +10,10 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [releases/RELEASE_NOTES_v1.11.10.md](./releases/RELEASE_NOTES_v1.11.10.md)
-  - 최신 로컬 한글 릴리스 노트 (v1.11.10)
-- [releases/RELEASE_NOTES_v1.11.10_EN.md](./releases/RELEASE_NOTES_v1.11.10_EN.md)
-  - 최신 로컬 영문 릴리스 노트 (v1.11.10)
+- [releases/RELEASE_NOTES_v1.11.11.md](./releases/RELEASE_NOTES_v1.11.11.md)
+  - 최신 로컬 한글 릴리스 노트 (v1.11.11)
+- [releases/RELEASE_NOTES_v1.11.11_EN.md](./releases/RELEASE_NOTES_v1.11.11_EN.md)
+  - 최신 로컬 영문 릴리스 노트 (v1.11.11)
 - [releases/RELEASE_NOTES_v1.11.0.md](./releases/RELEASE_NOTES_v1.11.0.md)
   - 원격 GitHub 공개 최신 한글 릴리스 노트 (v1.11.0)
 - [releases/RELEASE_NOTES_v1.11.0_EN.md](./releases/RELEASE_NOTES_v1.11.0_EN.md)
@@ -22,9 +22,9 @@
   - v1.7.7 이후 누적 변경 한글 공지
 - [releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md](./releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
   - v1.7.7 이후 누적 변경 영문 공지
-- [releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md](./releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md)
+- [releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.11_EN.md](./releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.11_EN.md)
   - v1.10.0 이후 누적 변경 영문 공지
-- [releases/ADDON_DESCRIPTION_v1.11.10_EN.md](./releases/ADDON_DESCRIPTION_v1.11.10_EN.md)
+- [releases/ADDON_DESCRIPTION_v1.11.11_EN.md](./releases/ADDON_DESCRIPTION_v1.11.11_EN.md)
   - 최신 외부 소개 페이지용 영문 문안
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
   - 현재 구조, 모듈 책임, 데이터 흐름

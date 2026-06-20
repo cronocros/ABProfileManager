@@ -7,18 +7,18 @@
 
 ## 현재 버전
 
-- 로컬 패치: `v1.11.10`
+- 로컬 패치: `v1.11.11`
 - 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
-- 로컬 패키지: `dist/ABProfileManager-v1.11.10.zip`
+- 로컬 패키지: `dist/ABProfileManager-v1.11.11.zip`
 - 이전 로컬 패키지: `dist/archive/`
-- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.10.md](./DOC/releases/RELEASE_NOTES_v1.11.10.md)
-- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.10_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.10_EN.md)
+- 최신 로컬 한글 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.11.md](./DOC/releases/RELEASE_NOTES_v1.11.11.md)
+- 최신 로컬 영문 릴리스 노트: [DOC/releases/RELEASE_NOTES_v1.11.11_EN.md](./DOC/releases/RELEASE_NOTES_v1.11.11_EN.md)
 - v1.7.7 이후 누적 업데이트 공지: [한글](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0.md) / [English](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.7.7_TO_v1.11.0_EN.md)
-- v1.10.0 이후 영문 업데이트 공지: [DOC/releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.10_EN.md)
-- 최신 영문 소개 페이지 문안: [DOC/releases/ADDON_DESCRIPTION_v1.11.10_EN.md](./DOC/releases/ADDON_DESCRIPTION_v1.11.10_EN.md)
+- v1.10.0 이후 영문 업데이트 공지: [DOC/releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.11_EN.md](./DOC/releases/UPDATE_ANNOUNCEMENT_v1.10.0_TO_v1.11.11_EN.md)
+- 최신 영문 소개 페이지 문안: [DOC/releases/ADDON_DESCRIPTION_v1.11.11_EN.md](./DOC/releases/ADDON_DESCRIPTION_v1.11.11_EN.md)
 - 에이전트 작업 기준: [AGENTS.md](./AGENTS.md)
 
 ## 요약
@@ -32,6 +32,15 @@
 - 한밤 시즌 1 v1.7 기준 40개 전문화 단일 대표 `스탯 우선순위 표` 제공
 - 첫 설치 언어는 WoW 클라이언트 기준 적용: 한국어 클라이언트는 한국어, 영어/미지원 클라이언트는 영어
 - 영어(enUS) 선택 시 클래스/특성/출처/던전명이 애드온 locale을 따르도록 locale 경로 보강
+
+## v1.11.11 로컬 패치 핵심 정리
+
+- WoW 12.0.7 신규 단일 보스 레이드 `진균나락(Sporefall)`의 `부식수렁(Rotmire)` 드랍 11종을 BIS 오버레이 후보 풀에 추가했습니다.
+- 방어구 타입/전문화별 착용 가능 여부와 v1.7 스탯 우선순위를 기준으로 신규 raid 후보 우선순위를 재번호화했습니다.
+- 현재 BIS 카탈로그는 총 `3330`행입니다: `mythicplus 2554`, `raid 485`, `crafted 91`, `tier 200`.
+- 진균나락 Mythic 298 preview 범위를 허용하고, raid hover/출처 라벨에 `진균나락 / 부식수렁` locale을 추가했습니다.
+- 12.0.7 API 변동에 대비해 StatsOverlay secret number 변환, Encounter Journal tier fallback, 전투부대 은행 세션, 액션바 적용, 구렁 API 호출을 보강했습니다.
+- 로컬 배포는 작업공간의 `dist/ABProfileManager-v1.11.11.zip` 생성까지만 수행하며 WoW 설치 폴더로 자동 복사하지 않습니다.
 
 ## v1.11.10 로컬 패치 핵심 정리
 
@@ -314,7 +323,7 @@ World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\ABProfileManager.to
 - 정적 후보 데이터는 `Data/BISCatalog.lua` 하나만 사용합니다.
 - 생성 파이프라인은 `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md` + `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua` + 기존 raid/crafted row + Wago DB2 검증을 거쳐 `koKR/enUS/itemID/sourceGroup/rank`를 고정합니다.
 - v1.3 DB는 EOF의 최종 `return DB` 하나만 유지합니다.
-- 현재 카탈로그는 총 `3130`행입니다: `mythicplus 2554`, `raid 285`, `crafted 91`, `tier 200`.
+- 현재 카탈로그는 총 `3330`행입니다: `mythicplus 2554`, `raid 485`, `crafted 91`, `tier 200`.
 - `BISData_Method.lua`, `BISData.lua`는 더 이상 런타임 병합 대상이 아니라 생성용 seed 입력입니다.
 - 새 DOC DB는 TOC에 직접 로드하지 않고 `scripts/build_bis_catalog.py --addon-db`의 오프라인 입력으로만 사용합니다.
 - v1.7 컴팩트 코어는 `Data/MidnightS1MPlusDB.lua`로 로드하고, `Data/BISRuntimeScoring.lua` 어댑터를 통해 검증 snapshot을 점수화합니다.

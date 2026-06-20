@@ -29,6 +29,7 @@ local questPanelRefreshPending = false
 
 -- 전투부대 은행 세션 상태 추적
 local abpmBankSessionActive = false
+local abpmBankPanelHooksInstalled = false
 -- CloseBankFrame → BANKFRAME_CLOSED → abpmCloseBankSessions 재귀 방지 플래그
 local abpmBankCleanupInProgress = false
 
@@ -52,6 +53,39 @@ local function abpmCloseBankSessions()
     end
     abpmBankSessionActive = false
     abpmBankCleanupInProgress = false
+end
+
+local function abpmIsAccountBankShown()
+    if not AccountBankPanel or type(AccountBankPanel.IsShown) ~= "function" then
+        return false
+    end
+
+    local ok, shown = pcall(function()
+        return AccountBankPanel:IsShown()
+    end)
+    return ok and shown and true or false
+end
+
+local function abpmRefreshBankSessionState()
+    if abpmIsAccountBankShown() then
+        abpmBankSessionActive = true
+    end
+end
+
+local function abpmInstallBankPanelHooks()
+    if abpmBankPanelHooksInstalled or not AccountBankPanel or type(AccountBankPanel.HookScript) ~= "function" then
+        return
+    end
+
+    abpmBankPanelHooksInstalled = true
+    AccountBankPanel:HookScript("OnShow", function()
+        abpmBankSessionActive = true
+    end)
+    AccountBankPanel:HookScript("OnHide", function()
+        if not (BankFrame and BankFrame:IsShown()) then
+            abpmBankSessionActive = false
+        end
+    end)
 end
 
 local function refreshGhostsAndRetries()
@@ -389,6 +423,7 @@ end
 
 function Events:PLAYER_LOGIN()
     ns.State.playerLoggedIn = true
+    abpmInstallBankPanelHooks()
     ns:SafeCall(ns.DB, "SetDebugEnabled", false)
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ns:SafeCall(ns.UI.ItemLevelOverlay, "InvalidateBountifulDelveNamesCache")
@@ -413,6 +448,7 @@ function Events:PLAYER_LOGOUT()
 end
 
 function Events:PLAYER_ENTERING_WORLD()
+    abpmInstallBankPanelHooks()
     ns:SafeCall(ns.DB, "RefreshCharacterRecord")
     ns:SafeCall(ns.UI.ItemLevelOverlay, "InvalidateBountifulDelveNamesCache")
     ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "InvalidateProfessionCache")
@@ -577,17 +613,20 @@ function Events:PLAYER_LEAVING_WORLD()
 end
 
 function Events:BANKFRAME_OPENED()
+    abpmInstallBankPanelHooks()
     abpmBankSessionActive = true
 end
 
 function Events:BANKFRAME_CLOSED()
     -- 주의: 여기서 CloseBankFrame/abpmCloseBankSessions 호출 금지
     -- BankFrame이 닫히는 도중에 재호출하면 BANKFRAME_CLOSED가 재발화되어 무한 재귀 발생
-    abpmBankSessionActive = false
+    abpmBankSessionActive = abpmIsAccountBankShown()
 end
 
 function Events:UI_ERROR_MESSAGE(messageType, message)
     if not message then return end
+    abpmInstallBankPanelHooks()
+    abpmRefreshBankSessionState()
     local isBankError = false
     -- 방법 1: WoW 전역 상수 직접 비교 (영문 클라이언트)
     if _G["ERR_BANK_IN_USE"] and message == _G["ERR_BANK_IN_USE"] then
@@ -598,7 +637,7 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
         local ok, found = pcall(string.find, string.lower(message), "bank", 1, true)
         if ok and found then isBankError = true end
     end
-    if isBankError and abpmBankSessionActive then
+    if isBankError and (abpmBankSessionActive or abpmIsAccountBankShown()) then
         abpmCloseBankSessions()
         ns.Utils.Print("[ABPM] 은행이 다른 곳에서 사용 중입니다. 전투부대 은행 세션을 닫았습니다.")
     end

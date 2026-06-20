@@ -95,11 +95,23 @@ def main() -> None:
         BIS_OVERLAY,
         "M+ Myth preview hover must render verified snapshot lines without re-feeding Myth links to GameTooltip",
     )
-    require_contains(
+    require_absent(
         bis_overlay,
         'GameTooltip:HookScript("OnShow", hideBISTooltip)',
         BIS_OVERLAY,
-        "global/bag item tooltips must hide the addon-owned BIS tooltip instead of being overlapped",
+        "global GameTooltip script hooks can taint Blizzard item tooltip MoneyFrame execution",
+    )
+    require_contains(
+        bis_overlay,
+        "pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, nil, tier)",
+        BIS_OVERLAY,
+        "Encounter Journal landing must not focus an itemID from the addon click path",
+    )
+    require_absent(
+        bis_overlay,
+        "pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, itemID, tier)",
+        BIS_OVERLAY,
+        "itemID-focused Encounter Journal landing can taint Blizzard loot item tooltip MoneyFrame execution",
     )
     require_contains(
         bis_overlay,

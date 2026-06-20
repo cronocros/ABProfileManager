@@ -52,6 +52,42 @@ local PRIORITY_VALUE_SIZE = 15
 local FONT_FLAGS = "OUTLINE"
 local SECONDARY_DR_THRESHOLDS = { 30, 39, 47, 54, 66 }
 local VALUE_PART_GAP = 4
+local RESTRICTED_STATS_RETRY_DELAYS = { 0.25, 0.75, 1.50, 3.00 }
+
+local function isSecretValue(value)
+    if type(issecretvalue) ~= "function" then
+        return false
+    end
+
+    local ok, secret = pcall(issecretvalue, value)
+    return ok and secret == true
+end
+
+local function toPlainNumber(value)
+    if value == nil then
+        return nil
+    end
+
+    if type(value) == "number" and not isSecretValue(value) then
+        local ok, numeric = pcall(function()
+            return value + 0
+        end)
+        if ok and numeric then
+            return numeric
+        end
+    end
+
+    local convertOk, numeric = pcall(tonumber, value)
+    if convertOk and numeric then
+        return numeric
+    end
+
+    local stringifyOk, stripped = pcall(function()
+        return tonumber(tostring(value))
+    end)
+    return stringifyOk and stripped or nil
+end
+
 local function safeTooltipString(value)
     if value == nil then
         return nil
@@ -119,15 +155,11 @@ local function getOverlayScale()
 end
 
 local function safeNumber(value)
-    -- ns.Utils.SafeNumber 로 위임. secret number 는 평문 숫자로 변환되지 않으면
-    -- 0 으로 격리해 렌더 경로로 전파하지 않는다.
-    if ns.Utils and ns.Utils.SafeNumber then
-        return ns.Utils.SafeNumber(value)
-    end
-    local ok, stripped = pcall(function()
-        return tonumber(tostring(value))
-    end)
-    return ok and stripped or 0
+    -- StatsOverlay는 보호된 player stat 값을 0으로 확정 표시하면 인던 진입 뒤
+    -- 계속 0%처럼 보일 수 있다. 이 파일 내부에서는 보호값을 nil로 분리하고,
+    -- 표시 단계에서 마지막 정상 값 또는 명시적 fallback을 사용한다.
+    local numeric = toPlainNumber(value)
+    return numeric ~= nil and numeric or 0
 end
 
 local function roundToInteger(value)
@@ -151,10 +183,23 @@ local function signaturePercent(value)
     return math.floor((safeNumber(value) * 100) + 0.5)
 end
 
+local function appendSignatureValue(parts, value, percentMode)
+    if value == nil then
+        parts[#parts + 1] = "restricted"
+        return
+    end
+
+    parts[#parts + 1] = tostring(percentMode and signaturePercent(value) or value)
+end
+
 local function formatSplitStatPercent(value)
     local formatted = string.format("%.2f", safeNumber(value))
     local wholePart, decimalPart = formatted:match("^(%d+)%.(%d%d)$")
     return "(" .. (wholePart or "0"), "." .. (decimalPart or "00") .. "%)"
+end
+
+local function formatUnavailableStatPercent()
+    return "--%", ""
 end
 
 local function formatStatValueParts(rating)
@@ -275,40 +320,45 @@ local function getPriorityDisplay(specName, orderGroups)
     return label, priority
 end
 
-local function getCombatRating(index)
-    if type(GetCombatRating) ~= "function" then
-        return 0
+local function callNumericAPI(api, ...)
+    if type(api) ~= "function" then
+        return nil
     end
 
-    return safeNumber(GetCombatRating(index))
+    local ok, value = pcall(api, ...)
+    if not ok then
+        return nil
+    end
+
+    return toPlainNumber(value)
+end
+
+local function getCombatRating(index)
+    return callNumericAPI(GetCombatRating, index)
 end
 
 local function getCombatRatingBonus(index)
-    if type(GetCombatRatingBonus) ~= "function" then
-        return 0
-    end
+    return callNumericAPI(GetCombatRatingBonus, index)
+end
 
-    return safeNumber(GetCombatRatingBonus(index))
+local function getCritPercent()
+    return callNumericAPI(GetCritChance)
 end
 
 local function getHastePercent()
     if type(GetHaste) == "function" then
-        return safeNumber(GetHaste())
+        return callNumericAPI(GetHaste)
     end
 
     if type(GetMeleeHaste) == "function" then
-        return safeNumber(GetMeleeHaste())
+        return callNumericAPI(GetMeleeHaste)
     end
 
-    return 0
+    return nil
 end
 
 local function getMasteryPercent()
-    if type(GetMasteryEffect) ~= "function" then
-        return 0
-    end
-
-    return safeNumber(GetMasteryEffect())
+    return callNumericAPI(GetMasteryEffect)
 end
 
 local function getVersatilityPercent()
@@ -318,31 +368,24 @@ local function getVersatilityPercent()
         return ratingBonus
     end
 
-    return ratingBonus + safeNumber(GetVersatilityBonus(VERSATILITY_RATING_INDEX))
+    local bonus = callNumericAPI(GetVersatilityBonus, VERSATILITY_RATING_INDEX)
+    if ratingBonus == nil or bonus == nil then
+        return nil
+    end
+
+    return ratingBonus + bonus
 end
 
 local function getDodgePercent()
-    if type(GetDodgeChance) ~= "function" then
-        return 0
-    end
-
-    return safeNumber(GetDodgeChance())
+    return callNumericAPI(GetDodgeChance)
 end
 
 local function getParryPercent()
-    if type(GetParryChance) ~= "function" then
-        return 0
-    end
-
-    return safeNumber(GetParryChance())
+    return callNumericAPI(GetParryChance)
 end
 
 local function getBlockPercent()
-    if type(GetBlockChance) ~= "function" then
-        return 0
-    end
-
-    return safeNumber(GetBlockChance())
+    return callNumericAPI(GetBlockChance)
 end
 
 local function shouldShowTankDefensiveStats(specIndex)
@@ -363,9 +406,8 @@ local function getPlayerBuffHash()
         if not fetchOk or not data then break end
         -- WoW 12.0.5+ 의 C_UnitAuras 반환 테이블은 secret number 로 표시되어
         -- 직접 산술 연산(*, math.floor 등) 시 taint 오류가 발생한다.
-        -- safeNumber(tostring→tonumber)로 secret 플래그를 제거한 뒤 사용한다.
-        -- 산술/포맷 자체도 pcall 로 감싸 한 aura 가 실패해도 다음 aura 처리는
-        -- 계속되도록 격리한다.
+        -- 보호값은 safeNumber에서 0으로 격리하고, 산술/포맷 자체도 pcall로
+        -- 감싸 한 aura가 실패해도 다음 aura 처리는 계속되도록 격리한다.
         local formatOk, line = pcall(string.format,
             "%d:%d:%d",
             safeNumber(data.spellId),
@@ -390,6 +432,10 @@ local function isInsideInstanceContext()
 end
 
 local function getSecondaryStatDRTier(percentFromRating)
+    if percentFromRating == nil then
+        return 0
+    end
+
     local normalized = safeNumber(percentFromRating)
 
     for index = #SECONDARY_DR_THRESHOLDS, 1, -1 do
@@ -401,27 +447,54 @@ local function getSecondaryStatDRTier(percentFromRating)
     return 0
 end
 
-local function addRatedStat(snapshot, key, label, rating, percent, ratingPercent)
+local function resolveCachedStatValue(overlay, key, field, value)
+    local numeric = toPlainNumber(value)
+    overlay.statValueCache = overlay.statValueCache or {}
+    overlay.statValueCache[key] = overlay.statValueCache[key] or {}
+
+    if numeric ~= nil then
+        overlay.statValueCache[key][field] = numeric
+        return numeric, true
+    end
+
+    local cached = overlay.statValueCache[key][field]
+    if cached ~= nil then
+        return cached, false
+    end
+
+    return nil, false
+end
+
+local function addRatedStat(overlay, snapshot, key, label, rating, percent, ratingPercent)
+    local resolvedRating, ratingReadable = resolveCachedStatValue(overlay, key, "rating", rating)
+    local resolvedPercent, percentReadable = resolveCachedStatValue(overlay, key, "percent", percent)
+    local resolvedRatingPercent, ratingPercentReadable = resolveCachedStatValue(overlay, key, "ratingPercent", ratingPercent)
     local entry = acquireEntry()
     entry.key = key
     entry.label = label
-    entry.primaryText = formatStatValueParts(rating)
+    entry.primaryText = resolvedRating ~= nil and formatStatValueParts(resolvedRating) or "-"
     entry.style = "stat"
-    entry.percentValue = safeNumber(percent)
-    entry.ratingPercent = safeNumber(ratingPercent)
-    entry.drTier = getSecondaryStatDRTier(ratingPercent)
+    entry.percentValue = resolvedPercent
+    entry.percentReadable = percentReadable
+    entry.ratingPercent = resolvedRatingPercent
+    entry.drTier = getSecondaryStatDRTier(resolvedRatingPercent)
+    if not (ratingReadable and percentReadable and ratingPercentReadable) then
+        entry.restrictedValue = true
+        snapshot.__hasRestrictedStatValues = true
+    end
     snapshot[#snapshot + 1] = entry
 end
 
 local function addPercentStat(snapshot, key, label, percent)
-    if safeNumber(percent) <= 0 then
+    local numeric = toPlainNumber(percent)
+    if not numeric or numeric <= 0 then
         return
     end
 
     local entry = acquireEntry()
     entry.key = key
     entry.label = label
-    entry.secondaryText = formatPercent(percent)
+    entry.secondaryText = formatPercent(numeric)
     entry.style = "defense"
     snapshot[#snapshot + 1] = entry
 end
@@ -781,6 +854,39 @@ function StatsOverlay:Initialize()
     frame:Hide()
 end
 
+function StatsOverlay:ScheduleRestrictedStatsRetry()
+    if not C_Timer or type(C_Timer.After) ~= "function" then
+        return
+    end
+    if self.restrictedStatsRetryPending then
+        return
+    end
+
+    self.restrictedStatsRetryCount = (self.restrictedStatsRetryCount or 0) + 1
+    local delay = RESTRICTED_STATS_RETRY_DELAYS[math.min(self.restrictedStatsRetryCount, #RESTRICTED_STATS_RETRY_DELAYS)]
+        or RESTRICTED_STATS_RETRY_DELAYS[#RESTRICTED_STATS_RETRY_DELAYS]
+    self.restrictedStatsRetryToken = (self.restrictedStatsRetryToken or 0) + 1
+    local token = self.restrictedStatsRetryToken
+    self.restrictedStatsRetryPending = true
+
+    C_Timer.After(delay, function()
+        if token ~= self.restrictedStatsRetryToken then
+            return
+        end
+
+        self.restrictedStatsRetryPending = false
+        if ns.DB and ns.DB.IsStatsOverlayEnabled and ns.DB:IsStatsOverlayEnabled() then
+            self:Refresh({ force = true })
+        end
+    end)
+end
+
+function StatsOverlay:ClearRestrictedStatsRetry()
+    self.restrictedStatsRetryCount = 0
+    self.restrictedStatsRetryPending = false
+    self.restrictedStatsRetryToken = (self.restrictedStatsRetryToken or 0) + 1
+end
+
 function StatsOverlay:BuildSnapshot()
     _entryPoolSize = 0
     wipe(_snapshot)
@@ -793,14 +899,16 @@ function StatsOverlay:BuildSnapshot()
     snapshot[1] = headerEntry
 
     addRatedStat(
+        self,
         snapshot,
         "crit",
         ns.L("stats_overlay_crit"),
         getCombatRating(CRIT_RATING_INDEX),
-        type(GetCritChance) == "function" and safeNumber(GetCritChance()) or 0,
+        getCritPercent(),
         getCombatRatingBonus(CRIT_RATING_INDEX)
     )
     addRatedStat(
+        self,
         snapshot,
         "haste",
         ns.L("stats_overlay_haste"),
@@ -809,6 +917,7 @@ function StatsOverlay:BuildSnapshot()
         getCombatRatingBonus(HASTE_RATING_INDEX)
     )
     addRatedStat(
+        self,
         snapshot,
         "mastery",
         ns.L("stats_overlay_mastery"),
@@ -817,6 +926,7 @@ function StatsOverlay:BuildSnapshot()
         getCombatRatingBonus(MASTERY_RATING_INDEX)
     )
     addRatedStat(
+        self,
         snapshot,
         "versatility",
         ns.L("stats_overlay_versatility"),
@@ -827,7 +937,11 @@ function StatsOverlay:BuildSnapshot()
 
     for _, entry in ipairs(snapshot) do
         if entry.style == "stat" then
-            entry.secondaryText, entry.percentTailText = formatSplitStatPercent(entry.percentValue)
+            if entry.percentValue ~= nil then
+                entry.secondaryText, entry.percentTailText = formatSplitStatPercent(entry.percentValue)
+            else
+                entry.secondaryText, entry.percentTailText = formatUnavailableStatPercent()
+            end
         end
     end
 
@@ -876,21 +990,27 @@ function StatsOverlay:BuildStateSignature()
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(classTag)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(specIndex or 0)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getEquippedItemLevel() or 0)
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(CRIT_RATING_INDEX))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(GetCritChance and GetCritChance() or 0))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(CRIT_RATING_INDEX)))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(HASTE_RATING_INDEX))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getHastePercent()))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(HASTE_RATING_INDEX)))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(MASTERY_RATING_INDEX))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getMasteryPercent()))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(MASTERY_RATING_INDEX)))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(getCombatRating(VERSATILITY_RATING_INDEX))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getVersatilityPercent()))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(signaturePercent(getCombatRatingBonus(VERSATILITY_RATING_INDEX)))
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getDodgePercent()) or 0)
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getParryPercent()) or 0)
-    _stateSignatureParts[#_stateSignatureParts + 1] = tostring(showTankStats and signaturePercent(getBlockPercent()) or 0)
+    appendSignatureValue(_stateSignatureParts, getCombatRating(CRIT_RATING_INDEX), false)
+    appendSignatureValue(_stateSignatureParts, getCritPercent(), true)
+    appendSignatureValue(_stateSignatureParts, getCombatRatingBonus(CRIT_RATING_INDEX), true)
+    appendSignatureValue(_stateSignatureParts, getCombatRating(HASTE_RATING_INDEX), false)
+    appendSignatureValue(_stateSignatureParts, getHastePercent(), true)
+    appendSignatureValue(_stateSignatureParts, getCombatRatingBonus(HASTE_RATING_INDEX), true)
+    appendSignatureValue(_stateSignatureParts, getCombatRating(MASTERY_RATING_INDEX), false)
+    appendSignatureValue(_stateSignatureParts, getMasteryPercent(), true)
+    appendSignatureValue(_stateSignatureParts, getCombatRatingBonus(MASTERY_RATING_INDEX), true)
+    appendSignatureValue(_stateSignatureParts, getCombatRating(VERSATILITY_RATING_INDEX), false)
+    appendSignatureValue(_stateSignatureParts, getVersatilityPercent(), true)
+    appendSignatureValue(_stateSignatureParts, getCombatRatingBonus(VERSATILITY_RATING_INDEX), true)
+    if showTankStats then
+        appendSignatureValue(_stateSignatureParts, getDodgePercent(), true)
+        appendSignatureValue(_stateSignatureParts, getParryPercent(), true)
+        appendSignatureValue(_stateSignatureParts, getBlockPercent(), true)
+    else
+        appendSignatureValue(_stateSignatureParts, 0, true)
+        appendSignatureValue(_stateSignatureParts, 0, true)
+        appendSignatureValue(_stateSignatureParts, 0, true)
+    end
 
     -- 인스턴스 컨텍스트(none/party/raid/pvp/scenario): 인던 진입/이탈 시 stale signature 방지
     local inInstance, instanceType = isInsideInstanceContext()
@@ -1059,6 +1179,10 @@ function StatsOverlay:RefreshStats(force)
     if not self.frame then
         return
     end
+    if not ns.DB or not ns.DB:IsStatsOverlayEnabled() then
+        self:ClearRestrictedStatsRetry()
+        return
+    end
 
     local stateSignature = self:BuildStateSignature()
     if not force and stateSignature == self.lastStateSignature then
@@ -1066,6 +1190,12 @@ function StatsOverlay:RefreshStats(force)
     end
 
     local snapshot = self:BuildSnapshot()
+    if snapshot.__hasRestrictedStatValues then
+        self:ScheduleRestrictedStatsRetry()
+    else
+        self:ClearRestrictedStatsRetry()
+    end
+
     local snapshotSignature = self:BuildSnapshotSignature(snapshot)
     if not force and snapshotSignature == self.lastSnapshotSignature then
         self.lastStateSignature = stateSignature

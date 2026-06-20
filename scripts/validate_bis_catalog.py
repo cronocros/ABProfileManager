@@ -37,9 +37,23 @@ STAT_PRIORITY_TABLE_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriori
 TOC_FILE = REPO_ROOT / "ABProfileManager" / "ABProfileManager.toc"
 EXPECTED_SOURCE_GROUP_COUNTS = {
     "mythicplus": 2554,
-    "raid": 285,
+    "raid": 485,
     "crafted": 91,
     "tier": 200,
+}
+
+SPOREFALL_RAID_ITEM_IDS = {
+    268282,
+    268283,
+    268284,
+    268285,
+    268286,
+    268287,
+    268288,
+    268289,
+    268290,
+    268291,
+    268292,
 }
 
 
@@ -85,6 +99,8 @@ def parse_catalog_text(text: str) -> Dict[int, List[Dict[str, object]]]:
             "overallRank": int(get_lua_field(line, "overallRank") or 0),
             "sourceRank": int(get_lua_field(line, "sourceRank") or 0),
             "nameEnUS": str(get_lua_field(line, "nameEnUS") or ""),
+            "sourceLabel": str(get_lua_field(line, "sourceLabel") or ""),
+            "displaySourceKoKR": str(get_lua_field(line, "displaySourceKoKR") or ""),
             "displaySourceEnUS": str(get_lua_field(line, "displaySourceEnUS") or ""),
             "dungeonEnUS": str(get_lua_field(line, "dungeonEnUS") or ""),
             "runtimeItemLinkRequired": get_lua_field(line, "runtimeItemLinkRequired"),
@@ -148,12 +164,18 @@ def validate_preserved_source_rows(
     current: Dict[int, List[Dict[str, object]]],
     previous: Dict[int, List[Dict[str, object]]],
     source_groups: set[str],
+    allowed_new_item_ids: Optional[set[int]] = None,
 ) -> None:
     expected = get_source_row_keys(previous, source_groups)
     actual = get_source_row_keys(current, source_groups)
-    if actual != expected:
-        missing = sorted(expected - actual)
-        unexpected = sorted(actual - expected)
+    missing = sorted(expected - actual)
+    unexpected = sorted(actual - expected)
+    if allowed_new_item_ids:
+        unexpected = [
+            key for key in unexpected
+            if not (key[3] in source_groups and int(key[2]) in allowed_new_item_ids)
+        ]
+    if missing or unexpected:
         raise ValueError(
             f"Preserved source rows changed for {sorted(source_groups)}. "
             f"missing={missing[:10]} unexpected={unexpected[:10]}"
@@ -249,6 +271,24 @@ def validate_source_group_counts(catalog: Dict[int, List[Dict[str, object]]]) ->
                 actual[source_group] += 1
     if actual != EXPECTED_SOURCE_GROUP_COUNTS:
         raise ValueError(f"Source group count mismatch. expected={EXPECTED_SOURCE_GROUP_COUNTS} actual={actual}")
+
+
+def validate_sporefall_rows(catalog: Dict[int, List[Dict[str, object]]]) -> None:
+    rows = [
+        row
+        for spec_rows in catalog.values()
+        for row in spec_rows
+        if int(row.get("itemID") or 0) in SPOREFALL_RAID_ITEM_IDS
+    ]
+    if len(rows) != 200:
+        raise ValueError(f"Sporefall raid row count mismatch. expected=200 actual={len(rows)}")
+    for row in rows:
+        if row.get("sourceGroup") != "raid" or row.get("sourceType") != "raid":
+            raise ValueError(f"Sporefall item must remain raid source at line {row['line']}, item {row['itemID']}")
+        if row.get("sourceLabel") != "Rotmire" or row.get("displaySourceEnUS") != "Rotmire":
+            raise ValueError(f"Sporefall item source must be Rotmire at line {row['line']}, item {row['itemID']}")
+        if row.get("displaySourceKoKR") != "부식수렁":
+            raise ValueError(f"Sporefall item koKR source must be 부식수렁 at line {row['line']}, item {row['itemID']}")
 
 
 def validate_en_us_fields(catalog: Dict[int, List[Dict[str, object]]]) -> None:
@@ -393,10 +433,12 @@ def main() -> int:
 
     validate_specs(current)
     validate_unique_row_keys(current)
-    validate_preserved_source_rows(current, previous, {"raid", "crafted"})
+    validate_preserved_source_rows(current, previous, {"crafted"})
+    validate_preserved_source_rows(current, previous, {"raid"}, SPOREFALL_RAID_ITEM_IDS)
     validate_mplus_rows(current)
     validate_tier_and_crafted_policy(current)
     validate_source_group_counts(current)
+    validate_sporefall_rows(current)
     validate_en_us_fields(current)
     validate_addon_source_rows(current, args.doc_db)
     validate_catalog_doc_db(args.doc_db)

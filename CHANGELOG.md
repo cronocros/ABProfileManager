@@ -6,6 +6,18 @@
 - `1.0.0` 이전 항목은 실제 개발 진행 내용을 기준으로 정리한 내부 이력입니다.
 - `1.0.0`이 첫 완료 릴리스 기준 버전입니다.
 
+## 1.11.11 - 2026-06-21
+
+WoW 12.0.7 진균나락 레이드 BIS 데이터와 호환성 보강을 추가한 로컬 패치.
+
+주요 변경:
+- 신규 단일 보스 레이드 `진균나락(Sporefall)` / `부식수렁(Rotmire)` 드랍 11종을 BIS 카탈로그에 추가
+- 착용 가능 방어구 타입과 전문화별 스탯 우선순위를 기준으로 신규 raid 후보 200개 row의 슬롯 우선순위 재번호화
+- 진균나락 Mythic 298 raid preview 범위를 허용하고 `Sporefall / Rotmire` source locale 보강
+- StatsOverlay secret number 변환, Encounter Journal tier fallback, 전투부대 은행 세션, 액션바 적용 API, 구렁 API 호출을 12.0.7 기준으로 방어
+- `scripts/build_bis_catalog.py`와 `scripts/validate_bis_catalog.py`가 진균나락 raid 보존 seed와 row count를 검증
+- 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.11.zip` 생성까지만 수행하고 WoW 설치 폴더 복사는 하지 않음
+
 ## 1.11.10 - 2026-06-03
 
 BISOverlay Lua local 변수 제한 초과 로드 오류를 수정한 로컬 핫픽스.

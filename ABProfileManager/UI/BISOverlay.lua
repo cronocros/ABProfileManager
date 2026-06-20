@@ -353,6 +353,7 @@ local SOURCE_TYPE_COLOR = {
 local BIS_EJ_DATA = ns.Data and ns.Data.BISEncounterJournal or {}
 local DUNGEON_EJ_IDS = BIS_EJ_DATA.instanceIDsByDungeon or {}
 local CURRENT_SEASON_EJ_TIER_INDEX = tonumber(BIS_EJ_DATA.currentSeasonTierIndex) or 13
+local EJ_TIER_BY_INSTANCE_CACHE = {}
 local EJ_ENCOUNTER_CACHE = {}
 local PENDING_ITEM_DATA = {}
 local PENDING_MYTH_PREVIEW_LINKS = {}
@@ -698,10 +699,8 @@ local function selectEncounterJournalTier(tierIndex)
     return pcall(EncounterJournal_ExpansionDropdown_Select, EncounterJournal, tierIndex)
 end
 
-local function selectEncounterJournalTierForInstance(instanceID, tierIndex)
-    if not instanceID or type(EJ_GetInstanceByIndex) ~= "function"
-        or not selectEncounterJournalDungeonTab()
-        or not selectEncounterJournalTier(tierIndex) then
+local function selectedEncounterJournalTierHasInstance(instanceID)
+    if not instanceID or type(EJ_GetInstanceByIndex) ~= "function" then
         return false
     end
 
@@ -718,6 +717,45 @@ local function selectEncounterJournalTierForInstance(instanceID, tierIndex)
     end
 end
 
+local function selectEncounterJournalTierForInstance(instanceID, tierIndex)
+    if not instanceID or type(EJ_GetInstanceByIndex) ~= "function"
+        or not selectEncounterJournalDungeonTab() then
+        return false
+    end
+
+    local cachedTier = EJ_TIER_BY_INSTANCE_CACHE[tonumber(instanceID)]
+    if cachedTier and selectEncounterJournalTier(cachedTier)
+        and selectedEncounterJournalTierHasInstance(instanceID) then
+        return true
+    end
+
+    if selectEncounterJournalTier(tierIndex)
+        and selectedEncounterJournalTierHasInstance(instanceID) then
+        EJ_TIER_BY_INSTANCE_CACHE[tonumber(instanceID)] = tierIndex
+        return true
+    end
+
+    if type(EJ_GetNumTiers) ~= "function" then
+        return false
+    end
+
+    local ok, numTiers = pcall(EJ_GetNumTiers)
+    if not ok or not tonumber(numTiers) then
+        return false
+    end
+
+    for candidateTier = 1, tonumber(numTiers) do
+        if candidateTier ~= tierIndex
+            and selectEncounterJournalTier(candidateTier)
+            and selectedEncounterJournalTierHasInstance(instanceID) then
+            EJ_TIER_BY_INSTANCE_CACHE[tonumber(instanceID)] = candidateTier
+            return true
+        end
+    end
+
+    return false
+end
+
 local function openEncounterJournalDungeonTierList(tierIndex)
     selectEncounterJournalDungeonTab()
     if selectEncounterJournalTier(tierIndex)
@@ -727,7 +765,7 @@ local function openEncounterJournalDungeonTierList(tierIndex)
 end
 
 -- 모험 안내서 열기 (safe — pcall 보호)
-local function openEncounterJournalForEntry(entry, itemID)
+local function openEncounterJournalForEntry(entry)
     if not entry then
         return
     end
@@ -752,6 +790,11 @@ local function openEncounterJournalForEntry(entry, itemID)
     local difficultyID = target.difficulty
         or (sourceType == "raid" and getRaidPreviewDifficultyID() or 23)
 
+    hideBISTooltip()
+    if ns.UI and ns.UI.Widgets and ns.UI.Widgets.HideTooltip then
+        ns.UI.Widgets.HideTooltip()
+    end
+
     pcall(function()
         if not ensureEncounterJournalLoaded() then
             return
@@ -767,7 +810,11 @@ local function openEncounterJournalForEntry(entry, itemID)
             if instanceID
             and selectEncounterJournalTierForInstance(instanceID, tier)
             and type(EncounterJournal_OpenJournal) == "function" then
-                pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, itemID, tier)
+                -- Do not pass itemID here. Blizzard builds Encounter Journal item
+                -- tooltip buttons with secret sell-price data; focusing a specific
+                -- item from an addon-owned click path can leave that tooltip path
+                -- tainted when the user hovers the loot row.
+                pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, nil, tier)
             elseif sourceType == "mythicplus" then
                 openEncounterJournalDungeonTierList(tier or CURRENT_SEASON_EJ_TIER_INDEX)
             end
@@ -1142,6 +1189,9 @@ local SOURCE_LABEL_KOKR = {
     [normalizeCompareText("Raid/Vault/Catalyst")] = "레이드 / 금고 / 촉매",
     [normalizeCompareText("Midnight Falls")] = "한밤 폭포",
     [normalizeCompareText("Midnight Falls (Raid)")] = "한밤 폭포",
+    [normalizeCompareText("Sporefall")] = "진균나락",
+    [normalizeCompareText("Sporefall (Raid)")] = "진균나락",
+    [normalizeCompareText("Rotmire")] = "부식수렁",
     [normalizeCompareText("March on Quel’Danas")] = "쿠엘다나스 진격로",
     [normalizeCompareText("March on Quel'danas")] = "쿠엘다나스 진격로",
     [normalizeCompareText("March on Quel’danas, Midnight Falls")] = "쿠엘다나스 진격로",
@@ -1222,6 +1272,8 @@ local SOURCE_LABEL_ENUS = {
     [normalizeCompareText("레이드 / 촉매")] = "Raid / Catalyst",
     [normalizeCompareText("레이드 / 촉매 / 금고")] = "Raid / Catalyst / Vault",
     [normalizeCompareText("한밤 폭포")] = "Midnight Falls",
+    [normalizeCompareText("진균나락")] = "Sporefall",
+    [normalizeCompareText("부식수렁")] = "Rotmire",
     [normalizeCompareText("공허 첨탑")] = "The Voidspire",
     [normalizeCompareText("꿈의균열")] = "Dreamrift",
     [normalizeCompareText("공허흉터 투기장")] = "Voidscar Arena",
@@ -3338,6 +3390,7 @@ showSeasonItemTooltip = function(owner, row)
         end
         for _, candidate in ipairs({
             "한밤 폭포", "Midnight Falls",
+            "진균나락", "Sporefall",
             "공허 첨탑", "The Voidspire",
             "꿈의균열", "Dreamrift", "The Dreamrift",
             "쿠엘다나스 진격로", "March on Quel'danas", "March on Quel’danas",
@@ -3619,22 +3672,6 @@ showSeasonItemTooltip = function(owner, row)
     end
 end
 
-local function isCursorOverSourceColumn(button)
-    if not button or not button.GetLeft or not button.GetEffectiveScale then
-        return false
-    end
-    local left = button:GetLeft()
-    if not left then
-        return false
-    end
-    local scale = button:GetEffectiveScale() or 1
-    local cursorX = select(1, GetCursorPosition()) / scale
-    local localX = cursorX - left
-    local sourceLeft = COL_CONTROLS + COL_ICON + COL_NAME
-    local sourceRight = sourceLeft + COL_SLOT
-    return localX >= sourceLeft and localX <= sourceRight
-end
-
 local function rebuildContentPreservingScroll()
     BISOverlay._isItemLoadRebuild = true
     BISOverlay:RebuildContent()
@@ -3790,11 +3827,7 @@ local function ensureRow(frame, index)
         if row._sectionDungeon then
             openEncounterJournalForEntry({ dungeon = row._sectionDungeon, sourceType = "mythicplus" })
         elseif row._entry then
-            if isCursorOverSourceColumn(self2) then
-                openEncounterJournalForEntry(row._entry, nil)
-            else
-                openEncounterJournalForEntry(row._entry, row.itemID)
-            end
+            openEncounterJournalForEntry(row._entry)
         end
     end)
     row.tooltipRegion:SetScript("OnEnter", function(self2)
@@ -4159,9 +4192,6 @@ function BISOverlay:Initialize()
 
     if not self._externalTooltipGuarded then
         self._externalTooltipGuarded = true
-        if GameTooltip and GameTooltip.HookScript then
-            GameTooltip:HookScript("OnShow", hideBISTooltip)
-        end
         if type(hooksecurefunc) == "function" then
             if type(ContainerFrameItemButton_OnEnter) == "function" then
                 hooksecurefunc("ContainerFrameItemButton_OnEnter", hideBISTooltip)

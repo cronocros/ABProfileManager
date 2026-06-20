@@ -288,8 +288,8 @@ local function getBestEffortBountifulDelveNames()
 
     if C_AreaPoiInfo and C_AreaPoiInfo.GetDelvesForMap and C_AreaPoiInfo.GetAreaPOIInfo then
         for _, mapID in ipairs(DELVE_MAP_IDS) do
-            local delveIds = C_AreaPoiInfo.GetDelvesForMap(mapID)
-            if delveIds then
+            local delvesOk, delveIds = pcall(C_AreaPoiInfo.GetDelvesForMap, mapID)
+            if delvesOk and delveIds then
                 for _, areaPoiID in ipairs(delveIds) do
                     local ok, info = pcall(C_AreaPoiInfo.GetAreaPOIInfo, mapID, areaPoiID)
                     local atlasName = ok and info and string.lower(tostring(info.atlasName or "")) or ""
@@ -1196,7 +1196,9 @@ function ItemLevelOverlay:Initialize()
             self:EnsureFrame()
             if self.frame then
                 applyOverlayPoint(self.frame, pve)
-                self:Refresh()
+                pcall(function()
+                    self:Refresh()
+                end)
             end
         end)
         pve:HookScript("OnHide", function()
@@ -1208,7 +1210,9 @@ function ItemLevelOverlay:Initialize()
             self:EnsureFrame()
             if self.frame then
                 applyOverlayPoint(self.frame, pve)
-                self:Refresh()
+                pcall(function()
+                    self:Refresh()
+                end)
             end
         end
         return true

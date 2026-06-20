@@ -108,6 +108,27 @@ local function getCursorSummary()
     return cursorKind, cursorID
 end
 
+local function clearCursorSafely()
+    if type(ClearCursor) == "function" then
+        pcall(ClearCursor)
+    end
+end
+
+local function runCursorMutation(api, ...)
+    if type(api) ~= "function" then
+        clearCursorSafely()
+        return false
+    end
+
+    local ok = pcall(api, ...)
+    if not ok then
+        clearCursorSafely()
+        return false
+    end
+
+    return true
+end
+
 local function verifyPlacement(actualSlot, slotRecord)
     local placedKind, placedID = GetActionInfo(actualSlot)
     if not placedKind then
@@ -252,9 +273,12 @@ function ActionBarApplier:ClearLogicalSlot(logicalSlot)
     end
 
     local hadAction = HasAction(actualSlot)
-    ClearCursor()
-    PickupAction(actualSlot)
-    ClearCursor()
+    clearCursorSafely()
+    if not runCursorMutation(PickupAction, actualSlot) then
+        clearCursorSafely()
+        return false, ns.L("error_action_pickup_failed"), "missing"
+    end
+    clearCursorSafely()
     return true, hadAction and "cleared" or "empty", "ok"
 end
 
@@ -287,7 +311,9 @@ function ActionBarApplier:PlaceCursorIntoLogicalSlot(logicalSlot)
     end
 
     ns.Utils.Debug(string.format("Placing cursor action into slot %d (%s:%s)", actualSlot, tostring(cursorKind), tostring(cursorID)))
-    PlaceAction(actualSlot)
+    if not runCursorMutation(PlaceAction, actualSlot) then
+        return false, ns.L("error_action_place_failed"), "missing"
+    end
 
     if not GetActionInfo(actualSlot) then
         ns.Utils.Debug(string.format("PlaceAction failed for slot %d while cursor held %s:%s", actualSlot, tostring(cursorKind), tostring(cursorID)))
@@ -309,11 +335,15 @@ function ActionBarApplier:PickupFromRecord(slotRecord)
     local actionID = slotRecord.id
 
     if kind == "spell" then
-        ClearCursor()
+        clearCursorSafely()
         if C_Spell and C_Spell.PickupSpell then
-            C_Spell.PickupSpell(actionID)
+            if not runCursorMutation(C_Spell.PickupSpell, actionID) then
+                return false, ns.L("error_action_pickup_failed"), "missing"
+            end
         else
-            PickupSpell(actionID)
+            if not runCursorMutation(PickupSpell, actionID) then
+                return false, ns.L("error_action_pickup_failed"), "missing"
+            end
         end
     elseif kind == "macro" then
         if not actionID and not slotRecord.name then
@@ -325,25 +355,31 @@ function ActionBarApplier:PickupFromRecord(slotRecord)
             return false, macroErr or ns.L("error_macro_missing"), "missing"
         end
 
-        ClearCursor()
-        PickupMacro(macroIndex)
+        clearCursorSafely()
+        if not runCursorMutation(PickupMacro, macroIndex) then
+            return false, ns.L("error_action_pickup_failed"), "missing"
+        end
     elseif kind == "item" then
         if not actionID then
             return false, ns.L("error_item_incomplete"), "missing"
         end
 
-        ClearCursor()
+        clearCursorSafely()
         if PlayerHasToy and PlayerHasToy(actionID) and C_ToyBox and C_ToyBox.PickupToyBoxItem then
-            C_ToyBox.PickupToyBoxItem(actionID)
+            if not runCursorMutation(C_ToyBox.PickupToyBoxItem, actionID) then
+                return false, ns.L("error_action_pickup_failed"), "missing"
+            end
         else
-            PickupItem(actionID)
+            if not runCursorMutation(PickupItem, actionID) then
+                return false, ns.L("error_action_pickup_failed"), "missing"
+            end
         end
     else
         return false, string.format("%s: %s", ns.L("error_unsupported_action_type"), tostring(kind)), "unsupported"
     end
 
     if not GetCursorInfo() then
-        ClearCursor()
+        clearCursorSafely()
         return false, ns.L("error_action_pickup_failed"), "missing"
     end
 
@@ -363,12 +399,15 @@ function ActionBarApplier:PlaceRecord(logicalSlot, slotRecord)
 
     local pickedUp, pickupErr, category = self:PickupFromRecord(slotRecord)
     if not pickedUp then
-        ClearCursor()
+        clearCursorSafely()
         return false, pickupErr, category
     end
 
-    PlaceAction(actualSlot)
-    ClearCursor()
+    if not runCursorMutation(PlaceAction, actualSlot) then
+        clearCursorSafely()
+        return false, ns.L("error_action_place_failed"), "missing"
+    end
+    clearCursorSafely()
 
     if not verifyPlacement(actualSlot, slotRecord) then
         return false, ns.L("error_action_place_failed"), "missing"
