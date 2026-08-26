@@ -30,6 +30,8 @@
   - 현재 구조, 모듈 책임, 데이터 흐름
 - [HANDOFF.md](./HANDOFF.md)
   - 다음 작업자를 위한 운영 메모, 회귀 포인트, 미완성 기능 기록
+- [SEASON2_HANDOFF.md](./SEASON2_HANDOFF.md)
+  - Midnight 시즌 2(v1.12.0 / WoW 12.1.0) 작업 인계 문서, 작업 DAG, 진행 로그, 재개 프롬프트
 - [SECURITY_REVIEW.md](./SECURITY_REVIEW.md)
   - 입력 경로, 파괴적 작업, CVar/외부 의존성 검토
 - [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)
