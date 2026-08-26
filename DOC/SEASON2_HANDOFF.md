@@ -15,6 +15,7 @@
 | --- | --- |
 | 2026-08-27 | 최초 작성 |
 | 2026-08-27 | 계획 검증 반영. 신규 콘텐츠 종류 구분, BIS 동결 파급(5장) 신설, 소유자 없던 파일 3종 wave 배정, W5 분할, 롤백 기준, 검증기 명세 보강 |
+| 2026-08-27 | W1, W8, W6 진행 결과 반영. M+ 던전 풀과 통화 이름 덤프 결과 기록 |
 
 ## 1. 확정된 사실
 
@@ -43,7 +44,7 @@ ABPM 12.1.0 69465 Aug 21 2026 120100
 
 시즌 2 자체는 2026-08-18 시작했습니다.
 
-M+ 던전 풀은 8개로 보고되며 구성은 다음과 같습니다. 확정 전 후보입니다.
+M+ 던전 풀은 8개이며 라이브 덤프로 확정했습니다. 6장 표를 참조합니다.
 
 - Midnight 던전 5종: `Altar of Fangs`, `Murder Row`, `Den of Nalorakk`, `The Blinding Vale`, `Voidscar Arena`
 - 복귀 던전 3종: `Kings' Rest`, `Ruby Life Pools`, `Temple of Sethraliss`
@@ -116,7 +117,7 @@ BIS 데이터를 동결하면 시즌 2에서 BIS 오버레이가 **조용히 오
 | `Data/BISMythicVaultLinks.lua` 14행 | `baselineItemLevel = 272`, selector `12801` | 시즌 2 Myth 1/6 템렙이 달라 preview 검증이 실패한다. 다른 템렙으로 해석된 preview는 세션 음성 캐시로 재시도가 막히므로 **M+ 자동 점수화가 전부 무효**가 되고 정적 순서만 남는다 |
 | `Data/BISSeasonPreviewLinks.lua` | raid/tier `272~289`, crafted `285` | 검증 범위 밖이라 hover 툴팁이 전부 기본 `itemLink` fallback으로 떨어진다 |
 | `Data/BISEncounterJournal.lua` 9~10행 | `currentSeasonJournalTierID = 505`, `currentSeasonTierIndex = 13` | M+ 클릭 랜딩이 시즌 1 tier로 간다 |
-| `Data/BISCatalog.lua` | 시즌 1 M+ 던전 풀 기준 후보 | 던전 풀이 8개 중 5개 이상 교체되면 추천 아이템 다수가 시즌 2에서 획득 불가다 |
+| `Data/BISCatalog.lua` | 시즌 1 M+ 던전 풀 기준 후보 | 라이브 덤프 결과 시즌 2 던전 풀 8종이 시즌 1과 **하나도 겹치지 않는다**. M+ 후보 전부가 시즌 2에서 획득 불가다 |
 | `Data/ItemLevelTable.lua` 83행 이후 | `itemLevel = 266 / 272`, 라벨 `쐐기 영웅 트랙 3/6 · 266` | 상단 아이템 레벨 오버레이는 시즌 2 값, BIS 툴팁은 시즌 1 값이라 **한 화면에서 수치가 모순**된다 |
 
 또한 `AGENTS.md`의 "미완성 기능"에 이미 `시즌 교체 시 BIS M+ 던전 JournalInstanceID와 현재 시즌 tier 재검증`이 적혀 있습니다. 동결 결정과 충돌하므로 문서를 함께 정리합니다.
@@ -141,10 +142,38 @@ BIS 데이터를 동결하면 시즌 2에서 BIS 오버레이가 **조용히 오
 | 복원 열쇠 통화 ID | 미확정 | 시즌 1 값 `3028` 유효 여부 확인 |
 | `Coiled Isle` UiMapID (후보 `2512`) | 후보만 있음 | `C_Map.GetBestMapForUnit("player")` 덤프 |
 | 신규 구렁·던전 UiMapID | 미확정 | 현지 이동 후 지도 덤프 |
-| M+ 던전 풀 8종과 각 `challengeMapID` | 후보만 있음 | `C_ChallengeMode.GetMapTable()` 덤프 |
+| M+ 던전 풀 8종과 각 `challengeMapID` | 확정 | 2026-08-27 `C_ChallengeMode.GetMapTable()` 덤프 완료 |
 | 전문기술 지식 questID | 미확정 | 인게임 퀘스트 로그 확인 |
 | 구렁 최고 단계 (시즌 1은 11단계) | 미확정 | 인게임 구렁 UI |
 | 주간 이벤트 좌표 (시즌 1분도 미실측) | 미확정 | 인게임 실측 |
+
+### 수집 진행 상황
+
+2026-08-27 인게임 통화 패널에서 이름만 확인했습니다. 통화 ID는 아직 없습니다.
+
+- 문장 카테고리에 `모험가 안개문장`, `노련가 안개문장`, `챔피언 안개문장`, `영웅 안개문장` 4종이 보입니다. `Mistcrest`의 한국어명이 `안개문장`임이 확인됐습니다.
+- 신화 등급 안개문장은 목록에 없습니다. 해당 캐릭터가 아직 획득하지 못해 표시되지 않았을 가능성이 있으므로 통화 ID 확인 단계에서 인접 ID를 함께 조회합니다.
+- 시즌 1 문장 5종은 목록에서 사라졌습니다. 즉 시즌 2는 문장 통화를 **교체**하는 방식이며, `CREST_ID_BY_GRADE` 5개 항목을 전부 갈아야 합니다.
+- 구렁 카테고리에 `정순한 마나 수정`, `지하의 주화`, `금고 열쇠 파편`, `복원된 금고 열쇠`가 있습니다. 복원 열쇠는 이름이 유지되므로 기존 ID `3028`이 그대로인지 확인이 필요합니다.
+- `2 시즌` 카테고리에 `맹독역병 마나용제`가 있습니다. 용도 확인이 필요합니다.
+- `한밤` 카테고리의 `공허불빛 이회토`, `해일의 불꽃 가루`, `성운의 공허핵`은 전문기술 재료 계열로 보입니다.
+
+`C_ChallengeMode.GetMapTable()` 덤프로 시즌 2 M+ 던전 풀 8종과 `challengeMapID`가 확정됐습니다.
+
+| challengeMapID | 던전 |
+| --- | --- |
+| 249 | 왕들의 안식처 |
+| 250 | 세스랄리스 사원 |
+| 399 | 루비 생명의 웅덩이 |
+| 584 | 눈부신 골짜기 |
+| 585 | 공허흉터 투기장 |
+| 586 | 날로라크의 소굴 |
+| 587 | 죽음의 골목 |
+| 588 | 송곳니의 제단 |
+
+시즌 1 풀은 `Algeth'ar Academy`, `Magisters' Terrace`, `Maisara Caverns`, `Nexus-Point Xenas`, `Pit of Saron`, `Seat of the Triumvirate`, `Skyreach`, `Windrunner Spire`였습니다(`scripts/audit_bis_data.py` 출력 기준). **겹치는 던전이 하나도 없습니다.** 즉 동결된 BIS 카탈로그의 M+ 후보는 시즌 2에서 전부 획득 불가이며, 5장의 판단이 확인됐습니다.
+
+`challengeMapID`는 `JournalInstanceID`나 `UiMapID`와 다른 값입니다. 지도와 Encounter Journal 작업에는 별도 확인이 필요합니다.
 
 ### 수집용 인게임 명령
 
@@ -286,6 +315,23 @@ W0 공식자료 + 라이브 클라이언트 시즌 계약 확정
 | `scripts/validate_season2_scope.py` | 4장 동결 파일 해시 일치, `ItemLevelTable.lua`의 `BISRewardProfiles` 이후 무변경 |
 | `scripts/run_season2_validation.ps1` | 위 3종 + Lua 전체 파싱 + `git diff --check` + 기존 BIS 회귀 검증 순차 실행 |
 
+실행 방법입니다. 릴리스 패키징 직전에는 반드시 `-Strict`로 실행합니다.
+
+```powershell
+pwsh -NoProfile -File .\scripts
+un_season2_validation.ps1
+pwsh -NoProfile -File .\scripts
+un_season2_validation.ps1 -Strict
+```
+
+기준선 값 세 가지는 데이터가 바뀌면 함께 갱신합니다.
+
+- `validate_season2_scope.py`의 `FROZEN_BLOB_HASHES`와 `REWARD_PROFILES_SHA256`
+- `validate_locale_contract.py`의 `RURU_MISSING_BASELINE = 143`, `RURU_EXTRA_BASELINE = 11`
+- `validate_season2_itemlevel.py`의 `SEASON1_NAME`
+
+`validate_season2_itemlevel.py`는 `season`이 아직 시즌 1이면 출처 표기를 요구하지 않습니다. W2가 `season`을 바꾸는 순간 `sources` 테이블이 필수가 되며, 각 구간에 `dump` / `tooltip` / `guide` 중 하나를 적어야 합니다.
+
 명세 보강 사항 두 가지입니다.
 
 - `validate_locale_contract.py`는 `Locale.lua`만 봐서는 안 됩니다. `ruRU`는 `ABPM_ruRU_Final_v3.lua`가 TOC 맨 뒤에서 `Locale.strings.ruRU`에 주입하는 구조이므로, 주입 파일까지 파싱 대상에 넣어야 키 집합 비교가 성립합니다.
@@ -335,7 +381,7 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 
 | Wave | 상태 | 담당 | 마지막 갱신 | 메모 |
 | --- | --- | --- | --- | --- |
-| W0 | 대기 | - | 2026-08-27 | 빌드 정보만 확정. 나머지는 인게임 덤프 필요 |
+| W0 | 진행중 | Claude | 2026-08-27 | 빌드 정보, M+ 던전 풀 8종 `challengeMapID`, 통화 이름 계열 확정. 통화 ID, 아이템 레벨표, 지도 ID는 아직 미확정 |
 | W1 | 완료 | Claude | 2026-08-27 | `Interface: 120100` 단일 지정, `Version 1.12.0`, `Constants.VERSION` fallback 갱신. Lua 64개 파싱 통과. 구형 `120005, 120007`은 라이브에 존재하지 않아 제거했다. `ADDON_INTRO.txt`의 버전 문구는 패키징 시점(13장)에 함께 갱신한다 |
 | W2 | 대기 | - | 2026-08-27 | W0 차단 |
 | W2b | 대기 | - | 2026-08-27 | W0 차단 |
@@ -343,7 +389,7 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 | W4 | 대기 | - | 2026-08-27 | W0 차단 |
 | W5a | 미착수 | - | 2026-08-27 | 덤프 없이 착수 가능 |
 | W5b | 대기 | - | 2026-08-27 | W2~W4 문자열 확정 후 |
-| W6 | 미착수 | - | 2026-08-27 | 덤프 없이 골격 착수 가능 |
+| W6 | 완료 | Claude | 2026-08-27 | 검증기 3종과 `run_season2_validation.ps1` 작성. 세 검증기 모두 음성 테스트로 실제 검출을 확인했다. 하네스 전체 통과 |
 | W7 | 대기 | - | 2026-08-27 | 마이그레이션 부분은 선행 가능, 이벤트 데이터는 W0 차단 |
 | W8 | 리뷰대기 | Claude | 2026-08-27 | `UI/BISOverlay.lua`에 `SeasonGuard` 추가. `dataSeason = "Midnight Season 1"`과 `ItemLevelTable.season` 비교로 불일치 판정. 불일치 시 EJ 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 차단하고 상단 안내에 `[기준 시즌]` 접두를 붙인다. 새 해시 `git hash-object`로 확인 필요. top-level locals `197 → 198`(상한과 동일). `AGENTS.md` 충돌 항목 정리 완료. `Data/MidnightS1MPlusDB.lua`는 계속 로드하되 SeasonGuard가 의존 자동화를 끄는 것으로 결론. 인게임 검증은 W2가 `season`을 시즌 2로 바꾼 뒤 가능 |
 | G1 | 미착수 | - | 2026-08-27 | |
