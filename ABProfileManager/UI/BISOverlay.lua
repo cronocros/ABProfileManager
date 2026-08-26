@@ -368,6 +368,42 @@ local SourcePreview = {
     rejectedLinks = {},
     maxAttempts = 2,
 }
+-- 동결된 BIS 정적 데이터가 기준으로 삼는 시즌. Data/BISCatalog.lua,
+-- Data/BISMythicVaultLinks.lua, Data/BISSeasonPreviewLinks.lua,
+-- Data/BISEncounterJournal.lua가 모두 이 시즌 기준이다.
+-- Data/ItemLevelTable.lua의 season이 이 값과 달라지면 BIS 후보/템렙/
+-- Encounter Journal tier가 현재 시즌과 맞지 않으므로 자동 동작을 멈추고
+-- 기준 시즌을 표시한다. BIS 데이터를 갱신할 때 이 값도 함께 올린다.
+-- 새 top-level local을 늘리지 않도록 helper는 전부 이 테이블의 필드다.
+local SeasonGuard = {
+    dataSeason = "Midnight Season 1",
+    cachedMismatch = nil,
+}
+
+function SeasonGuard.CurrentSeason()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local season = tbl and tbl.season
+    if type(season) == "string" and season ~= "" then
+        return season
+    end
+    return nil
+end
+
+function SeasonGuard.IsMismatched()
+    if SeasonGuard.cachedMismatch == nil then
+        local current = SeasonGuard.CurrentSeason()
+        SeasonGuard.cachedMismatch = (current ~= nil and current ~= SeasonGuard.dataSeason)
+    end
+    return SeasonGuard.cachedMismatch
+end
+
+function SeasonGuard.DecorateNotice(text)
+    if not SeasonGuard.IsMismatched() then
+        return text
+    end
+    return string.format("[%s] %s", SeasonGuard.dataSeason, text or "")
+end
+
 local MYTH_PREVIEW_LINK_MAX_ATTEMPTS = 2
 local MYTH_PREVIEW_LINK_LOAD_TIMEOUT = 1.5
 local normalizeCompareText
@@ -779,6 +815,17 @@ local function openEncounterJournalForEntry(entry)
     if InCombatLockdown and InCombatLockdown() then
         if ns.Utils and ns.Utils.Print then
             ns.Utils.Print("[ABPM] 전투 중에는 모험 안내서 자동 이동을 사용할 수 없습니다.")
+        end
+        return
+    end
+
+    -- BIS 데이터가 이전 시즌 기준이면 Encounter Journal tier가 현재 시즌과
+    -- 맞지 않는다. 틀린 tier로 이동시키지 않고 기준 시즌을 알린다.
+    if SeasonGuard.IsMismatched() then
+        if ns.Utils and ns.Utils.Print then
+            ns.Utils.Print(string.format(
+                "[ABPM] BIS 데이터가 %s 기준이라 모험 안내서 자동 이동을 사용하지 않습니다.",
+                SeasonGuard.dataSeason))
         end
         return
     end
@@ -1997,7 +2044,7 @@ function BISOverlay:EnsureFrame()
     if frame.noticeText.SetMaxLines then
         frame.noticeText:SetMaxLines(1)
     end
-    frame.noticeText:SetText(getSpecPolicySummary(getPlayerSpecID()))
+    frame.noticeText:SetText(SeasonGuard.DecorateNotice(getSpecPolicySummary(getPlayerSpecID())))
 
     frame.avgLabel = frame:CreateFontString(nil, "OVERLAY")
     frame.avgLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
@@ -3203,6 +3250,10 @@ getPreviewRankingScore = function(entry, specID)
     if getEntrySourceType(entry) ~= "mythicplus" then
         return nil
     end
+    -- 이전 시즌 기준 snapshot으로 현재 시즌 순위를 매기지 않는다.
+    if SeasonGuard.IsMismatched() then
+        return nil
+    end
     local cacheKey = getPreviewRankingScoreCacheKey(entry, specID)
     local cached = PREVIEW_RANKING_SCORE_CACHE[cacheKey]
     if cached ~= nil then
@@ -3276,6 +3327,11 @@ local function getExactMythicVaultItemLink(entry)
 end
 
 local function resolveMythPreviewSnapshot(entry)
+    -- 이전 시즌 selector로 만든 preview는 현재 시즌 템렙 검증을 통과하지
+    -- 못한다. 실패할 스캔을 큐에 넣지 않는다.
+    if SeasonGuard.IsMismatched() then
+        return nil
+    end
     if getMythPreviewSnapshot(entry.itemID) then
         return false
     end
@@ -3295,6 +3351,10 @@ end
 scheduleAutomaticRuntimeScores = function(items, specID)
     BISOverlay._automaticScoreQueueToken = (BISOverlay._automaticScoreQueueToken or 0) + 1
     local queueToken = BISOverlay._automaticScoreQueueToken
+    -- 시즌이 어긋나면 자동 점수화 자체를 돌리지 않는다.
+    if SeasonGuard.IsMismatched() then
+        return
+    end
     if areContainerFramesShown() or not C_Timer or type(C_Timer.After) ~= "function" then
         return
     end
@@ -3900,7 +3960,7 @@ function BISOverlay:RebuildContent()
         frame.hintText:SetText(ns.L("bis_overlay_hint"))
     end
     if frame.noticeText then
-        frame.noticeText:SetText(getSpecPolicySummary(specID))
+        frame.noticeText:SetText(SeasonGuard.DecorateNotice(getSpecPolicySummary(specID)))
     end
     if frame.avgLabel then
         frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
@@ -4126,7 +4186,7 @@ function BISOverlay:Refresh()
             self.frame.hintText:SetText(ns.L("bis_overlay_hint"))
         end
         if self.frame.noticeText then
-            self.frame.noticeText:SetText(getSpecPolicySummary(specID))
+            self.frame.noticeText:SetText(SeasonGuard.DecorateNotice(getSpecPolicySummary(specID)))
         end
         if self.frame.avgLabel then
             local avgIlvl = getAverageItemLevel()

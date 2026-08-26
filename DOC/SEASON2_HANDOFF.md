@@ -105,7 +105,7 @@ b27b68e8ddc95dba1a9f238432d7878c9e0deaaa  ABProfileManager/Data/BISSeasonPreview
 0f5fe46cd949b72a160ec804ace9c5e37978c0fd  ABProfileManager/Data/StatPriorityTable.lua
 ```
 
-참고: `UI/BISOverlay.lua`의 v1.11.11 기준 해시는 `581eb5ba7cc2e1662cf42f7c302ae5f9dd5eec58`입니다. 5장 작업으로 이 파일이 바뀌면 진행 로그에 새 해시를 남깁니다.
+참고: `UI/BISOverlay.lua`는 동결 대상이 아닙니다. v1.11.11 기준 해시는 `581eb5ba7cc2e1662cf42f7c302ae5f9dd5eec58`이고, W8 작업 후 해시는 `b80681a0545c0d5509bbb0cdad0905edae0300b0`입니다.
 
 ## 5. BIS 동결의 파급 (반드시 처리)
 
@@ -345,7 +345,7 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 | W5b | 대기 | - | 2026-08-27 | W2~W4 문자열 확정 후 |
 | W6 | 미착수 | - | 2026-08-27 | 덤프 없이 골격 착수 가능 |
 | W7 | 대기 | - | 2026-08-27 | 마이그레이션 부분은 선행 가능, 이벤트 데이터는 W0 차단 |
-| W8 | 미착수 | - | 2026-08-27 | 덤프 없이 착수 가능 |
+| W8 | 리뷰대기 | Claude | 2026-08-27 | `UI/BISOverlay.lua`에 `SeasonGuard` 추가. `dataSeason = "Midnight Season 1"`과 `ItemLevelTable.season` 비교로 불일치 판정. 불일치 시 EJ 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 차단하고 상단 안내에 `[기준 시즌]` 접두를 붙인다. 새 해시 `git hash-object`로 확인 필요. top-level locals `197 → 198`(상한과 동일). `AGENTS.md` 충돌 항목 정리 완료. `Data/MidnightS1MPlusDB.lua`는 계속 로드하되 SeasonGuard가 의존 자동화를 끄는 것으로 결론. 인게임 검증은 W2가 `season`을 시즌 2로 바꾼 뒤 가능 |
 | G1 | 미착수 | - | 2026-08-27 | |
 | G2 | 미착수 | - | 2026-08-27 | |
 | 인게임 QA | 미착수 | - | 2026-08-27 | |

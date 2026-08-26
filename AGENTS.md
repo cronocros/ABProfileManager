@@ -82,6 +82,9 @@ ABProfileManager/
    - crafted hover는 `Data/BISSeasonPreviewLinks.lua`의 r5 `285` preview item string을 먼저 시도하고, 실제 tooltip item level이 `285`로 확인된 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달한다
    - raid/crafted/tier hover는 검증된 시즌 preview가 없으면 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`로 fallback한다
    - 시즌 preview helper는 `SourcePreview` 테이블에 묶어 `UI/BISOverlay.lua` top-level local 수를 200 미만으로 유지한다
+   - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터의 기준 시즌이다. `Data/ItemLevelTable.lua`의 `season`과 다르면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔을 모두 멈추고 상단 안내에 기준 시즌을 표시한다
+   - BIS 데이터를 새 시즌으로 갱신할 때 `SeasonGuard.dataSeason`도 함께 올린다. 올리지 않으면 자동 동작이 계속 꺼져 있다
+   - top-level local 예산은 현재 `198`로 상한과 같다. 새 기능은 새 local 대신 기존 테이블 필드를 쓴다
    - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다
    - M+ 클릭 랜딩은 `Data/BISEncounterJournal.lua`의 검증 `JournalInstanceID`만 사용하고, 현재 시즌 tier 선선택과 availability guard를 유지한다
@@ -219,6 +222,9 @@ ABProfileManager/
 - 스탯 오버레이 `mythicPlusMode` 저장 키는 이전 SavedVariables 호환용으로만 유지
 - 경매장 현행 확장팩 필터 자동 선택
 - 시즌 교체 시 BIS M+ 던전 `JournalInstanceID`와 현재 시즌 tier 재검증
+  - v1.12.0 시즌 2 작업에서는 BIS 데이터를 동결하고 재검증을 하지 않는다
+  - 대신 `UI/BISOverlay.lua`의 `SeasonGuard`가 시즌 불일치를 감지해 자동 동작을 멈춘다
+  - 실제 재검증은 후속 BIS 연동 작업 범위다. `DOC/SEASON2_HANDOFF.md` 5장 참조
 
 ## 릴리스 프로세스
 
