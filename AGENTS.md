@@ -68,6 +68,8 @@ ABProfileManager/
    - 저장 좌표가 없는 UIPanel 창은 `SetUserPlaced(true)`로 고정하지 않는다
    - `layoutVersion=2` 이전 저장 좌표는 1회 초기화한다
 7. `SilvermoonMapOverlay.lua`, `StatsOverlay.lua`의 재사용 버퍼
+   - WoW 12.1부터 전투/쐐기/전장/레이드 조우 중에는 `C_UnitAuras`의 index 기반 조회가 Lua 오류를 낸다. 버프 hash는 실패 시 `AURA_SCAN_BACKOFF_SECONDS` 동안 조회를 멈추고 빈 문자열을 돌려준다
+   - 부분 hash를 남기면 보호 상태가 오갈 때 signature가 흔들려 불필요한 refresh가 생기므로 빈 값으로 통일한다
 8. `UI/BISOverlay.lua`
    - 정적 후보는 `Data/BISCatalog.lua`만 읽고, 실제 링크 점수는 `Data/BISRuntimeScoring.lua`를 통해 계산한다
    - 상단 아이템 토글이 켜져 있으면 extracted ItemBonus DB2 build `12.0.1.66838`에서 검토한 `Data/BISMythicVaultLinks.lua`의 내장 selector `12801`로 M+ `Myth 1/6 272` preview를 만들고 한 번 스캔해 계정 SavedVariables snapshot schema v3로 저장한다

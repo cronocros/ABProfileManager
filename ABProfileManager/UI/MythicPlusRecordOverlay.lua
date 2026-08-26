@@ -326,12 +326,15 @@ function MythicPlusRecordOverlay:Initialize()
     if not setupHooks() then
         local watcher = CreateFrame("Frame")
         watcher:RegisterEvent("ADDON_LOADED")
-        watcher:SetScript("OnEvent", function(frame, _, addonName)
-            if addonName == "Blizzard_ChallengesUI" or addonName == "Blizzard_LookingForGroup" then
-                if setupHooks() then
-                    frame:UnregisterEvent("ADDON_LOADED")
-                    frame:SetScript("OnEvent", nil)
-                end
+        watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
+        -- Blizzard가 M+ UI를 담는 addon 이름을 바꿔도 훅이 설치되도록 특정
+        -- addon 이름에 의존하지 않는다. setupHooks는 ChallengesFrame이 없으면
+        -- 즉시 false를 돌려주고, 이미 설치된 경우 _hooksReady로 걸러지므로
+        -- 몇 번 호출되든 훅은 한 번만 설치된다.
+        watcher:SetScript("OnEvent", function(frame)
+            if setupHooks() then
+                frame:UnregisterAllEvents()
+                frame:SetScript("OnEvent", nil)
             end
         end)
     end

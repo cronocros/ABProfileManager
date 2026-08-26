@@ -15,7 +15,7 @@
 | --- | --- |
 | 2026-08-27 | 최초 작성 |
 | 2026-08-27 | 계획 검증 반영. 신규 콘텐츠 종류 구분, BIS 동결 파급(5장) 신설, 소유자 없던 파일 3종 wave 배정, W5 분할, 롤백 기준, 검증기 명세 보강 |
-| 2026-08-27 | W1, W8, W6 진행 결과 반영. M+ 던전 풀과 통화 이름 덤프 결과 기록 |
+| 2026-08-27 | W1, W8, W6, W5a 진행 결과 반영. M+ 던전 풀과 통화 이름 덤프 결과, 12.1 aura API 제한 기록 |
 
 ## 1. 확정된 사실
 
@@ -52,6 +52,17 @@ M+ 던전 풀은 8개이며 라이브 덤프로 확정했습니다. 6장 표를 
 문장(crest) 통화는 시즌 2에서 `Mistcrest`로 **개명**된 것으로 보고됩니다. 기존 5종에 추가되는 것인지 전면 교체인지에 따라 `CREST_ID_BY_GRADE` 5개 항목의 처리가 달라집니다. 반드시 인게임 통화 목록으로 확인합니다.
 
 위 항목은 전부 외부 가이드 기준입니다. 6장 정책에 따라 인게임 확인 전에는 코드에 넣지 않습니다.
+
+### 12.1 애드온 API 변경
+
+12.1은 시즌 콘텐츠보다 aura 접근 제한이 더 큰 변경입니다.
+
+- 전투, 레이드 조우, 쐐기, PvP 중에는 aura가 보호 상태가 됩니다. 이때 `C_UnitAuras`의 index / slot / instanceID 기반 조회를 애드온이 호출하면 **Lua 오류**가 납니다. spellID나 spell 이름 기반 조회는 종전대로 동작합니다.
+- `UnitAura` 계열은 보호 상태에서 전부 secret payload를 돌려줍니다.
+- 표시용으로는 `AuraContainer` / `AuraButton`과 `AddAuraGroup()`, `AddAuraSlot()`, `AddItemEnchantment()`, `SetAuraGroupFilterString()`이 새로 제공됩니다.
+- `C_UnitAuras.AddAuraSound()` / `RemoveAuraSound()`는 기존 `PrivateAuraAppliedSound` 계열의 새 이름입니다.
+
+이 저장소에서 영향을 받는 곳은 `UI/StatsOverlay.lua`의 버프 hash 한 군데이며 W5a에서 처리했습니다. `Modules/PrivateAurasGuard.lua`는 `PrivateAuraAnchorContainerMixin`이 없으면 조용히 넘어가도록 이미 방어돼 있어 추가 작업이 필요 없습니다.
 
 ## 3. 승인된 결정
 
@@ -387,7 +398,7 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 | W2b | 대기 | - | 2026-08-27 | W0 차단 |
 | W3 | 대기 | - | 2026-08-27 | W0 차단 |
 | W4 | 대기 | - | 2026-08-27 | W0 차단 |
-| W5a | 미착수 | - | 2026-08-27 | 덤프 없이 착수 가능 |
+| W5a | 리뷰대기 | Claude | 2026-08-27 | `StatsOverlay`의 aura index 조회에 backoff 추가. 12.1 보호 상태에서 오류 경로를 매 refresh마다 밟지 않고, 부분 hash 대신 빈 값으로 통일한다. `MythicPlusRecordOverlay` 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 그대로 보장된다. 인게임 검증은 쐐기 진행 중 확인 필요 |
 | W5b | 대기 | - | 2026-08-27 | W2~W4 문자열 확정 후 |
 | W6 | 완료 | Claude | 2026-08-27 | 검증기 3종과 `run_season2_validation.ps1` 작성. 세 검증기 모두 음성 테스트로 실제 검출을 확인했다. 하네스 전체 통과 |
 | W7 | 대기 | - | 2026-08-27 | 마이그레이션 부분은 선행 가능, 이벤트 데이터는 W0 차단 |

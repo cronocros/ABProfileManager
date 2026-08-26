@@ -23,6 +23,9 @@ local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local _snapshotParts = {}
 local _stateSignatureParts = {}
 local _buffHashParts = {}
+-- 보호 상태 aura 조회가 실패한 뒤 다시 시도하기까지의 간격(초).
+local AURA_SCAN_BACKOFF_SECONDS = 2.0
+local _auraScanBlockedUntil = 0
 -- BuildSnapshot 재사용 버퍼: 매 Refresh 마다 snapshot/entry 테이블 생성 방지
 local _snapshot = {}
 local _entryPool = {}
@@ -401,9 +404,24 @@ local function getPlayerBuffHash()
         return ""
     end
 
+    -- WoW 12.1부터 전투, 쐐기, 전장, 레이드 조우 중에는 aura가 보호 상태가
+    -- 되어 index / slot / instanceID 기반 조회를 addon이 호출하면 Lua 오류를
+    -- 낸다. 실패한 직후에는 잠시 조회를 멈춰 refresh마다 오류 경로를 다시
+    -- 밟지 않도록 한다. 보호가 풀리면 backoff가 만료되면서 저절로 복구된다.
+    local now = (type(GetTime) == "function" and GetTime()) or 0
+    if now < _auraScanBlockedUntil then
+        return ""
+    end
+
     for index = 1, 40 do
         local fetchOk, data = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
-        if not fetchOk or not data then break end
+        if not fetchOk then
+            -- 부분 hash를 남기면 보호 상태가 오갈 때마다 signature가 흔들려
+            -- 불필요한 refresh가 발생한다. 빈 값으로 통일한다.
+            _auraScanBlockedUntil = now + AURA_SCAN_BACKOFF_SECONDS
+            return ""
+        end
+        if not data then break end
         -- WoW 12.0.5+ 의 C_UnitAuras 반환 테이블은 secret number 로 표시되어
         -- 직접 산술 연산(*, math.floor 등) 시 taint 오류가 발생한다.
         -- 보호값은 safeNumber에서 0으로 격리하고, 산술/포맷 자체도 pcall로
