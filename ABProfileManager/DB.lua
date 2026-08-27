@@ -1044,16 +1044,23 @@ function DB:GetBISOverlayMythPreviewCache()
     local previewBaselineItemLevel = tonumber(previewDB and previewDB.baselineItemLevel) or 272
     local previewBonusListID = tonumber(previewDB and previewDB.generatedPreviewBonusListID)
     local previewItemStringTemplate = previewDB and previewDB.generatedPreviewItemStringTemplate
+    -- snapshot은 그 시즌의 아이템 레벨 기준으로 검증한 값이다. 기존 무효화
+    -- 조건은 전부 Data/BISMythicVaultLinks.lua에서 오는데, 시즌이 바뀌어도
+    -- 그 파일이 그대로면 이전 시즌 snapshot이 계정 SavedVariables에 계속
+    -- 남는다. 현재 시즌을 캐시 키에 포함해 시즌이 넘어가면 한 번 비운다.
+    local previewSeason = (ns.Data and ns.Data.ItemLevelTable and ns.Data.ItemLevelTable.season) or ""
     if type(cache) ~= "table"
         or tonumber(cache.schemaVersion) ~= previewSchemaVersion
         or tonumber(cache.baselineItemLevel) ~= previewBaselineItemLevel
         or tonumber(cache.generatedPreviewBonusListID) ~= previewBonusListID
-        or cache.generatedPreviewItemStringTemplate ~= previewItemStringTemplate then
+        or cache.generatedPreviewItemStringTemplate ~= previewItemStringTemplate
+        or (cache.season or "") ~= previewSeason then
         cache = {
             schemaVersion = previewSchemaVersion,
             baselineItemLevel = previewBaselineItemLevel,
             generatedPreviewBonusListID = previewBonusListID,
             generatedPreviewItemStringTemplate = previewItemStringTemplate,
+            season = previewSeason,
             itemsByID = {},
         }
         settings.mythPreviewCache = cache

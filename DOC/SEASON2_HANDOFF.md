@@ -16,6 +16,7 @@
 | 2026-08-27 | 최초 작성 |
 | 2026-08-27 | 계획 검증 반영. 신규 콘텐츠 종류 구분, BIS 동결 파급(5장) 신설, 소유자 없던 파일 3종 wave 배정, W5 분할, 롤백 기준, 검증기 명세 보강 |
 | 2026-08-27 | W1, W8, W6, W5a 진행 결과 반영. M+ 던전 풀과 통화 이름 덤프 결과, 12.1 aura API 제한 기록 |
+| 2026-08-27 | W7 마이그레이션 부분 반영. BIS preview snapshot 캐시의 시즌 무효화 추가 |
 
 ## 1. 확정된 사실
 
@@ -401,7 +402,7 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 | W5a | 리뷰대기 | Claude | 2026-08-27 | `StatsOverlay`의 aura index 조회에 backoff 추가. 12.1 보호 상태에서 오류 경로를 매 refresh마다 밟지 않고, 부분 hash 대신 빈 값으로 통일한다. `MythicPlusRecordOverlay` 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 그대로 보장된다. 인게임 검증은 쐐기 진행 중 확인 필요 |
 | W5b | 대기 | - | 2026-08-27 | W2~W4 문자열 확정 후 |
 | W6 | 완료 | Claude | 2026-08-27 | 검증기 3종과 `run_season2_validation.ps1` 작성. 세 검증기 모두 음성 테스트로 실제 검출을 확인했다. 하네스 전체 통과 |
-| W7 | 대기 | - | 2026-08-27 | 마이그레이션 부분은 선행 가능, 이벤트 데이터는 W0 차단 |
+| W7 | 진행중 | Claude | 2026-08-27 | 마이그레이션 부분 완료. `DB:GetBISOverlayMythPreviewCache()`의 무효화 키에 현재 시즌을 추가해 시즌이 넘어가면 이전 시즌 snapshot을 한 번 비운다. 기존 무효화 조건이 전부 동결된 `BISMythicVaultLinks.lua`에서 와서 시즌 전환을 감지하지 못했다. 버전 상승이 설정을 초기화하지 않는 것도 확인했다(`layoutVersion`, `languageMigrationVersion`은 각자 카운터를 쓴다). 주간 이벤트 데이터는 W0 차단 |
 | W8 | 리뷰대기 | Claude | 2026-08-27 | `UI/BISOverlay.lua`에 `SeasonGuard` 추가. `dataSeason = "Midnight Season 1"`과 `ItemLevelTable.season` 비교로 불일치 판정. 불일치 시 EJ 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 차단하고 상단 안내에 `[기준 시즌]` 접두를 붙인다. 새 해시 `git hash-object`로 확인 필요. top-level locals `197 → 198`(상한과 동일). `AGENTS.md` 충돌 항목 정리 완료. `Data/MidnightS1MPlusDB.lua`는 계속 로드하되 SeasonGuard가 의존 자동화를 끄는 것으로 결론. 인게임 검증은 W2가 `season`을 시즌 2로 바꾼 뒤 가능 |
 | G1 | 미착수 | - | 2026-08-27 | |
 | G2 | 미착수 | - | 2026-08-27 | |
