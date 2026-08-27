@@ -17,6 +17,7 @@
 | 2026-08-27 | 계획 검증 반영. 신규 콘텐츠 종류 구분, BIS 동결 파급(5장) 신설, 소유자 없던 파일 3종 wave 배정, W5 분할, 롤백 기준, 검증기 명세 보강 |
 | 2026-08-27 | W1, W8, W6, W5a 진행 결과 반영. M+ 던전 풀과 통화 이름 덤프 결과, 12.1 aura API 제한 기록 |
 | 2026-08-27 | W7 마이그레이션 부분 반영. BIS preview snapshot 캐시의 시즌 무효화 추가 |
+| 2026-08-28 | G1 리뷰 반영. 안내 라벨 축약, `GetTime` 폴백, 시즌 판정 캐시, 로케일 검증기 대괄호 표기, 문서 Interface 번호 수정. 통화 ID 덤프 결과 기록 |
 
 ## 1. 확정된 사실
 
@@ -50,7 +51,7 @@ M+ 던전 풀은 8개이며 라이브 덤프로 확정했습니다. 6장 표를 
 - Midnight 던전 5종: `Altar of Fangs`, `Murder Row`, `Den of Nalorakk`, `The Blinding Vale`, `Voidscar Arena`
 - 복귀 던전 3종: `Kings' Rest`, `Ruby Life Pools`, `Temple of Sethraliss`
 
-문장(crest) 통화는 시즌 2에서 `Mistcrest`로 **개명**된 것으로 보고됩니다. 기존 5종에 추가되는 것인지 전면 교체인지에 따라 `CREST_ID_BY_GRADE` 5개 항목의 처리가 달라집니다. 반드시 인게임 통화 목록으로 확인합니다.
+문장(crest) 통화는 시즌 2에서 `Mistcrest`(한국어 `안개문장`)로 바뀌었고, 라이브 덤프 결과 시즌 1과 다른 신규 ID로 교체됐습니다. 6장을 참조합니다.
 
 위 항목은 전부 외부 가이드 기준입니다. 6장 정책에 따라 인게임 확인 전에는 코드에 넣지 않습니다.
 
@@ -118,7 +119,7 @@ b27b68e8ddc95dba1a9f238432d7878c9e0deaaa  ABProfileManager/Data/BISSeasonPreview
 0f5fe46cd949b72a160ec804ace9c5e37978c0fd  ABProfileManager/Data/StatPriorityTable.lua
 ```
 
-참고: `UI/BISOverlay.lua`는 동결 대상이 아닙니다. v1.11.11 기준 해시는 `581eb5ba7cc2e1662cf42f7c302ae5f9dd5eec58`이고, W8 작업 후 해시는 `b80681a0545c0d5509bbb0cdad0905edae0300b0`입니다.
+참고: `UI/BISOverlay.lua`는 동결 대상이 아닙니다. v1.11.11 기준 해시는 `581eb5ba7cc2e1662cf42f7c302ae5f9dd5eec58`이고, W8과 G1 반영 후 해시는 `b317cc5f165f988b5db87e55544e19fd00c528af`입니다.
 
 ## 5. BIS 동결의 파급 (반드시 처리)
 
@@ -136,7 +137,7 @@ BIS 데이터를 동결하면 시즌 2에서 BIS 오버레이가 **조용히 오
 
 ### 처리 방침 (W8)
 
-- BIS 패널에 `시즌 1 기준 데이터` 라벨을 노출한다.
+- BIS 패널에 기준 시즌을 노출한다. 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있고 폭이 좁아 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘리므로, `S1` 형태의 짧은 접두와 경고색으로 표시한다.
 - 시즌 불일치가 감지되면 Encounter Journal 자동 랜딩과 M+ 자동 점수화를 **끈다**. 실패를 반복 시도하지 않는다.
 - 시즌 불일치 판정 근거는 `Data/ItemLevelTable.lua`의 `season` 값과 BIS 쪽 시즌 기준값 비교로 한다. 새 API를 쓰지 않는다.
 - 후보 목록·순위 계산·카탈로그 데이터는 그대로 둔다.
@@ -150,8 +151,8 @@ BIS 데이터를 동결하면 시즌 2에서 BIS 오버레이가 **조용히 오
 | 항목 | 상태 | 확정 방법 |
 | --- | --- | --- |
 | 시즌 2 전체 아이템 레벨표 (구렁/M+/금고/레이드/제작/PvP) | 미확정 | 인게임 툴팁 + 아이템 강화 NPC 실측 |
-| `Mistcrest` 통화 ID와 개명/교체 여부 | 미확정 | 통화 목록 덤프. 기존 5종이 남는지 함께 확인 |
-| 복원 열쇠 통화 ID | 미확정 | 시즌 1 값 `3028` 유효 여부 확인 |
+| `Mistcrest` 통화 ID와 개명/교체 여부 | 부분 확정 | 신규 ID로 교체 확인. 등급별 ID는 두 세트 중 선택이 남음 |
+| 복원 열쇠 통화 ID | 확정 | `3028` 그대로 유효 |
 | `Coiled Isle` UiMapID (후보 `2512`) | 후보만 있음 | `C_Map.GetBestMapForUnit("player")` 덤프 |
 | 신규 구렁·던전 UiMapID | 미확정 | 현지 이동 후 지도 덤프 |
 | M+ 던전 풀 8종과 각 `challengeMapID` | 확정 | 2026-08-27 `C_ChallengeMode.GetMapTable()` 덤프 완료 |
@@ -161,14 +162,29 @@ BIS 데이터를 동결하면 시즌 2에서 BIS 오버레이가 **조용히 오
 
 ### 수집 진행 상황
 
-2026-08-27 인게임 통화 패널에서 이름만 확인했습니다. 통화 ID는 아직 없습니다.
+통화 ID를 `C_CurrencyInfo.GetCurrencyInfo(id)`로 직접 훑어 확정했습니다. 통화 목록 API의 `currencyTypesID` 필드는 `nil`이라 쓸 수 없었습니다.
 
-- 문장 카테고리에 `모험가 안개문장`, `노련가 안개문장`, `챔피언 안개문장`, `영웅 안개문장` 4종이 보입니다. `Mistcrest`의 한국어명이 `안개문장`임이 확인됐습니다.
-- 신화 등급 안개문장은 목록에 없습니다. 해당 캐릭터가 아직 획득하지 못해 표시되지 않았을 가능성이 있으므로 통화 ID 확인 단계에서 인접 ID를 함께 조회합니다.
-- 시즌 1 문장 5종은 목록에서 사라졌습니다. 즉 시즌 2는 문장 통화를 **교체**하는 방식이며, `CREST_ID_BY_GRADE` 5개 항목을 전부 갈아야 합니다.
-- 구렁 카테고리에 `정순한 마나 수정`, `지하의 주화`, `금고 열쇠 파편`, `복원된 금고 열쇠`가 있습니다. 복원 열쇠는 이름이 유지되므로 기존 ID `3028`이 그대로인지 확인이 필요합니다.
-- `2 시즌` 카테고리에 `맹독역병 마나용제`가 있습니다. 용도 확인이 필요합니다.
-- `한밤` 카테고리의 `공허불빛 이회토`, `해일의 불꽃 가루`, `성운의 공허핵`은 전문기술 재료 계열로 보입니다.
+| ID | 이름 | 비고 |
+| --- | --- | --- |
+| 3028 | 복원된 금고 열쇠 | 시즌 1 값이 그대로 유효하다 |
+| 3310 | 금고 열쇠 파편 | |
+| 3378 | 새벽빛 마나용제 | |
+| 3437~3441 | 모험가 / 노련가 / 챔피언 / 영웅 / 신화 안개문장 | 첫 번째 세트 |
+| 3442~3446 | 모험가 / 노련가 / 챔피언 / 영웅 / 신화 안개문장 | 두 번째 세트, 이름이 같다 |
+| 3465 | 맹독역병 마나용제 | |
+
+확정된 사실입니다.
+
+- `Mistcrest`의 한국어명은 `안개문장`입니다.
+- 시즌 1 문장 ID `3383 / 3341 / 3343 / 3345 / 3347`과 **전혀 다른 ID**입니다. 즉 문장 통화는 재사용이 아니라 **신규 통화로 교체**됐고, `CREST_ID_BY_GRADE` 5개 항목을 전부 갈아야 합니다.
+- 복원 열쇠 `3028`은 그대로이므로 `DELVE_RESTORED_KEY_CURRENCY_ID`는 수정할 필요가 없습니다.
+
+남은 문제는 **안개문장이 두 세트**라는 점입니다. 이름이 같아 이름만으로는 구분되지 않습니다. 어느 쪽이 실제 획득 통화인지 아래로 확인한 뒤 `CREST_ID_BY_GRADE`에 넣습니다.
+
+```text
+/run local t="" for id=3437,3446 do local c=C_CurrencyInfo.GetCurrencyInfo(id) if c then t=t..id.." q="..tostring(c.quantity).." max="..tostring(c.maxQuantity).." disc="..tostring(c.discovered).."
+" end end ABPMD(t)
+```
 
 `C_ChallengeMode.GetMapTable()` 덤프로 시즌 2 M+ 던전 풀 8종과 `challengeMapID`가 확정됐습니다.
 
@@ -399,12 +415,12 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 | W2b | 대기 | - | 2026-08-27 | W0 차단 |
 | W3 | 대기 | - | 2026-08-27 | W0 차단 |
 | W4 | 대기 | - | 2026-08-27 | W0 차단 |
-| W5a | 리뷰대기 | Claude | 2026-08-27 | `StatsOverlay`의 aura index 조회에 backoff 추가. 12.1 보호 상태에서 오류 경로를 매 refresh마다 밟지 않고, 부분 hash 대신 빈 값으로 통일한다. `MythicPlusRecordOverlay` 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 그대로 보장된다. 인게임 검증은 쐐기 진행 중 확인 필요 |
+| W5a | 완료 | Claude | 2026-08-27 | `StatsOverlay`의 aura index 조회에 backoff 추가. 12.1 보호 상태에서 오류 경로를 매 refresh마다 밟지 않고, 부분 hash 대신 빈 값으로 통일한다. `MythicPlusRecordOverlay` 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 그대로 보장된다. 인게임 검증은 쐐기 진행 중 확인 필요 |
 | W5b | 대기 | - | 2026-08-27 | W2~W4 문자열 확정 후 |
 | W6 | 완료 | Claude | 2026-08-27 | 검증기 3종과 `run_season2_validation.ps1` 작성. 세 검증기 모두 음성 테스트로 실제 검출을 확인했다. 하네스 전체 통과 |
 | W7 | 진행중 | Claude | 2026-08-27 | 마이그레이션 부분 완료. `DB:GetBISOverlayMythPreviewCache()`의 무효화 키에 현재 시즌을 추가해 시즌이 넘어가면 이전 시즌 snapshot을 한 번 비운다. 기존 무효화 조건이 전부 동결된 `BISMythicVaultLinks.lua`에서 와서 시즌 전환을 감지하지 못했다. 버전 상승이 설정을 초기화하지 않는 것도 확인했다(`layoutVersion`, `languageMigrationVersion`은 각자 카운터를 쓴다). 주간 이벤트 데이터는 W0 차단 |
-| W8 | 리뷰대기 | Claude | 2026-08-27 | `UI/BISOverlay.lua`에 `SeasonGuard` 추가. `dataSeason = "Midnight Season 1"`과 `ItemLevelTable.season` 비교로 불일치 판정. 불일치 시 EJ 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 차단하고 상단 안내에 `[기준 시즌]` 접두를 붙인다. 새 해시 `git hash-object`로 확인 필요. top-level locals `197 → 198`(상한과 동일). `AGENTS.md` 충돌 항목 정리 완료. `Data/MidnightS1MPlusDB.lua`는 계속 로드하되 SeasonGuard가 의존 자동화를 끄는 것으로 결론. 인게임 검증은 W2가 `season`을 시즌 2로 바꾼 뒤 가능 |
-| G1 | 미착수 | - | 2026-08-27 | |
+| W8 | 완료 | Claude | 2026-08-27 | `UI/BISOverlay.lua`에 `SeasonGuard` 추가. `dataSeason = "Midnight Season 1"`과 `ItemLevelTable.season` 비교로 불일치 판정. 불일치 시 EJ 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 차단하고 상단 안내에 `[기준 시즌]` 접두를 붙인다. 새 해시 `git hash-object`로 확인 필요. top-level locals `197 → 198`(상한과 동일). `AGENTS.md` 충돌 항목 정리 완료. `Data/MidnightS1MPlusDB.lua`는 계속 로드하되 SeasonGuard가 의존 자동화를 끄는 것으로 결론. 인게임 검증은 W2가 `season`을 시즌 2로 바꾼 뒤 가능 |
+| G1 | 완료 | Claude | 2026-08-28 | W1, W5a, W6, W7, W8 스펙 대조. 실제 결함 3건(안내 라벨이 스탯 요약을 잘라냄, README/AGENTS Interface 오정보, `GetTime` 부재 시 backoff 영구 차단)과 잠재 3건(시즌 판정 `nil` 캐시, hover preview 반복 시도, 로케일 검증기 대괄호 표기 누락) 도출. hover preview 반복 시도를 뺀 5건 수정 완료 |
 | G2 | 미착수 | - | 2026-08-27 | |
 | 인게임 QA | 미착수 | - | 2026-08-27 | |
 | 패키징 | 미착수 | - | 2026-08-27 | |

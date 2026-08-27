@@ -408,8 +408,10 @@ local function getPlayerBuffHash()
     -- 되어 index / slot / instanceID 기반 조회를 addon이 호출하면 Lua 오류를
     -- 낸다. 실패한 직후에는 잠시 조회를 멈춰 refresh마다 오류 경로를 다시
     -- 밟지 않도록 한다. 보호가 풀리면 backoff가 만료되면서 저절로 복구된다.
-    local now = (type(GetTime) == "function" and GetTime()) or 0
-    if now < _auraScanBlockedUntil then
+    -- GetTime을 못 쓰면 backoff 만료를 판단할 수 없다. 이때 backoff를 걸면
+    -- 한 번 실패한 뒤 영구히 빈 hash가 되므로 아예 사용하지 않는다.
+    local now = (type(GetTime) == "function" and GetTime()) or nil
+    if now and now < _auraScanBlockedUntil then
         return ""
     end
 
@@ -418,7 +420,9 @@ local function getPlayerBuffHash()
         if not fetchOk then
             -- 부분 hash를 남기면 보호 상태가 오갈 때마다 signature가 흔들려
             -- 불필요한 refresh가 발생한다. 빈 값으로 통일한다.
-            _auraScanBlockedUntil = now + AURA_SCAN_BACKOFF_SECONDS
+            if now then
+                _auraScanBlockedUntil = now + AURA_SCAN_BACKOFF_SECONDS
+            end
             return ""
         end
         if not data then break end

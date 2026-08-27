@@ -392,16 +392,41 @@ end
 function SeasonGuard.IsMismatched()
     if SeasonGuard.cachedMismatch == nil then
         local current = SeasonGuard.CurrentSeason()
-        SeasonGuard.cachedMismatch = (current ~= nil and current ~= SeasonGuard.dataSeason)
+        if current == nil then
+            -- ItemLevelTable을 아직 못 읽은 상태다. 이때의 판정을 캐시하면
+            -- 이후 데이터가 올라와도 영구히 "일치"로 굳어버린다.
+            return false
+        end
+        SeasonGuard.cachedMismatch = (current ~= SeasonGuard.dataSeason)
     end
     return SeasonGuard.cachedMismatch
 end
 
-function SeasonGuard.DecorateNotice(text)
-    if not SeasonGuard.IsMismatched() then
-        return text
+-- 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있고 폭도 좁다. 시즌 이름을 그대로
+-- 붙이면 원래 표시하던 스탯 정책 요약이 잘려나가므로 `S1` 형태로 줄인다.
+-- 로케일 파일은 W5b 소유라 번역 키를 새로 만들지 않고 데이터에서 유도한다.
+function SeasonGuard.ShortLabel()
+    local season = SeasonGuard.dataSeason or ""
+    local number = season:match("(%d+)%s*$")
+    if number then
+        return "S" .. number
     end
-    return string.format("[%s] %s", SeasonGuard.dataSeason, text or "")
+    return season
+end
+
+-- 안내 문구와 색을 함께 적용한다. 불일치 상태에서는 경고색으로 바꿔
+-- 짧은 접두만으로도 눈에 띄게 한다.
+function SeasonGuard.ApplyNotice(fontString, text)
+    if not fontString then
+        return
+    end
+    if not SeasonGuard.IsMismatched() then
+        fontString:SetText(text or "")
+        fontString:SetTextColor(1.00, 0.82, 0.46, 1)
+        return
+    end
+    fontString:SetText(string.format("[%s] %s", SeasonGuard.ShortLabel(), text or ""))
+    fontString:SetTextColor(1.00, 0.55, 0.35, 1)
 end
 
 local MYTH_PREVIEW_LINK_MAX_ATTEMPTS = 2
@@ -2044,7 +2069,7 @@ function BISOverlay:EnsureFrame()
     if frame.noticeText.SetMaxLines then
         frame.noticeText:SetMaxLines(1)
     end
-    frame.noticeText:SetText(SeasonGuard.DecorateNotice(getSpecPolicySummary(getPlayerSpecID())))
+    SeasonGuard.ApplyNotice(frame.noticeText, getSpecPolicySummary(getPlayerSpecID()))
 
     frame.avgLabel = frame:CreateFontString(nil, "OVERLAY")
     frame.avgLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
@@ -3960,7 +3985,7 @@ function BISOverlay:RebuildContent()
         frame.hintText:SetText(ns.L("bis_overlay_hint"))
     end
     if frame.noticeText then
-        frame.noticeText:SetText(SeasonGuard.DecorateNotice(getSpecPolicySummary(specID)))
+        SeasonGuard.ApplyNotice(frame.noticeText, getSpecPolicySummary(specID))
     end
     if frame.avgLabel then
         frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
@@ -4186,7 +4211,7 @@ function BISOverlay:Refresh()
             self.frame.hintText:SetText(ns.L("bis_overlay_hint"))
         end
         if self.frame.noticeText then
-            self.frame.noticeText:SetText(SeasonGuard.DecorateNotice(getSpecPolicySummary(specID)))
+            SeasonGuard.ApplyNotice(self.frame.noticeText, getSpecPolicySummary(specID))
         end
         if self.frame.avgLabel then
             local avgIlvl = getAverageItemLevel()

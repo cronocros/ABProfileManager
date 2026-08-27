@@ -4,9 +4,9 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 ## 프로젝트 개요
 
-`ABProfileManager`는 WoW Retail (Interface 120005, 120007 = Patch 12.0.5/12.0.7 계열, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
+`ABProfileManager`는 WoW Retail (Interface 120100 = Patch 12.1.0, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.11.11 로컬 패치 기반`
+**현재 기준**: `v1.12.0 시즌 2 작업 진행 중` (직전 릴리스 `v1.11.11`)
 
 ## 검증 명령어
 
@@ -84,7 +84,8 @@ ABProfileManager/
    - crafted hover는 `Data/BISSeasonPreviewLinks.lua`의 r5 `285` preview item string을 먼저 시도하고, 실제 tooltip item level이 `285`로 확인된 경우에만 addon-owned Blizzard `GameTooltip:SetHyperlink()`에 전달한다
    - raid/crafted/tier hover는 검증된 시즌 preview가 없으면 클라이언트가 로드한 기본 `itemLink` 또는 기본 `item:<itemID>`로 fallback한다
    - 시즌 preview helper는 `SourcePreview` 테이블에 묶어 `UI/BISOverlay.lua` top-level local 수를 200 미만으로 유지한다
-   - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터의 기준 시즌이다. `Data/ItemLevelTable.lua`의 `season`과 다르면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔을 모두 멈추고 상단 안내에 기준 시즌을 표시한다
+   - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터의 기준 시즌이다. `Data/ItemLevelTable.lua`의 `season`과 다르면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 멈춘다
+   - 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있으므로 `SeasonGuard.ApplyNotice()`가 `S1` 형태의 짧은 접두와 경고색만 적용한다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘린다
    - BIS 데이터를 새 시즌으로 갱신할 때 `SeasonGuard.dataSeason`도 함께 올린다. 올리지 않으면 자동 동작이 계속 꺼져 있다
    - top-level local 예산은 현재 `198`로 상한과 같다. 새 기능은 새 local 대신 기존 테이블 필드를 쓴다
    - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다

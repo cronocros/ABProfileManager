@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -96,9 +97,15 @@ def parse_additions(languages: list[str]) -> dict[str, dict[str, object]]:
         for target, value in zip(node.targets, node.values):
             source = lua_ast.to_lua_source(target)
             for language in languages:
-                prefix = f"{language}."
-                if source.startswith(prefix):
-                    result[language][source[len(prefix):]] = value
+                # `enUS.key = ...`와 `enUS["key"] = ...` 두 표기를 모두 센다.
+                # 점 표기만 보면 대괄호로 추가된 키를 놓쳐 언어 간 불일치를
+                # 그냥 통과시킨다.
+                dot_prefix = f"{language}."
+                bracket_match = re.match(rf'^{language}\[\s*"(.+?)"\s*\]$', source)
+                if bracket_match:
+                    result[language][bracket_match.group(1)] = value
+                elif source.startswith(dot_prefix):
+                    result[language][source[len(dot_prefix):]] = value
     return result
 
 

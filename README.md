@@ -8,7 +8,7 @@
 ## 현재 버전
 
 - 로컬 패치: `v1.11.11`
-- 지원 클라이언트: WoW Retail Patch 12.0.5/12.0.7 계열 (`Interface: 120005, 120007`)
+- 지원 클라이언트: WoW Retail Patch 12.1.0 (`Interface: 120100`)
 - 저장소: `https://github.com/cronocros/ABProfileManager`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0` (`https://github.com/cronocros/ABProfileManager/releases/latest`)
 - 원격 GitHub 직접 다운로드: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
