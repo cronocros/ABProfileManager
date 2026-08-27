@@ -7,7 +7,7 @@ ABProfileManager
 
 ABProfileManager는 그 작업들을 한 창과 몇 개의 오버레이로 정리합니다.
 
-버전: v1.11.11 로컬 패치
+버전: v1.12.0 로컬 패치 (작업 중)
 제작: 밍밍이와코코 (crono1232@gmail.com)
 
 ════════════════════════════════════════════════════
@@ -369,7 +369,7 @@ ABProfileManager는 그 작업들을 한 창과 몇 개의 오버레이로 정�
   저장소:       https://github.com/cronocros/ABProfileManager
   원격 GitHub 공개 최신 릴리스(v1.11.0): https://github.com/cronocros/ABProfileManager/releases/latest
   원격 GitHub 직접 다운로드: https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip
-  로컬 패키지: dist/ABProfileManager-v1.11.11.zip
+  로컬 패키지: dist/ABProfileManager-v1.12.0.zip
 
 ════════════════════════════════════════════════════
   최근 유지보수
