@@ -312,7 +312,7 @@ function Commands:HandleSlash(message)
             end
         end
         if mode == "checks" then
-            -- scan AuctionHouseFrame for all CheckButtons (by type, bypass text taint)
+
             ns.Utils.Print("[AH Debug] CheckButton 스캔 (d12):")
             local function scanChecks(f, depth, parentName)
                 if depth > 12 or not f then return end
@@ -337,7 +337,7 @@ function Commands:HandleSlash(message)
             end
             scanChecks(AuctionHouseFrame, 0, "AuctionHouseFrame")
         elseif mode == "names" then
-            -- scan AuctionHouseFrame for named frames (useful when text is tainted)
+
             ns.Utils.Print("[AH Debug] AuctionHouseFrame 이름 스캔 (d12):")
             local function scanNames(f, depth)
                 if depth > 12 or not f then return end
@@ -356,7 +356,7 @@ function Commands:HandleSlash(message)
             end
             scanNames(AuctionHouseFrame, 0)
         elseif mode == "find" then
-            -- search UIParent visible children for frames whose text contains keyword (depth 12)
+
             local keyword = ns.Utils.Trim(ns.Utils.JoinArgs(args, 3))
             ns.Utils.Print("[AH Debug] 키워드 검색: '" .. (keyword or "") .. "' (d12)")
             local function findByText(f, depth)
@@ -386,7 +386,7 @@ function Commands:HandleSlash(message)
                 end
             end
         elseif mode == "ui" then
-            -- scan UIParent top-level children (visible only, depth 6)
+
             ns.Utils.Print("[AH Debug] UIParent 스캔 (visible, d6):")
             for _, child in ipairs({ UIParent:GetChildren() }) do
                 local ok, visible = pcall(function() return child:IsVisible() end)
@@ -395,7 +395,7 @@ function Commands:HandleSlash(message)
                 end
             end
         else
-            -- default: scan AuctionHouseFrame
+
             local childCount = select("#", AuctionHouseFrame:GetChildren())
             ns.Utils.Print("[AH Debug] AuctionHouseFrame 직계 자식 수: " .. childCount)
             scanFrame(AuctionHouseFrame, 0, 10)
@@ -408,7 +408,7 @@ function Commands:HandleSlash(message)
     end
 
     if command == "log" or command == "errors" then
-        -- 디버그/보호 오류 로그를 팝업 EditBox에 출력 (복사 가능)
+
         local log = ns.Utils.GetDebugLog and ns.Utils.GetDebugLog() or {}
         local caught = ns.Utils.GetCaughtErrorLog and ns.Utils.GetCaughtErrorLog() or {}
         if #log == 0 and #caught == 0 then
@@ -423,7 +423,7 @@ function Commands:HandleSlash(message)
             sections[#sections + 1] = "[Caught ABPM Errors]\n" .. table.concat(caught, "\n")
         end
         local text = table.concat(sections, "\n\n")
-        -- 기존 팝업 재사용
+
         if ABPMLogPopup then ABPMLogPopup:Hide() end
         local popup = CreateFrame("Frame", "ABPMLogPopup", UIParent, "BackdropTemplate")
         popup:SetSize(580, 380)
@@ -446,7 +446,6 @@ function Commands:HandleSlash(message)
         close:SetPoint("TOPRIGHT", -4, -4)
         close:SetScript("OnClick", function() popup:Hide() end)
 
-        -- 스크롤 프레임
         local sf = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
         sf:SetPoint("TOPLEFT", popup, "TOPLEFT", 12, -28)
         sf:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -30, 38)

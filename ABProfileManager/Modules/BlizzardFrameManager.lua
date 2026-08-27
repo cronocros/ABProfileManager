@@ -4,20 +4,8 @@ ns.Modules = ns.Modules or {}
 local BlizzardFrameManager = {}
 ns.Modules.BlizzardFrameManager = BlizzardFrameManager
 
--- 이동 가능하게 만들 블리자드 프레임 목록
---
--- uiPanel=true  : ShowUIPanel / UpdateUIPanelPositions 가 OnShow 이후 위치를 덮어쓰므로
---                 저장 좌표가 있을 때 SetUserPlaced(true) + 딜레이 복원이 필요한 UIPanel 계열 프레임
---                 런타임에서 UIPanelWindows 에 등록된 프레임도 같은 방식으로 감지한다.
--- hookOnShow    : OnShow 때마다 저장 위치를 복원할 프레임
--- lazyAddon     : 해당 이름의 애드온이 로드될 때 자동 적용
 local MANAGED_FRAMES = {
-    -- [제거됨] WorldMapFrame, QuestLogFrame
-    -- WorldMapFrame 에 SetMovable/ClearAllPoints/SetUserPlaced 등 어떤 조작을 해도
-    -- 내부 QuestMapFrame(퀘스트 목록 패널) 레이아웃이 파괴될 수 있음.
-    -- 3차례 수정 시도(ef47cdd, af67ad7, noRestore 플래그) 모두 완전 해결 실패.
-    -- QuestLogFrame 도 Midnight 에서 WorldMapFrame 과 결합 가능성으로 함께 제거.
-    -- 이동 가능한 월드맵이 필요하면 MoveAnything 등 전용 애드온 사용 권장.
+
     {
         key = "CharacterFrame",
         getter = function() return CharacterFrame end,
@@ -118,8 +106,6 @@ local MANAGED_FRAMES = {
     },
 }
 
--- 프레임이 최대화(전체화면) 상태인지 확인
--- WorldMapFrame 등 IsMaximized API 를 가진 프레임에서 사용
 local function isFrameMaximized(frame)
     if frame and frame.IsMaximized then
         local ok, result = pcall(function() return frame:IsMaximized() end)
@@ -152,10 +138,6 @@ local function shouldManageAsUIPanel(entry, frame)
     return (entry and entry.uiPanel) or isRegisteredUIPanel(frame)
 end
 
--- WorldMapFrame 드래그 전용 (MANAGED_FRAMES 와 완전 분리)
--- · ClearAllPoints / SetPoint / 위치 저장·복원 일체 없음
--- · SetUserPlaced 는 StopMovingOrSizing 후 즉시 false 로 되돌림
--- · 세션 내 위치는 WoW 의 SetMovable 동작이 자체 보존
 local function enableWorldMapDrag()
     if not WorldMapFrame then return end
     if WorldMapFrame._abpmDragEnabled then return end
@@ -181,8 +163,7 @@ local function enableWorldMapDrag()
             end)
             WorldMapFrame:SetScript("OnDragStop", function(f)
                 f:StopMovingOrSizing()
-                -- StopMovingOrSizing 가 암묵적으로 UserPlaced=true 설정
-                -- WorldMapFrame 에 남으면 퀘스트 목록 패널 레이아웃 파괴
+
                 if f.SetUserPlaced then f:SetUserPlaced(false) end
             end)
         end)
@@ -204,30 +185,27 @@ end
 
 local function saveFrameDB(key, frame)
     if not ns.DB or not frame then return end
-    -- 최대화(전체화면) 상태의 위치는 저장하지 않음
-    -- 전체화면 좌표를 저장하면 다음 복원 시 윈도우 모드 레이아웃이 파괴됨
+
     if isFrameMaximized(frame) then return end
     ns.DB:SaveBlizzardFramePosition(key, frame)
 end
 
 local function restoreFramePosition(key, frame, isUiPanel)
     if not frame then return end
-    -- 최대화(전체화면) 상태에서는 위치 변경 불가
+
     if isFrameMaximized(frame) then return end
     local pos = getFrameDB(key)
     if pos and pos.point then
         pcall(function()
             frame:ClearAllPoints()
             frame:SetPoint(pos.point, UIParent, pos.relativePoint or pos.point, pos.x or 0, pos.y or 0)
-            -- uiPanel: SetUserPlaced(true) → UIPanelLayout 재배치 방지
-            -- 비uiPanel: SetUserPlaced(false) → 이전 드래그에서 남은 UserPlaced 상태 해제
+
             if frame.SetUserPlaced then
                 frame:SetUserPlaced(isUiPanel and true or false)
             end
         end)
     elseif isUiPanel and frame.SetUserPlaced then
-        -- 저장 좌표가 없는 기본 상태에서는 Blizzard UIPanel 레이아웃을 유지한다.
-        -- 초기부터 UserPlaced=true 로 고정하면 여러 기본 창이 같은 중앙 좌표에 겹칠 수 있다.
+
         pcall(function()
             frame:SetUserPlaced(false)
         end)
@@ -244,14 +222,12 @@ local function makeFrameMovable(key, frame, isUiPanel)
         frame:EnableMouse(true)
         frame:RegisterForDrag("LeftButton")
         frame:SetClampedToScreen(true)
-        -- 저장 좌표가 있는 uiPanel 만 UserPlaced=true 로 고정한다.
-        -- 저장 좌표가 없는 기본 프레임은 Blizzard 의 기본 좌/우 패널 배치에 맡긴다.
+
         if frame.SetUserPlaced then
             frame:SetUserPlaced(isUiPanel and hasSavedPosition and true or false)
         end
     end)
 
-    -- OnDragStart: 기존 스크립트 유무에 관계없이 StartMoving 보장
     local hasExisting = false
     pcall(function()
         hasExisting = frame:GetScript("OnDragStart") ~= nil
@@ -260,14 +236,14 @@ local function makeFrameMovable(key, frame, isUiPanel)
     if not hasExisting then
         pcall(function()
             frame:SetScript("OnDragStart", function(f)
-                -- 최대화(전체화면) 상태에서는 드래그 금지
+
                 if InCombatLockdown() then return end
                 if isFrameMaximized(f) then return end
                 f:StartMoving()
             end)
             frame:SetScript("OnDragStop", function(f)
                 f:StopMovingOrSizing()
-                -- StopMovingOrSizing 가 암묵적으로 UserPlaced=true 설정
+
                 if f.SetUserPlaced then
                     f:SetUserPlaced(isUiPanel and true or false)
                 end
@@ -275,12 +251,11 @@ local function makeFrameMovable(key, frame, isUiPanel)
             end)
         end)
     else
-        -- 기존 핸들러가 이미 StartMoving/StopMovingOrSizing 을 처리하므로
-        -- 위치 저장 + UserPlaced 해제만 추가
+
         pcall(function()
             frame:HookScript("OnDragStop", function(f)
                 saveFrameDB(key, f)
-                -- StopMovingOrSizing 가 암묵적으로 UserPlaced=true 설정
+
                 if f.SetUserPlaced then
                     f:SetUserPlaced(isUiPanel and true or false)
                 end
@@ -294,7 +269,7 @@ local function applyToFrame(entry)
     if not frame then return false end
 
     if not ns.DB or not ns.DB:IsBlizzardFrameMovable(entry.key) then
-        return true  -- 프레임은 있지만 비활성화 상태
+        return true
     end
 
     local isUiPanel = shouldManageAsUIPanel(entry, frame)
@@ -313,11 +288,11 @@ local function applyToFrame(entry)
         pcall(function()
             frame:HookScript("OnShow", function(f)
                 if not ns.DB or not ns.DB:IsBlizzardFrameMovable(entry.key) then return end
-                -- 즉시 복원 (UIPanelLayout 덮어쓰기 대응)
+
                 C_Timer.After(0, function()
                     if f and f:IsShown() then restoreFramePosition(entry.key, f, shouldManageAsUIPanel(entry, f)) end
                 end)
-                -- 추가 지연 복원: 탭 전환 후 WoW 가 다음 프레임에서 위치를 재설정하는 경우 대응
+
                 C_Timer.After(0.12, function()
                     if f and f:IsShown() then restoreFramePosition(entry.key, f, shouldManageAsUIPanel(entry, f)) end
                 end)
@@ -366,7 +341,6 @@ function BlizzardFrameManager:Initialize()
     if self._initialized then return end
     self._initialized = true
 
-    -- lazyAddon 매핑 구축: addonName → entry 목록
     local addonMap = {}
     for _, entry in ipairs(MANAGED_FRAMES) do
         if entry.lazyAddon then
@@ -375,13 +349,12 @@ function BlizzardFrameManager:Initialize()
         end
     end
 
-    -- ADDON_LOADED 이벤트로 lazy 프레임 적용 (별도 이벤트 프레임)
     local lazyFrame = CreateFrame("Frame")
     lazyFrame:RegisterEvent("ADDON_LOADED")
     lazyFrame:SetScript("OnEvent", function(_, event, loadedName)
         if event ~= "ADDON_LOADED" then return end
         if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
-        -- WorldMapFrame 수요 로드 감지 (MANAGED_FRAMES 와 분리된 드래그 전용)
+
         enableWorldMapDrag()
         local entries = addonMap[loadedName]
         if entries then
@@ -394,21 +367,18 @@ function BlizzardFrameManager:Initialize()
         end
     end)
 
-    -- UpdateUIPanelPositions 훅: WoW 가 패널 배치를 재계산할 때마다 저장 위치 복원
-    -- (캐릭터창 탭 전환, 인접 패널 닫힘 등으로 인한 강제 재배치 대응)
-    -- UIPanel 계열 프레임만 대상
     if type(UpdateUIPanelPositions) == "function" then
         local uiPanelDeferPending = false
         hooksecurefunc("UpdateUIPanelPositions", function()
             if not ns.DB or not ns.DB:IsBlizzardFrameManagerEnabled() then return end
-            -- 즉시 복원 (저장 좌표가 있는 UIPanel 계열 프레임만)
+
             for _, entry in ipairs(MANAGED_FRAMES) do
                 local frame = entry.getter and entry.getter()
                 if frame and shouldManageAsUIPanel(entry, frame) and ns.DB:IsBlizzardFrameMovable(entry.key) and frame:IsShown() then
                     restoreFramePosition(entry.key, frame, true)
                 end
             end
-            -- 단일 deferred 복원 (중복 타이머 방지)
+
             if not uiPanelDeferPending then
                 uiPanelDeferPending = true
                 C_Timer.After(0, function()
@@ -425,8 +395,6 @@ function BlizzardFrameManager:Initialize()
         end)
     end
 
-    -- ShowUIPanel 훅: UIPanel 계열 프레임이 탭 전환 시 ShowUIPanel 을 재호출하는 경우 대응
-    -- UIPanel 계열 프레임만 대상
     if type(ShowUIPanel) == "function" then
         pcall(function()
             hooksecurefunc("ShowUIPanel", function(frame)

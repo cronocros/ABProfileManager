@@ -695,10 +695,6 @@ function DB:SaveProfessionKnowledgeOverlayPosition(frame)
     config.y = y or 0
 end
 
--- ============================================================
--- BlizzardFrameManager
--- ============================================================
-
 function DB:GetBlizzardFrameSettings()
     local settings = self:GetGlobalSettings()
     settings.blizzardFrames = settings.blizzardFrames or {
@@ -733,7 +729,7 @@ function DB:IsBlizzardFrameMovable(key)
 
     local movable = bfs.movable or {}
     if movable[key] == nil then
-        return true  -- 기본적으로 모두 이동 가능
+        return true
     end
 
     return movable[key] and true or false
@@ -777,10 +773,6 @@ function DB:ResetAllBlizzardFramePositions()
     self:GetBlizzardFrameSettings().positions = {}
 end
 
--- ============================================================
--- MerchantHelper
--- ============================================================
-
 function DB:GetMerchantHelperSettings()
     local settings = self:GetGlobalSettings()
     settings.merchantHelper = settings.merchantHelper or { enabled = false }
@@ -796,10 +788,6 @@ function DB:SetMerchantHelperEnabled(enabled)
     return self:IsMerchantHelperEnabled()
 end
 
--- ============================================================
--- MailHistory
--- ============================================================
-
 function DB:GetMailHistorySettings()
     local settings = self:GetGlobalSettings()
     settings.mailHistory = settings.mailHistory or { enabled = true }
@@ -814,10 +802,6 @@ function DB:SetMailHistoryEnabled(enabled)
     self:GetMailHistorySettings().enabled = enabled and true or false
     return self:IsMailHistoryEnabled()
 end
-
--- ============================================================
--- ItemLevelOverlay
--- ============================================================
 
 function DB:GetItemLevelOverlaySettings()
     local settings = self:GetGlobalSettings()
@@ -902,10 +886,6 @@ function DB:SaveBISOverlayPosition(frame)
     config.y = y or 0
 end
 
--- ============================================================
--- WorldEventOverlay
--- ============================================================
-
 function DB:GetWorldEventOverlaySettings()
     local settings = self:GetGlobalSettings()
     settings.worldEventOverlay = settings.worldEventOverlay or { enabled = false }
@@ -963,10 +943,6 @@ function DB:SetWorldEventCompleted(eventKey, completed)
     local key = eventKey.."_"..dateStr
     self:GetWorldEventCompletions()[key] = completed or nil
 end
-
--- ============================================================
--- BISOverlay
--- ============================================================
 
 function DB:GetBISOverlaySettings()
     local settings = self:GetGlobalSettings()
@@ -1044,10 +1020,7 @@ function DB:GetBISOverlayMythPreviewCache()
     local previewBaselineItemLevel = tonumber(previewDB and previewDB.baselineItemLevel) or 272
     local previewBonusListID = tonumber(previewDB and previewDB.generatedPreviewBonusListID)
     local previewItemStringTemplate = previewDB and previewDB.generatedPreviewItemStringTemplate
-    -- snapshot은 그 시즌의 아이템 레벨 기준으로 검증한 값이다. 기존 무효화
-    -- 조건은 전부 Data/BISMythicVaultLinks.lua에서 오는데, 시즌이 바뀌어도
-    -- 그 파일이 그대로면 이전 시즌 snapshot이 계정 SavedVariables에 계속
-    -- 남는다. 현재 시즌을 캐시 키에 포함해 시즌이 넘어가면 한 번 비운다.
+
     local previewSeason = (ns.Data and ns.Data.ItemLevelTable and ns.Data.ItemLevelTable.season) or ""
     if type(cache) ~= "table"
         or tonumber(cache.schemaVersion) ~= previewSchemaVersion
@@ -1193,10 +1166,6 @@ end
 function DB:SetBISOverlayItemFavorite(specID, itemID, enabled)
     return self:SetBISOverlayItemState(specID, itemID, "favorite", enabled)
 end
-
--- ============================================================
--- MythicPlusRecordOverlay
--- ============================================================
 
 function DB:GetMythicPlusRecordOverlaySettings()
     local settings = self:GetGlobalSettings()

@@ -85,7 +85,7 @@ function MinimapButton:Initialize()
             local offsetX = (cursorX / scale) - centerX
             local offsetY = (cursorY / scale) - centerY
             local angle = math.deg(math.atan2(offsetY, offsetX))
-            -- 위치 직접 계산 (DB 읽기 없이)
+
             local rad = math.rad(angle)
             currentButton:ClearAllPoints()
             currentButton:SetPoint("CENTER", Minimap, "CENTER", math.cos(rad) * radius, math.sin(rad) * radius)
@@ -95,7 +95,7 @@ function MinimapButton:Initialize()
 
     button:SetScript("OnDragStop", function(currentButton)
         currentButton:SetScript("OnUpdate", nil)
-        -- 드래그 종료 시 한 번만 DB 저장 후 정규 위치 갱신
+
         if currentButton._dragAngle then
             ns.DB:SetMinimapAngle(currentButton._dragAngle)
             currentButton._dragAngle = nil

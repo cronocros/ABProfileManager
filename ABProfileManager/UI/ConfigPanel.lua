@@ -451,7 +451,6 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.logViewBtn, "BOTTOMLEFT", -24, -8)
 
-    -- 스탯/전문기술 오버레이 체크박스는 편의기능 탭으로 이전 (숨김 처리)
     refs.statsOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
     refs.statsOverlayCheck:Hide()

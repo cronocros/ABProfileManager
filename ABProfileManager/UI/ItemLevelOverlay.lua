@@ -16,8 +16,6 @@ local CREST_VALUE_W = 34
 
 local TAB_GAP    = 2
 
--- 4열: 단(label) | 클리어보상(drop) | 드랍문장(crest) | 위대한금고(vault)
--- 우측에는 나의 문장을 고정 패널로 1회만 표시한다.
 local CREST_PANEL_W = 100
 local TABLE_GAP     = 0
 local CONTENT_W     = FRAME_W - 8
@@ -35,13 +33,6 @@ local DELVE_RESTORED_KEY_CURRENCY_ID = 3028
 local DELVE_KEY_FRAGMENT_ITEM_ID = nil
 local DELVE_MAP_IDS = { 2395, 2413, 2405, 2437, 1270 }
 
--- Midnight 시즌 2 안개문장(Mistcrest) 통화 ID — 등급별 보유량 조회용
--- 2026-08-28 라이브 덤프로 확정했다. 시즌 1 Dawncrest 통화
--- (3383 / 3341 / 3343 / 3345 / 3347)와는 전혀 다른 신규 ID다.
---
--- 같은 이름의 통화가 3437~3441에도 있으나 그쪽은 maxQuantity가 0이고
--- 대부분 미발견 상태다. 실제 사용 통화는 등급별 상한(300/300/300/200/200)이
--- 잡혀 있는 아래 세트다.
 local CREST_ID_BY_GRADE = {
     adv  = 3442,
     vet  = 3443,
@@ -58,18 +49,17 @@ local GRADE_COLORS = {
     expl = { 0.62, 0.62, 0.62 },
     adv  = { 0.90, 0.90, 0.90 },
     vet  = { 0.30, 0.90, 0.30 },
-    chmp = { 0.28, 0.68, 1.00 },  -- 파랑
-    hero = { 0.72, 0.35, 1.00 },  -- 보라
-    myth = { 1.00, 0.20, 0.20 },  -- 빨강
+    chmp = { 0.28, 0.68, 1.00 },
+    hero = { 0.72, 0.35, 1.00 },
+    myth = { 1.00, 0.20, 0.20 },
 }
 
--- 드랍 문장 색상 (등급 색상과 동일)
 local CREST_COLORS = {
-    adv  = { 0.90, 0.90, 0.90 },  -- 밝은 회색 (모험가)
-    vet  = { 0.30, 0.90, 0.30 },  -- 초록 (노련가)
-    chmp = { 0.28, 0.68, 1.00 },  -- 파랑 (챔피언)
-    hero = { 0.72, 0.35, 1.00 },  -- 보라 (영웅)
-    myth = { 1.00, 0.20, 0.20 },  -- 빨강 (신화)
+    adv  = { 0.90, 0.90, 0.90 },
+    vet  = { 0.30, 0.90, 0.30 },
+    chmp = { 0.28, 0.68, 1.00 },
+    hero = { 0.72, 0.35, 1.00 },
+    myth = { 1.00, 0.20, 0.20 },
 }
 
 local function colorHex(r, g, b)
@@ -80,10 +70,6 @@ end
 local function inlineColor(hex, text)
     return "|cFF" .. hex .. text .. "|r"
 end
-
--- ============================================================
--- 헬퍼
--- ============================================================
 
 local function getAverageItemLevel()
     if type(GetAverageItemLevel) == "function" then
@@ -118,7 +104,6 @@ local function makeBtnText(btn, size, r, g, b)
     return fs
 end
 
--- 등급명에 인라인 색상 적용
 local function gradeRankColored(grade, rank, rankMax, showUnknownRank)
     if not grade then return "" end
     local name = ns.L("ilvl_crest_"..grade) or ns.L("ilvl_grade_"..grade) or grade
@@ -132,14 +117,12 @@ local function gradeRankColored(grade, rank, rankMax, showUnknownRank)
     return inlineColor(colorHex(gc[1], gc[2], gc[3]), name)
 end
 
--- 클리어 보상: 숫자(흰색, base color) + 등급명(인라인 색상)
 local function clearRewardStr(ilvl, grade, rank, rankMax, showUnknownRank)
     if not ilvl then return "" end
     local gp = gradeRankColored(grade, rank, rankMax, showUnknownRank)
     return gp ~= "" and (tostring(ilvl).." "..gp) or tostring(ilvl)
 end
 
--- 위대한 금고: 동일 포맷
 local function vaultClearStr(vault, vaultGrade, vaultRank, rankMax, showUnknownRank)
     if not vault then return "-" end
     return clearRewardStr(vault, vaultGrade, vaultRank, rankMax, showUnknownRank)
@@ -199,11 +182,6 @@ local function applyOverlayPoint(frame, anchorTarget)
     )
 end
 
--- ============================================================
--- 행 데이터 빌더
--- ============================================================
-
--- 나의 문장: crestDrop 등급에 해당하는 현재 보유량 조회
 local function getMyCount(grade)
     if not grade then return nil end
     local id = CREST_ID_BY_GRADE[grade]
@@ -345,7 +323,6 @@ local function formatDelveTierLabel(tier)
     return ns.L("ilvl_row_delve_tier", tostring(tier or ""))
 end
 
--- 열 헤더: 단 | 클리어보상 | 드랍문장 | 위대한금고
 local function colHeader(sourceKey, dropKey, vaultKey, crestKey)
     return {
         isColumnHeader = true,
@@ -356,7 +333,6 @@ local function colHeader(sourceKey, dropKey, vaultKey, crestKey)
     }
 end
 
--- 쐐기/던전 행
 local function mRow(label, e, avgIlvl)
     return {
         label      = label,
@@ -370,7 +346,6 @@ local function mRow(label, e, avgIlvl)
     }
 end
 
--- 레이드 행 (min~max 범위 + 주간보상)
 local function raidRow(key, e, avgIlvl)
     return {
         label      = ns.L(e.labelKey or ("ilvl_raid_"..key)),
@@ -384,7 +359,6 @@ local function raidRow(key, e, avgIlvl)
     }
 end
 
--- 구렁 행 (rank 없음)
 local function delveRow(label, e, avgIlvl)
     return {
         label      = label,
@@ -421,7 +395,6 @@ local function buildOverviewRows(avgIlvl)
         end
     end
 
-    -- 쐐기 (전체: heroic/mythic0 + endOfDungeon)
     if tbl.mythicPlus then
         rows[#rows+1] = { isHeader=true, label=mythicPlusSummaryText() }
         rows[#rows+1] = colHeader("ilvl_col_key", "ilvl_col_drop", "ilvl_col_vault", "ilvl_col_crest")
@@ -434,7 +407,6 @@ local function buildOverviewRows(avgIlvl)
         end
     end
 
-    -- 레이드 (전체)
     if tbl.raid then
         spacer()
         rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_raid")) }
@@ -445,7 +417,6 @@ local function buildOverviewRows(avgIlvl)
         end
     end
 
-    -- 구렁 (최고 단계만)
     if tbl.delves and #tbl.delves > 0 then
         spacer()
         rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_delves")) }
@@ -455,7 +426,6 @@ local function buildOverviewRows(avgIlvl)
         rows[#rows+1] = bountifulKeyRow(avgIlvl)
     end
 
-    -- 제작 (하단)
     if tbl.crafted then
         spacer()
         rows[#rows+1] = { isHeader=true, label=ns.L("ilvl_section_crafted") }
@@ -519,8 +489,7 @@ local function buildRaidRows(avgIlvl)
     end
     local wb = tbl.worldBoss
     if wb then
-        -- 시즌 2 월드 보스와 Lair는 야외부터 신화까지 난이도가 나뉜다.
-        -- 시즌 1처럼 단일 항목만 있는 형태도 계속 렌더링한다.
+
         local wbEntries = {}
         if wb.ilvl then
             wbEntries[1] = wb
@@ -597,10 +566,6 @@ local function buildOtherRows(avgIlvl)
     return rows
 end
 
--- ============================================================
--- 프레임 생성
--- ============================================================
-
 function ItemLevelOverlay:EnsureFrame()
     if self.frame then return self.frame end
 
@@ -646,20 +611,17 @@ function ItemLevelOverlay:EnsureFrame()
         setScale(f, delta * SCALE_STEP)
     end)
 
-    -- 타이틀 바
     local titleBar = frame:CreateTexture(nil, "BACKGROUND")
     titleBar:SetColorTexture(0.14, 0.14, 0.22, 0.80)
     titleBar:SetPoint("TOPLEFT",  frame, "TOPLEFT",  2, -2)
     titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -2, -2)
     titleBar:SetHeight(TITLE_H)
 
-    -- 메인 타이틀
     local titleText = makeFS(frame, 12, 0.85, 0.85, 1.00)
     titleText:SetPoint("LEFT", titleBar, "LEFT", 6, 2)
     titleText:SetText(ns.L("ilvl_overlay_title"))
     frame.titleText = titleText
 
-    -- 스크롤 힌트 (작은 폰트)
     local hintText = makeFS(frame, 9, 0.50, 0.50, 0.60)
     hintText:SetPoint("LEFT", titleText, "RIGHT", 4, 0)
     hintText:SetText(ns.L("ilvl_overlay_hint"))
@@ -703,7 +665,6 @@ function ItemLevelOverlay:EnsureFrame()
     end)
     frame.toggleBtn = toggleBtn
 
-    -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
     local lockBtn = CreateFrame("Button", nil, frame)
     lockBtn:SetSize(18, 18)
     lockBtn:SetPoint("RIGHT", toggleBtn, "LEFT", -2, 0)
@@ -731,7 +692,6 @@ function ItemLevelOverlay:EnsureFrame()
     end)
     frame.lockBtn = lockBtn
 
-    -- ─── 위치 초기화 버튼 ─────────────────────────────────────
     local resetBtn = CreateFrame("Button", nil, frame)
     resetBtn:SetSize(18, 18)
     resetBtn:SetPoint("RIGHT", lockBtn, "LEFT", -2, 0)
@@ -757,7 +717,6 @@ function ItemLevelOverlay:EnsureFrame()
     attachHeaderButtonTooltip(resetBtn, "overlay_button_reset_title", ns.L("overlay_button_reset_body"))
     frame.resetBtn = resetBtn
 
-    -- 탭 행
     local tabRow = CreateFrame("Frame", nil, frame)
     tabRow:SetPoint("TOPLEFT",  titleBar, "BOTTOMLEFT",  0, -2)
     tabRow:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, -2)
@@ -880,10 +839,6 @@ function ItemLevelOverlay:EnsureFrame()
     return frame
 end
 
--- ============================================================
--- 행 보장 (4열: 단 | 드랍 | 드랍문장 | 위대한금고)
--- ============================================================
-
 function ItemLevelOverlay:EnsureRow(index)
     if not self.frame then return nil end
     self.frame.rows = self.frame.rows or {}
@@ -892,7 +847,6 @@ function ItemLevelOverlay:EnsureRow(index)
     local row = CreateFrame("Frame", nil, self.frame.tableArea or self.frame.content)
     row:SetHeight(ROW_H)
 
-    -- 열1: 소스 (단/난이도)
     row.label = makeFS(row, 11, 0.78, 0.78, 0.90)
     row.label:SetPoint("LEFT", row, "LEFT", 4, 0)
     row.label:SetWidth(COL_DROP_X - 6)
@@ -901,7 +855,6 @@ function ItemLevelOverlay:EnsureRow(index)
         row.label:SetWordWrap(false)
     end
 
-    -- 열2: 클리어 보상 (ilvl + 등급 + rank)
     row.drop = makeFS(row, 10, 0.96, 0.86, 0.60)
     row.drop:SetPoint("LEFT", row, "LEFT", COL_DROP_X, 0)
     row.drop:SetWidth(COL_CREST_X - COL_DROP_X - 2)
@@ -910,7 +863,6 @@ function ItemLevelOverlay:EnsureRow(index)
         row.drop:SetWordWrap(false)
     end
 
-    -- 열3: 드랍 문장
     row.crest = makeFS(row, 10, 0.70, 0.70, 0.80)
     row.crest:SetPoint("LEFT", row, "LEFT", COL_CREST_X, 0)
     row.crest:SetWidth(COL_VAULT_X - COL_CREST_X - 2)
@@ -919,7 +871,6 @@ function ItemLevelOverlay:EnsureRow(index)
         row.crest:SetWordWrap(false)
     end
 
-    -- 열4: 위대한 금고
     row.vault = makeFS(row, 10, 0.55, 0.85, 0.55)
     row.vault:SetPoint("LEFT", row, "LEFT", COL_VAULT_X, 0)
     row.vault:SetWidth(TABLE_W - COL_VAULT_X - 4)
@@ -1014,10 +965,6 @@ function ItemLevelOverlay:RefreshSidePanel()
     frame.crestPanel:SetHeight(crestPanelH)
 end
 
--- ============================================================
--- 탭 선택 / 최소화
--- ============================================================
-
 function ItemLevelOverlay:SelectTab(tabKey)
     self.currentTab = tabKey or "overview"
     local config = ns.DB and ns.DB:GetItemLevelOverlayConfig()
@@ -1032,10 +979,6 @@ function ItemLevelOverlay:ToggleCollapsed()
     if config then config.collapsed = self.collapsed end
     self:UpdateLayout()
 end
-
--- ============================================================
--- 컨텐츠 재구성
--- ============================================================
 
 function ItemLevelOverlay:RebuildContent(avgIlvl)
     local frame = self.frame
@@ -1099,7 +1042,6 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
             row.label:SetTextColor(up and 0.95 or 0.68, up and 0.95 or 0.68, up and 0.95 or 0.75, 1)
             row.label:SetText(data.label or "")
 
-            -- 클리어 보상: 숫자는 base color(흰색/녹색), 등급명은 인라인 색상
             if up then
                 row.drop:SetTextColor(0.40, 0.94, 0.55, 1)
             else
@@ -1107,7 +1049,6 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
             end
             row.drop:SetText(data.dropStr or "")
 
-            -- 위대한 금고 열
             local vs = data.vaultStr or ""
             if vs == "" or vs == "-" then
                 row.vault:SetTextColor(0.35, 0.35, 0.38, 1)
@@ -1121,7 +1062,6 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
                 row.vault:SetText(vs)
             end
 
-            -- 드랍 문장 열 (인라인 색상)
             if data.crestDrop then
                 local cc = CREST_COLORS[data.crestDrop] or { 0.70, 0.70, 0.80 }
                 local hex = colorHex(cc[1], cc[2], cc[3])
@@ -1148,10 +1088,6 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
     self:UpdateLayout()
 end
 
--- ============================================================
--- 레이아웃
--- ============================================================
-
 function ItemLevelOverlay:UpdateLayout()
     local frame = self.frame
     if not frame then return end
@@ -1170,17 +1106,12 @@ function ItemLevelOverlay:UpdateLayout()
     end
 end
 
--- ============================================================
--- Refresh / Initialize
--- ============================================================
-
 function ItemLevelOverlay:Refresh()
     if not ns.DB or not ns.DB:IsItemLevelOverlayEnabled() then
         if self.frame then self.frame:Hide() end
         return
     end
 
-    -- 파티찾기(PVEFrame)가 열려있을 때만 표시
     local pve = PVEFrame or LFGParentFrame
     if not pve or not pve:IsShown() then
         if self.frame then self.frame:Hide() end
@@ -1205,7 +1136,6 @@ function ItemLevelOverlay:Initialize()
     if self._initialized then return end
     self._initialized = true
 
-    -- PVEFrame (파티찾기) 전용 연동
     local function setupPVEHooks()
         local pve = PVEFrame or LFGParentFrame
         if not pve then return false end
@@ -1224,7 +1154,6 @@ function ItemLevelOverlay:Initialize()
             if self.frame then self.frame:Hide() end
         end)
 
-        -- 이미 열려 있으면 즉시 표시
         if pve:IsShown() and ns.DB and ns.DB:IsItemLevelOverlayEnabled() then
             self:EnsureFrame()
             if self.frame then

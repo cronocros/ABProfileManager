@@ -4,8 +4,8 @@ local TomTomBridge = {}
 ns.Modules.TomTomBridge = TomTomBridge
 
 local REGION_LOCKED_MAPS = {
-    [2405] = true, -- Voidstorm
-    [2413] = true, -- Harandar
+    [2405] = true,
+    [2413] = true,
 }
 
 local function removeWaypoint(uid)

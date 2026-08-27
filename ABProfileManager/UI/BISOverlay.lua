@@ -3,23 +3,18 @@ local _, ns = ...
 local BISOverlay = {}
 ns.UI.BISOverlay = BISOverlay
 
--- ============================================================
--- 레이아웃 상수
--- ============================================================
-
 local FRAME_W      = 560
 local PADDING      = 6
 local ROW_H        = 19
 local SECTION_H    = 24
 local ICON_SIZE    = 15
 local TAB_SIZE     = 24
-local TABS_H       = 30              -- spec tabs + source filter row
+local TABS_H       = 30
 local TITLE_H      = 26
 local MAX_SCROLL_H = 340
 local FONT_PATH    = "Fonts\\2002.TTF"
 local FONT_FLAGS   = "OUTLINE"
 
--- 스케일 조절 (헤더 영역 마우스 휠)
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
 local SCALE_MAX  = 2.00
@@ -29,17 +24,13 @@ local SHARED_BIS_LIMIT_BY_SLOT = {
     ["장신구"] = 2,
 }
 
--- 커스텀 스크롤바 치수
-local SB_W   = 7    -- 스크롤바 폭
-local SB_GAP = 5    -- 스크롤바와 컨텐츠 사이 간격
+local SB_W   = 7
+local SB_GAP = 5
 
--- 헤더 총 높이
 local HEADER_H  = TITLE_H + 8 + TABS_H + 12
 
--- 컨텐츠 폭: 스크롤바(+갭+오른쪽 패딩) 제외
-local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 536
+local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)
 
--- 아이템 행 컬럼 레이아웃
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local CHECK_SIZE  = 14
@@ -62,7 +53,7 @@ local TITLE_TOGGLE_H = 18
 local SCROLL_TOOLTIP_SUPPRESS_SECONDS = 0.20
 
 local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted", "tier" }
--- table.sort 보조 — sourceGroup → 정렬 우선순위 (낮을수록 먼저)
+
 local SOURCE_GROUP_ORDER = {
     mythicplus = 1,
     raid       = 2,
@@ -82,7 +73,6 @@ local BIS_SOURCE_LABEL_KEYS = {
     tier = "bis_source_tier",
 }
 
--- 아이템 품질 색상
 local QC = {
     [0] = { 0.55, 0.55, 0.55 },
     [1] = { 0.85, 0.85, 0.85 },
@@ -94,7 +84,7 @@ local QC = {
 local QUALITY_COLOR_CACHE = {}
 
 local function getSeasonDisplayQuality(itemQuality)
-    -- 시즌 M+ 드랍은 구던 원본 품질이 파템이어도 최소 에픽으로 보정해서 보여준다.
+
     local ok, quality = pcall(function()
         return math.max(tonumber(itemQuality) or 4, 4)
     end)
@@ -368,13 +358,7 @@ local SourcePreview = {
     rejectedLinks = {},
     maxAttempts = 2,
 }
--- 동결된 BIS 정적 데이터가 기준으로 삼는 시즌. Data/BISCatalog.lua,
--- Data/BISMythicVaultLinks.lua, Data/BISSeasonPreviewLinks.lua,
--- Data/BISEncounterJournal.lua가 모두 이 시즌 기준이다.
--- Data/ItemLevelTable.lua의 season이 이 값과 달라지면 BIS 후보/템렙/
--- Encounter Journal tier가 현재 시즌과 맞지 않으므로 자동 동작을 멈추고
--- 기준 시즌을 표시한다. BIS 데이터를 갱신할 때 이 값도 함께 올린다.
--- 새 top-level local을 늘리지 않도록 helper는 전부 이 테이블의 필드다.
+
 local SeasonGuard = {
     dataSeason = "Midnight Season 1",
     cachedMismatch = nil,
@@ -393,8 +377,7 @@ function SeasonGuard.IsMismatched()
     if SeasonGuard.cachedMismatch == nil then
         local current = SeasonGuard.CurrentSeason()
         if current == nil then
-            -- ItemLevelTable을 아직 못 읽은 상태다. 이때의 판정을 캐시하면
-            -- 이후 데이터가 올라와도 영구히 "일치"로 굳어버린다.
+
             return false
         end
         SeasonGuard.cachedMismatch = (current ~= SeasonGuard.dataSeason)
@@ -402,9 +385,6 @@ function SeasonGuard.IsMismatched()
     return SeasonGuard.cachedMismatch
 end
 
--- 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있고 폭도 좁다. 시즌 이름을 그대로
--- 붙이면 원래 표시하던 스탯 정책 요약이 잘려나가므로 `S1` 형태로 줄인다.
--- 로케일 파일은 W5b 소유라 번역 키를 새로 만들지 않고 데이터에서 유도한다.
 function SeasonGuard.ShortLabel()
     local season = SeasonGuard.dataSeason or ""
     local number = season:match("(%d+)%s*$")
@@ -414,8 +394,6 @@ function SeasonGuard.ShortLabel()
     return season
 end
 
--- 안내 문구와 색을 함께 적용한다. 불일치 상태에서는 경고색으로 바꿔
--- 짧은 접두만으로도 눈에 띄게 한다.
 function SeasonGuard.ApplyNotice(fontString, text)
     if not fontString then
         return
@@ -442,10 +420,6 @@ local isEnglishOnlyLabel
 local localizeSourceLabel
 local resolveSeasonDungeonName
 local isItemHyperlink
-
--- ============================================================
--- Helper 함수들
--- ============================================================
 
 local function getPlayerClassID()
     if not UnitClass then return nil end
@@ -825,7 +799,6 @@ local function openEncounterJournalDungeonTierList(tierIndex)
     end
 end
 
--- 모험 안내서 열기 (safe — pcall 보호)
 local function openEncounterJournalForEntry(entry)
     if not entry then
         return
@@ -844,8 +817,6 @@ local function openEncounterJournalForEntry(entry)
         return
     end
 
-    -- BIS 데이터가 이전 시즌 기준이면 Encounter Journal tier가 현재 시즌과
-    -- 맞지 않는다. 틀린 tier로 이동시키지 않고 기준 시즌을 알린다.
     if SeasonGuard.IsMismatched() then
         if ns.Utils and ns.Utils.Print then
             ns.Utils.Print(string.format(
@@ -882,10 +853,7 @@ local function openEncounterJournalForEntry(entry)
             if instanceID
             and selectEncounterJournalTierForInstance(instanceID, tier)
             and type(EncounterJournal_OpenJournal) == "function" then
-                -- Do not pass itemID here. Blizzard builds Encounter Journal item
-                -- tooltip buttons with secret sell-price data; focusing a specific
-                -- item from an addon-owned click path can leave that tooltip path
-                -- tainted when the user hovers the loot row.
+
                 pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, nil, tier)
             elseif sourceType == "mythicplus" then
                 openEncounterJournalDungeonTierList(tier or CURRENT_SEASON_EJ_TIER_INDEX)
@@ -1729,10 +1697,6 @@ local function groupBySlot(items, specID)
     return slots, order
 end
 
--- ============================================================
--- 아이템 정보 로드 이벤트 → 디바운스 재빌드
--- ============================================================
-
 local _rebuildPending = false
 local _fullRebuildPending = false
 local function scheduleRebuild(itemID, fullRebuild)
@@ -1866,10 +1830,6 @@ local function refreshItemRowDisplay(row)
     return false
 end
 
--- ============================================================
--- 스크롤바 썸 업데이트
--- ============================================================
-
 function BISOverlay:UpdateScrollThumb()
     local frame = self.frame
     if not frame or not frame.scrollBarThumb then return end
@@ -1895,10 +1855,6 @@ function BISOverlay:UpdateScrollThumb()
     frame.scrollBarThumb:ClearAllPoints()
     frame.scrollBarThumb:SetPoint("TOPRIGHT", frame.scrollBarTrack, "TOPRIGHT", 0, thumbY)
 end
-
--- ============================================================
--- 접기/펼치기
--- ============================================================
 
 function BISOverlay:ApplyCollapse()
     local frame = self.frame
@@ -1979,10 +1935,6 @@ function BISOverlay:ToggleSourceFilter(sourceType)
     self:RebuildContent()
 end
 
--- ============================================================
--- 프레임 생성
--- ============================================================
-
 function BISOverlay:EnsureFrame()
     if self.frame then return self.frame end
 
@@ -2006,12 +1958,11 @@ function BISOverlay:EnsureFrame()
         frame:SetBackdropBorderColor(0.50, 0.40, 0.80, 0.90)
     end
 
-    -- 드래그 (잠금 상태 확인)
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:EnableMouseWheel(true)
     frame:RegisterForDrag("LeftButton")
-    -- 헤더 영역(스크롤프레임 밖)에서 마우스 휠 → 스케일 조절
+
     frame:SetScript("OnMouseWheel", function(f, delta)
         setOverlayScale(f, delta * SCALE_STEP)
     end)
@@ -2037,14 +1988,12 @@ function BISOverlay:EnsureFrame()
         end
     end)
 
-    -- ─── 제목 바 배경 ───────────────────────────────────────
     local titleBar = frame:CreateTexture(nil, "BACKGROUND")
     titleBar:SetHeight(TITLE_H + 14)
     titleBar:SetPoint("TOPLEFT",  frame, "TOPLEFT",  5,  -5)
     titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
     titleBar:SetColorTexture(0.10, 0.07, 0.22, 0.90)
 
-    -- 제목 텍스트
     frame.titleText = frame:CreateFontString(nil, "OVERLAY")
     frame.titleText:SetFont(FONT_PATH, 13, FONT_FLAGS)
     frame.titleText:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING + 2, -10)
@@ -2183,7 +2132,6 @@ function BISOverlay:EnsureFrame()
     frame.updateBISItemTooltipVisual = updateBISItemTooltipVisual
     updateBISItemTooltipVisual()
 
-    -- ─── 접기/펼치기 버튼 ────────────────────────────────────
     local collapseBtn = CreateFrame("Button", nil, frame)
     collapseBtn:SetSize(18, 18)
     collapseBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -9)
@@ -2206,7 +2154,6 @@ function BISOverlay:EnsureFrame()
     end)
     frame.collapseBtn = collapseBtn
 
-    -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
     local lockBtn = CreateFrame("Button", nil, frame)
     lockBtn:SetSize(18, 18)
     lockBtn:SetPoint("RIGHT", collapseBtn, "LEFT", -2, 0)
@@ -2234,7 +2181,6 @@ function BISOverlay:EnsureFrame()
     end)
     frame.lockBtn = lockBtn
 
-    -- ─── 위치 초기화 버튼 ─────────────────────────────────────
     local resetBtn = CreateFrame("Button", nil, frame)
     resetBtn:SetSize(18, 18)
     resetBtn:SetPoint("RIGHT", lockBtn, "LEFT", -2, 0)
@@ -2261,14 +2207,12 @@ function BISOverlay:EnsureFrame()
     attachHeaderButtonTooltip(resetBtn, "overlay_button_reset_title", ns.L("overlay_button_reset_body"))
     frame.resetBtn = resetBtn
 
-    -- ─── 구분선 1 ───────────────────────────────────────────
     local sep1 = frame:CreateTexture(nil, "ARTWORK")
     sep1:SetHeight(1)
     sep1:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 10))
     sep1:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 10))
     sep1:SetColorTexture(0.45, 0.35, 0.70, 0.65)
 
-    -- ─── 스펙 탭 영역 ────────────────────────────────────────
     frame.tabsFrame = CreateFrame("Frame", nil, frame)
     frame.tabsFrame:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 12))
     frame.tabsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 12))
@@ -2418,14 +2362,12 @@ function BISOverlay:EnsureFrame()
         BISOverlay:RefreshSpecPickerRows()
     end)
 
-    -- ─── 구분선 2 ───────────────────────────────────────────
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
     sep2:SetHeight(1)
     sep2:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 12 + TABS_H + 4))
     sep2:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 12 + TABS_H + 4))
     sep2:SetColorTexture(0.45, 0.35, 0.70, 0.45)
 
-    -- ─── 스크롤 프레임 ──────────────────────────────────────
     frame.scrollFrame = CreateFrame("ScrollFrame", nil, frame)
     frame.scrollFrame:SetPoint("TOPLEFT",     frame, "TOPLEFT",
         PADDING, -HEADER_H)
@@ -2443,26 +2385,22 @@ function BISOverlay:EnsureFrame()
         self:UpdateScrollThumb()
     end)
 
-    -- ─── 스크롤 자식 ────────────────────────────────────────
     frame.content = CreateFrame("Frame", nil, frame.scrollFrame)
     frame.content:SetSize(CONTENT_W, 1)
     frame.scrollFrame:SetScrollChild(frame.content)
 
-    -- ─── 커스텀 스크롤바 트랙 ───────────────────────────────
     frame.scrollBarTrack = frame:CreateTexture(nil, "ARTWORK")
     frame.scrollBarTrack:SetWidth(SB_W)
     frame.scrollBarTrack:SetPoint("TOPRIGHT",    frame, "TOPRIGHT",    -PADDING, -HEADER_H)
     frame.scrollBarTrack:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING,  PADDING)
     frame.scrollBarTrack:SetColorTexture(0.05, 0.05, 0.12, 0.85)
 
-    -- 트랙 좌측 미묘한 하이라이트 선
     local sbEdge = frame:CreateTexture(nil, "ARTWORK")
     sbEdge:SetWidth(1)
     sbEdge:SetPoint("TOPRIGHT",    frame.scrollBarTrack, "TOPLEFT",    0, 0)
     sbEdge:SetPoint("BOTTOMRIGHT", frame.scrollBarTrack, "BOTTOMLEFT", 0, 0)
     sbEdge:SetColorTexture(0.30, 0.20, 0.55, 0.60)
 
-    -- ─── 커스텀 스크롤바 썸 ─────────────────────────────────
     frame.scrollBarThumb = CreateFrame("Frame", nil, frame)
     frame.scrollBarThumb:SetWidth(SB_W)
     frame.scrollBarThumb:SetHeight(40)
@@ -2473,7 +2411,6 @@ function BISOverlay:EnsureFrame()
     thumbTex:SetAllPoints()
     thumbTex:SetColorTexture(0.55, 0.35, 0.88, 0.88)
 
-    -- 썸 드래그
     local _dragging, _dragY, _dragScroll = false, 0, 0
     local function updateThumbDrag()
         if not _dragging then return end
@@ -2502,7 +2439,6 @@ function BISOverlay:EnsureFrame()
         frame.scrollBarThumb:SetScript("OnUpdate", nil)
     end)
 
-    -- GET_ITEM_INFO_RECEIVED 이벤트
     local evFrame = CreateFrame("Frame")
     evFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
     evFrame:SetScript("OnEvent", function(_, _, itemID, success)
@@ -2533,10 +2469,6 @@ function BISOverlay:EnsureFrame()
     self.frame = frame
     return frame
 end
-
--- ============================================================
--- 스펙 탭 생성/업데이트
--- ============================================================
 
 local function ensureSpecPickerRow(frame, index)
     local picker = frame.specPicker
@@ -2730,7 +2662,6 @@ function BISOverlay:EnsureTabs()
         tab:SetSize(TAB_SIZE, TAB_SIZE)
         tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 6), -2)
 
-        -- 아이콘
         tab.icon = tab:CreateTexture(nil, "ARTWORK")
         tab.icon:SetAllPoints()
         if spec.icon then
@@ -2738,14 +2669,12 @@ function BISOverlay:EnsureTabs()
             tab.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
         end
 
-        -- 하단 활성 인디케이터 바 (아이콘 바로 아래 2px 선)
         tab.indicator = tab:CreateTexture(nil, "OVERLAY")
         tab.indicator:SetHeight(2)
         tab.indicator:SetPoint("BOTTOMLEFT",  tab, "BOTTOMLEFT",  0, -3)
         tab.indicator:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, -3)
         tab.indicator:SetColorTexture(0, 0, 0, 0)
 
-        -- 마우스 오버 하이라이트
         tab.highlight = tab:CreateTexture(nil, "HIGHLIGHT")
         tab.highlight:SetAllPoints()
         tab.highlight:SetColorTexture(1, 1, 1, 0.12)
@@ -2792,7 +2721,7 @@ function BISOverlay:UpdateTabHighlight()
         if tab.specID == activeID then
             tab.icon:SetDesaturated(false)
             tab.icon:SetAlpha(1.0)
-            tab.indicator:SetColorTexture(0.20, 0.85, 1.0, 1.0)  -- 밝은 시안
+            tab.indicator:SetColorTexture(0.20, 0.85, 1.0, 1.0)
         else
             tab.icon:SetDesaturated(true)
             tab.icon:SetAlpha(0.40)
@@ -2801,10 +2730,6 @@ function BISOverlay:UpdateTabHighlight()
     end
     self:UpdateSpecPickerButton()
 end
-
--- ============================================================
--- 행 생성/재사용
--- ============================================================
 
 requestItemData = function(itemID)
     itemID = tonumber(itemID)
@@ -2883,7 +2808,7 @@ end
 local function isTimewalkingInstance()
     local inInstance, instanceType = IsInInstance()
     if not inInstance or instanceType ~= "party" then return false end
-    -- difficulty 24 = Timewalking Dungeon
+
     local _, _, difficulty = GetInstanceInfo()
     return difficulty == 24
 end
@@ -2892,7 +2817,7 @@ local function isValidPreviewItemLevel(sourceType, itemLevel)
     if not itemLevel or itemLevel <= 0 then
         return false
     end
-    -- 시간여행 던전에서는 아이템이 스케일다운된 ilvl로 표시되므로 범위 검증을 우회
+
     if isTimewalkingInstance() then
         return true
     end
@@ -3275,7 +3200,7 @@ getPreviewRankingScore = function(entry, specID)
     if getEntrySourceType(entry) ~= "mythicplus" then
         return nil
     end
-    -- 이전 시즌 기준 snapshot으로 현재 시즌 순위를 매기지 않는다.
+
     if SeasonGuard.IsMismatched() then
         return nil
     end
@@ -3316,8 +3241,7 @@ local function getConfiguredMythicVaultItemLinks(entry)
     addLink(profile and profile.itemString)
     addLink(linksByItemID and linksByItemID[itemID])
     if itemID and generatedPreviewBonusListID and type(generatedPreviewItemStringTemplate) == "string" then
-        -- Retail ItemLink fields before numBonusIDs:
-        -- enchant, four gems, suffix, unique, link level, spec, mask, context.
+
         local ok, generatedLink = pcall(
             string.format,
             generatedPreviewItemStringTemplate,
@@ -3352,8 +3276,7 @@ local function getExactMythicVaultItemLink(entry)
 end
 
 local function resolveMythPreviewSnapshot(entry)
-    -- 이전 시즌 selector로 만든 preview는 현재 시즌 템렙 검증을 통과하지
-    -- 못한다. 실패할 스캔을 큐에 넣지 않는다.
+
     if SeasonGuard.IsMismatched() then
         return nil
     end
@@ -3376,7 +3299,7 @@ end
 scheduleAutomaticRuntimeScores = function(items, specID)
     BISOverlay._automaticScoreQueueToken = (BISOverlay._automaticScoreQueueToken or 0) + 1
     local queueToken = BISOverlay._automaticScoreQueueToken
-    -- 시즌이 어긋나면 자동 점수화 자체를 돌리지 않는다.
+
     if SeasonGuard.IsMismatched() then
         return
     end
@@ -3662,9 +3585,7 @@ showSeasonItemTooltip = function(owner, row)
         end
         tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
         resetBISTooltipState(tooltip)
-        -- Blizzard's SellPrice rule skips MoneyFrame rendering for shopping
-        -- tooltips. Set this only for the single SetHyperlink call, then clear
-        -- it when the addon-owned tooltip is hidden.
+
         tooltip.isShopping = true
         local ok = pcall(tooltip.SetHyperlink, tooltip, link)
         if not ok or tooltip:NumLines() == 0 then
@@ -3961,15 +3882,10 @@ function BISOverlay:RefreshVisibleItemRows(itemIDs)
     return refreshed
 end
 
--- ============================================================
--- 컨텐츠 빌드
--- ============================================================
-
 function BISOverlay:RebuildContent()
     local frame = self.frame
     if not frame then return end
 
-    -- 스크롤 위치 저장 (아이템 로드 재빌드일 때 복원용)
     local isItemLoadRebuild = self._isItemLoadRebuild
     self._isItemLoadRebuild = false
     local savedScroll = frame.scrollFrame:GetVerticalScroll()
@@ -4070,19 +3986,16 @@ function BISOverlay:RebuildContent()
                 iRow._displayNoteKind = entry._displayNoteKind
                 iRow._displayNoteIndex = entry._displayNoteIndex
 
-                -- 교번 배경
                 if itemRowCount % 2 == 0 then
                     iRow.bg:SetColorTexture(0.06, 0.08, 0.14, 0.55)
                 else
                     iRow.bg:SetColorTexture(0.04, 0.05, 0.10, 0.28)
                 end
 
-                -- 아이템 이름/아이콘은 부분 갱신 가능하도록 별도 처리
                 refreshItemRowDisplay(iRow)
                 iRow.favoriteBtn:Show()
                 iRow.ownedBtn:Show()
 
-                -- 출처 라벨
                 local sourceLabel = getDisplaySourceLabel(entry)
                 if slotName == FAVORITES_SLOT and sourceLabel and sourceLabel ~= "" then
                     sourceLabel = localizeSlot(entry.slot) .. " · " .. sourceLabel
@@ -4107,7 +4020,6 @@ function BISOverlay:RebuildContent()
                 iRow.typeLabel:SetText(getEntryTrackStatusLabel(entry))
                 iRow.typeLabel:Show()
 
-                -- note 배지
                 local noteTxt = noteBadge(entry._displayNoteKind, entry._displayNoteIndex)
                 if noteTxt and noteTxt ~= "" then
                     iRow.noteLabel:ClearAllPoints()
@@ -4128,7 +4040,6 @@ function BISOverlay:RebuildContent()
         end
     end
 
-    -- 높이 갱신
     frame.content:SetHeight(math.max(1, yOffset))
     local visH   = math.min(MAX_SCROLL_H, yOffset)
     local totalH = HEADER_H + math.max(20, visH) + PADDING
@@ -4137,7 +4048,6 @@ function BISOverlay:RebuildContent()
         scheduleAutomaticRuntimeScores(filteredData, specID)
     end
 
-    -- 스크롤 복원(아이템 로드) 또는 초기화(스펙 변경), 썸 업데이트 (레이아웃 확정 후)
     C_Timer.After(0, function()
         if isItemLoadRebuild and savedScroll > 0 then
             local maxScroll = frame.scrollFrame:GetVerticalScrollRange()
@@ -4148,10 +4058,6 @@ function BISOverlay:RebuildContent()
         self:UpdateScrollThumb()
     end)
 end
-
--- ============================================================
--- Refresh
--- ============================================================
 
 function BISOverlay:Refresh()
     if not ns.DB or not ns.DB:IsBISOverlayEnabled() then
@@ -4174,7 +4080,6 @@ function BISOverlay:Refresh()
     self.frame:SetScale(getOverlayScale())
     self:ApplyCollapse()
 
-    -- 앵커 대상이 바뀌었을 때만 ClearAllPoints/SetPoint 호출 (깜박임 방지)
     local config = getOverlayConfig()
     local ilFrame = ns.UI.ItemLevelOverlay and ns.UI.ItemLevelOverlay.frame
     local useStoredPoint = (config.anchorMode or "itemlevel") == "overlay"
@@ -4235,10 +4140,6 @@ function BISOverlay:Refresh()
     end
     self.frame:Show()
 end
-
--- ============================================================
--- Initialize
--- ============================================================
 
 function BISOverlay:Initialize()
     if self._initialized then return end

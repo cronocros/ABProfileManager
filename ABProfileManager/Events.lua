@@ -14,32 +14,25 @@ local professionFollowUpToken = 0
 local ITEM_LEVEL_OVERLAY_REFRESH_DELAY = 0.15
 local itemLevelOverlayRefreshPending = false
 
--- UNIT_AURA / UNIT_STATS / COMBAT_RATING_UPDATE 등 고주기 이벤트 디바운싱
--- 빠른 갱신(장비/주문 변화)과 느린 갱신(오라/전투수치 변화)을 분리한다.
 local STATS_REFRESH_DELAY = 0.15
 local STATS_SLOW_REFRESH_DELAY = 0.45
 local statsRefreshPending = false
 local statsRefreshDelay = nil
 local statsRefreshToken = 0
 
--- QUEST_LOG_UPDATE 디바운싱: 퀘스트 진행 중 고빈도 발화를 하나로 합침
--- QuestManager:Scan 은 퀘스트당 5+ WoW API 호출 → 디바운스 없이 초당 수백 번 호출 가능
 local QUEST_PANEL_REFRESH_DELAY = 0.15
 local questPanelRefreshPending = false
 
--- 전투부대 은행 세션 상태 추적
 local abpmBankSessionActive = false
 local abpmBankPanelHooksInstalled = false
--- CloseBankFrame → BANKFRAME_CLOSED → abpmCloseBankSessions 재귀 방지 플래그
+
 local abpmBankCleanupInProgress = false
 
--- 루팅 세션 중 BAG/LOOT 이벤트 동시 발화에 의한 중복 followup 방지
--- token 패턴: 연속 루팅(1.5초 이내 다수 아이템 획득) 시 타이머 누적 방지
 local lootSessionActive = false
 local lootSessionToken = 0
 
 local function abpmCloseBankSessions()
-    -- 재진입 방지: CloseBankFrame 호출이 BANKFRAME_CLOSED를 재발화하여 무한 재귀를 일으킬 수 있음
+
     if abpmBankCleanupInProgress then return end
     abpmBankCleanupInProgress = true
     if BankFrame and BankFrame:IsShown() then
@@ -94,7 +87,6 @@ local function refreshGhostsAndRetries()
     ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
 end
 
--- 디바운스 콜백 사전 생성: 매 이벤트마다 클로저 생성 방지 (GC 압력 감소)
 local function _questPanelRefreshCallback()
     questPanelRefreshPending = false
     ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
@@ -114,9 +106,7 @@ end
 local statsRefreshForcePending = false
 
 local function _doStatsOverlayRefresh(forceRequested)
-    -- WoW 12.0.5 인던 진입 / 특성 변경 / 장비 교체 등 critical 시점에는
-    -- 캐시된 lastStateSignature 가 stale 한 0 값이거나 동일 hash 일 수 있어
-    -- force=true 로 강제 갱신해야 0 표시 / 트링킷 발동 미반영 문제를 막을 수 있다.
+
     if forceRequested then
         ns:SafeCall(ns.UI.StatsOverlay, "Refresh", { force = true })
     else
@@ -187,7 +177,7 @@ local function refreshItemLevelOverlay()
 end
 
 local function refreshCharacterContextUI()
-    -- 컨텍스트 변경(존 이동/특성 변경/장비 변경) 시 stats overlay 캐시 무효화
+
     ns:SafeCall(ns.UI.StatsOverlay, "Refresh", { force = true })
     ns:SafeCall(ns.UI.ItemLevelOverlay, "Refresh")
     ns:SafeCall(ns.UI.BISOverlay, "Refresh")
@@ -323,8 +313,6 @@ local function ensureCombatTextSettings()
     end
 end
 
--- 전투부대 은행 사용 가능 여부 사전 점검 (외부 모듈/명령어에서 호출)
--- 반환: true = 사용 가능, false = 불가 (채팅 안내 출력)
 function ns.ABPM_CanUseWarbandBank()
     if not C_Bank then
         ns.Utils.Print("[ABPM] 전투부대 은행 API(C_Bank)를 찾을 수 없습니다.")
@@ -351,7 +339,6 @@ function ns.ABPM_CanUseWarbandBank()
     return true
 end
 
--- 모든 은행 세션 강제 종료 (수동 호출 또는 상호작용 실패 감지 시)
 function ns.ABPM_ResetBankSession()
     abpmCloseBankSessions()
     ns.Utils.Print("[ABPM] 전투부대 은행 세션을 초기화했습니다.")
@@ -405,20 +392,16 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
     frame:RegisterEvent("ACTIVE_DELVE_DATA_UPDATE")
     frame:RegisterEvent("AREA_POIS_UPDATED")
-    -- 전투부대 은행 세션 보호 이벤트
+
     frame:RegisterEvent("PLAYER_LEAVING_WORLD")
     frame:RegisterEvent("BANKFRAME_OPENED")
     frame:RegisterEvent("BANKFRAME_CLOSED")
     frame:RegisterEvent("UI_ERROR_MESSAGE")
-    -- 인던/존 이동: 스탯 오버레이가 stale signature 로 0 표시되는 문제 방지
+
     frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     frame:RegisterEvent("PLAYER_ENTER_COMBAT")
     frame:RegisterEvent("PLAYER_LEAVE_COMBAT")
-    -- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight API 미확인)
-    -- frame:RegisterEvent("MERCHANT_SHOW")
-    -- frame:RegisterEvent("MERCHANT_UPDATE")
-    -- [비활성] MailHistory: 우편 자동완성 미구현
-    -- frame:RegisterEvent("MAIL_SEND_SUCCESS")
+
 end
 
 function Events:PLAYER_LOGIN()
@@ -431,7 +414,7 @@ function Events:PLAYER_LOGIN()
     ensureMouseMoveSetting()
     ensureCombatTextSettings()
     ns:SafeCall(ns.UI.MainWindow, "OnPlayerLogin")
-    -- 로그인 직후 PaperDoll API 가 0 일 수 있어 force 후속 갱신 1회 추가
+
     ns:SafeCall(ns.UI.StatsOverlay, "InvalidateState")
     refreshStatsOverlayForce(STATS_REFRESH_DELAY)
     if C_Timer and type(C_Timer.After) == "function" then
@@ -456,8 +439,7 @@ function Events:PLAYER_ENTERING_WORLD()
     ensureCombatTextSettings()
     refreshGhostsAndRetries()
     runProfessionKnowledgeRefresh(true, "PLAYER_ENTERING_WORLD")
-    -- 인던/PvP 진입 직후엔 PaperDoll 통계 API 가 일시적으로 0 을 반환할 수 있어
-    -- 짧은 후속 force refresh 두 번을 통해 값이 채워지자마자 갱신되도록 한다.
+
     ns:SafeCall(ns.UI.StatsOverlay, "InvalidateState")
     refreshStatsOverlayForce(STATS_REFRESH_DELAY)
     if C_Timer and type(C_Timer.After) == "function" then
@@ -506,7 +488,7 @@ function Events:SKILL_LINES_CHANGED()
 end
 
 function Events:PLAYER_EQUIPMENT_CHANGED()
-    -- 장비 교체는 stat 절대값을 다시 계산해야 하므로 force 로 캐시 무효화
+
     refreshStatsOverlayForce(STATS_REFRESH_DELAY)
     refreshItemLevelOverlay()
 end
@@ -540,8 +522,6 @@ function Events:UNIT_AURA(unitToken)
         return
     end
 
-    -- 트링킷 사용 효과 / 물약 / 외부 버프는 buff hash 가 변하면 즉시 반영되어야 한다.
-    -- slow(0.45s)는 응답이 너무 느려 발동 효과를 놓치므로 일반 디바운스(0.15s)로 변경.
     refreshStatsOverlay()
 end
 
@@ -555,15 +535,14 @@ end
 
 function Events:QUEST_LOG_UPDATE()
     ns:SafeCall(ns.Modules.QuestManager, "Invalidate")
-    refreshQuestPanel()  -- 디바운스: 고빈도 발화 시 0.15s 내 1회로 합산
+    refreshQuestPanel()
     refreshProfessionKnowledgeViews(false, "QUEST_LOG_UPDATE")
 end
 
 function Events:QUEST_TURNED_IN()
     refreshProfessionKnowledgeViews(true, "QUEST_TURNED_IN")
     scheduleProfessionFollowUpRefresh("QUEST_TURNED_IN")
-    -- [비활성] WorldEventOverlay 자동감지: 퀘스트 기반 완료 감지 미동작
-    -- ns:SafeCall(ns.UI.WorldEventOverlay, "OnQuestTurnedIn")
+
 end
 
 function Events:BAG_UPDATE_DELAYED()
@@ -607,7 +586,6 @@ function Events:AREA_POIS_UPDATED()
     refreshItemLevelOverlay()
 end
 
--- 전투부대 은행 세션 보호 핸들러
 function Events:PLAYER_LEAVING_WORLD()
     abpmCloseBankSessions()
 end
@@ -618,8 +596,7 @@ function Events:BANKFRAME_OPENED()
 end
 
 function Events:BANKFRAME_CLOSED()
-    -- 주의: 여기서 CloseBankFrame/abpmCloseBankSessions 호출 금지
-    -- BankFrame이 닫히는 도중에 재호출하면 BANKFRAME_CLOSED가 재발화되어 무한 재귀 발생
+
     abpmBankSessionActive = abpmIsAccountBankShown()
 end
 
@@ -628,11 +605,11 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
     abpmInstallBankPanelHooks()
     abpmRefreshBankSessionState()
     local isBankError = false
-    -- 방법 1: WoW 전역 상수 직접 비교 (영문 클라이언트)
+
     if _G["ERR_BANK_IN_USE"] and message == _G["ERR_BANK_IN_USE"] then
         isBankError = true
     end
-    -- 방법 2: "bank" 부분 문자열 검색 (다국어 클라이언트 보완)
+
     if not isBankError then
         local ok, found = pcall(string.find, string.lower(message), "bank", 1, true)
         if ok and found then isBankError = true end
@@ -643,13 +620,11 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
     end
 end
 
--- 존(인던) 이동: 인스턴스 컨텍스트 자체가 signature 의 일부이므로 force 갱신
 function Events:ZONE_CHANGED_NEW_AREA()
     ns:SafeCall(ns.UI.StatsOverlay, "InvalidateState")
     refreshStatsOverlayForce(STATS_REFRESH_DELAY)
 end
 
--- 전투 진입/종료 시 발동 효과 / 분노 / 광폭화 등 buff 상태 변동 즉시 반영
 function Events:PLAYER_ENTER_COMBAT()
     refreshStatsOverlay()
 end
@@ -657,33 +632,5 @@ end
 function Events:PLAYER_LEAVE_COMBAT()
     refreshStatsOverlay()
 end
-
--- [비활성] MerchantHelper: 도안 감지 미동작 (Midnight spellID API 부정확)
--- function Events:MERCHANT_SHOW()
---     ns:SafeCall(ns.Modules.MerchantHelper, "ScanAndMark")
--- end
---
--- function Events:MERCHANT_UPDATE()
---     ns:SafeCall(ns.Modules.MerchantHelper, "ScanAndMark")
--- end
-
--- [비활성] MailHistory: 우편 자동완성 미구현
--- function Events:MAIL_SEND_SUCCESS()
---     if not ns.DB or not ns.DB:IsMailHistoryEnabled() then
---         return
---     end
---
---     local recipientName = nil
---     if SendMailNameEditBox then
---         local ok, name = pcall(function() return SendMailNameEditBox:GetText() end)
---         if ok then
---             recipientName = name
---         end
---     end
---
---     if recipientName and recipientName ~= "" then
---         ns:SafeCall(ns.Modules.MailHistory, "RecordSend", recipientName)
---     end
--- end
 
 Events:Initialize()

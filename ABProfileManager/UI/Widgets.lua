@@ -371,7 +371,7 @@ function Widgets.CreateScrollEditBox(parent, width, height, readOnly)
     box:SetScript("OnEscapePressed", box.ClearFocus)
     box:SetScript("OnEnterPressed", function() end)
     box:SetScript("OnCursorChanged", function(_, _, y, _, cursorHeight)
-        -- readOnly 상자에서 클릭 시 커서가 y=0으로 이동하면서 스크롤이 상단으로 튕기는 문제 방지
+
         if host.readOnly then
             return
         end

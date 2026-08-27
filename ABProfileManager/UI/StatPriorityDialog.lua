@@ -366,7 +366,7 @@ local function getOrCreateFrame(self)
 end
 
 function StatPriorityDialog:Initialize()
-    -- 지연 초기화: Show 호출 시점에 frame 생성.
+
 end
 
 function StatPriorityDialog:RefreshLocale()
@@ -409,8 +409,7 @@ function StatPriorityDialog:Show()
         frame:Raise()
     end
     self:Refresh()
-    -- ScrollFrame:GetVerticalScrollRange()가 한 프레임 뒤에야 갱신되는 경우가 있어
-    -- 다음 프레임에서 한 번 더 스크롤바를 보정해 준다.
+
     if C_Timer and C_Timer.After then
         C_Timer.After(0, function()
             if frame.scrollHost and frame.scrollHost.UpdateScrollBar then

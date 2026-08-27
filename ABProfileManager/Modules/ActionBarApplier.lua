@@ -592,8 +592,7 @@ function ActionBarApplier:ReconcilePendingGhosts()
 end
 
 function ActionBarApplier:RetryPendingGhosts()
-    -- 처리할 ghost 가 없으면 silently 종료. ACTIONBAR_SLOT_CHANGED 등이 매우
-    -- 빈번하게 발화되므로 빈 retry 가 디버그 로그 버퍼를 폭주시키지 않게 한다.
+
     if not next(self.pendingGhosts) then
         self._lastRetrySkipReason = nil
         return
@@ -610,7 +609,7 @@ function ActionBarApplier:RetryPendingGhosts()
     end
 
     if skipReason then
-        -- skip 사유가 바뀔 때만 1회 로그. 동일 사유의 연속 호출은 suppress.
+
         if skipReason ~= self._lastRetrySkipReason then
             ns.Utils.Debug("Ghost retry skipped: " .. skipReason)
             self._lastRetrySkipReason = skipReason

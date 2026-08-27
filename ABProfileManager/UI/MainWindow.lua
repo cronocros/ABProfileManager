@@ -139,8 +139,7 @@ function MainWindow:Initialize()
         if currentFrame.Raise then
             currentFrame:Raise()
         end
-        -- 탭 버튼 텍스트가 초기화 타이밍에 따라 안 보이는 경우를 방지:
-        -- OnShow 시점에 한 프레임 뒤로 미뤄 레이아웃 완료 후 locale 재적용
+
         C_Timer.After(0, function()
             ns:SafeCall(ns.UI.MainWindow, "RefreshLocale")
         end)

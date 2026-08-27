@@ -72,7 +72,6 @@ local function shouldTrackInfo(info)
         return false
     end
 
-    -- Exclude hidden/task style entries so the panel reflects the normal quest log.
     if info.isTask or info.isHidden or info.isBounty then
         return false
     end

@@ -75,8 +75,7 @@ ns.Data.Defaults = {
                     baselineItemLevel = 272,
                     generatedPreviewBonusListID = 12801,
                     generatedPreviewItemStringTemplate = "item:%d::::::::::::1:%d",
-                    -- 시즌이 바뀌면 DB:GetBISOverlayMythPreviewCache()가 한 번
-                    -- 비운다. 기본값은 비워 두고 첫 접근에서 현재 시즌을 채운다.
+
                     season = "",
                     itemsByID = {},
                 },

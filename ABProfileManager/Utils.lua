@@ -20,7 +20,7 @@ function Utils.Debug(message)
     if ns.DB and ns.DB.IsDebugEnabled and ns.DB:IsDebugEnabled() then
         local line = "[debug] " .. tostring(message)
         Utils.Print(line)
-        -- 버퍼에 타임스탬프와 함께 저장
+
         local ts = getTimeLabel()
         debugLogBuffer[#debugLogBuffer + 1] = ts .. "  " .. tostring(message)
         if #debugLogBuffer > DEBUG_LOG_MAX then
@@ -223,16 +223,6 @@ function Utils.SafeToNumber(value, fallback)
     return math.floor(numeric)
 end
 
--- WoW 12.0.5+ 의 "secret number" 보호 플래그가 붙은 값을 직접 산술 연산하면
--- "execution tainted by '<addon>'" 오류가 발생한다. tostring→tonumber 변환으로
--- 플래그를 제거하여 안전한 plain number 로 만든다. C_UnitAuras 등 외부 API
--- 결과에 산술/포맷 적용 직전에 이 함수를 거치게 한다.
---
--- Fallback chain (중요):
---   1) tostring→tonumber 성공 → 일반 number (secret 플래그 제거 완료)
---   2) 실패 → 0. 원본 secret number 를 반환하면 이후 산술/렌더 경로로
---      오염 값이 다시 전파될 수 있으므로 보존하지 않는다.
--- pcall 로 감싸 tostring 자체가 taint 오류를 일으키는 극단 케이스도 흡수한다.
 function Utils.SafeNumber(value)
     local convertOk, stripped = pcall(function()
         return tonumber(tostring(value))

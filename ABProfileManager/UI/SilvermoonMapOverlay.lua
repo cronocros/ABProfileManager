@@ -7,18 +7,15 @@ local FONT_PATH = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local REFRESH_INTERVAL = 0.5
 local DRIVER_BURST_DURATION = 1.0
 
--- LayoutPoints 핫패스 재사용 버퍼 — GC 스파이크 방지
--- 레이아웃 실행 시마다 테이블을 새로 만들지 않고 이 버퍼를 wipe 후 재사용
-local _layoutPoints      = {}   -- 필터 통과 포인트 목록
-local _layoutEntries     = {}   -- {point, nearbyCount} 엔트리 목록 (객체 풀)
-local _layoutPlaced      = {}   -- 배치 완료 rect 목록 (직접 rect 저장)
-local _layoutPlacedPool  = {}   -- placed rect 객체 풀
-local _scoreRect         = { left=0, right=0, top=0, bottom=0 }  -- 후보 평가용 임시 rect
-local _bestRect          = { left=0, right=0, top=0, bottom=0 }  -- best 후보 캡처용 임시 rect
--- mapID → mapInfo 캐시: 같은 mapID에 매번 pcall(C_Map.GetMapInfo) 방지
--- mapInfo는 세션 중 변하지 않으므로 영구 캐시 가능 (false = 실패/없음)
+local _layoutPoints      = {}
+local _layoutEntries     = {}
+local _layoutPlaced      = {}
+local _layoutPlacedPool  = {}
+local _scoreRect         = { left=0, right=0, top=0, bottom=0 }
+local _bestRect          = { left=0, right=0, top=0, bottom=0 }
+
 local _mapInfoCache      = {}
--- 후보 오프셋 버퍼: 포인트당 16개 {x,y}를 매번 새로 만드는 것을 방지
+
 local _candidateBuf = {}
 for _ci = 1, 16 do _candidateBuf[_ci] = { x=0, y=0 } end
 
@@ -230,7 +227,6 @@ local function getMapInfo(mapID)
         return nil
     end
 
-    -- 캐시 히트: 같은 mapID 재호출 시 pcall 없이 즉시 반환
     local cached = _mapInfoCache[mapID]
     if cached ~= nil then
         return cached ~= false and cached or nil
@@ -614,7 +610,6 @@ local function measureLabel(label, point, text, fontSize)
     return labelWidth, labelHeight
 end
 
--- 후보 오프셋을 _candidateBuf에 직접 채움 (테이블 생성 없음)
 local function fillCandidateOffsets(point, labelWidth, labelHeight, crowded)
     local markerRadius = getMarkerRadius(point)
     local verticalPadding = crowded and 7 or 5
@@ -663,7 +658,7 @@ local function fillCandidateOffsets(point, labelWidth, labelHeight, crowded)
         c[15].x=bx+farSideDistance;         c[15].y=by
         c[16].x=bx-farSideDistance;         c[16].y=by
     end
-    return c  -- 항상 16개, _candidateBuf 참조 반환
+    return c
 end
 
 local function scoreCandidate(rect, baseX, baseY, placedRects, allPoints, currentPoint, width, height)
@@ -909,7 +904,6 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
     local densityScale = getDensityScale(mapData)
     local sourcePoints = mapData.points or {}
 
-    -- 재사용 버퍼에 필터 통과 포인트 채우기 (table 생성 없음)
     wipe(_layoutPoints)
     for _, point in ipairs(sourcePoints) do
         if isPointEnabled(point) then
@@ -918,7 +912,6 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
     end
     local entryCount = #_layoutPoints
 
-    -- 엔트리 풀 재사용: 이전 run 객체에 덮어쓰기
     for i = 1, entryCount do
         local e = _layoutEntries[i]
         if not e then
@@ -929,7 +922,7 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         e.point = point
         e.nearbyCount = getNearbyCount(_layoutPoints, point, point.crowdRadius or CROWD_RADIUS_PERCENT)
     end
-    -- 이전 run에 남은 슬롯 제거 (table.sort 범위 정확히 제한)
+
     for i = entryCount + 1, #_layoutEntries do
         _layoutEntries[i] = nil
     end
@@ -943,7 +936,6 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         return leftPriority < rightPriority
     end)
 
-    -- placed rect 목록: 이번 run 시작 시 초기화 (풀 객체는 유지)
     wipe(_layoutPlaced)
     local placedCount = 0
 
@@ -980,7 +972,7 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
             local candidate = candidates[ci]
             local centerX = pointX + candidate.x
             local centerY = pointY + candidate.y
-            -- _scoreRect 인라인 채우기: buildRect 호출/테이블 생성 없음
+
             _scoreRect.left   = centerX - hw
             _scoreRect.right  = centerX + hw
             _scoreRect.top    = centerY - hh
@@ -990,7 +982,7 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
                 bestScore = score
                 bestOffsetX = candidate.x
                 bestOffsetY = candidate.y
-                -- _bestRect에 현재 best 복사 (참조 대신 값 캡처)
+
                 _bestRect.left   = _scoreRect.left
                 _bestRect.right  = _scoreRect.right
                 _bestRect.top    = _scoreRect.top
@@ -1003,7 +995,6 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
         label:SetPoint("CENTER", parent, "TOPLEFT", pointX + ox, -(pointY + oy))
         label:Show()
 
-        -- placed rect 풀에서 객체 재사용 (wrapper {rect=...} 제거, 직접 rect 저장)
         placedCount = placedCount + 1
         local pr = _layoutPlacedPool[placedCount]
         if not pr then

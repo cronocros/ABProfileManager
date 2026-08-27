@@ -1,7 +1,3 @@
--- ABPM_ruRU_Final.lua
--- Clean ruRU localization extension for ABProfileManager.
--- Load after Locale.lua, Locale_Additions.lua, DB.lua and UI/ConfigPanel.lua.
--- This file intentionally avoids UIParent scanning and global GameTooltip hooks.
 
 local _, ns = ...
 
@@ -13,9 +9,6 @@ ns.ABPM_RURU_FINAL_LOADED = true
 local RURU = {}
 ns.ABPM_RURU = RURU
 
--- -----------------------------------------------------------------------------
--- 1. Language bootstrap and fallback
--- -----------------------------------------------------------------------------
 local Constants = ns.Constants or {}
 ns.Constants = Constants
 Constants.LANGUAGE = Constants.LANGUAGE or {}
@@ -82,9 +75,6 @@ RURU.NormalizeLanguage = normalizeLanguage
 RURU.GetLanguage = getAddonLanguage
 RURU.IsRuRU = isRuRU
 
--- -----------------------------------------------------------------------------
--- 2. Locale data
--- -----------------------------------------------------------------------------
 local LOCALE_STRINGS_RURU = {
   ["action_bar_number"] = "Панель",
   ["action_bar_range"] = "Диапазон панелей",
@@ -1482,9 +1472,6 @@ local PROFESSION_NAMES = {
   },
 }
 
--- -----------------------------------------------------------------------------
--- 3. Small helpers
--- -----------------------------------------------------------------------------
 local function merge(target, source)
   if type(target) ~= "table" or type(source) ~= "table" then
     return
@@ -1512,7 +1499,7 @@ local function safeCall(object, methodName, ...)
 end
 
 local function refreshKnownABPMUI()
-  -- Refresh only ABProfileManager components. Never scan UIParent or global game tooltips.
+
   if ns.UI then
     safeCall(ns.UI.MainWindow, "RefreshLocale")
     safeCall(ns.UI.ProfilePanel, "RefreshLocale")
@@ -1527,9 +1514,6 @@ local function refreshKnownABPMUI()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 4. Locale registration and fallback
--- -----------------------------------------------------------------------------
 local function registerLocaleData()
   local Locale = ns.Locale
   if not Locale then
@@ -1606,9 +1590,6 @@ local function patchLocaleFallback()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 5. DB language patch
--- -----------------------------------------------------------------------------
 local function patchDefaultsAndDB()
   if ns.Data and ns.Data.Defaults and ns.Data.Defaults.global and ns.Data.Defaults.global.settings then
     ns.Data.Defaults.global.settings.language = getClientDefaultLanguage()
@@ -1655,9 +1636,6 @@ local function patchDefaultsAndDB()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 6. ConfigPanel language selector
--- -----------------------------------------------------------------------------
 local function getLanguageLabel(language)
   if language == Constants.LANGUAGE.KOREAN then
     return ns.L and ns.L("config_language_korean") or "Korean"
@@ -1746,9 +1724,6 @@ local function patchConfigPanel()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 7. Status and scoped tooltip helpers
--- -----------------------------------------------------------------------------
 local function patchStatusMessages()
   if not ns.Utils or ns.Utils.__ABPM_RURU_FINAL_STATUS_PATCHED then
     return
@@ -1784,7 +1759,7 @@ local function translateProfessionText(text)
   end
 
   local value = text
-  -- ABPM helper tooltips only; this is not applied to global game tooltips.
+
   local replacements = {
     ["Trainer Weekly Quest"] = "Еженедельное задание тренера профессии",
     ["Weekly Quest"] = "Еженедельное задание",
@@ -1841,14 +1816,11 @@ local function patchABPMTooltipHelper()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 8. Profession Knowledge source-level localization
--- -----------------------------------------------------------------------------
 local function upperFirstAsciiSafe(text)
   if type(text) ~= "string" or text == "" then
     return text
   end
-  -- Cyrillic case conversion is not reliable in Lua 5.1; keep explicit map entries preferred.
+
   return text
 end
 
@@ -1992,9 +1964,6 @@ local function patchProfessionTracker()
   RURU.RefreshProfessionCaches()
 end
 
--- -----------------------------------------------------------------------------
--- 9. Map labels, stats overlay and other source-level helpers
--- -----------------------------------------------------------------------------
 function RURU.GetMapLabel(label)
   if not isRuRU() or type(label) ~= "string" then
     return label
@@ -2018,7 +1987,7 @@ local function patchProfilePanelRefresh()
     if not isRuRU() or type(text) ~= "string" or text == "" then
       return text
     end
-    -- Use ASCII in ruRU because the default ruRU font can render the triangle as a square.
+
     return (text:gsub("^▶%s*", "> "))
   end
 
@@ -2068,10 +2037,6 @@ local function patchProfilePanelRefresh()
   end
 end
 
-
--- -----------------------------------------------------------------------------
--- 10. Targeted overlay refresh helpers
--- -----------------------------------------------------------------------------
 local CLASS_TEXT_BY_LANGUAGE = {
   ruRU = {
     ["Druid"] = "Друид", ["Warrior"] = "Воин", ["Paladin"] = "Паладин", ["Hunter"] = "Охотник",
@@ -2173,9 +2138,6 @@ local function patchStatsOverlayRefresh()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 10. Initialization
--- -----------------------------------------------------------------------------
 local function applyAllPatches()
   registerLocaleData()
   patchLocaleFallback()
@@ -2200,7 +2162,6 @@ if C_Timer and C_Timer.After then
   end)
 end
 
--- Drop static locale source tables after merge. Runtime maps stay available.
 LOCALE_STRINGS_RURU = nil
 CLASS_NAMES_RURU = nil
 SPEC_NAMES_RURU = nil

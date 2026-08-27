@@ -1248,8 +1248,6 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
     )
     self.frame:SetSize(width, math.max(MIN_HEIGHT, totalHeight))
 
-    -- 프레임 실제 너비에 맞게 각 row와 내부 텍스트 너비를 재조정한다.
-    -- contentWidth를 크게 잡아 측정하는 방식이므로, 확정된 width 기준으로 두 번째 pass가 필요하다.
     local finalContentWidth = width - (PADDING_X * 2) - 18
     local finalDetailPrefixWidth = getDetailPrefixWidth()
     local finalDetailWidth = math.max(finalContentWidth - ICON_SIZE - 8 - finalDetailPrefixWidth - 6, 120)

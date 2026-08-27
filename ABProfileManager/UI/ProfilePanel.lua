@@ -670,7 +670,6 @@ function ProfilePanel:Refresh()
 
     self.templateNames = ns.Modules.ProfileManager:ListTemplates()
 
-    -- 선택된 템플릿이 없으면 현재 캐릭터+특성 이름으로 일치하는 템플릿 자동 참조
     if not selectedSource then
         local charName = (UnitName and UnitName("player") or ""):lower()
         local specLower = specName and specName:lower() or ""

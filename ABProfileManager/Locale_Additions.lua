@@ -457,28 +457,24 @@ if enUS then
     enUS.quest_list_keep_row = "%s  [%s]"
     enUS.quest_list_id_format = "Quest ID: %d"
     enUS.quest_list_progress = "Objective: %s"
-    -- Feature 5: Blizzard Frame Manager
+
     enUS.config_blizzard_frames_show = "Allow moving Blizzard UI frames (World Map, Character, Professions, Spellbook, Achievements, Talent, Friends, Guild, Bank, and more)"
     enUS.config_saved_blizzard_frames = "Blizzard frame movement set to %s."
     enUS.config_blizzard_frames_reset = "Reset All Frame Positions"
     enUS.config_blizzard_frames_reset_done = "All Blizzard frame positions have been reset."
 
-    -- Feature 2: Merchant Helper
     enUS.config_merchant_helper_show = "Dim already-owned items/recipes/toys in vendor windows"
     enUS.config_saved_merchant_helper = "Vendor known-item dimming set to %s."
     enUS.merchant_known_label = "Known"
 
-    -- Feature 3: Mail History
     enUS.config_mail_history_show = "Show send history autocomplete when typing a mail recipient"
     enUS.config_saved_mail_history = "Mail recipient history set to %s."
 
-    -- Feature 4: verifywp command
     enUS.help_verifywp = "/abpm verifywp [profession] - Add TomTom waypoints for unfinished profession one-time treasures"
     enUS.verifywp_no_data = "[VerifyWP] No waypoint data found."
     enUS.verifywp_added = "[VerifyWP] Added %d/%d incomplete treasure waypoints to TomTom."
     enUS.verifywp_listed = "[VerifyWP] Listed %d/%d incomplete treasures (TomTom not found)."
 
-    -- Feature 7: World Event Overlay
     enUS.config_world_event_overlay_show = "Show timed world event countdown overlay"
     enUS.config_saved_world_event_overlay = "World event overlay set to %s."
     enUS.world_event_overlay_title = "World Events"
@@ -490,13 +486,12 @@ if enUS then
     enUS.world_event_dragonbane_keep = "Dragonbane Keep"
     enUS.world_event_the_hunt = "The Hunt"
     enUS.world_event_grand_hunts = "Grand Hunts"
-    -- Midnight events
+
     enUS.world_event_saldeerylsCourt  = "Saldeeryl's Court"
     enUS.world_event_stomarionAttack  = "Stomarion Assault"
     enUS.world_event_abundance        = "Abundance"
     enUS.world_event_haranyrLegend    = "Legend of Haranyr"
 
-    -- Feature 8: Item Level Overlay
     enUS.config_item_level_overlay_show = "Show item level reference overlay"
     enUS.config_saved_item_level_overlay = "Item level overlay set to %s."
     enUS.ilvl_overlay_title = "Drop Item Levels"
@@ -542,7 +537,7 @@ if enUS then
     enUS.ilvl_grade_chmp = "Chmp"
     enUS.ilvl_grade_hero = "Hero"
     enUS.ilvl_grade_myth = "Myth"
-    -- Upgrade Crests (Midnight Season 1)
+
     enUS.ilvl_crest_dawn     = "Dawn"
     enUS.ilvl_crest_dusk     = "Dusk"
     enUS.ilvl_crest_midnight = "Midnight"
@@ -560,7 +555,6 @@ if enUS then
     enUS.ilvl_row_key_level  = "+%s"
     enUS.ilvl_row_delve_tier = "Tier %s"
 
-    -- World event locations & tooltip
     enUS.world_event_loc_community_feast     = "Silvermoon City"
     enUS.world_event_loc_void_storm          = "Voidstorm Region"
     enUS.world_event_loc_dragonbane_keep     = "Dragonbane Keep"
@@ -573,7 +567,6 @@ if enUS then
     enUS.world_event_tooltip_mark_done    = "Click: Mark done today"
     enUS.world_event_tooltip_unmark       = "Click: Unmark as done"
 
-    -- Utility Panel tab
     enUS.tab_utility = "Utility"
     enUS.utility_panel_title = "● Utility Features"
     enUS.utility_section_overlays = "Drop & Event Overlays"
@@ -1042,28 +1035,24 @@ if koKR then
     koKR.quest_list_keep_row = "%s  [%s]"
     koKR.quest_list_id_format = "퀘스트 ID: %d"
     koKR.quest_list_progress = "진행: %s"
-    -- Feature 5: Blizzard Frame Manager
+
     koKR.config_blizzard_frames_show = "블리자드 기본 UI 창 자유 이동 허용 (세계 지도, 캐릭터, 전문기술, 마법책, 업적, 특성, 친구, 길드, 은행 등)"
     koKR.config_saved_blizzard_frames = "블리자드 창 이동을 %s 상태로 변경했습니다."
     koKR.config_blizzard_frames_reset = "창 위치 전체 초기화"
     koKR.config_blizzard_frames_reset_done = "모든 블리자드 창 위치가 초기화되었습니다."
 
-    -- Feature 2: Merchant Helper
     koKR.config_merchant_helper_show = "상점에서 이미 보유/알려진 아이템/도안/장난감 음영 처리"
     koKR.config_saved_merchant_helper = "상점 보유 아이템 음영을 %s 상태로 변경했습니다."
     koKR.merchant_known_label = "보유"
 
-    -- Feature 3: Mail History
     koKR.config_mail_history_show = "우편 수신자 입력 시 최근 발송 기록 자동완성 표시"
     koKR.config_saved_mail_history = "우편 수신자 기록을 %s 상태로 변경했습니다."
 
-    -- Feature 4: verifywp command
     koKR.help_verifywp = "/abpm verifywp [전문기술] - 미완료 전문기술 보물에 TomTom 웨이포인트 추가"
     koKR.verifywp_no_data = "[VerifyWP] 웨이포인트 데이터를 찾을 수 없습니다."
     koKR.verifywp_added = "[VerifyWP] 미완료 보물 %d/%d개를 TomTom에 추가했습니다."
     koKR.verifywp_listed = "[VerifyWP] 미완료 보물 %d/%d개 출력 (TomTom 없음)."
 
-    -- Feature 7: World Event Overlay
     koKR.config_world_event_overlay_show = "시간별 월드 이벤트 카운트다운 오버레이 표시"
     koKR.config_saved_world_event_overlay = "월드 이벤트 오버레이를 %s 상태로 변경했습니다."
     koKR.world_event_overlay_title = "월드 이벤트"
@@ -1075,13 +1064,12 @@ if koKR then
     koKR.world_event_dragonbane_keep = "드래곤베인 요새"
     koKR.world_event_the_hunt = "사냥"
     koKR.world_event_grand_hunts = "대사냥"
-    -- 한밤 이벤트 (수정됨)
+
     koKR.world_event_saldeerylsCourt  = "살데릴의 궁정"
     koKR.world_event_stomarionAttack  = "스토마리온 공격"
     koKR.world_event_abundance        = "풍요"
     koKR.world_event_haranyrLegend    = "하라니르의 전설"
 
-    -- Feature 8: Item Level Overlay
     koKR.config_item_level_overlay_show = "아이템 레벨 참조 오버레이 표시"
     koKR.config_saved_item_level_overlay = "아이템 레벨 오버레이를 %s 상태로 변경했습니다."
     koKR.ilvl_overlay_title = "드랍템 레벨 정보"
@@ -1127,7 +1115,7 @@ if koKR then
     koKR.ilvl_grade_chmp = "챔피"
     koKR.ilvl_grade_hero = "영웅"
     koKR.ilvl_grade_myth = "신화"
-    -- 업그레이드 문장 (Midnight 시즌 1)
+
     koKR.ilvl_crest_dawn     = "여명"
     koKR.ilvl_crest_dusk     = "황혼"
     koKR.ilvl_crest_midnight = "한밤"
@@ -1145,7 +1133,6 @@ if koKR then
     koKR.ilvl_row_key_level  = "%s단"
     koKR.ilvl_row_delve_tier = "%s단계"
 
-    -- World event locations & tooltip
     koKR.world_event_loc_community_feast     = "실버문 시티"
     koKR.world_event_loc_void_storm          = "공허폭풍 지역"
     koKR.world_event_loc_dragonbane_keep     = "드래곤베인 요새"
@@ -1158,7 +1145,6 @@ if koKR then
     koKR.world_event_tooltip_mark_done    = "클릭: 오늘 완료 표시"
     koKR.world_event_tooltip_unmark       = "클릭: 완료 표시 해제"
 
-    -- Utility Panel tab
     koKR.tab_utility = "편의기능"
     koKR.utility_panel_title = "● 편의 기능"
     koKR.utility_section_overlays = "드랍/이벤트 오버레이"
