@@ -35,14 +35,19 @@ local DELVE_RESTORED_KEY_CURRENCY_ID = 3028
 local DELVE_KEY_FRAGMENT_ITEM_ID = nil
 local DELVE_MAP_IDS = { 2395, 2413, 2405, 2437, 1270 }
 
--- Midnight 시즌 1 Dawncrest 통화 ID — 등급별 보유량 조회용
--- 인게임 확인 결과와 현 시즌 애드온 데이터 기준으로 보정한 값이다.
+-- Midnight 시즌 2 안개문장(Mistcrest) 통화 ID — 등급별 보유량 조회용
+-- 2026-08-28 라이브 덤프로 확정했다. 시즌 1 Dawncrest 통화
+-- (3383 / 3341 / 3343 / 3345 / 3347)와는 전혀 다른 신규 ID다.
+--
+-- 같은 이름의 통화가 3437~3441에도 있으나 그쪽은 maxQuantity가 0이고
+-- 대부분 미발견 상태다. 실제 사용 통화는 등급별 상한(300/300/300/200/200)이
+-- 잡혀 있는 아래 세트다.
 local CREST_ID_BY_GRADE = {
-    adv  = 3383,
-    vet  = 3341,
-    chmp = 3343,
-    hero = 3345,
-    myth = 3347,
+    adv  = 3442,
+    vet  = 3443,
+    chmp = 3444,
+    hero = 3445,
+    myth = 3446,
 }
 
 local HEADER_COLOR = { 0.50, 0.58, 0.68 }

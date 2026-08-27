@@ -18,6 +18,7 @@
 | 2026-08-27 | W1, W8, W6, W5a 진행 결과 반영. M+ 던전 풀과 통화 이름 덤프 결과, 12.1 aura API 제한 기록 |
 | 2026-08-27 | W7 마이그레이션 부분 반영. BIS preview snapshot 캐시의 시즌 무효화 추가 |
 | 2026-08-28 | G1 리뷰 반영. 안내 라벨 축약, `GetTime` 폴백, 시즌 판정 캐시, 로케일 검증기 대괄호 표기, 문서 Interface 번호 수정. 통화 ID 덤프 결과 기록 |
+| 2026-08-28 | 안개문장 통화 ID 확정. `CREST_ID_BY_GRADE`를 `3442~3446`으로 교체 |
 
 ## 1. 확정된 사실
 
@@ -151,7 +152,7 @@ BIS 데이터를 동결하면 시즌 2에서 BIS 오버레이가 **조용히 오
 | 항목 | 상태 | 확정 방법 |
 | --- | --- | --- |
 | 시즌 2 전체 아이템 레벨표 (구렁/M+/금고/레이드/제작/PvP) | 미확정 | 인게임 툴팁 + 아이템 강화 NPC 실측 |
-| `Mistcrest` 통화 ID와 개명/교체 여부 | 부분 확정 | 신규 ID로 교체 확인. 등급별 ID는 두 세트 중 선택이 남음 |
+| `Mistcrest` 통화 ID와 개명/교체 여부 | 확정 | 신규 ID `3442~3446`으로 교체 |
 | 복원 열쇠 통화 ID | 확정 | `3028` 그대로 유효 |
 | `Coiled Isle` UiMapID (후보 `2512`) | 후보만 있음 | `C_Map.GetBestMapForUnit("player")` 덤프 |
 | 신규 구렁·던전 UiMapID | 미확정 | 현지 이동 후 지도 덤프 |
@@ -179,12 +180,30 @@ BIS 데이터를 동결하면 시즌 2에서 BIS 오버레이가 **조용히 오
 - 시즌 1 문장 ID `3383 / 3341 / 3343 / 3345 / 3347`과 **전혀 다른 ID**입니다. 즉 문장 통화는 재사용이 아니라 **신규 통화로 교체**됐고, `CREST_ID_BY_GRADE` 5개 항목을 전부 갈아야 합니다.
 - 복원 열쇠 `3028`은 그대로이므로 `DELVE_RESTORED_KEY_CURRENCY_ID`는 수정할 필요가 없습니다.
 
-남은 문제는 **안개문장이 두 세트**라는 점입니다. 이름이 같아 이름만으로는 구분되지 않습니다. 어느 쪽이 실제 획득 통화인지 아래로 확인한 뒤 `CREST_ID_BY_GRADE`에 넣습니다.
+두 세트 중 어느 쪽이 실제 통화인지도 확정했습니다.
 
-```text
-/run local t="" for id=3437,3446 do local c=C_CurrencyInfo.GetCurrencyInfo(id) if c then t=t..id.." q="..tostring(c.quantity).." max="..tostring(c.maxQuantity).." disc="..tostring(c.discovered).."
-" end end ABPMD(t)
-```
+| ID | quantity | maxQuantity | discovered |
+| --- | --- | --- | --- |
+| 3437 | 0 | 0 | false |
+| 3438 | 40 | 0 | true |
+| 3439 | 0 | 0 | false |
+| 3440 | 0 | 0 | false |
+| 3441 | 0 | 0 | false |
+| 3442 | 2 | 300 | true |
+| 3443 | 40 | 300 | true |
+| 3444 | 10 | 300 | true |
+| 3445 | 5 | 200 | true |
+| 3446 | 0 | 200 | false |
+
+`3442~3446`이 실제 사용 통화입니다. 등급별 상한이 `300 / 300 / 300 / 200 / 200`으로 잡혀 있고 대부분 발견 상태입니다. `3437~3441`은 상한이 전부 `0`이고 `3438`만 발견돼 있는데, 그 수량 `40`이 `3443`과 정확히 같습니다. 계정 공유 사본이나 누적 집계용 거울 통화로 보이며 표시에 쓰지 않습니다.
+
+| 등급 | 통화 ID |
+| --- | --- |
+| `adv` 모험가 | 3442 |
+| `vet` 노련가 | 3443 |
+| `chmp` 챔피언 | 3444 |
+| `hero` 영웅 | 3445 |
+| `myth` 신화 | 3446 |
 
 `C_ChallengeMode.GetMapTable()` 덤프로 시즌 2 M+ 던전 풀 8종과 `challengeMapID`가 확정됐습니다.
 
@@ -412,7 +431,7 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 | W0 | 진행중 | Claude | 2026-08-27 | 빌드 정보, M+ 던전 풀 8종 `challengeMapID`, 통화 이름 계열 확정. 통화 ID, 아이템 레벨표, 지도 ID는 아직 미확정 |
 | W1 | 완료 | Claude | 2026-08-27 | `Interface: 120100` 단일 지정, `Version 1.12.0`, `Constants.VERSION` fallback 갱신. Lua 64개 파싱 통과. 구형 `120005, 120007`은 라이브에 존재하지 않아 제거했다. `ADDON_INTRO.txt`의 버전 문구는 패키징 시점(13장)에 함께 갱신한다 |
 | W2 | 대기 | - | 2026-08-27 | W0 차단 |
-| W2b | 대기 | - | 2026-08-27 | W0 차단 |
+| W2b | 진행중 | Claude | 2026-08-28 | `CREST_ID_BY_GRADE`를 시즌 2 안개문장 `3442~3446`으로 교체. `DELVE_RESTORED_KEY_CURRENCY_ID`는 `3028` 그대로 유효해 수정하지 않았다. 구렁 최고 단계와 패널 수치는 W2 아이템 레벨표 확정 후 |
 | W3 | 대기 | - | 2026-08-27 | W0 차단 |
 | W4 | 대기 | - | 2026-08-27 | W0 차단 |
 | W5a | 완료 | Claude | 2026-08-27 | `StatsOverlay`의 aura index 조회에 backoff 추가. 12.1 보호 상태에서 오류 경로를 매 refresh마다 밟지 않고, 부분 hash 대신 빈 값으로 통일한다. `MythicPlusRecordOverlay` 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 그대로 보장된다. 인게임 검증은 쐐기 진행 중 확인 필요 |
