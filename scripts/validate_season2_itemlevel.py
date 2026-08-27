@@ -39,7 +39,8 @@ ITEM_LEVEL_TABLE = REPO_ROOT / "ABProfileManager" / "Data" / "ItemLevelTable.lua
 TABLE_NAME = "ns.Data.ItemLevelTable"
 
 SEASON1_NAME = "Midnight Season 1"
-GRADE_ORDER = ("expl", "adv", "vet", "chmp", "hero", "myth")
+# 시즌 2에는 탐험가(expl) 트랙과 대응 문장이 없어 등급에서 제외한다.
+GRADE_ORDER = ("adv", "vet", "chmp", "hero", "myth")
 SOURCE_SECTIONS = ("delves", "mythicPlus", "raid", "worldBoss", "crafted", "pvp")
 ALLOWED_SOURCE_TAGS = ("dump", "tooltip", "guide")
 
@@ -222,7 +223,26 @@ def validate_raid(table: dict, grade_max: dict) -> None:
 def validate_simple_sections(table: dict, grade_max: dict) -> None:
     world_boss = table.get("worldBoss")
     if isinstance(world_boss, dict):
-        check_row_grade("worldBoss", world_boss, grade_max)
+        # 시즌 2 월드 보스와 Lair는 야외부터 신화까지 난이도가 나뉜다.
+        # 예전 단일 항목 형태도 계속 받아들인다.
+        if "ilvl" in world_boss:
+            check_row_grade("worldBoss", world_boss, grade_max)
+        else:
+            previous = 0
+            for difficulty in ("world", "normal", "heroic", "mythic"):
+                row = world_boss.get(difficulty)
+                if not isinstance(row, dict):
+                    fail(f"worldBoss.{difficulty} 항목이 없다")
+                check_row_grade(f"worldBoss.{difficulty}", row, grade_max)
+                ilvl = row.get("ilvl")
+                if not isinstance(ilvl, (int, float)):
+                    fail(f"worldBoss.{difficulty}: ilvl이 없다")
+                if ilvl <= previous:
+                    fail(
+                        f"worldBoss 난이도별 ilvl이 오름차순이 아니다. "
+                        f"{difficulty}={ilvl}, 직전={previous}"
+                    )
+                previous = ilvl
 
     crafted = table.get("crafted")
     if not isinstance(crafted, dict):

@@ -26,6 +26,7 @@
 | 2026-08-28 | 제작 품질 사다리 확인으로 제작 값 확정(`318` / `331`). PvP는 와우헤드에 시즌 2 자료가 없음을 확인 |
 | 2026-08-28 | 던전 난이도별 아이템 레벨 실측. 영웅 던전 `276` 모험가 4/6 확정 |
 | 2026-08-28 | 야외·공격대 찾기 `279` 실측. `worldBoss` 값 확정으로 Lair 스키마 판단 해소 |
+| 2026-08-28 | W2 완료. 아이템 레벨표를 시즌 2로 교체하고 `expl` 제거, `worldBoss` 4난이도 확장, `sources` 표 도입 |
 
 ## 1. 확정된 사실
 
@@ -760,13 +761,13 @@ W8이 `UI/BISOverlay.lua`를 수정하면 `validate_bis_tooltip_contract.py`의 
 | --- | --- | --- | --- | --- |
 | W0 | 진행중 | Claude | 2026-08-27 | 빌드 정보, M+ 던전 풀 8종 `challengeMapID`, 통화 이름 계열 확정. 통화 ID, 아이템 레벨표, 지도 ID는 아직 미확정 |
 | W1 | 완료 | Claude | 2026-08-27 | `Interface: 120100` 단일 지정, `Version 1.12.0`, `Constants.VERSION` fallback 갱신. Lua 64개 파싱 통과. 구형 `120005, 120007`은 라이브에 존재하지 않아 제거했다. `ADDON_INTRO.txt`의 버전 문구는 패키징 시점(13장)에 함께 갱신한다 |
-| W2 | 대기 | - | 2026-08-28 | M+ 구간은 실측 확보. 등급 상한(`gradeMax`)과 구렁·레이드·제작·PvP 값이 없어 표를 못 바꾼다. 일부만 바꾸면 한 테이블에 두 시즌이 섞이고 `season`도 못 올려 `SeasonGuard`가 계속 잠든다 |
-| W2b | 진행중 | Claude | 2026-08-28 | `CREST_ID_BY_GRADE`를 시즌 2 안개문장 `3442~3446`으로 교체. `DELVE_RESTORED_KEY_CURRENCY_ID`는 `3028` 그대로 유효해 수정하지 않았다. 구렁 최고 단계와 패널 수치는 W2 아이템 레벨표 확정 후 |
+| W2 | 완료 | Claude | 2026-08-28 | `season`을 `Midnight Season 2`로 올리고 표 전체를 교체. `expl` 제거로 등급 5종, `worldBoss`를 야외·일반·영웅·신화 4난이도로 확장. `sources` 표 추가. PvP만 `guide` 추정치이며 `-Strict`가 릴리스를 막는다 |
+| W2b | 진행중 | Claude | 2026-08-28 | `CREST_ID_BY_GRADE`를 시즌 2 안개문장 `3442~3446`으로 교체. `DELVE_RESTORED_KEY_CURRENCY_ID`는 `3028` 그대로 유효. `worldBoss` 4난이도 렌더링 추가. 구렁 최고 단계는 `11`로 유지되어 수정 불필요. 인게임 표시 확인 남음 |
 | W3 | 대기 | - | 2026-08-27 | W0 차단 |
 | W4 | 대기 | - | 2026-08-27 | W0 차단 |
 | W5a | 완료 | Claude | 2026-08-27 | `StatsOverlay`의 aura index 조회에 backoff 추가. 12.1 보호 상태에서 오류 경로를 매 refresh마다 밟지 않고, 부분 hash 대신 빈 값으로 통일한다. `MythicPlusRecordOverlay` 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 그대로 보장된다. 인게임 검증은 쐐기 진행 중 확인 필요 |
 | W5b | 대기 | - | 2026-08-27 | W2~W4 문자열 확정 후 |
-| W6 | 완료 | Claude | 2026-08-27 | 검증기 3종과 `run_season2_validation.ps1` 작성. 세 검증기 모두 음성 테스트로 실제 검출을 확인했다. 하네스 전체 통과 |
+| W6 | 완료 | Claude | 2026-08-28 | 검증기 3종과 `run_season2_validation.ps1` 작성. 음성 테스트로 검출 확인. W2에 맞춰 `GRADE_ORDER`를 5종으로 줄이고 `worldBoss` 난이도 구조 검사를 추가했다 |
 | W7 | 진행중 | Claude | 2026-08-27 | 마이그레이션 부분 완료. `DB:GetBISOverlayMythPreviewCache()`의 무효화 키에 현재 시즌을 추가해 시즌이 넘어가면 이전 시즌 snapshot을 한 번 비운다. 기존 무효화 조건이 전부 동결된 `BISMythicVaultLinks.lua`에서 와서 시즌 전환을 감지하지 못했다. 버전 상승이 설정을 초기화하지 않는 것도 확인했다(`layoutVersion`, `languageMigrationVersion`은 각자 카운터를 쓴다). 주간 이벤트 데이터는 W0 차단 |
 | W8 | 완료 | Claude | 2026-08-27 | `UI/BISOverlay.lua`에 `SeasonGuard` 추가. `dataSeason = "Midnight Season 1"`과 `ItemLevelTable.season` 비교로 불일치 판정. 불일치 시 EJ 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 차단하고 상단 안내에 `[기준 시즌]` 접두를 붙인다. 새 해시 `git hash-object`로 확인 필요. top-level locals `197 → 198`(상한과 동일). `AGENTS.md` 충돌 항목 정리 완료. `Data/MidnightS1MPlusDB.lua`는 계속 로드하되 SeasonGuard가 의존 자동화를 끄는 것으로 결론. 인게임 검증은 W2가 `season`을 시즌 2로 바꾼 뒤 가능 |
 | G1 | 완료 | Claude | 2026-08-28 | W1, W5a, W6, W7, W8 스펙 대조. 실제 결함 3건(안내 라벨이 스탯 요약을 잘라냄, README/AGENTS Interface 오정보, `GetTime` 부재 시 backoff 영구 차단)과 잠재 3건(시즌 판정 `nil` 캐시, hover preview 반복 시도, 로케일 검증기 대괄호 표기 누락) 도출. hover preview 반복 시도를 뺀 5건 수정 완료 |

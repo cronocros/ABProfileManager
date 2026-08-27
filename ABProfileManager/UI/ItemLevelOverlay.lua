@@ -519,16 +519,30 @@ local function buildRaidRows(avgIlvl)
     end
     local wb = tbl.worldBoss
     if wb then
-        rows[#rows+1] = { isHeader=true, label="" }
-        rows[#rows+1] = {
-            label     = ns.L("ilvl_world_boss"),
-            dropStr   = clearRewardStr(wb.ilvl, wb.grade),
-            vaultStr  = "",
-            crestDrop = wb.crestDrop,
-            grade     = wb.grade,
-            highlight = avgIlvl > 0 and wb.ilvl > avgIlvl,
-            vaultHL   = false,
-        }
+        -- 시즌 2 월드 보스와 Lair는 야외부터 신화까지 난이도가 나뉜다.
+        -- 시즌 1처럼 단일 항목만 있는 형태도 계속 렌더링한다.
+        local wbEntries = {}
+        if wb.ilvl then
+            wbEntries[1] = wb
+        else
+            for _, key in ipairs({ "world", "normal", "heroic", "mythic" }) do
+                if wb[key] then wbEntries[#wbEntries+1] = wb[key] end
+            end
+        end
+        if #wbEntries > 0 then
+            rows[#rows+1] = { isHeader=true, label="" }
+            for _, e in ipairs(wbEntries) do
+                rows[#rows+1] = {
+                    label     = ns.L(e.labelKey or "ilvl_world_boss"),
+                    dropStr   = clearRewardStr(e.ilvl, e.grade),
+                    vaultStr  = "",
+                    crestDrop = e.crestDrop,
+                    grade     = e.grade,
+                    highlight = avgIlvl > 0 and (e.ilvl or 0) > avgIlvl,
+                    vaultHL   = false,
+                }
+            end
+        end
     end
     return rows
 end
