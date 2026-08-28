@@ -8,15 +8,14 @@ v1.12.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 `scripts/run_season2_validation.ps1 -Strict`가 실패합니다. 실패 이유는 하나입니다.
 
-`ABProfileManager/Data/ItemLevelTable.lua`의 `sources` 표에서 `delves`, `mythicPlus`, `raid` 세 구간이 `guide`입니다. PvP는 2026-08-28 인게임 상인 툴팁으로 확인해 `tooltip`으로 올렸습니다. 외부 자료만 근거라는 뜻입니다. 인게임에서 확인한 뒤 해당 항목을 `tooltip`으로 바꾸면 풀립니다.
+`ABProfileManager/Data/ItemLevelTable.lua`의 `sources` 표에서 `delves`, `mythicPlus` 두 구간이 `guide`입니다. PvP는 인게임 상인 툴팁으로, `raid`는 모험 안내서 전리품 목록으로 2026-08-28 확인해 각각 `tooltip`, `dump`로 올렸습니다. 외부 자료만 근거라는 뜻입니다. 인게임에서 확인한 뒤 해당 항목을 `tooltip`으로 바꾸면 풀립니다.
 
 구간별로 무엇을 확인해야 하는지는 다음과 같습니다.
 
 | 구간 | 확인 방법 | 비고 |
 | --- | --- | --- |
-| `delves` | 구렁 1~11단계 보상 아이템 툴팁 | 8단계에서 상한이 고정되는지 함께 본다 |
-| `mythicPlus` | 쐐기 완료 보상과 위대한 금고 툴팁 | `2/6`과 `3/6` 값이 특히 헷갈린다 |
-| `raid` | 맹독 심연 보스별 드랍 툴팁 | 1보스와 마지막 두 보스를 우선 확인한다 |
+| `delves` | 구렁 완료 후 보상 상자 아이템 툴팁 | API가 없다. 이번 주 구렁을 돌면 위대한 금고 `세계` 칸이 채워져 금고값은 `C_WeeklyRewards.GetActivities`로도 확인된다 |
+| `mythicPlus` | 쐐기 한 판 완료 후 종료 상자 아이템 | 금고 열은 `C_MythicPlus.GetRewardLevelForDifficultyLevel`로 검증했다(11개 중 10개 일치). 던전 종료 열만 남았다. `+8` 금고값이 API에서 `305`로 나오나 앞뒤가 `315`라 API 이상값으로 판단해 표는 `315`를 유지한다 |
 
 확인이 끝난 구간만 골라 태그를 바꿔도 됩니다. 전부 `tooltip` 또는 `dump`가 되면 `-Strict`가 통과합니다.
 
