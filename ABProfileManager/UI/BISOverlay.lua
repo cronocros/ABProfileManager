@@ -950,7 +950,22 @@ local function isOverlayItemTooltipEnabled()
     return ns.DB and ns.DB.IsBISOverlayItemTooltipEnabled and ns.DB:IsBISOverlayItemTooltipEnabled() or false
 end
 
+function SourcePreview.isMythPreviewConfigured()
+    local curated = ns.Data and ns.Data.BISMythicVaultLinks
+    if type(curated) ~= "table" then
+        return false
+    end
+    if tonumber(curated.generatedPreviewBonusListID) then
+        return true
+    end
+    local links = curated.linksByItemID
+    return type(links) == "table" and next(links) ~= nil
+end
+
 local function usesDefaultBlizzardItemTooltip(sourceType)
+    if sourceType == "mythicplus" then
+        return not SourcePreview.isMythPreviewConfigured()
+    end
     return sourceType == "raid" or sourceType == "crafted" or sourceType == "tier"
 end
 
@@ -3597,7 +3612,7 @@ showSeasonItemTooltip = function(owner, row)
         if not itemID or itemID <= 0 then
             return false
         end
-        if sourceType == "mythicplus" then
+        if sourceType == "mythicplus" and SourcePreview.isMythPreviewConfigured() then
             requestItemData(itemID)
             return false
         end
@@ -3651,8 +3666,10 @@ showSeasonItemTooltip = function(owner, row)
         if snapshot and tryShowSnapshotTooltip(snapshot) then
             return
         end
-        showSeasonFallbackTooltip()
-        return
+        if SourcePreview.isMythPreviewConfigured() then
+            showSeasonFallbackTooltip()
+            return
+        end
     end
 
     if isBISItemOwned(specID, row.itemID) then

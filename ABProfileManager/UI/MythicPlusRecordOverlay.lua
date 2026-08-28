@@ -122,23 +122,54 @@ local function isKoreanLanguageSelected()
 end
 
 local DUNGEON_NAME_OVERRIDES = {
-    ["윈드러너첨탑"] = { koKR = "윈드러너\n첨탑", enUS = "Windrunner\nSpire" },
-    ["windrunnerspire"] = { koKR = "윈드러너\n첨탑", enUS = "Windrunner\nSpire" },
-    ["삼두정의권좌"] = { koKR = "삼두정의\n권좌", enUS = "Seat of the\nTriumvirate" },
-    ["seatofthetriumvirate"] = { koKR = "삼두정의\n권좌", enUS = "Seat of the\nTriumvirate" },
-    ["제나스지점"] = { koKR = "제나스\n지점", enUS = "Nexus-Point\nXenas" },
-    ["공결탑제나스"] = { koKR = "제나스\n지점", enUS = "Nexus-Point\nXenas" },
-    ["nexuspointxenas"] = { koKR = "제나스\n지점", enUS = "Nexus-Point\nXenas" },
-    ["사론의구덩이"] = { koKR = "사론의\n구덩이", enUS = "Pit of\nSaron" },
-    ["pitofsaron"] = { koKR = "사론의\n구덩이", enUS = "Pit of\nSaron" },
-    ["마법학자의정원"] = { koKR = "마법학자의\n정원", enUS = "Magisters'\nTerrace" },
-    ["magistersterrace"] = { koKR = "마법학자의\n정원", enUS = "Magisters'\nTerrace" },
-    ["마이사라동굴"] = { koKR = "마이사라\n동굴", enUS = "Maisara\nCaverns" },
-    ["maisaracaverns"] = { koKR = "마이사라\n동굴", enUS = "Maisara\nCaverns" },
-    ["알게타르대학"] = { koKR = "알게타르\n대학", enUS = "Algeth'ar\nAcademy" },
-    ["algetharacademy"] = { koKR = "알게타르\n대학", enUS = "Algeth'ar\nAcademy" },
-    ["skyreach"] = { koKR = "하늘탑", enUS = "Skyreach" },
-    ["하늘탑"] = { koKR = "하늘탑", enUS = "Skyreach" },
+    ["송곳니의제단"] = { koKR = "송곳니의
+제단", enUS = "Altar of
+Fangs" },
+    ["altaroffangs"] = { koKR = "송곳니의
+제단", enUS = "Altar of
+Fangs" },
+    ["날로라크의소굴"] = { koKR = "날로라크의
+소굴", enUS = "Den of
+Nalorakk" },
+    ["denofnalorakk"] = { koKR = "날로라크의
+소굴", enUS = "Den of
+Nalorakk" },
+    ["죽음의골목"] = { koKR = "죽음의
+골목", enUS = "Murder
+Row" },
+    ["murderrow"] = { koKR = "죽음의
+골목", enUS = "Murder
+Row" },
+    ["눈부신골짜기"] = { koKR = "눈부신
+골짜기", enUS = "The Blinding
+Vale" },
+    ["theblindingvale"] = { koKR = "눈부신
+골짜기", enUS = "The Blinding
+Vale" },
+    ["공허흉터투기장"] = { koKR = "공허흉터
+투기장", enUS = "Voidscar
+Arena" },
+    ["voidscararena"] = { koKR = "공허흉터
+투기장", enUS = "Voidscar
+Arena" },
+    ["왕들의안식처"] = { koKR = "왕들의
+안식처", enUS = "Kings'
+Rest" },
+    ["kingsrest"] = { koKR = "왕들의
+안식처", enUS = "Kings'
+Rest" },
+    ["세스랄리스사원"] = { koKR = "세스랄리스
+사원", enUS = "Temple of
+Sethraliss" },
+    ["templeofsethraliss"] = { koKR = "세스랄리스
+사원", enUS = "Temple of
+Sethraliss" },
+    ["루비생명의웅덩이"] = { koKR = "루비 생명의
+웅덩이", enUS = "Ruby Life
+Pools" },
+    ["rubylifepools"] = { koKR = "루비 생명의
+웅덩이", enUS = "Ruby Life
+Pools" },
 }
 
 local function normalizeDungeonKey(name)
@@ -257,13 +288,40 @@ function MythicPlusRecordOverlay:RefreshIcon(icon)
     end
 end
 
-function MythicPlusRecordOverlay:HideAll()
+local function collectDungeonIcons()
     local frame = ChallengesFrame
-    if not frame or not frame.DungeonIcons then
+    if not frame then
+        return nil, nil
+    end
+
+    local icons = frame.DungeonIcons
+    if type(icons) == "table" and #icons > 0 then
+        return frame, icons
+    end
+
+    local found = {}
+    local ok, children = pcall(function() return { frame:GetChildren() } end)
+    if ok and type(children) == "table" then
+        for _, child in ipairs(children) do
+            if type(child) == "table" and child.mapID then
+                found[#found + 1] = child
+            end
+        end
+    end
+
+    if #found > 0 then
+        return frame, found
+    end
+    return frame, nil
+end
+
+function MythicPlusRecordOverlay:HideAll()
+    local _, icons = collectDungeonIcons()
+    if not icons then
         return
     end
 
-    for _, icon in ipairs(frame.DungeonIcons) do
+    for _, icon in ipairs(icons) do
         if icon and icon.ABPMRecordOverlay then
             icon.ABPMRecordOverlay:Hide()
         end
@@ -276,13 +334,13 @@ function MythicPlusRecordOverlay:Refresh()
         return
     end
 
-    local frame = ChallengesFrame
-    if not frame or not frame:IsShown() or not frame.DungeonIcons then
+    local frame, icons = collectDungeonIcons()
+    if not frame or not frame:IsShown() or not icons then
         self:HideAll()
         return
     end
 
-    for _, icon in ipairs(frame.DungeonIcons) do
+    for _, icon in ipairs(icons) do
         if icon then
             self:RefreshIcon(icon)
         end
