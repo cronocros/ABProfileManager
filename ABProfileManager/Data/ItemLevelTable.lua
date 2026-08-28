@@ -71,8 +71,8 @@ ns.Data.ItemLevelTable = {
     },
 
     pvp = {
-        honor    = { min=266, max=295, labelKey="ilvl_pvp_honor" },
-        conquest = { min=295, max=321, labelKey="ilvl_pvp_conquest" },
+        honor    = { min=263, max=295, labelKey="ilvl_pvp_honor" },
+        conquest = { min=292, max=308, labelKey="ilvl_pvp_conquest" },
     },
 }
 
