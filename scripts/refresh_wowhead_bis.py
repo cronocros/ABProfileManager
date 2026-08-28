@@ -8,6 +8,7 @@ fallback merge logic in BISData_Method.lua intact.
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
 import re
@@ -139,31 +140,46 @@ SKILL_LABELS = {
 }
 
 DUNGEON_LABELS = {
-    "magistersterrace": "마법학자의 정원",
-    "magisterterrace": "마법학자의 정원",
-    "maisaracaverns": "마이사라 동굴",
-    "nexuspointxenas": "공결탑 제나스",
-    "nexuspoint": "공결탑 제나스",
-    "windrunnerspire": "윈드러너 첨탑",
-    "algetharacademy": "알게타르 대학",
-    "algetharsacademy": "알게타르 대학",
-    "algetharacademy2": "알게타르 대학",
-    "seatofthetriumvirate": "삼두정의 권좌",
-    "skyreach": "하늘탑",
-    "pitofsaron": "사론의 구덩이",
+    "altaroffangs": "송곳니의 제단",
+    "murderrow": "죽음의 골목",
+    "denofnalorakk": "날로라크의 소굴",
+    "nalorakksden": "날로라크의 소굴",
+    "blindingvale": "눈부신 골짜기",
+    "voidscararena": "공허흉터 투기장",
+    "kingsrest": "왕들의 안식처",
+    "templeofsethraliss": "세스랄리스 사원",
+    "rubylifepools": "루비 생명의 웅덩이",
 }
 
 SOURCE_NORMALIZATIONS = {
     "crafted": "Crafting",
     "craftingmisc": "Crafting",
+    "craftingblacksmithing": "Blacksmithing",
+    "craftingleatherworking": "Leatherworking",
+    "craftingtailoring": "Tailoring",
+    "craftingjewelcrafting": "Jewelcrafting",
     "thecatalyst": "Catalyst",
     "catalystraidvault": "Catalyst / Raid / Vault",
     "catalyst|raid|vault": "Catalyst / Raid / Vault",
     "raid|catalyst|vault": "Raid | Catalyst | Vault",
-    "nexuspointxenas": "Nexus-Point Xenas",
-    "magistersterrace": "Magisters' Terrace",
-    "magisterterrace": "Magisters' Terrace",
-    "salhadaar": "Fallen-King Salhadaar",
+    "kingsrest": "Kings' Rest",
+    "blindingvale": "The Blinding Vale",
+    "altaroffangs": "Altar of Fangs",
+    "murderrow": "Murder Row",
+    "denofnalorakk": "Den of Nalorakk",
+    "voidscararena": "Voidscar Arena",
+    "templeofsethraliss": "Temple of Sethraliss",
+    "rubylifepools": "Ruby Life Pools",
+    "entomedsentinels": "Entombed Sentinels",
+    "entombedsentinels": "Entombed Sentinels",
+    "thecoiledalter": "The Coiled Altar",
+    "thecoiledaltar": "The Coiled Altar",
+    "thecoiledaltarsszorak": "The Coiled Altar",
+    "vashnik": "Vashnik the Malignant",
+    "nymrissawavebinder": "Nymrissa Wavecaller",
+    "nekzalithesoulcoiler": "Nek'zali the Soulcoiler",
+    "thelostexplorers": "The Lost Explorers",
+    "thetwinfangs": "The Twin Fangs",
 }
 
 FILE_HEADER_RE = re.compile(
@@ -189,9 +205,19 @@ def strip_bbcode(text: str) -> str:
 def normalize_slot(raw_slot: str) -> str:
     cleaned = strip_bbcode(raw_slot)
     key = normalize_key(cleaned)
-    if key not in SLOT_MAP:
-        raise ValueError(f"Unknown slot label: {cleaned!r}")
-    return SLOT_MAP[key]
+    if key in SLOT_MAP:
+        return SLOT_MAP[key]
+
+    # Wowhead attaches qualifiers such as "Trinket (Raid only)" to slot labels.
+    # Drop the parenthetical and retry before giving up, so a new qualifier does
+    # not require a new SLOT_MAP entry every season.
+    without_qualifier = re.sub(r"\([^)]*\)", " ", cleaned).strip()
+    if without_qualifier and without_qualifier != cleaned:
+        base_key = normalize_key(without_qualifier)
+        if base_key in SLOT_MAP:
+            return SLOT_MAP[base_key]
+
+    raise ValueError(f"Unknown slot label: {cleaned!r}")
 
 
 def normalize_source_label(raw_cell: str) -> str:
@@ -218,6 +244,11 @@ def normalize_source_label(raw_cell: str) -> str:
     text = text.replace("Catalyst|Raid|Vault", "Catalyst / Raid / Vault")
     text = text.replace("Raid / Catalyst / Vault", "Raid | Catalyst | Vault")
     text = re.sub(r"\s+", " ", text).strip(" |/")
+    # Wowhead sometimes glues the catalyst source to the converted piece, e.g.
+    # "Catalyst the Ula'tek Chest". Collapse those to a plain Catalyst label so
+    # the catalog does not gain one bogus source per armor slot.
+    if re.match(r"^Catalyst the .+", text):
+        text = "Catalyst"
     text = normalize_mixed_source_modes(text)
 
     normalized = SOURCE_NORMALIZATIONS.get(normalize_key(text))
@@ -465,11 +496,11 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
         raise ValueError(f"Unexpectedly low row count: {total_rows}")
 
     representative_counts = {
-        269: 17,
+        269: 15,
         270: 16,
         263: 16,
         577: 16,
-        1382: 16,
+        1382: 17,
         1473: 16,
     }
     for spec_id, expected_count in representative_counts.items():
@@ -480,11 +511,11 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
             )
 
     expected = {
-        ("머리", 250015, "raid", "Tier Set"),
-        ("목", 250247, "raid", "Midnight Falls"),
-        ("허리", 251082, "mythicplus", "Windrunner Spire"),
-        ("장신구", 249343, "raid", "Chimaerus"),
-        ("장신구", 193701, "mythicplus", "Algeth'ar Academy"),
+        ("목", 268265, "raid", "Ula'tek"),
+        ("망토", 268253, "raid", "The Coiled Altar"),
+        ("손", 251124, "mythicplus", "Murder Row"),
+        ("장신구", 270175, "raid", "Ula'tek"),
+        ("반지", 158366, "mythicplus", "Temple of Sethraliss"),
     }
     actual = {
         (str(entry["slot"]), int(entry["itemID"]), str(entry["sourceType"]), str(entry["sourceLabel"]))
@@ -514,6 +545,17 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--review",
+        metavar="PATH",
+        help=(
+            "대상 파일을 쓰지 않고 수집 결과만 JSON으로 남긴다. "
+            "시즌이 바뀌어 고정 검증이 실패할 때 내용을 먼저 확인하는 용도다."
+        ),
+    )
+    args = parser.parse_args()
+
     overrides: Dict[int, List[Dict[str, object]]] = {}
     modified_dates: Dict[int, Optional[str]] = {}
     total_rows = 0
@@ -523,6 +565,27 @@ def main() -> int:
         overrides[spec_id] = rows
         modified_dates[spec_id] = modified
         total_rows += len(rows)
+
+    if args.review:
+        summary = {
+            "totalRows": total_rows,
+            "specCount": len(overrides),
+            "rowsBySpec": {str(k): len(v) for k, v in sorted(overrides.items())},
+            "sourceLabels": sorted(
+                {str(row["sourceLabel"]) for rows in overrides.values() for row in rows}
+            ),
+            "modifiedDates": {
+                str(k): (v.split("T")[0] if v else None) for k, v in sorted(modified_dates.items())
+            },
+            "overrides": {str(k): v for k, v in sorted(overrides.items())},
+        }
+        Path(args.review).write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"Review dump: {args.review}")
+        print(f"Specs: {len(overrides)}")
+        print(f"Rows: {total_rows}")
+        return 0
 
     validate(overrides, total_rows)
     update_target_file(render_overrides(overrides))

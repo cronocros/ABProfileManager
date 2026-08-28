@@ -74,13 +74,34 @@ SavedVariables 마이그레이션 부분은 끝났습니다.
 - 시즌 불일치 상태에서도 raid·tier·crafted hover는 계속 preview 링크를 시도합니다. `SeasonGuard`가 이 경로까지 막을지 결정이 필요합니다. 명세의 처리 방침에는 없는 범위입니다.
 - `UI/BISOverlay.lua`의 top-level local이 `198`로 상한과 같습니다. 이 파일에 새 local을 추가하면 `scripts/validate_bis_tooltip_contract.py`가 실패합니다. 새 기능은 기존 테이블의 필드로 넣어야 합니다.
 
-## 5. 후속 시즌 작업 (이번 범위 밖)
+## 5. BIS 시즌 2 (진행 중)
 
-BIS 데이터는 시즌 1 기준으로 동결돼 있습니다. 시즌 2 던전 풀은 시즌 1과 겹치는 던전이 하나도 없으므로 BIS의 M+ 후보는 전부 획득할 수 없는 아이템입니다.
+### 완료
 
-`SeasonGuard`가 자동 동작을 꺼서 잘못된 값을 보여주지는 않지만, 추천 목록 자체는 여전히 시즌 1 아이템입니다. 실제 해결은 별도의 BIS 시즌 2 작업이며 다음이 필요합니다.
+`ABProfileManager/Data/BISData_Method.lua`를 시즌 2 와우헤드 데이터로 갱신했습니다. 40개 전문화 641행이며 시즌 1 던전 참조는 없습니다. 이 파일은 TOC에 없어 런타임에 로드되지 않으므로 인게임 동작은 아직 바뀌지 않습니다.
 
-- `Data/BISCatalog.lua` 후보 재생성
+`scripts/refresh_wowhead_bis.py`도 함께 고쳤습니다. 괄호 한정어가 붙은 슬롯 라벨을 처리하고, 시즌 2 던전·보스 정규화를 넣고, 대상 파일을 쓰지 않고 결과만 확인하는 `--review` 모드를 추가했습니다.
+
+### 막힌 지점
+
+카탈로그 재생성이 불가능합니다. `scripts/build_bis_catalog.py`는 후보 풀을 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`에서 가져오는데 이것이 시즌 1 데이터입니다. 현재 카탈로그 3330행 중 대부분이 여기서 오고, 와우헤드에서 얻을 수 있는 것은 641행뿐입니다. 그중 M+는 88행에 불과합니다.
+
+지금 재생성하면 시즌 1 후보 풀에 시즌 2 overall만 얹힌 잡탕이 됩니다. 선택이 필요합니다.
+
+- **A.** 시즌 2 후보 시드를 만든다. `MidnightS1_MPlus_Addon_DB_v1.3.lua` 상당의 파일이 필요하며 어떻게 만들어졌는지 재현해야 한다
+- **B.** 파이프라인을 바꿔 와우헤드 overall만으로 카탈로그를 만든다. 후보가 3330행에서 641행으로, M+는 2554행에서 88행으로 줄어든다
+
+B는 "적지만 맞는 추천"이고 현상 유지는 "많지만 획득 불가한 추천"입니다. 사용자 체감이 크게 달라지므로 결정이 필요합니다.
+
+### 이후 단계 (카탈로그 결정 후)
+
+
+
+런타임 BIS 데이터는 여전히 시즌 1 기준으로 동결돼 있습니다. 시즌 2 던전 풀은 시즌 1과 겹치는 던전이 하나도 없으므로 BIS의 M+ 후보는 전부 획득할 수 없는 아이템입니다.
+
+`SeasonGuard`가 자동 동작을 꺼서 잘못된 값을 보여주지는 않지만, 추천 목록 자체는 여전히 시즌 1 아이템입니다. 남은 단계는 다음과 같습니다.
+
+- `Data/BISCatalog.lua` 후보 재생성 (위 A/B 결정 필요)
 - `Data/BISMythicVaultLinks.lua`의 `baselineItemLevel`을 `272`에서 시즌 2 값으로 교체하고 selector 재검토
 - `Data/BISSeasonPreviewLinks.lua`의 검증 범위 갱신
 - `Data/BISEncounterJournal.lua`의 `currentSeasonJournalTierID`와 `currentSeasonTierIndex` 갱신
