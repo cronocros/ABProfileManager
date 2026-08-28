@@ -15,7 +15,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 - `ABProfileManager/` 아래 Lua 소스에는 주석이 없다. 설계 의도와 배경 설명은 `DOC/CODE_NOTES.md`에서 찾는다. 코드를 고치기 전에 이 문서를 먼저 본다.
 - 새 주석을 소스에 다시 넣지 않는다. 설명이 필요하면 `DOC/CODE_NOTES.md`에 적는다.
 - 제거는 `scripts/strip_lua_comments.py`가 담당한다. 스캐너로 문자열과 주석을 구분하고, 처리 전후 AST를 비교해 코드가 바뀌지 않았음을 확인한 파일만 쓴다. `--check`는 검사만 하고, `--extract <경로>`는 제거 대상 주석을 먼저 파일로 남긴다.
-- 제외 대상: 동결 파일 10개(`Data/BISCatalog.lua`, `BISRuntimeScoring.lua`, `BISMythicVaultLinks.lua`, `BISSeasonPreviewLinks.lua`, `BISEncounterJournal.lua`, `MidnightS1MPlusDB.lua`, `BISData.lua`, `BISData_Method.lua`, `StatPriorities.lua`, `StatPriorityTable.lua`)와 `Data/ItemLevelTable.lua`의 `ns.Data.BISRewardProfiles` 이후 블록. 이 블록은 주석까지 포함해 sha256으로 고정돼 있다.
+- 제외 대상: 동결 파일 9개(`Data/BISCatalog.lua`, `BISRuntimeScoring.lua`, `BISMythicVaultLinks.lua`, `BISSeasonPreviewLinks.lua`, `BISEncounterJournal.lua`, `MidnightS1MPlusDB.lua`, `BISData_Method.lua`, `StatPriorities.lua`, `StatPriorityTable.lua`)와 `Data/ItemLevelTable.lua`의 `ns.Data.BISRewardProfiles` 이후 블록. 이 블록은 주석까지 포함해 sha256으로 고정돼 있다.
 
 ## 검증 명령어
 
@@ -39,7 +39,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_season2_validation.ps1 -S
 powershell -ExecutionPolicy Bypass -File .\scripts\package_release.ps1
 ```
 
-현재 `Data/ItemLevelTable.lua`의 `delves / mythicPlus / raid / pvp`는 아직 `guide`라서 `-Strict`가 실패한다. 인게임 확인 전에는 릴리스할 수 없다. PvP 값(명예 266~295, 정복 295~321)은 추정치이며 미확인이다.
+현재 `Data/ItemLevelTable.lua`의 `delves`와 `mythicPlus`가 `guide`라서 `-Strict`가 실패한다. 인게임 확인 전에는 릴리스할 수 없다. `raid`는 모험 안내서 전리품 목록으로, `pvp`와 `worldBoss`, `crafted`는 인게임 툴팁으로 확인을 마쳤다.
 
 디버깅: 인게임에서 `/abpm debug on`
 
@@ -81,8 +81,8 @@ ABProfileManager/
    - WoW 12.1부터 전투/레이드 조우/쐐기/PvP 중에는 `C_UnitAuras`의 index·slot·instanceID 기반 조회가 Lua 오류를 낸다. spellID 기반 조회는 정상이다
    - 버프 hash는 실패 시 `AURA_SCAN_BACKOFF_SECONDS` 동안 조회를 멈추고 빈 문자열을 돌려준다. 부분 hash를 남기면 보호 상태가 오갈 때 signature가 흔들려 불필요한 refresh가 생기므로 빈 값으로 통일한다
 8. `UI/BISOverlay.lua`
-   - BIS 정적 데이터는 시즌 1 기준으로 동결됐다. `SeasonGuard.dataSeason`이 `Data/ItemLevelTable.lua`의 `season`과 다르면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 멈춘다. 시즌 2에서는 이 차단이 켜져 있는 상태가 정상이다
-   - 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있다. `SeasonGuard.ApplyNotice()`가 `[S1]` 형태의 짧은 접두와 경고색만 붙인다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘린다
+   - `SeasonGuard.dataSeason`이 `Data/ItemLevelTable.lua`의 `season`과 다르면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 멈춘다. 현재 둘 다 `Midnight Season 2`라 차단은 꺼져 있다. BIS 데이터를 새 시즌으로 갱신할 때 이 값을 함께 올린다
+   - 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있다. 시즌이 어긋날 때만 `SeasonGuard.ApplyNotice()`가 `S1` 형태의 짧은 접두와 경고색을 붙인다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘린다
    - BIS 데이터를 새 시즌으로 갱신할 때 `SeasonGuard.dataSeason`도 함께 올린다. 올리지 않으면 자동 동작이 계속 꺼져 있다
    - 정적 후보는 `Data/BISCatalog.lua`만 읽고, 링크 점수는 `Data/BISRuntimeScoring.lua`로 계산한다
    - top-level local 예산은 현재 `198`로 상한과 같다. 새 기능은 새 local 대신 기존 테이블 필드를 쓴다. 시즌 preview helper는 `SourcePreview` 테이블에 묶어 둔다
@@ -109,7 +109,9 @@ ABProfileManager/
 - 퀘스트 목록 패널 표시와 퀘스트 ID 링크 클릭 동작
 - 스탯 overlay drag/hitbox
 - 전투/레이드 조우/쐐기/PvP 중 aura 조회 Lua 오류가 없는지 확인
-- BIS 상단 안내에 `[S1]` 접두와 경고색이 표시되고, 시즌 불일치 동안 자동 랜딩·자동 점수화가 실행되지 않는지 확인
+- BIS 목록이 시즌 2 아이템만 담고 출처가 공식 한글명으로 표시되는지 확인
+- BIS 드랍 출처 클릭 시 시즌 2 던전의 모험 안내서로 이동하는지 확인
+- 상단 안내에 `S1` 같은 시즌 접두가 나타나지 않는지 확인
 - BIS 필터 / 열 폭 / 마지막 열 가림 여부
 - BISOverlay 로드 시 `main function has more than 200 local variables` 오류가 없는지 확인
 - BIS hover 뒤 액션바 / 모험 안내서 tooltip에서 `MoneyFrame.lua secret number` 오류가 재발하지 않는지 확인
@@ -130,7 +132,7 @@ ABProfileManager/
 
 ### BIS 추천 장비 카탈로그
 
-현재 상태: 시즌 1 기준으로 동결. 시즌 2 재생성 전까지는 `SeasonGuard`가 자동 동작을 차단한다. `DOC/SEASON2_HANDOFF.md` 5장 참조.
+현재 상태: 시즌 2로 재생성 완료(`--overall-only`, 641행). preview selector 두 종만 값을 확인하지 못해 비활성이며, 그 결과 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않는다. `DOC/TODO.md` 5장 참조.
 
 런타임 데이터:
 - `Data/BISCatalog.lua`
@@ -141,14 +143,11 @@ ABProfileManager/
 - `Data/BISEncounterJournal.lua`
 
 생성 입력:
-- `Data/BISData_Method.lua`, `Data/BISData.lua`
-- `DOC/wow_midnight_s1_mplus_bis_final.md`
-- `DOC/wow_midnight_s1_mplus_bis_korean_companion.md`
-- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`
-- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`
+- `Data/BISData_Method.lua` — 와우헤드 전문화별 overall BiS. 카탈로그의 유일한 후보 원천이다
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua` — 40개 전문화 스탯 우선순위 정책. 파일명에 `MidnightS1`이 붙어 있지만 시즌 1 BIS 데이터가 아니라 시즌 무관한 점수 정책이며 `12.0.5` 기준으로 유지한다. 카탈로그 행의 검증 메타데이터도 여기서 나온다
 
 생성/검증 스크립트:
-- `scripts/refresh_wowhead_bis.py`, `scripts/refresh_wowhead_mplus_fallbacks.py`
+- `scripts/refresh_wowhead_bis.py` — 와우헤드 수집. `--review <경로>`는 파일을 쓰지 않고 결과만 JSON으로 남긴다
 - `scripts/build_bis_catalog.py`, `scripts/build_bis_runtime_scoring.py`
 - `scripts/validate_bis_mythic_vault_links.py`, `scripts/validate_bis_season_preview_links.py`
 - `scripts/validate_bis_tooltip_contract.py`, `scripts/validate_bis_encounter_journal.py`
@@ -158,15 +157,18 @@ ABProfileManager/
 중요 규칙:
 - 런타임 merge/정규화/웹 조회 금지
 - `mythicplus / raid / crafted / tier` 4개 필터 모두 기본 on. 필터 후 visible list 기준으로 `1순위 / 2순위 / 3순위+`를 재번호화
-- 정적 후보 풀은 v1.3 입력, 전문화별 스탯 우선순위와 링크 점수 정책은 v1.7 컴팩트 코어를 쓴다. M+/tier 추가는 v1.3 파일만 갱신한다
-- raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed다. 완전 단일 seed 재생성은 후속 범위다
+- 카탈로그는 `scripts/build_bis_catalog.py --overall-only`로 와우헤드 overall 데이터만 사용해 만든다. 시즌 1 후보 시드와 문서 입력은 제거됐다
+- `ns.Data.BISSpecPolicies` 블록은 재생성하지 않고 기존 값을 옮긴다. `12.0.5` 기준 스탯 우선순위 정책이다
+- DB2 빌드 접두사는 TOC의 Interface 번호에서 유도한다. 하드코딩하면 다음 패치에서 신규 아이템 메타데이터를 찾지 못한다
+- 한글명은 공식 한글 클라이언트, Blizzard KO 문서, Wowhead KO 개별 페이지만 허용한다. 영어명 임의 번역과 위키 표기는 쓰지 않는다
 - 검증 snapshot이 없는 후보는 기존 정적 순서를 유지한다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
-- 임의 bonusID를 조립하지 않는다. M+ selector와 `Myth 1/6 272` full link override는 `Data/BISMythicVaultLinks.lua`, raid/tier/crafted 시즌 preview selector와 override는 `Data/BISSeasonPreviewLinks.lua`에서만 관리하고 각각 대응 validate 스크립트로 확인한다
+- 임의 bonusID를 조립하지 않는다. M+ selector와 full link override는 `Data/BISMythicVaultLinks.lua`, raid/tier/crafted 시즌 preview selector와 override는 `Data/BISSeasonPreviewLinks.lua`에서만 관리하고 각각 대응 validate 스크립트로 확인한다
+- 시즌 2 preview selector는 아직 확인되지 않아 두 파일 모두 비어 있다. 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 비활성으로 둔다
 - 시즌 M+ 던전 풀이 바뀌면 `Data/BISEncounterJournal.lua`의 현재 시즌 tier와 `JournalInstanceID`만 갱신하고 `scripts/validate_bis_encounter_journal.py`로 확인한다
 - selector 또는 item string 템플릿이 바뀌면 이전 snapshot cache를 초기화한다. 다른 템렙으로 해석된 preview는 같은 세션에서 다시 큐에 넣지 않는다
 - hover는 검증된 preview item string을 먼저 시도하고, 없으면 클라이언트가 로드한 기본 `itemLink` 또는 `item:<itemID>`로 fallback한다. 어느 경로든 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다
-- `scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다
+- `scripts/rebuild_bis_database.ps1`는 카탈로그 생성(`--overall-only`) → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행한다
 
 ### 아이템 레벨 오버레이 + 문장/열쇠 패널
 

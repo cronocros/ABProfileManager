@@ -16,14 +16,17 @@
   - 제작은 base(룬각인) `318`, r5(금박) `331`. 구렁 최고 단계는 `11`을 유지한다.
   - `worldBoss`는 야외 / 일반 / 영웅 / 신화 4난이도로 확장했다. Lair 드랍이 레이드 1보스와 같은 아이템 레벨이라 스키마 변경 없이 값만 넣었다.
   - 수치 그룹마다 `sources` 태그(`dump` / `tooltip` / `guide`)를 요구한다.
-  - 83행 이후 `ns.Data.BISRewardProfiles` 블록은 동결 구간이다. 시즌 1 값 그대로 둔다.
+  - 하단 `ns.Data.BISRewardProfiles` 블록은 시즌 2 값(`311` / `318`)이며 주석까지 포함해 sha256으로 고정된다.
 - `UI/ItemLevelOverlay.lua`의 `CREST_ID_BY_GRADE`를 시즌 2 안개문장(Mistcrest)으로 교체했다: `adv 3442`, `vet 3443`, `chmp 3444`, `hero 3445`, `myth 3446`. 시즌 1 ID와 겹치지 않는 신규 통화다. `DELVE_RESTORED_KEY_CURRENCY_ID = 3028`은 시즌 1 값이 그대로 유효하다.
 - 12.1 aura 접근 제한에 대응했다. 전투 / 레이드 조우 / 쐐기 / PvP 중에는 `C_UnitAuras`의 index·slot·instanceID 조회가 Lua 오류를 낸다. `UI/StatsOverlay.lua`의 버프 hash는 `pcall` 실패 시 backoff `2.0초`를 걸고 부분 hash 대신 빈 문자열을 돌려준다. spellID 기반 조회는 종전대로 동작한다.
 - `UI/MythicPlusRecordOverlay.lua`의 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 유지한다.
-- `UI/BISOverlay.lua`에 `SeasonGuard`를 추가했다. `dataSeason = "Midnight Season 1"`과 `ItemLevelTable.season`을 비교해 불일치를 판정하고, 불일치면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 끈다. 상단 안내에는 `[S1]` 접두와 경고색을 붙인다.
+- `UI/BISOverlay.lua`에 `SeasonGuard`를 추가했다. `dataSeason`과 `ItemLevelTable.season`을 비교해 불일치면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 끄고 상단 안내에 짧은 시즌 접두와 경고색을 붙인다. BIS 데이터를 시즌 2로 재생성한 뒤 `dataSeason`도 `Midnight Season 2`로 올려 현재 차단은 꺼져 있다.
+- BIS 데이터를 시즌 2로 재생성했다. `scripts/build_bis_catalog.py --overall-only`가 와우헤드 overall 데이터만 사용하며 결과는 `641`행이다(raid 371, crafted 103, mythicplus 88, tier 79). 시즌 1 후보 시드와 관련 입력·스크립트는 제거했다.
+- Encounter Journal 랜딩 데이터를 시즌 2 던전 8종으로 갱신했다. `currentSeasonTierIndex`는 `13` 그대로다. "현재 시즌" tier가 동적이라 시즌이 바뀌어도 인덱스가 같다는 것을 인게임 덤프로 확인했다.
+- 시즌 2 preview selector 두 종은 값을 확인하지 못해 비활성이다. 그 결과 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않는다. 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 비워 두었다.
 - `DB:GetBISOverlayMythPreviewCache()`의 무효화 키에 현재 시즌을 추가했다. 기존 무효화 조건이 전부 동결된 `BISMythicVaultLinks.lua`에서 와서 시즌 전환을 감지하지 못했다.
 - 검증 하네스 `scripts/run_season2_validation.ps1`과 검증기 3종(`validate_season2_scope.py`, `validate_season2_itemlevel.py`, `validate_locale_contract.py`)을 추가했다.
-- 소스 Lua 주석을 전부 제거했다. `scripts/strip_lua_comments.py`가 담당하며 동결 파일 10개와 `ItemLevelTable.lua`의 `BISRewardProfiles` 블록은 예외다.
+- 소스 Lua 주석을 전부 제거했다. `scripts/strip_lua_comments.py`가 담당하며 동결 파일 9개와 `ItemLevelTable.lua`의 `BISRewardProfiles` 블록은 예외다.
 
 ### 미완 사항
 
@@ -34,12 +37,12 @@
 - `Coiled Isle` UiMapID(후보 `2512`), 신규 구렁·던전 UiMapID, 전문기술 지식 questID, 주간 이벤트 좌표가 전부 미확정이다. 지도 / 전문기술 / 주간 이벤트 데이터 작업이 이 때문에 막혀 있다.
 - 로케일 3종 갱신 미착수다. `Locale.lua`, `Locale_Additions.lua`, `ABPM_ruRU_Final_v3.lua`는 단일 소유 파일이므로 다른 작업은 키만 요청한다.
 - `UI/MythicPlusRecordOverlay.lua`의 `DUNGEON_NAME_OVERRIDES`가 아직 시즌 1 던전 기준이다. 시즌 2 던전 이름 줄바꿈 override는 없다.
-- BIS 데이터는 시즌 1 기준으로 동결됐다. SeasonGuard가 저하를 드러내지만 후보 자체는 시즌 2에서 획득 불가다. 아래 1장 참조.
+- BIS 후보 수가 시즌 1보다 크게 줄었다. 넓은 후보 시드 없이 와우헤드 overall 데이터만 쓰기 때문이며, 적지만 시즌 2에서 실제 획득 가능한 아이템이다.
 - 인게임 QA와 v1.12.0 패키징 미착수다. 릴리스 마무리 체크리스트는 `SEASON2_HANDOFF.md` 13장에 있다.
 
 ## 0-prev. v1.11 계열 요약
 
-v1.11.0 ~ v1.11.11은 Midnight 시즌 1 BIS 오버레이의 점수화와 tooltip 표시를 다듬은 계열이다. 정적 후보 풀은 v1.3 입력으로 만든 `Data/BISCatalog.lua` `3330`행(`mythicplus 2554`, `raid 485`, `crafted 91`, `tier 200`)이고, v1.7 컴팩트 코어를 `Data/MidnightS1MPlusDB.lua`로 설치해 실제 `itemLink`를 점수화한다. 시즌 preview link DB 2종(`BISMythicVaultLinks.lua` selector `12801`, `BISSeasonPreviewLinks.lua`)을 도입해 검증을 통과한 preview만 addon-owned Blizzard tooltip에 넘기고, 실패하면 기본 `itemLink` fallback으로 떨어진다. 그 밖에 Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출 제거, 전투 중 자동 랜딩 생략, `BISOverlay` top-level local 200개 제한 대응, 12.0.7 진균나락 raid 11종 추가, secret number 정규화 보강이 포함된다. 이 계열의 시즌 1 고정값은 v1.12.0에서 동결된 상태이며 SeasonGuard가 관련 자동화를 차단한다.
+v1.11.0 ~ v1.11.11은 Midnight 시즌 1 BIS 오버레이의 점수화와 tooltip 표시를 다듬은 계열이다. 정적 후보 풀은 v1.3 입력으로 만든 `Data/BISCatalog.lua` `3330`행(`mythicplus 2554`, `raid 485`, `crafted 91`, `tier 200`)이고, v1.7 컴팩트 코어를 `Data/MidnightS1MPlusDB.lua`로 설치해 실제 `itemLink`를 점수화한다. 시즌 preview link DB 2종(`BISMythicVaultLinks.lua` selector `12801`, `BISSeasonPreviewLinks.lua`)을 도입해 검증을 통과한 preview만 addon-owned Blizzard tooltip에 넘기고, 실패하면 기본 `itemLink` fallback으로 떨어진다. 그 밖에 Encounter Journal 랜딩에서 보호된 `C_EncounterJournal.SetTab` 직접 호출 제거, 전투 중 자동 랜딩 생략, `BISOverlay` top-level local 200개 제한 대응, 12.0.7 진균나락 raid 11종 추가, secret number 정규화 보강이 포함된다. 이 계열의 시즌 1 값은 v1.12.0에서 모두 시즌 2로 교체됐다.
 
 v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)와 [releases](./releases)의 릴리스 노트를 본다. 지금도 유효한 규칙은 아래 회귀 민감 메모와 운영 메모로 옮겨 두었다.
 
@@ -58,7 +61,7 @@ v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)�
 - 지도 전용 탭과 typography 슬라이더
 - 와우 `설정 > 애드온` 경량 하위 페이지
 - 드랍템 레벨정보 오버레이
-- BIS 추천 장비 카탈로그 오버레이 (시즌 1 데이터 동결 상태)
+- BIS 추천 장비 카탈로그 오버레이
 - 파티찾기 시즌 최고기록 아이콘 오버레이
 - 스탯 우선순위 표 팝업
 - 블리자드 기본 UI 창 이동 자유화
@@ -70,11 +73,11 @@ v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)�
 
 시즌 동결 상태:
 
-- BIS 후보와 순위, `Data/BISCatalog.lua`, 런타임 점수화, preview selector, Encounter Journal 데이터는 v1.12.0에서 동결이다. 기준 해시 목록은 `SEASON2_HANDOFF.md` 4장에 있다.
+- BIS 런타임 데이터의 기준 해시는 `scripts/validate_season2_scope.py`가 관리한다. 값을 바꾸면 해시도 함께 갱신한다.
 - 시즌 2 M+ 던전 풀 8종은 시즌 1과 하나도 겹치지 않는다. 동결된 M+ 후보는 시즌 2에서 전부 획득 불가다.
 - `SeasonGuard`가 `ItemLevelTable.season`과 `dataSeason`을 비교해 불일치를 감지하면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 끈다. 실패를 반복 시도하지 않는다.
 - 상단 안내는 한 줄 고정이고 줄바꿈이 꺼져 있다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘리므로 `[S1]` 형태의 짧은 접두만 쓴다.
-- `Data/MidnightS1MPlusDB.lua`는 파일명이 시즌 1 기준이지만 계속 로드한다. SeasonGuard가 의존 자동화를 끄는 것으로 결론냈다.
+- `Data/MidnightS1MPlusDB.lua`와 `v1.7` 입력은 파일명과 달리 시즌 1 BIS 데이터가 아니라 40개 전문화 스탯 우선순위 정책이다. `12.0.5` 기준으로 유지하며 카탈로그 행의 검증 메타데이터도 여기서 나온다.
 - `scripts/validate_bis_tooltip_contract.py`가 `BISOverlay` top-level local 개수를 검사한다. 현재 `198`로 상한 `200`에 붙어 있으므로 새 local 대신 기존 테이블 필드를 쓴다.
 
 구조와 표시 규칙:
@@ -218,7 +221,6 @@ v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)�
 - `ABProfileManager/Data/BISMythicVaultLinks.lua`
 - `ABProfileManager/Data/BISSeasonPreviewLinks.lua`
 - `ABProfileManager/Data/BISEncounterJournal.lua`
-- `ABProfileManager/Data/BISData.lua`
 - `ABProfileManager/Data/BISData_Method.lua`
 
 ### 스크립트
@@ -242,7 +244,6 @@ v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)�
 
 ### 오프라인 생성 입력
 
-- `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md` / `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`
 - `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md` / `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
 ### profession / 지도 / 설정

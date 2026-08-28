@@ -49,7 +49,6 @@
 
 - BIS 데이터 seed 갱신 스크립트:
   - `../scripts/refresh_wowhead_bis.py`
-  - `../scripts/refresh_wowhead_mplus_fallbacks.py`
 - BIS 통합 카탈로그 생성 스크립트:
   - `../scripts/build_bis_catalog.py --addon-db`
   - `../scripts/build_bis_runtime_scoring.py`
@@ -59,16 +58,13 @@
   - `../scripts/validate_bis_encounter_journal.py`
   - `../scripts/validate_bis_catalog.py`
   - `../scripts/rebuild_bis_database.ps1`
-- BIS v1.3 오프라인 생성 입력:
-  - `MidnightS1_MPlus_Addon_Master_v1.3.md`
-  - `MidnightS1_MPlus_Addon_DB_v1.3.lua`
 - BIS v1.7 런타임 점수 입력:
   - `MidnightS1_MPlus_Addon_Master_v1.7.md`
   - `MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
-`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 시즌 selector 교체 또는 예외 항목용 Myth 1/6 full link override 추가는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/tier/crafted 시즌 preview selector 또는 예외 override는 `../ABProfileManager/Data/BISSeasonPreviewLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
+`../scripts/rebuild_bis_database.ps1`는 카탈로그 생성 → v1.7 scoring 입력 → 각종 validate → audit 순서로 실행합니다. 카탈로그 후보는 `../scripts/refresh_wowhead_bis.py`가 만든 `Data/BISData_Method.lua`에서만 옵니다. 점수 정책은 v1.7 파일에서 관리하며 `12.0.5` 기준으로 유지합니다.
 
-BIS 데이터는 v1.12.0 시즌 2 작업에서 동결 상태입니다. 위 생성 스크립트와 입력 파일은 모두 시즌 1 기준이며, `UI/BISOverlay.lua`의 `SeasonGuard`가 시즌 불일치를 감지해 관련 자동 동작을 차단합니다. 해제 절차는 [TODO.md](./TODO.md) 5장을 봅니다.
+시즌 preview selector와 full link override는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`와 `../ABProfileManager/Data/BISSeasonPreviewLinks.lua`에서만 관리합니다. 시즌 2 selector는 아직 확인되지 않아 두 파일 모두 비어 있고, 그래서 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않습니다.
 
 현재 로컬 배포는 작업공간 `../dist/` ZIP 생성까지만 수행합니다. WoW 설치 폴더로 애드온을 복사하지 않습니다.
 

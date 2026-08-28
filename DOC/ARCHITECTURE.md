@@ -105,7 +105,7 @@ repo에는 있으나 TOC에서 제외된 비활성 파일: `Modules\MerchantHelp
 
 ### SeasonGuard (`UI/BISOverlay.lua`)
 
-BIS 데이터는 시즌 1 기준으로 동결됐습니다. 동결을 유지하면서 시즌 2에서의 조용한 오작동을 사용자에게 드러내는 장치입니다.
+BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은 꺼져 있습니다. 다음 시즌 전환 때 데이터가 뒤처지면 다시 켜져 조용한 오작동을 드러냅니다.
 
 - 기준값은 `SeasonGuard.dataSeason = "Midnight Season 1"`. 현재 시즌은 `ns.Data.ItemLevelTable.season`에서 읽는다. 새 API를 쓰지 않는다
 - `SeasonGuard.IsMismatched()`는 판정 결과를 `cachedMismatch`에 캐시한다. `ItemLevelTable`이 없으면 `false`로 본다
@@ -114,7 +114,7 @@ BIS 데이터는 시즌 1 기준으로 동결됐습니다. 동결을 유지하�
   - `scheduleAutomaticRuntimeScores()` M+ 자동 점수화 큐
   - `resolveMythPreviewSnapshot()` preview snapshot 스캔
   - `getPreviewRankingScore()` preview 기반 순위 점수
-- `SeasonGuard.ApplyNotice()`는 상단 안내에 `[S1]` 접두를 붙이고 경고색으로 칠한다. 상단 안내는 한 줄 고정이라 시즌 이름 전체 대신 `ShortLabel()`의 짧은 접두를 쓴다
+- 시즌이 어긋날 때만 `SeasonGuard.ApplyNotice()`가 상단 안내에 `S1` 형태의 짧은 접두를 붙이고 경고색으로 칠한다. 상단 안내는 한 줄 고정이라 시즌 이름 전체를 붙이면 스탯 정책 요약이 잘린다
 - 후보 목록, 정적 순위, 카탈로그 데이터는 그대로 둔다
 
 ### aura backoff (`UI/StatsOverlay.lua`)
@@ -155,7 +155,7 @@ BIS 데이터는 시즌 1 기준으로 동결됐습니다. 동결을 유지하�
 - `worldBoss` — 4난이도로 확장. `world 279 / normal 292 / heroic 305 / mythic 318`
 - `crafted` — `base 318`, `r5 331`
 - `pvp` — `honor 266~295`, `conquest 295~321`. 추정치이며 인게임 미확인
-- 하단 `ns.Data.BISRewardProfiles` — BIS row가 참조하는 대표 보상 트랙. 시즌 1 기준으로 **동결**돼 있고 sha256으로 고정된다. 주석 제거 대상에서도 제외된다
+- 하단 `ns.Data.BISRewardProfiles` — BIS row가 참조하는 대표 보상 트랙. 시즌 2 값(`311` / `318`)이며 sha256으로 고정된다. 주석 제거 대상에서도 제외된다
 
 랭크 사다리는 기준값 `+0, +3, +6, +10, +13, +16`의 6단계, 제작 품질 사다리는 `+0, +3, +6, +9, +13`의 5단계입니다.
 
@@ -175,7 +175,7 @@ BIS 데이터는 시즌 1 기준으로 동결됐습니다. 동결을 유지하�
 - `Data/BISMythicVaultLinks.lua` — M+ 금고 Myth 1/6 selector `12801`, `baselineItemLevel = 272`, 예외 full link override, snapshot schema v3
 - `Data/BISSeasonPreviewLinks.lua` — raid Myth `272~298`, tier Myth `272~289`, crafted r5 `285` preview item string 템플릿과 override
 - `Data/BISEncounterJournal.lua` — M+ 도감 랜딩용 UI tier index, `JournalTierID`, 검증된 `JournalInstanceID`. `MapID`는 `EJ_SelectInstance()` 입력으로 쓰지 않는다
-- `Data/BISData_Method.lua`, `Data/BISData.lua` — Wowhead seed 입력
+- `Data/BISData_Method.lua` — 와우헤드 전문화별 overall BiS. 카탈로그의 유일한 후보 원천이며 런타임에 로드되지 않는다
 
 시즌 2에서 이 값들은 전부 범위 밖입니다. SeasonGuard가 관련 자동 동작을 차단하므로 검증 실패가 반복되지 않습니다.
 
@@ -189,7 +189,7 @@ BIS 데이터는 시즌 1 기준으로 동결됐습니다. 동결을 유지하�
 - 필터 `mythicplus / raid / crafted / tier` 4개 기본 on. 필터 적용 후 남은 후보로 visible rank를 재계산하고 첫 2개는 `1순위 / 2순위`, 이후는 `3순위+`
 - 즐겨찾기/보유 체크박스는 캐릭터별·전문화별 저장. 즐겨찾기는 최상단 섹션, 보유 아이템명은 취소선
 - 열 구성은 `아이템명 / 드랍 출처 / 트랙·검증 상태 / 우선순위`
-- 헤더에 현재 전문화 스탯 정책과 정적 최종 BiS 미확정 상태 표시. 시즌 불일치면 `[S1]` 접두와 경고색
+- 헤더에 현재 전문화 스탯 정책과 정적 최종 BiS 미확정 상태 표시. 시즌이 어긋날 때만 짧은 시즌 접두와 경고색이 붙는다
 - 헤더 마우스 휠로 0.5~2.0배 스케일. 위치 / 스케일 / 접힘 상태를 저장하고 복원
 
 tooltip:
@@ -242,14 +242,14 @@ tooltip:
 
 시즌 2에서는 동결 상태이므로 실행하지 않습니다. 구조만 남깁니다.
 
-1. `DOC/MidnightS1_MPlus_Addon_Master_v1.3.md`와 `DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua`를 M+/tier 오프라인 입력으로 준비
+1. `scripts/refresh_wowhead_bis.py`로 `Data/BISData_Method.lua`를 갱신
 2. `scripts/rebuild_bis_database.ps1` 실행
 3. 내부 순서: `build_bis_catalog.py --addon-db` → `build_bis_runtime_scoring.py` → `validate_bis_mythic_vault_links.py` → `validate_bis_season_preview_links.py` → `validate_bis_tooltip_contract.py` → `validate_bis_encounter_journal.py` → `validate_bis_catalog.py` → `audit_bis_data.py`
 4. 결과 `Data/BISCatalog.lua`, `Data/MidnightS1MPlusDB.lua`, `Data/BISRuntimeScoring.lua`를 패키지에 포함
 
 seed 경계:
 
-- M+/tier 추가는 v1.3 파일만 갱신한다. 점수 정책은 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`에서 관리한다
+- 후보는 와우헤드 overall 데이터에서만 온다. 점수 정책은 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`에서 관리하며 `12.0.5` 기준으로 유지한다
 - M+ selector 교체와 Myth 272 full link override는 `Data/BISMythicVaultLinks.lua`만 갱신한다
 - raid / tier / crafted preview selector와 override는 `Data/BISSeasonPreviewLinks.lua`만 갱신한다
 - raid / crafted는 아직 기존 `BISCatalog.lua` 보존 seed다. 완전 단일 seed 재생성은 후속 범위다
@@ -278,7 +278,7 @@ seed 경계:
 
 - `scripts/strip_lua_comments.py` — 소스 주석 제거. 동결 파일 10종은 건드리지 않고, `Data/ItemLevelTable.lua`는 `ns.Data.BISRewardProfiles` 앞까지만 처리한다. 파일마다 처리 전후 AST를 비교해 주석만 사라졌음을 증명하고, 다르면 쓰지 않는다. `--check`는 검사만, `--extract`는 제거할 주석을 별도 파일로 남긴다
 - `scripts/package_release.ps1` — `dist/` ZIP 생성
-- `scripts/refresh_wowhead_bis.py`, `scripts/refresh_wowhead_mplus_fallbacks.py`, `scripts/sync_bis_doc_item_ids.py` — seed 갱신 (동결 중 미사용)
+- `scripts/refresh_wowhead_bis.py` — 와우헤드 수집. `--review <경로>`는 파일을 쓰지 않고 결과만 확인한다
 - `scripts/validate_bis_reward_profiles.py` — M+ BIS row의 보상 프로필 key 참조 검증
 
 현재 상태: `sources`의 `delves / mythicPlus / raid / pvp`가 `guide`로 남아 있어 `-Strict`가 실패합니다. 이 상태로는 릴리스할 수 없습니다.
@@ -287,7 +287,7 @@ seed 경계:
 
 시즌 2:
 
-- 시즌 불일치일 때 BIS 상단 안내에 `[S1]` 접두와 경고색이 표시되는지
+- BIS 상단 안내에 시즌 접두가 붙지 않는지(데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2일 때가 정상)
 - 시즌 불일치일 때 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔이 모두 멈추고 실패 재시도가 없는지
 - 시즌이 바뀌면 기존 `mythPreviewCache`가 버려지고 새로 만들어지는지
 - 전투 / 레이드 조우 / 쐐기 / PvP 중 스탯 오버레이에서 aura Lua 오류가 나지 않고 2초 backoff가 걸리는지
