@@ -32,15 +32,16 @@ REWARD_PROFILES_MARKER = "ns.Data.BISRewardProfiles"
 # 런타임에 로드되는 BIS 데이터와 스탯 우선순위다. TOC에 등재돼 있어 값을
 # 바꾸면 즉시 인게임 동작이 달라진다.
 #
-# BISCatalog.lua는 2026-08-28 시즌 2로 재생성했다(와우헤드 overall 641행).
-# 나머지는 아직 시즌 1 기준이며, 그래서 UI/BISOverlay.lua의 SeasonGuard가
-# 자동 랜딩과 자동 점수화를 계속 차단한다. 해제 절차는 DOC/TODO.md 5장을 따른다.
+# 2026-08-28 시즌 2로 전환했다. BISCatalog은 와우헤드 overall 641행으로
+# 재생성했고, EncounterJournal은 인게임 덤프로 확인한 시즌 2 던전 8종이며,
+# preview selector 두 종은 시즌 2 값을 확인하지 못해 비활성으로 두었다.
+# 스탯 우선순위는 12.0.5 기준 동결을 유지한다.
 FROZEN_BLOB_HASHES = {
     "ABProfileManager/Data/BISCatalog.lua": "c20ac6bbf31092b4d020b79049ece79631b51e31",
     "ABProfileManager/Data/BISRuntimeScoring.lua": "d8952d9c5dc49c08466c8609b1de2f628cdc71ab",
-    "ABProfileManager/Data/BISMythicVaultLinks.lua": "b1184cc041d179d6d43463b58543e13d6504ac27",
-    "ABProfileManager/Data/BISSeasonPreviewLinks.lua": "b27b68e8ddc95dba1a9f238432d7878c9e0deaaa",
-    "ABProfileManager/Data/BISEncounterJournal.lua": "0192dcf511efd708e82b6e1a2521ca87358cf638",
+    "ABProfileManager/Data/BISMythicVaultLinks.lua": "5cdaf725b8f9bc7851118c841ab5a22c60fb22ba",
+    "ABProfileManager/Data/BISSeasonPreviewLinks.lua": "48a2e022629eb9cfc28b8a1f671b2314f7229585",
+    "ABProfileManager/Data/BISEncounterJournal.lua": "230a26f4704a6d81634ce6553fabf106a76a0f6b",
     "ABProfileManager/Data/MidnightS1MPlusDB.lua": "7c57c1c13d5cb5a1e8e8b8bba2de85bf33b9d5a4",
     "ABProfileManager/Data/StatPriorities.lua": "6b88749d036c3b25aa970d27506d851af92ee2a3",
     "ABProfileManager/Data/StatPriorityTable.lua": "0f5fe46cd949b72a160ec804ace9c5e37978c0fd",

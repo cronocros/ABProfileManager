@@ -9,9 +9,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LINK_DB = REPO_ROOT / "ABProfileManager" / "Data" / "BISMythicVaultLinks.lua"
 CATALOG = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
-EXPECTED_PREVIEW_BONUS_LIST_ID = 12801
+EXPECTED_PREVIEW_BONUS_LIST_ID = None
 EXPECTED_SCHEMA_VERSION = 3
-EXPECTED_DB2_BUILD = "12.0.1.66838"
+EXPECTED_DB2_BUILD = "12.1.0.69465"
 EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE = "item:%d::::::::::::1:%d"
 
 
@@ -34,14 +34,18 @@ def main() -> None:
         )
 
     baseline_match = re.search(r"\bbaselineItemLevel\s*=\s*(\d+)", text)
-    if not baseline_match or int(baseline_match.group(1)) != 272:
-        raise ValueError("BISMythicVaultLinks.lua must declare baselineItemLevel = 272")
+    if not baseline_match or int(baseline_match.group(1)) != 318:
+        raise ValueError("BISMythicVaultLinks.lua must declare baselineItemLevel = 318")
 
-    preview_bonus_match = re.search(r"\bgeneratedPreviewBonusListID\s*=\s*(\d+)", text)
-    if (
-        not preview_bonus_match
-        or int(preview_bonus_match.group(1)) != EXPECTED_PREVIEW_BONUS_LIST_ID
-    ):
+    # 시즌 2 Myth 1/6 selector는 ItemBonus DB2 추출과 검토가 필요해 아직 없다.
+    # 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 nil로 두고
+    # 자동 생성을 끈다. 검증기는 nil이거나 확인된 숫자만 받아들인다.
+    preview_bonus_match = re.search(r"\bgeneratedPreviewBonusListID\s*=\s*(nil|\d+)", text)
+    if not preview_bonus_match:
+        raise ValueError("BISMythicVaultLinks.lua must declare generatedPreviewBonusListID")
+    raw_bonus = preview_bonus_match.group(1)
+    resolved_bonus = None if raw_bonus == "nil" else int(raw_bonus)
+    if resolved_bonus != EXPECTED_PREVIEW_BONUS_LIST_ID:
         raise ValueError(
             "BISMythicVaultLinks.lua must declare generatedPreviewBonusListID = "
             f"{EXPECTED_PREVIEW_BONUS_LIST_ID}"
@@ -80,7 +84,7 @@ def main() -> None:
             raise ValueError(f"Curated Myth link must contain the full item string: {item_id}")
 
     print(
-        "ok: baseline=272 "
+        "ok: baseline=318 "
         f"schema={EXPECTED_SCHEMA_VERSION} "
         f"db2_build={EXPECTED_DB2_BUILD} "
         f"generated_preview_bonus={EXPECTED_PREVIEW_BONUS_LIST_ID} "

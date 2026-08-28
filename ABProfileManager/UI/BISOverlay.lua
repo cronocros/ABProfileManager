@@ -360,7 +360,7 @@ local SourcePreview = {
 }
 
 local SeasonGuard = {
-    dataSeason = "Midnight Season 1",
+    dataSeason = "Midnight Season 2",
     cachedMismatch = nil,
 }
 

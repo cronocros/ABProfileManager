@@ -109,7 +109,11 @@ B안을 선택해 진행했습니다. "적지만 맞는 추천"이 "많지만 �
 
 
 
-`Data/BISCatalog.lua`는 시즌 2로 재생성했습니다. 나머지 런타임 BIS 데이터는 아직 시즌 1 기준입니다. 그래서 `SeasonGuard`를 계속 켜 둡니다. 시즌 2 던전 풀은 시즌 1과 겹치는 던전이 하나도 없으므로 BIS의 M+ 후보는 전부 획득할 수 없는 아이템입니다.
+BIS 런타임 데이터를 전부 시즌 2로 전환했고 `SeasonGuard`를 해제했습니다(`dataSeason = "Midnight Season 2"`). Encounter Journal 자동 랜딩이 다시 동작합니다.
+
+다만 preview selector 두 종은 시즌 2 값을 확인하지 못해 비활성입니다. `BISMythicVaultLinks`의 `generatedPreviewBonusListID`와 `BISSeasonPreviewLinks`의 selector item string이 그것이며, 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 비워 두었습니다. 그 결과 M+ 자동 점수화가 동작하지 않고 hover는 기본 `itemLink`로 표시됩니다.
+
+selector를 확인하려면 ItemBonus DB2에서 시즌 2 Myth 1/6(318) 조합을 추출해 검토해야 합니다. 확인되면 두 파일과 각 검증기의 고정값을 함께 갱신합니다. 시즌 2 던전 풀은 시즌 1과 겹치는 던전이 하나도 없으므로 BIS의 M+ 후보는 전부 획득할 수 없는 아이템입니다.
 
 `SeasonGuard`가 자동 동작을 꺼서 잘못된 값을 보여주지는 않지만, 추천 목록 자체는 여전히 시즌 1 아이템입니다. 남은 단계는 다음과 같습니다.
 

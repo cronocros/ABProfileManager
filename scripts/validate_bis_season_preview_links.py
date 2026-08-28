@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PREVIEW_DB = REPO_ROOT / "ABProfileManager" / "Data" / "BISSeasonPreviewLinks.lua"
 CATALOG = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
 TOC = REPO_ROOT / "ABProfileManager" / "ABProfileManager.toc"
-EXPECTED_DB2_BUILD = "12.0.1.66838"
+EXPECTED_DB2_BUILD = "12.1.0.69465"
 
 
 def require_contains(text: str, needle: str, source: Path, reason: str) -> None:
@@ -60,18 +60,20 @@ def main() -> None:
     by_source = catalog_sources()
 
     require_contains(toc, "Data\\BISSeasonPreviewLinks.lua", TOC, "season preview DB must load before BISOverlay")
-    require_contains(text, 'verifiedDB2Build = "12.0.1.66838"', PREVIEW_DB, "DB2 build must be recorded")
+    require_contains(text, f'verifiedDB2Build = "{EXPECTED_DB2_BUILD}"', PREVIEW_DB, "DB2 build must be recorded")
     require_contains(text, "raid = {", PREVIEW_DB, "raid preview profile is required")
     require_contains(text, "tier = {", PREVIEW_DB, "tier preview profile is required")
     require_contains(text, "crafted = {", PREVIEW_DB, "crafted preview profile is required")
-    require_contains(text, "minItemLevel = 272", PREVIEW_DB, "raid/tier preview must stay in Myth range")
-    require_contains(text, "maxItemLevel = 298", PREVIEW_DB, "raid preview must allow Sporefall Mythic max item level")
-    require_contains(text, "maxItemLevel = 289", PREVIEW_DB, "tier preview must allow Myth max upgrade")
-    require_contains(text, "targetItemLevel = 285", PREVIEW_DB, "crafted preview must target R5 285")
+    require_contains(text, "minItemLevel = 318", PREVIEW_DB, "raid/tier preview must stay in Myth range")
+    require_contains(text, "maxItemLevel = 334", PREVIEW_DB, "raid preview must allow season 2 Myth 6/6 item level")
+    require_contains(text, "maxItemLevel = 334", PREVIEW_DB, "tier preview must allow Myth max upgrade")
+    require_contains(text, "targetItemLevel = 331", PREVIEW_DB, "crafted preview must target R5 331")
     require_contains(text, "requireMythText = true", PREVIEW_DB, "raid/tier preview must verify Myth tooltip text")
-    require_contains(text, "item:%d::::::::::::3:6652:13335:12806", PREVIEW_DB, "raid Myth selector must be present")
-    require_contains(text, "item:%d::::::::::::5:13340:13440:6652:13574:12804", PREVIEW_DB, "tier Myth selector must be present")
-    require_contains(text, "item:%d::::::::::::6:12214:12497:12066:8960:12384:13622", PREVIEW_DB, "crafted R5 selector must be present")
+    # 시즌 1에는 raid / tier / crafted 각각의 preview selector item string이
+    # 고정돼 있었다. 시즌 2 selector는 ItemBonus DB2 추출과 검토가 필요해 아직
+    # 없다. 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 selector 없이
+    # 두고, 오버레이는 기본 itemLink로 fallback한다. selector가 확인되면 여기에
+    # 다시 고정한다.
     validate_overrides(text, by_source)
 
     print(
