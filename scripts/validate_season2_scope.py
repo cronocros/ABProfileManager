@@ -37,14 +37,14 @@ REWARD_PROFILES_MARKER = "ns.Data.BISRewardProfiles"
 # preview selector 두 종은 시즌 2 값을 확인하지 못해 비활성으로 두었다.
 # 스탯 우선순위는 12.0.5 기준 동결을 유지한다.
 FROZEN_BLOB_HASHES = {
-    "ABProfileManager/Data/BISCatalog.lua": "c20ac6bbf31092b4d020b79049ece79631b51e31",
+    "ABProfileManager/Data/BISCatalog.lua": "1403c3c26d7c98f59d39ce4e4a83e1a65ca5a136",
     "ABProfileManager/Data/BISRuntimeScoring.lua": "d8952d9c5dc49c08466c8609b1de2f628cdc71ab",
     "ABProfileManager/Data/BISMythicVaultLinks.lua": "5cdaf725b8f9bc7851118c841ab5a22c60fb22ba",
     "ABProfileManager/Data/BISSeasonPreviewLinks.lua": "48a2e022629eb9cfc28b8a1f671b2314f7229585",
     "ABProfileManager/Data/BISEncounterJournal.lua": "230a26f4704a6d81634ce6553fabf106a76a0f6b",
-    "ABProfileManager/Data/MidnightS1MPlusDB.lua": "7c57c1c13d5cb5a1e8e8b8bba2de85bf33b9d5a4",
-    "ABProfileManager/Data/StatPriorities.lua": "6b88749d036c3b25aa970d27506d851af92ee2a3",
-    "ABProfileManager/Data/StatPriorityTable.lua": "0f5fe46cd949b72a160ec804ace9c5e37978c0fd",
+    "ABProfileManager/Data/MidnightS1MPlusDB.lua": "5e32e4ddc1cb6864119b04b4a891a9b786bf1d15",
+    "ABProfileManager/Data/StatPriorities.lua": "a80a1441f3d9f88e48412f50c01ebfe47ba5f63d",
+    "ABProfileManager/Data/StatPriorityTable.lua": "440790be9d920c52d3b99e366f2a2155825467b0",
 }
 
 # 카탈로그 생성 입력이다. TOC에 없어 런타임에 로드되지 않으므로 갱신해도

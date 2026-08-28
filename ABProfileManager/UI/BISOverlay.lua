@@ -478,10 +478,6 @@ local function getEntryQuality(entry)
     return quality or 4
 end
 
-local function getSeasonPreviewKeyLevel()
-    return 10
-end
-
 local function getMythicPlusVaultPreviewItemLevel(entry)
     local profiles = entry and entry.rewardProfiles
     local profile = profiles and profiles.mplus_great_vault_voidcore
@@ -1112,45 +1108,6 @@ hasRaidMetaLabel = function(label)
         end
     end
     return false
-end
-
-local function getSourceBasisLabel(sourceType)
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    if sourceType == "mythicplus" then
-        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-        local entry = nil
-        if entries then
-            for _, candidate in ipairs(entries) do
-                if candidate.grade == "hero" then
-                    entry = candidate
-                    break
-                end
-            end
-            entry = entry or entries[1]
-        end
-        if entry and entry.key and entry.ilvl then
-            return string.format("+%d %d", entry.key, entry.ilvl)
-        end
-        return ns.L("bis_basis_mplus")
-    end
-    if sourceType == "raid" then
-        local heroic = tbl and tbl.raid and tbl.raid.heroic
-        if heroic and heroic.min and heroic.max then
-            return string.format("%d~%d", heroic.min, heroic.max)
-        end
-        return ns.L("bis_basis_raid")
-    end
-    if sourceType == "crafted" then
-        local crafted = tbl and tbl.crafted
-        if crafted and crafted.base and crafted.base.ilvl and crafted.r5 and crafted.r5.ilvl then
-            return string.format("%d/%d", crafted.base.ilvl, crafted.r5.ilvl)
-        end
-        return ns.L("bis_basis_crafted")
-    end
-    if sourceType == "tier" then
-        return ns.L("bis_basis_tier")
-    end
-    return localizeSourceType(sourceType)
 end
 
 local function getSourceTypeColor(sourceType)

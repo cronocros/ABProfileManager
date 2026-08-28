@@ -34,6 +34,13 @@
 - `DUNGEON_NAME_OVERRIDES`는 던전명 줄바꿈 위치를 잡는 표다. 시즌이 바뀌면 함께 갱신하지 않으면 이름이 한 줄로 넘쳐 잘린다.
 - 이 오버레이는 기본값이 꺼짐이다. 표시가 안 된다는 보고를 받으면 설정부터 확인한다.
 
+## Data/StatPriorities.lua · StatPriorityTable.lua · MidnightS1MPlusDB.lua
+
+- 세 파일 모두 생성물이다. 손으로 고치지 않는다. `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`를 고치고 `scripts/build_bis_runtime_scoring.py`를 돌린다.
+- 스탯 우선순위는 2026-08-28 와우헤드 전문화 개요 페이지에서 40개 중 34개를 갱신했다. 나머지 6개(방어 전사, 징벌 성기사, 야수·사격 사냥꾼, 혈기 죽음의 기사, 복원 주술사)는 페이지에 우선순위 문장이 없어 이전 값을 유지한다. 추정으로 채우면 점수화가 조용히 틀어진다.
+- 가중치는 문장에서 기계적으로 만든다. 첫 스탯 100에서 시작해 `=` 0, `>=` 5, `>` 15, `>>` 25, `>>>` 35씩 낮추고 하한은 30이다. 문장에 네 스탯이 다 없으면 빠진 스탯을 최하위로 채운다. 이 규칙은 `scripts/refresh_wowhead_stat_priority.py`에 있다.
+- `build_bis_runtime_scoring.py`는 `Data/BISCatalog.lua`의 `BISSpecPolicies` 블록과 각 행의 `statPrioritySummary`도 함께 고친다. 스탯 우선순위를 갱신하면 카탈로그 해시도 바뀌므로 `scripts/validate_season2_scope.py`의 기준 해시를 같이 올린다.
+
 ## Data/ItemLevelTable.lua
 
 - `sources` 표는 각 구간 값의 근거다. `dump`는 라이브 API, `tooltip`은 인게임 툴팁 실측, `guide`는 외부 자료다. `guide`가 남아 있으면 `scripts/run_season2_validation.ps1 -Strict`가 릴리스를 막는다. **값을 바꿀 때 태그도 함께 올린다.** 값만 고치고 태그를 두거나 그 반대로 하면 검증기가 잡지 못한다.
