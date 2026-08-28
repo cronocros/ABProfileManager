@@ -90,17 +90,7 @@ local function toPlainNumber(value)
     return stringifyOk and stripped or nil
 end
 
-local function safeTooltipString(value)
-    if value == nil then
-        return nil
-    end
-
-    local ok, text = pcall(string.format, "%s", value)
-    if not ok or type(text) ~= "string" or text == "" then
-        return nil
-    end
-    return text
-end
+local safeTooltipString = ns.Utils.SafeTooltipString
 
 local function getTooltipDataField(data, key)
     if type(data) ~= "table" then

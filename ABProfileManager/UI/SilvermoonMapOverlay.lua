@@ -92,9 +92,7 @@ local function isValidCanvasParent(parent)
         and (parent.GetHeight and (parent:GetHeight() or 0) > 0)
 end
 
-local function clamp(value, minValue, maxValue)
-    return math.max(minValue, math.min(maxValue, value))
-end
+local clamp = ns.Utils.Clamp
 
 local function roundToStep(value, step)
     step = step or 0.01

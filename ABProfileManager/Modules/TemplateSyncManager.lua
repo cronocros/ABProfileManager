@@ -35,29 +35,9 @@ local function cloneRecord(record, logicalSlot)
     return copy
 end
 
-local function isEmptyRecord(record)
-    return not record or not record.kind or record.kind == "empty"
-end
+local isEmptyRecord = ns.Utils.IsEmptyRecord
 
-local function buildRecordSignature(record)
-    if isEmptyRecord(record) then
-        return "empty"
-    end
-
-    if record.kind == "spell" or record.kind == "item" or record.kind == "equipmentset" then
-        return string.format("%s:%s", tostring(record.kind), tostring(record.id))
-    end
-
-    if record.kind == "macro" then
-        return string.format(
-            "macro:%s:%s",
-            tostring(record.name or ""),
-            tostring(record.macroBody or "")
-        )
-    end
-
-    return string.format("%s:%s:%s", tostring(record.kind), tostring(record.id), tostring(record.name))
-end
+local buildRecordSignature = ns.Utils.BuildRecordSignature
 
 local function describeRecord(record)
     if isEmptyRecord(record) then

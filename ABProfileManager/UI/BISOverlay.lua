@@ -170,17 +170,7 @@ local function areContainerFramesShown()
     return false
 end
 
-local function safeTooltipString(value)
-    if value == nil then
-        return nil
-    end
-
-    local ok, text = pcall(string.format, "%s", value)
-    if not ok or type(text) ~= "string" or text == "" then
-        return nil
-    end
-    return text
-end
+local safeTooltipString = ns.Utils.SafeTooltipString
 
 local function getTooltipDataField(data, key)
     if type(data) ~= "table" then
@@ -439,11 +429,7 @@ local function getEnglishLocaleText(key)
     return enUS and enUS[key] or nil
 end
 
-local function isKoreanLanguageSelected()
-    return ns.DB and ns.DB.GetLanguage and ns.Constants
-        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
-        or false
-end
+local isKoreanLanguageSelected = ns.Utils.IsKoreanLanguageSelected
 
 local function getEntryLocalizedName(entry)
     if not entry then
@@ -855,12 +841,7 @@ local function openEncounterJournalForEntry(entry)
     end)
 end
 
-local function getAverageItemLevel()
-    if type(GetAverageItemLevel) == "function" then
-        return math.floor((GetAverageItemLevel() or 0) + 0.5)
-    end
-    return 0
-end
+local getAverageItemLevel = ns.Utils.GetAverageItemLevel
 
 local function getOverlayConfig()
     return ns.DB and ns.DB.GetBISOverlayConfig and ns.DB:GetBISOverlayConfig()

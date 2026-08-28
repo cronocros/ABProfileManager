@@ -70,12 +70,7 @@ local function inlineColor(hex, text)
     return "|cFF" .. hex .. text .. "|r"
 end
 
-local function getAverageItemLevel()
-    if type(GetAverageItemLevel) == "function" then
-        return math.floor((GetAverageItemLevel() or 0) + 0.5)
-    end
-    return 0
-end
+local getAverageItemLevel = ns.Utils.GetAverageItemLevel
 
 local function makeFS(parent, size, r, g, b)
     local fs = parent:CreateFontString(nil, "OVERLAY")

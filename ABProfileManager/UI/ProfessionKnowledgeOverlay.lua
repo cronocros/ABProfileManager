@@ -102,16 +102,7 @@ local function createHeaderGlyphButton(parent, text)
     return button
 end
 
-local function colorize(text, colorHex)
-    local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
-    if #hex == 6 then
-        hex = "ff" .. hex
-    end
-    if #hex ~= 8 then
-        hex = "ffffffff"
-    end
-    return string.format("|c%s%s|r", hex, tostring(text or ""))
-end
+local colorize = ns.Utils.Colorize
 
 local function getOverlayConfig()
     return ns.DB and ns.DB:GetProfessionKnowledgeOverlayConfig() or ns.Data.Defaults.ui.professionKnowledgeOverlay

@@ -34,6 +34,13 @@
 - `DUNGEON_NAME_OVERRIDES`는 던전명 줄바꿈 위치를 잡는 표다. 시즌이 바뀌면 함께 갱신하지 않으면 이름이 한 줄로 넘쳐 잘린다.
 - 이 오버레이는 기본값이 꺼짐이다. 표시가 안 된다는 보고를 받으면 설정부터 확인한다.
 
+## Utils.lua
+
+- 여러 파일에서 같은 본문으로 중복되던 헬퍼를 여기로 모았다. `Clamp`, `GetAverageItemLevel`, `IsKoreanLanguageSelected`, `SafeTooltipString`, `Colorize`, `FormatOffsetValue`, `IsEmptyRecord`, `BuildRecordSignature`다.
+- 소비 파일은 원래 정의 자리에 `local name = ns.Utils.Name` 한 줄만 남긴다. 호출부를 건드리지 않아 회귀 범위가 좁고, `Utils.lua`가 TOC 13번째로 모든 소비자보다 먼저 로드되므로 별칭이 안전하다.
+- `BuildRecordSignature`는 `ActionBarApplier`와 `TemplateSyncManager`가 함께 쓴다. 두 곳이 어긋나면 템플릿 비교가 조용히 틀어지므로 반드시 한 곳에서만 고친다.
+- 아직 통합하지 않은 중복이 있다. `makeBtnText`는 파일마다 다른 `FONT_PATH`와 `FONT_FLAGS` 상위 지역변수를 참조해 그대로 옮기면 깨진다. `setStatus`와 `setTooltip`은 패널 구조에 묶여 있고, `safeHandler`는 `ns.Utils.SafeHandler` 부재를 대비한 방어 껍데기라 그대로 둔다.
+
 ## Data/StatPriorities.lua · StatPriorityTable.lua · MidnightS1MPlusDB.lua
 
 - 세 파일 모두 생성물이다. 손으로 고치지 않는다. `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`를 고치고 `scripts/build_bis_runtime_scoring.py`를 돌린다.

@@ -18,9 +18,7 @@ local function round(value)
     return math.floor((tonumber(value) or 0) + 0.5)
 end
 
-local function clamp(value, minValue, maxValue)
-    return math.max(minValue, math.min(maxValue, value))
-end
+local clamp = ns.Utils.Clamp
 
 local function resolveDomain(domain)
     if DOMAIN_BOUNDS[domain] then

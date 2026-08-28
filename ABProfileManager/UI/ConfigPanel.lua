@@ -101,13 +101,7 @@ local function getCombatTextModeLabelKey(mode)
     return "config_combat_text_mode_arc"
 end
 
-local function formatOffsetValue(value)
-    value = math.floor((tonumber(value) or 0) + 0.5)
-    if value > 0 then
-        return string.format("+%dpt", value)
-    end
-    return string.format("%dpt", value)
-end
+local formatOffsetValue = ns.Utils.FormatOffsetValue
 
 local function buildOverviewText()
     local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker

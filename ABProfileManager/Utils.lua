@@ -406,3 +406,75 @@ function Utils.FormatStatusMessage(message)
 
     return prefix .. heading
 end
+
+function Utils.Clamp(value, minValue, maxValue)
+    return math.max(minValue, math.min(maxValue, value))
+end
+
+function Utils.GetAverageItemLevel()
+    if type(GetAverageItemLevel) == "function" then
+        return math.floor((GetAverageItemLevel() or 0) + 0.5)
+    end
+    return 0
+end
+
+function Utils.IsKoreanLanguageSelected()
+    return ns.DB and ns.DB.GetLanguage and ns.Constants
+        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
+        or false
+end
+
+function Utils.SafeTooltipString(value)
+    if value == nil then
+        return nil
+    end
+
+    local ok, text = pcall(string.format, "%s", value)
+    if not ok or type(text) ~= "string" or text == "" then
+        return nil
+    end
+    return text
+end
+
+function Utils.Colorize(text, colorHex)
+    local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
+    if #hex == 6 then
+        hex = "ff" .. hex
+    end
+    if #hex ~= 8 then
+        hex = "ffffffff"
+    end
+    return string.format("|c%s%s|r", hex, tostring(text or ""))
+end
+
+function Utils.FormatOffsetValue(value)
+    value = math.floor((tonumber(value) or 0) + 0.5)
+    if value > 0 then
+        return string.format("+%dpt", value)
+    end
+    return string.format("%dpt", value)
+end
+
+function Utils.IsEmptyRecord(record)
+    return not record or not record.kind or record.kind == "empty"
+end
+
+function Utils.BuildRecordSignature(record)
+    if Utils.IsEmptyRecord(record) then
+        return "empty"
+    end
+
+    if record.kind == "spell" or record.kind == "item" or record.kind == "equipmentset" then
+        return string.format("%s:%s", tostring(record.kind), tostring(record.id))
+    end
+
+    if record.kind == "macro" then
+        return string.format(
+            "macro:%s:%s",
+            tostring(record.name or ""),
+            tostring(record.macroBody or "")
+        )
+    end
+
+    return string.format("%s:%s:%s", tostring(record.kind), tostring(record.id), tostring(record.name))
+end

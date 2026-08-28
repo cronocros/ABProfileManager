@@ -115,11 +115,7 @@ local function getBestDuration(mapID)
     return bestDuration
 end
 
-local function isKoreanLanguageSelected()
-    return ns.DB and ns.DB.GetLanguage and ns.Constants
-        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
-        or false
-end
+local isKoreanLanguageSelected = ns.Utils.IsKoreanLanguageSelected
 
 local DUNGEON_NAME_OVERRIDES = {
     ["송곳니의제단"] = { koKR = "송곳니의
