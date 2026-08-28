@@ -9,7 +9,7 @@ ns.Data.ItemLevelTable = {
         raid       = "guide",
         worldBoss  = "tooltip",
         crafted    = "tooltip",
-        pvp        = "guide",
+        pvp        = "tooltip",
     },
 
     gradeMax = {

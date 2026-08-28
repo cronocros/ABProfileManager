@@ -8,13 +8,12 @@ v1.12.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 `scripts/run_season2_validation.ps1 -Strict`가 실패합니다. 실패 이유는 하나입니다.
 
-`ABProfileManager/Data/ItemLevelTable.lua`의 `sources` 표에서 `delves`, `mythicPlus`, `raid`, `pvp` 네 구간이 `guide`입니다. 외부 자료만 근거라는 뜻입니다. 인게임에서 확인한 뒤 해당 항목을 `tooltip`으로 바꾸면 풀립니다.
+`ABProfileManager/Data/ItemLevelTable.lua`의 `sources` 표에서 `delves`, `mythicPlus`, `raid` 세 구간이 `guide`입니다. PvP는 2026-08-28 인게임 상인 툴팁으로 확인해 `tooltip`으로 올렸습니다. 외부 자료만 근거라는 뜻입니다. 인게임에서 확인한 뒤 해당 항목을 `tooltip`으로 바꾸면 풀립니다.
 
 구간별로 무엇을 확인해야 하는지는 다음과 같습니다.
 
 | 구간 | 확인 방법 | 비고 |
 | --- | --- | --- |
-| `pvp` | 실버문 PvP 허브의 명예 상인과 정복 상인 아이템 툴팁 | 현재 값 `266~295`, `295~321`은 추정치다. 가장 근거가 약하다 |
 | `delves` | 구렁 1~11단계 보상 아이템 툴팁 | 8단계에서 상한이 고정되는지 함께 본다 |
 | `mythicPlus` | 쐐기 완료 보상과 위대한 금고 툴팁 | `2/6`과 `3/6` 값이 특히 헷갈린다 |
 | `raid` | 맹독 심연 보스별 드랍 툴팁 | 1보스와 마지막 두 보스를 우선 확인한다 |

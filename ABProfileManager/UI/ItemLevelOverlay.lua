@@ -31,7 +31,7 @@ local SCALE_MAX  = 2.00
 local TAB_KEYS = { "overview", "mythicplus", "delves", "raid", "other" }
 local DELVE_RESTORED_KEY_CURRENCY_ID = 3028
 local DELVE_KEY_FRAGMENT_ITEM_ID = nil
-local DELVE_MAP_IDS = { 2395, 2413, 2405, 2437, 1270 }
+local DELVE_MAP_IDS = { 2512, 2395, 2413, 2405, 2437, 1270 }
 
 local CREST_ID_BY_GRADE = {
     adv  = 3442,
