@@ -32,6 +32,10 @@
   - 다음 작업자를 위한 운영 메모, 회귀 포인트, 미완성 기능 기록
 - [SEASON2_HANDOFF.md](./SEASON2_HANDOFF.md)
   - Midnight 시즌 2(v1.12.0 / WoW 12.1.0) 작업 인계 문서, 작업 DAG, 진행 로그, 재개 프롬프트
+- [TODO.md](./TODO.md)
+  - 남은 할 일. 릴리스 차단 요인, 인게임 확인 항목, 미착수 작업, 미결 판단
+- [CODE_NOTES.md](./CODE_NOTES.md)
+  - 소스에서 걷어낸 제약과 근거. 애드온 Lua에는 주석이 없으므로 여기서 확인한다
 - [SECURITY_REVIEW.md](./SECURITY_REVIEW.md)
   - 입력 경로, 파괴적 작업, CVar/외부 의존성 검토
 - [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)
@@ -62,7 +66,9 @@
   - `MidnightS1_MPlus_Addon_Master_v1.7.md`
   - `MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
-`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 시즌 selector 교체 또는 예외 항목용 Myth 1/6 272 full link override 추가는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/tier/crafted 시즌 preview selector 또는 예외 override는 `../ABProfileManager/Data/BISSeasonPreviewLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
+`../scripts/rebuild_bis_database.ps1`는 v1.3 카탈로그 입력 → v1.7 scoring 입력 → Myth preview selector/override validate → non-M+ season preview validate → tooltip contract validate → Encounter Journal validate → catalog validate → audit 순서로 실행합니다. M+/tier 추가는 v1.3 파일만 갱신할 수 있고 점수 정책은 v1.7 파일에서 관리합니다. 시즌 selector 교체 또는 예외 항목용 Myth 1/6 full link override 추가는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`만 갱신합니다. raid/tier/crafted 시즌 preview selector 또는 예외 override는 `../ABProfileManager/Data/BISSeasonPreviewLinks.lua`만 갱신합니다. raid/crafted는 아직 기존 `BISCatalog.lua` 보존 seed이므로 완전 단일 seed 재생성은 후속 범위입니다.
+
+BIS 데이터는 v1.12.0 시즌 2 작업에서 동결 상태입니다. 위 생성 스크립트와 입력 파일은 모두 시즌 1 기준이며, `UI/BISOverlay.lua`의 `SeasonGuard`가 시즌 불일치를 감지해 관련 자동 동작을 차단합니다. 해제 절차는 [TODO.md](./TODO.md) 5장을 봅니다.
 
 현재 로컬 배포는 작업공간 `../dist/` ZIP 생성까지만 수행합니다. WoW 설치 폴더로 애드온을 복사하지 않습니다.
 
