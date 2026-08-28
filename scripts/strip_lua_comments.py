@@ -45,7 +45,6 @@ FROZEN_FILES = {
     "Data/BISSeasonPreviewLinks.lua",
     "Data/BISEncounterJournal.lua",
     "Data/MidnightS1MPlusDB.lua",
-    "Data/BISData.lua",
     "Data/BISData_Method.lua",
     "Data/StatPriorities.lua",
     "Data/StatPriorityTable.lua",

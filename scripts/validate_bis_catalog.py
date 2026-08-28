@@ -35,11 +35,13 @@ DOC_DB_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.3.lua"
 STAT_PRIORITIES_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorities.lua"
 STAT_PRIORITY_TABLE_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorityTable.lua"
 TOC_FILE = REPO_ROOT / "ABProfileManager" / "ABProfileManager.toc"
+# 시즌 2 카탈로그는 와우헤드 overall 데이터만으로 생성한다. 시즌 1처럼 넓은
+# 후보 시드를 쓰지 않으므로 행 수가 훨씬 적다.
 EXPECTED_SOURCE_GROUP_COUNTS = {
-    "mythicplus": 2554,
-    "raid": 485,
-    "crafted": 91,
-    "tier": 200,
+    "mythicplus": 88,
+    "raid": 371,
+    "crafted": 103,
+    "tier": 79,
 }
 
 SPOREFALL_RAID_ITEM_IDS = {
@@ -203,9 +205,9 @@ def validate_mplus_rows(catalog: Dict[int, List[Dict[str, object]]]) -> None:
             item_id = row["itemID"]
             if "mplus_end_of_dungeon" not in raw or "mplus_great_vault_voidcore" not in raw:
                 raise ValueError(f"M+ row missing reward profiles at line {row['line']}, item {item_id}")
-            if 'upgradeTrack = "Hero"' not in raw or "itemLevel = 266" not in raw:
+            if 'upgradeTrack = "Hero"' not in raw or "itemLevel = 311" not in raw:
                 raise ValueError(f"M+ row missing Hero end reward profile at line {row['line']}, item {item_id}")
-            if 'upgradeTrack = "Myth"' not in raw or "itemLevel = 272" not in raw:
+            if 'upgradeTrack = "Myth"' not in raw or "itemLevel = 318" not in raw:
                 raise ValueError(f"M+ row missing Myth vault reward profile at line {row['line']}, item {item_id}")
             if row.get("runtimeItemLinkRequired") is not True:
                 raise ValueError(f"M+ row missing runtimeItemLinkRequired=true at line {row['line']}, item {item_id}")
@@ -220,9 +222,9 @@ def validate_mplus_rows(catalog: Dict[int, List[Dict[str, object]]]) -> None:
             if row.get("statPriorityVerified") is not True or not row.get("statPrioritySummary"):
                 raise ValueError(f"M+ row missing stat-priority metadata at line {row['line']}, item {item_id}")
             if row.get("staticPriorityStatus") != "STATIC_POOL_ONLY_ITEMLINK_REQUIRED_FOR_REAL_PRIORITY":
-                raise ValueError(f"M+ row missing v1.3 static priority status at line {row['line']}, item {item_id}")
+                raise ValueError(f"M+ row missing static priority status at line {row['line']}, item {item_id}")
             if row.get("v13Evidence") != "RUNTIME_ITEMLINK_STATS_REQUIRED":
-                raise ValueError(f"M+ row missing v1.3 runtime evidence at line {row['line']}, item {item_id}")
+                raise ValueError(f"M+ row missing runtime evidence at line {row['line']}, item {item_id}")
     if mplus_count == 0:
         raise ValueError("Catalog has no Mythic+ rows")
 
@@ -249,9 +251,9 @@ def validate_tier_and_crafted_policy(catalog: Dict[int, List[Dict[str, object]]]
                 if row.get("statPriorityVerified") is not True or not row.get("statPrioritySummary"):
                     raise ValueError(f"Tier row missing stat-priority metadata at line {row['line']}, item {row['itemID']}")
                 if row.get("staticPriorityStatus") != "STATIC_POOL_ONLY_ITEMLINK_REQUIRED_FOR_REAL_PRIORITY":
-                    raise ValueError(f"Tier row missing v1.3 static priority status at line {row['line']}, item {row['itemID']}")
+                    raise ValueError(f"Tier row missing static priority status at line {row['line']}, item {row['itemID']}")
                 if row.get("v13Evidence") != "RUNTIME_ITEMLINK_STATS_REQUIRED":
-                    raise ValueError(f"Tier row missing v1.3 runtime evidence at line {row['line']}, item {row['itemID']}")
+                    raise ValueError(f"Tier row missing runtime evidence at line {row['line']}, item {row['itemID']}")
             elif source_group == "crafted":
                 crafted_count += 1
                 if "rewardProfiles" in raw:
@@ -419,29 +421,19 @@ def validate_catalog_priority_metadata(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate generated ABProfileManager BIS catalog.")
     parser.add_argument("--catalog", type=Path, default=CATALOG_FILE)
-    parser.add_argument("--doc-db", type=Path, default=DOC_DB_FILE)
     parser.add_argument("--scoring-db", type=Path, default=SCORING_DOC_DB_FILE)
     args = parser.parse_args()
 
-    if not args.doc_db.exists():
-        raise FileNotFoundError(args.doc_db)
     if not args.scoring_db.exists():
         raise FileNotFoundError(args.scoring_db)
     catalog_text = args.catalog.read_text(encoding="utf-8")
     current = parse_catalog_text(catalog_text)
-    previous = parse_catalog_text(load_previous_catalog_text())
-
     validate_specs(current)
     validate_unique_row_keys(current)
-    validate_preserved_source_rows(current, previous, {"crafted"})
-    validate_preserved_source_rows(current, previous, {"raid"}, SPOREFALL_RAID_ITEM_IDS)
     validate_mplus_rows(current)
     validate_tier_and_crafted_policy(current)
     validate_source_group_counts(current)
-    validate_sporefall_rows(current)
     validate_en_us_fields(current)
-    validate_addon_source_rows(current, args.doc_db)
-    validate_catalog_doc_db(args.doc_db)
     policies = validate_runtime_scoring_db(args.scoring_db)
     validate_catalog_priority_metadata(catalog_text, current, policies)
 

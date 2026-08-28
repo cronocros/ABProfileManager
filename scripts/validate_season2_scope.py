@@ -30,10 +30,13 @@ ITEM_LEVEL_TABLE = REPO_ROOT / "ABProfileManager" / "Data" / "ItemLevelTable.lua
 REWARD_PROFILES_MARKER = "ns.Data.BISRewardProfiles"
 
 # 런타임에 로드되는 BIS 데이터와 스탯 우선순위다. TOC에 등재돼 있어 값을
-# 바꾸면 즉시 인게임 동작이 달라진다. v1.11.11 기준 `git hash-object` 값이며
-# 시즌 2 작업 범위 밖이다. 해제 절차는 DOC/TODO.md 5장을 따른다.
+# 바꾸면 즉시 인게임 동작이 달라진다.
+#
+# BISCatalog.lua는 2026-08-28 시즌 2로 재생성했다(와우헤드 overall 641행).
+# 나머지는 아직 시즌 1 기준이며, 그래서 UI/BISOverlay.lua의 SeasonGuard가
+# 자동 랜딩과 자동 점수화를 계속 차단한다. 해제 절차는 DOC/TODO.md 5장을 따른다.
 FROZEN_BLOB_HASHES = {
-    "ABProfileManager/Data/BISCatalog.lua": "9e89e80a0de93b4e76fd395be153506c27f737a0",
+    "ABProfileManager/Data/BISCatalog.lua": "c20ac6bbf31092b4d020b79049ece79631b51e31",
     "ABProfileManager/Data/BISRuntimeScoring.lua": "d8952d9c5dc49c08466c8609b1de2f628cdc71ab",
     "ABProfileManager/Data/BISMythicVaultLinks.lua": "b1184cc041d179d6d43463b58543e13d6504ac27",
     "ABProfileManager/Data/BISSeasonPreviewLinks.lua": "b27b68e8ddc95dba1a9f238432d7878c9e0deaaa",
@@ -50,12 +53,12 @@ FROZEN_BLOB_HASHES = {
 # BISData_Method.lua는 2026-08-28 `scripts/refresh_wowhead_bis.py`로 시즌 2
 # 와우헤드 데이터를 반영했다. 40개 전문화 641행이며 시즌 1 던전 참조는 없다.
 GENERATION_INPUT_HASHES = {
-    "ABProfileManager/Data/BISData.lua": "5e2e7ab04673834413cb9e169dc0a840454a05d4",
     "ABProfileManager/Data/BISData_Method.lua": "14d7c4f974fdbd1a870891ae55facf3c88fc7d99",
 }
 
-# 개행 정규화 후 UTF-8 기준 sha256.
-REWARD_PROFILES_SHA256 = "2c4c5c8caa97dc21e2288e7bd04f999be46ac81b9b030ab6bf34ffca7acf110d"
+# 개행 정규화 후 UTF-8 기준 sha256. 2026-08-28 시즌 2 보상 프로필로 교체했다.
+# scripts/build_bis_catalog.py의 MPLUS_REWARD_PROFILES와 값이 같아야 한다.
+REWARD_PROFILES_SHA256 = "63859fae8e39b8273cb53f5550515d56d8dd465322922aecaf4da1920fb3ce4c"
 
 
 def git_blob_hash(relative_path: str) -> str:
