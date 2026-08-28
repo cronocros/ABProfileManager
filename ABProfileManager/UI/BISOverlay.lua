@@ -305,17 +305,14 @@ local SLOT_LOCALE_KEYS = {
 }
 
 local DUNGEON_LOCALE_KEYS = {
-    ["마법학자의 정원"] = "bis_dungeon_magisters_terrace",
-    ["마이사라 동굴"] = "bis_dungeon_maisara_caverns",
-    ["제나스 지점"] = "bis_dungeon_nexus_point_xenas",
-    ["공결점 제나스"] = "bis_dungeon_nexus_point_xenas",
-    ["공결탑 제나스"] = "bis_dungeon_nexus_point_xenas",
-    ["윈드러너 첨탑"] = "bis_dungeon_windrunner_spire",
-    ["알게타르 아카데미"] = "bis_dungeon_algethar_academy",
-    ["알게타르 대학"] = "bis_dungeon_algethar_academy",
-    ["삼두정의 권좌"] = "bis_dungeon_seat_of_the_triumvirate",
-    ["하늘탑"] = "bis_dungeon_skyreach",
-    ["사론의 구덩이"] = "bis_dungeon_pit_of_saron",
+    ["송곳니의 제단"] = "bis_dungeon_altar_of_fangs",
+    ["죽음의 골목"] = "bis_dungeon_murder_row",
+    ["날로라크의 소굴"] = "bis_dungeon_den_of_nalorakk",
+    ["눈부신 골짜기"] = "bis_dungeon_the_blinding_vale",
+    ["공허흉터 투기장"] = "bis_dungeon_voidscar_arena",
+    ["왕들의 안식처"] = "bis_dungeon_kings_rest",
+    ["세스랄리스 사원"] = "bis_dungeon_temple_of_sethraliss",
+    ["루비 생명의 웅덩이"] = "bis_dungeon_ruby_life_pools",
 }
 
 local RAID_META_LABEL_PATTERNS = {
