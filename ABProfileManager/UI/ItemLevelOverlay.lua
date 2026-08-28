@@ -16,13 +16,12 @@ local CREST_VALUE_W = 34
 
 local TAB_GAP    = 2
 
-local CREST_PANEL_W = 100
-local TABLE_GAP     = 0
+local CREST_STRIP_H = 40
 local CONTENT_W     = FRAME_W - 8
-local TABLE_W       = CONTENT_W - CREST_PANEL_W - TABLE_GAP
-local COL_DROP_X    = 80
-local COL_CREST_X   = 168
-local COL_VAULT_X   = 218
+local TABLE_W       = CONTENT_W
+local COL_DROP_X    = 96
+local COL_CREST_X   = 232
+local COL_VAULT_X   = 300
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
@@ -751,8 +750,9 @@ function ItemLevelOverlay:EnsureFrame()
     frame.content = content
 
     local crestPanel = CreateFrame("Frame", nil, content, "BackdropTemplate")
-    crestPanel:SetWidth(CREST_PANEL_W)
-    crestPanel:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, 0)
+    crestPanel:SetHeight(CREST_STRIP_H)
+    crestPanel:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
+    crestPanel:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
     if crestPanel.SetBackdrop then
         crestPanel:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -765,64 +765,66 @@ function ItemLevelOverlay:EnsureFrame()
     end
     frame.crestPanel = crestPanel
 
-    local crestTitle = makeFS(crestPanel, 13, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
-    crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -84)
-    crestTitle:SetJustifyH("LEFT")
-    crestTitle:SetText(ns.L("ilvl_col_my_crest"))
-    frame.crestTitle = crestTitle
+    frame.crestTitle = nil
 
+    local crestCellW = math.floor((CONTENT_W - 12) / #CREST_PANEL_GRADES)
     frame.crestLines = {}
     for i, _ in ipairs(CREST_PANEL_GRADES) do
         local line = CreateFrame("Frame", nil, crestPanel)
-        line:SetSize(CREST_PANEL_W - 10, CREST_LINE_H)
+        line:SetSize(crestCellW, CREST_LINE_H)
         if i == 1 then
-            line:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -6)
+            line:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -4)
         else
-            line:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -1)
+            line:SetPoint("TOPLEFT", frame.crestLines[i-1], "TOPRIGHT", 0, 0)
         end
-        line.label = makeFS(line, 14, 1, 1, 1)
+        line.label = makeFS(line, 11, 1, 1, 1)
         line.label:SetPoint("LEFT", line, "LEFT", 0, 0)
         line.label:SetPoint("RIGHT", line, "RIGHT", -CREST_VALUE_W, 0)
         line.label:SetJustifyH("LEFT")
+        if line.label.SetWordWrap then
+            line.label:SetWordWrap(false)
+        end
 
-        line.value = makeFS(line, 14, 1, 1, 1)
-        line.value:SetPoint("RIGHT", line, "RIGHT", 0, 0)
+        line.value = makeFS(line, 11, 1, 1, 1)
+        line.value:SetPoint("RIGHT", line, "RIGHT", -4, 0)
         line.value:SetWidth(CREST_VALUE_W)
         line.value:SetJustifyH("RIGHT")
 
         frame.crestLines[i] = line
     end
 
-    local keyDivider = crestPanel:CreateTexture(nil, "ARTWORK")
-    keyDivider:SetHeight(1)
-    keyDivider:SetPoint("TOPLEFT", frame.crestLines[#frame.crestLines], "BOTTOMLEFT", 0, -6)
-    keyDivider:SetPoint("TOPRIGHT", crestPanel, "TOPRIGHT", -6, -6)
-    keyDivider:SetColorTexture(0.28, 0.34, 0.46, 0.80)
-    frame.keyDivider = keyDivider
+    frame.keyDivider = nil
+    frame.keyTitle = nil
 
-    local keyTitle = makeFS(crestPanel, 13, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
-    keyTitle:SetPoint("TOPLEFT", keyDivider, "BOTTOMLEFT", 0, -6)
-    keyTitle:SetJustifyH("LEFT")
-    keyTitle:SetText(ns.L("ilvl_col_my_key"))
-    frame.keyTitle = keyTitle
-
-    frame.keyLines = {}
-    for i = 1, 7 do
-        local fontSize = (i >= 2 and i <= 5) and 9 or 10
-        local fs = makeFS(crestPanel, fontSize, 1, 1, 1)
-        if i == 1 then
-            fs:SetPoint("TOPLEFT", keyTitle, "BOTTOMLEFT", 0, -6)
-        else
-            fs:SetPoint("TOPLEFT", frame.keyLines[i-1], "BOTTOMLEFT", 0, -3)
-        end
-        fs:SetWidth(CREST_PANEL_W - 10)
-        fs:SetJustifyH("LEFT")
-        frame.keyLines[i] = fs
+    local keySummary = makeFS(crestPanel, 10, 1, 1, 1)
+    keySummary:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -4 - CREST_LINE_H - 2)
+    keySummary:SetPoint("TOPRIGHT", crestPanel, "TOPRIGHT", -6, -4 - CREST_LINE_H - 2)
+    keySummary:SetJustifyH("LEFT")
+    if keySummary.SetWordWrap then
+        keySummary:SetWordWrap(false)
     end
+    frame.keySummary = keySummary
+    frame.keyLines = {}
+
+    crestPanel:EnableMouse(true)
+    crestPanel:SetScript("OnEnter", function(panel)
+        local lines = frame._keyDetailLines
+        if type(lines) ~= "table" or #lines == 0 then return end
+        GameTooltip:SetOwner(panel, "ANCHOR_TOP")
+        GameTooltip:ClearLines()
+        for _, text in ipairs(lines) do
+            GameTooltip:AddLine(text, 1, 1, 1, true)
+        end
+        GameTooltip:Show()
+    end)
+    crestPanel:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 
     local tableArea = CreateFrame("Frame", nil, content)
     tableArea:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
-    tableArea:SetPoint("RIGHT", crestPanel, "LEFT", -TABLE_GAP, 0)
+    tableArea:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+    tableArea:SetPoint("BOTTOM", crestPanel, "TOP", 0, 4)
     frame.tableArea = tableArea
 
     frame.rows = {}
@@ -928,12 +930,6 @@ function ItemLevelOverlay:RefreshSidePanel()
         return
     end
 
-    if frame.crestTitle then
-        frame.crestTitle:SetText(ns.L("ilvl_col_my_crest"))
-    end
-    if frame.keyTitle then
-        frame.keyTitle:SetText(ns.L("ilvl_col_my_key"))
-    end
     if not frame.crestPanel then
         return
     end
@@ -950,19 +946,26 @@ function ItemLevelOverlay:RefreshSidePanel()
     end
 
     local keyLines = getMyKeyLines()
-    for i, fs in ipairs(frame.keyLines or {}) do
-        fs:SetText(keyLines[i] or "")
-        if i == 1 then
-            fs:SetTextColor(0.70, 0.84, 1.00, 1)
-        elseif i <= 5 then
-            fs:SetTextColor(0.92, 0.94, 1.00, 1)
-        else
-            fs:SetTextColor(1.00, 0.84, 0.46, 1)
+    frame._keyDetailLines = keyLines
+
+    if frame.keySummary then
+        local fragments = DELVE_KEY_FRAGMENT_ITEM_ID and getItemCountByID(DELVE_KEY_FRAGMENT_ITEM_ID) or nil
+        local restored = getCurrencyCount(DELVE_RESTORED_KEY_CURRENCY_ID)
+        local valueHex = colorHex(1.00, 0.84, 0.46)
+        local labelHex = colorHex(0.68, 0.82, 1.00)
+        local parts = {
+            string.format("%s %s", inlineColor(labelHex, ns.L("ilvl_key_restored")),
+                inlineColor(valueHex, restored ~= nil and tostring(restored) or "0")),
+        }
+        if fragments ~= nil then
+            parts[#parts + 1] = string.format("%s %s", inlineColor(labelHex, ns.L("ilvl_key_fragments")),
+                inlineColor(valueHex, tostring(fragments)))
         end
+        parts[#parts + 1] = inlineColor(colorHex(0.62, 0.66, 0.76), ns.L("ilvl_key_bountiful"))
+        frame.keySummary:SetText(table.concat(parts, "   "))
     end
 
-    local crestPanelH = 146 + (#CREST_PANEL_GRADES * (CREST_LINE_H + 2)) + (#(frame.keyLines or {}) * 16)
-    frame.crestPanel:SetHeight(crestPanelH)
+    frame.crestPanel:SetHeight(CREST_STRIP_H)
 end
 
 function ItemLevelOverlay:SelectTab(tabKey)
@@ -1083,7 +1086,7 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
     end
 
     local crestPanelH = frame.crestPanel and frame.crestPanel:GetHeight() or 0
-    self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + math.max(yOffset, crestPanelH + 4) + PADDING
+    self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + yOffset + crestPanelH + 6 + PADDING
     self._lastContentSignature = self:BuildContentSignature(avgIlvl)
     self:UpdateLayout()
 end

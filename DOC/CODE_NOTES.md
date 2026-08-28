@@ -20,6 +20,20 @@
 - 변환은 `tostring` → `tonumber`다. 실패하면 원본이 아니라 **0을 돌려준다.** 원본 secret number를 그대로 반환하면 오염된 값이 이후 산술·렌더 경로로 다시 퍼진다.
 - `tostring` 호출 자체가 taint 오류를 내는 극단 케이스가 있어 전체를 `pcall`로 감싼다. 이 `pcall`을 최적화로 걷어내지 않는다.
 
+## UI/ItemLevelOverlay.lua
+
+- 문장/열쇠 패널은 우측 세로 컬럼이 아니라 창 하단 가로 스트립이다(`CREST_STRIP_H`). 표가 창 폭을 다 쓰도록 A안 정돈에서 옮겼다. 되돌릴 때는 `tableArea`의 `BOTTOM` 앵커와 `contentHeight` 합산식을 함께 고쳐야 한다.
+- `contentHeight`는 표 높이와 스트립 높이를 **더한다**. 패널이 표 옆에 있던 시절에는 `math.max`였다. 앵커 방향을 바꾸면 이 식도 같이 바꾼다.
+- 풍요로운 구렁 이름 4종은 스트립에 넣기엔 길어서 패널 hover tooltip으로 옮겼다. `frame._keyDetailLines`에 담기고 `getMyKeyLines()`가 원본을 만든다.
+- `DELVE_MAP_IDS`에 똬리의 섬 `2512`가 들어 있어야 시즌 2 풍요로운 구렁 이름 조회가 동작한다.
+- `CREST_ID_BY_GRADE`는 시즌마다 바뀐다. 시즌 2는 안개문장 `3442~3446`이고 복원 열쇠 `3028`은 시즌 1 값이 그대로 유효하다.
+
+## UI/MythicPlusRecordOverlay.lua
+
+- `ChallengesFrame.DungeonIcons`가 없으면 프레임 자식 중 `mapID`를 가진 것을 모아 쓴다. Blizzard가 필드 이름을 바꾸면 오버레이가 조용히 사라지던 구조라 넣은 fallback이다.
+- `DUNGEON_NAME_OVERRIDES`는 던전명 줄바꿈 위치를 잡는 표다. 시즌이 바뀌면 함께 갱신하지 않으면 이름이 한 줄로 넘쳐 잘린다.
+- 이 오버레이는 기본값이 꺼짐이다. 표시가 안 된다는 보고를 받으면 설정부터 확인한다.
+
 ## Data/ItemLevelTable.lua
 
 - `sources` 표는 각 구간 값의 근거다. `dump`는 라이브 API, `tooltip`은 인게임 툴팁 실측, `guide`는 외부 자료다. `guide`가 남아 있으면 `scripts/run_season2_validation.ps1 -Strict`가 릴리스를 막는다. **값을 바꿀 때 태그도 함께 올린다.** 값만 고치고 태그를 두거나 그 반대로 하면 검증기가 잡지 못한다.
