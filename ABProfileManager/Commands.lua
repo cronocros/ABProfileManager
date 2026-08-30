@@ -82,6 +82,115 @@ local function setStatus(message)
     ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
 end
 
+local copyPopup
+
+local function ensureCopyPopup()
+    if copyPopup then
+        return copyPopup
+    end
+
+    local popup = CreateFrame("Frame", "ABPMCopyPopup", UIParent, "BackdropTemplate")
+    popup:SetSize(620, 420)
+    popup:SetPoint("CENTER")
+    popup:SetFrameStrata("DIALOG")
+    popup:SetClampedToScreen(true)
+    if popup.SetBackdrop then
+        popup:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = true, tileSize = 32, edgeSize = 32,
+            insets = { left = 8, right = 8, top = 8, bottom = 8 } })
+    end
+    popup:EnableMouse(true)
+    popup:SetMovable(true)
+    popup:RegisterForDrag("LeftButton")
+    popup:SetScript("OnDragStart", function(frame) frame:StartMoving() end)
+    popup:SetScript("OnDragStop", function(frame) frame:StopMovingOrSizing() end)
+
+    local title = popup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", popup, "TOP", 0, -14)
+    popup.title = title
+
+    local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -4, -4)
+    close:SetScript("OnClick", function() popup:Hide() end)
+
+    local scroll = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", popup, "TOPLEFT", 14, -36)
+    scroll:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -32, 16)
+
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetWidth(548)
+    edit:SetAutoFocus(false)
+    edit:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 11, "")
+    edit:SetScript("OnEscapePressed", function(frame)
+        frame:ClearFocus()
+        popup:Hide()
+    end)
+    scroll:SetScrollChild(edit)
+    popup.edit = edit
+
+    if type(UISpecialFrames) == "table" then
+        UISpecialFrames[#UISpecialFrames + 1] = "ABPMCopyPopup"
+    end
+
+    copyPopup = popup
+    return popup
+end
+
+local function showCopyWindow(titleText, bodyText)
+    local popup = ensureCopyPopup()
+    popup.title:SetText(tostring(titleText or "ABPM"))
+    popup.edit:SetText(tostring(bodyText or ""))
+    popup:Show()
+    popup.edit:SetFocus()
+    popup.edit:HighlightText()
+    return popup
+end
+
+ns.Utils.ShowCopyWindow = showCopyWindow
+
+_G.ABPMCopy = function(text, titleText)
+    return showCopyWindow(titleText or "ABPM 복사", text)
+end
+
+local function collectDiagnostics(kind)
+    local lines = {}
+    local function sink(message)
+        lines[#lines + 1] = tostring(message)
+    end
+
+    if kind == "mplus" then
+        local overlay = ns.UI and ns.UI.MythicPlusRecordOverlay
+        if not overlay or type(overlay.Diagnose) ~= "function" then
+            return "쐐기 오버레이 모듈이 로드되지 않았습니다."
+        end
+        pcall(overlay.Diagnose, overlay, sink)
+    elseif kind == "ej" then
+        local overlay = ns.UI and ns.UI.BISOverlay
+        if not overlay or type(overlay.DiagnoseJournal) ~= "function" then
+            return "BIS 오버레이 모듈이 로드되지 않았습니다."
+        end
+        pcall(overlay.DiagnoseJournal, overlay, sink)
+    elseif kind == "log" then
+        local log = ns.Utils.GetDebugLog and ns.Utils.GetDebugLog() or {}
+        local caught = ns.Utils.GetCaughtErrorLog and ns.Utils.GetCaughtErrorLog() or {}
+        if #log > 0 then
+            sink("[Debug Log]")
+            for _, line in ipairs(log) do sink(line) end
+        end
+        if #caught > 0 then
+            sink("[Caught ABPM Errors]")
+            for _, line in ipairs(caught) do sink(line) end
+        end
+    end
+
+    if #lines == 0 then
+        return "(출력 없음)"
+    end
+    return table.concat(lines, "\n")
+end
+
 local function printList(titleKey, values)
     ns.Utils.Print(ns.L(titleKey))
     if #values == 0 then
@@ -472,8 +581,48 @@ function Commands:HandleSlash(message)
         return
     end
 
+    if command == "copy" then
+        local mode = string.lower(args[2] or "")
+        if mode == "mplus" or mode == "mythic" then
+            showCopyWindow("ABPM 쐐기 오버레이 진단", collectDiagnostics("mplus"))
+        elseif mode == "ej" or mode == "bis" then
+            showCopyWindow("ABPM 모험 안내서 진단", collectDiagnostics("ej"))
+        elseif mode == "log" then
+            showCopyWindow("ABPM 로그", collectDiagnostics("log"))
+        else
+            showCopyWindow("ABPM 복사 창", table.concat({
+                "사용법",
+                "/abpm copy mplus   쐐기 오버레이 진단 결과",
+                "/abpm copy ej      모험 안내서 이동 진단",
+                "/abpm copy log     디버그/오류 로그",
+                "",
+                "직접 만든 스크립트 결과를 넣으려면 매크로에서",
+                "/run ABPMCopy(내용)",
+                "형태로 호출하세요. Ctrl+A, Ctrl+C 로 복사합니다.",
+            }, "\n"))
+        end
+        setStatus("[ABPM] 복사 창을 열었습니다.")
+        return
+    end
+
     if command == "debug" then
         local mode = string.lower(args[2] or "toggle")
+        if mode == "mplus" or mode == "mythic" then
+            local overlay = ns.UI and ns.UI.MythicPlusRecordOverlay
+            if not overlay or type(overlay.Diagnose) ~= "function" then
+                ns.Utils.Print("[쐐기오버레이] 모듈이 로드되지 않았습니다.")
+                setStatus("[쐐기오버레이] 모듈이 로드되지 않았습니다.")
+                return
+            end
+
+            local ok, err = pcall(overlay.Diagnose, overlay)
+            if not ok then
+                ns.Utils.Print("[쐐기오버레이] 진단 실패: " .. tostring(err))
+            end
+            setStatus("[쐐기오버레이] 진단 출력 완료")
+            return
+        end
+
         if mode == "status" then
             local statusMessage = ns.L(
                 "debug_status",

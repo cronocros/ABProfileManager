@@ -6,7 +6,7 @@ This file provides guidance to Codex and other repository-aware agents when work
 
 `ABProfileManager`는 WoW Retail (Interface 120100 = Patch 12.1.0, Midnight 확장팩) Lua 애드온이다. 액션바 프로필 관리, 전문기술 포인트 추적, 지도/스탯 오버레이, 전투메시지 설정 관리, BIS 추천 장비 카탈로그, 드랍 템렙/시즌 최고기록 오버레이를 한 애드온으로 처리한다.
 
-**현재 기준**: `v1.12.0`, TOC `## Interface: 120100`, WoW 12.1.0 빌드 69465. 시즌은 Midnight 시즌 2(패치명 `Curse of Ula'tek`, 2026-08-18 시작).
+**현재 기준**: `v1.13.0`, TOC `## Interface: 120100`, WoW 12.1.0 빌드 69465. 시즌은 Midnight 시즌 2(패치명 `Curse of Ula'tek`, 2026-08-18 시작).
 
 시즌 2 범위와 인계 사항은 `DOC/SEASON2_HANDOFF.md`를 본다.
 

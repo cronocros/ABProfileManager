@@ -147,6 +147,14 @@
 - `LayoutPoints`는 핫패스라 매번 테이블을 만들지 않고 재사용 버퍼와 객체 풀을 쓴다(필터 통과 포인트 목록, `{point, nearbyCount}` 엔트리 풀, 배치 완료 rect 풀, 후보·best 평가용 임시 rect, 포인트당 16개 후보 오프셋 버퍼). GC 스파이크 방지가 목적이므로 "읽기 쉽게" 되돌리지 않는다.
 - 재사용 버퍼는 매 run 시작 시 이전 run의 잔여 슬롯을 제거해야 한다. `table.sort` 범위를 정확히 제한하기 위한 것이다.
 - `mapID → mapInfo` 캐시는 영구 캐시다. `mapInfo`는 세션 중 변하지 않으므로 매번 `pcall(C_Map.GetMapInfo)`를 부르지 않는다. 실패는 `false`로 저장한다.
+- 시즌 신규 던전/공격대/구렁은 정적 좌표를 넣지 않고 `RuntimePoints`가 클라이언트에서 읽는다. 던전·공격대 입구는 `C_EncounterJournal.GetDungeonEntrancesForMap`, 구렁은 `C_AreaPoiInfo.GetDelvesForMap` + `GetAreaPOIInfo`가 출처다. 좌표를 하드코딩하면 패치마다 깨지고, 시즌 신규 지역은 외부 자료가 부정확하기 때문이다.
+- 입구는 `Data/SilvermoonMapData.lua`의 `runtimeInstances`에 있는 journal instance만 받는다. 필터가 없으면 모든 구대륙 지도에 무관한 던전 이름이 쏟아진다. 목록에 없어도 `Data/BISEncounterJournal.lua`의 `instanceIDsByDungeon`에 있으면 던전으로 받아, BIS 데이터를 새 시즌으로 올리면 지도도 따라온다.
+- `runtimeMaps`는 시즌 콘텐츠가 존재하는 대상 지도 목록이다. 구렁 POI와 지역 POI 기반 입구 보강은 정적 데이터가 있는 지도와 이 목록의 지도에서만 수행한다. 모든 월드맵을 훑으면 이 오버레이 범위를 벗어난다. 목록은 넓게 잡아도 안전하다. 해당 지도에 대상이 없으면 API가 빈 결과를 주기 때문이다.
+- `GetDungeonEntrancesForMap`이 구대륙 지도에서 입구를 돌려주지 않는 경우가 있어, 대상 지도에서는 `C_AreaPoiInfo.GetAreaPOIForMap` + `GetAreaPOIInfo`로 한 번 더 훑는다. 판정은 시즌 인스턴스 이름과의 정규화 완전 일치만 받는다. 부분 일치를 허용하면 무관한 POI가 던전으로 올라온다.
+- 시즌 인스턴스 이름 색인은 `EJ_GetInstanceInfo`가 한 건이라도 응답했을 때만 캐시한다. EJ가 아직 준비되지 않은 시점의 결과를 굳히면 세션 내내 이름 판정이 동작하지 않는다.
+- 런타임 결과 캐시는 비어 있을 때 `emptyCacheSeconds`(2초)만 유지한다. POI/EJ 데이터는 지도를 연 직후 아직 준비되지 않을 수 있어, 그때의 빈 결과를 확정으로 굳히면 세션 내내 아무것도 표시되지 않는다. `AREA_POIS_UPDATED`도 캐시를 비운다.
+- 좌표는 0 초과 1 미만만 받고, API 실패나 이름 누락은 조용히 건너뛴다. 잘못된 위치를 그리는 것보다 아무것도 그리지 않는 편이 낫다.
+- 런타임 항목은 정적 항목과 이름·위치로 중복을 거른다. 이름 비교는 공백과 문장부호를 지우고, 9바이트 이상일 때만 포함 관계도 본다. 로케일 라벨(`Blinding Vale`)과 클라이언트 이름(`The Blinding Vale`)이 관사만큼 다르기 때문이다.
 
 ## UI/ProfessionKnowledgeOverlay.lua
 

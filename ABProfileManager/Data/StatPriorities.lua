@@ -10,12 +10,12 @@ ns.Data.StatPriorities = {
     },
     DEMONHUNTER = {
         [1] = { { "crit" }, { "mastery" }, { "haste" }, { "versatility" } }, -- 파멸
-        [2] = { { "haste" }, { "crit", "versatility", "mastery" } }, -- 복수
-        [3] = { { "crit", "mastery" }, { "versatility" }, { "haste" } }, -- 포식
+        [2] = { { "haste" }, { "crit" }, { "versatility" }, { "mastery" } }, -- 복수
+        [3] = { { "haste" }, { "crit", "mastery" }, { "versatility" } }, -- 포식
     },
     DRUID = {
-        [1] = { { "mastery" }, { "crit", "haste" }, { "versatility" } }, -- 조화
-        [2] = { { "mastery" }, { "haste", "crit" }, { "versatility" } }, -- 야성
+        [1] = { { "mastery" }, { "haste" }, { "crit" }, { "versatility" } }, -- 조화
+        [2] = { { "mastery" }, { "crit", "haste" }, { "versatility" } }, -- 야성
         [3] = { { "haste" }, { "versatility" }, { "mastery", "crit" } }, -- 수호
         [4] = { { "haste" }, { "mastery" }, { "versatility" }, { "crit" } }, -- 회복
     },
@@ -25,24 +25,24 @@ ns.Data.StatPriorities = {
         [3] = { { "mastery" }, { "crit" }, { "haste" }, { "versatility" } }, -- 증강
     },
     HUNTER = {
-        [1] = { { "crit" }, { "haste" }, { "mastery" }, { "versatility" } }, -- 야수
-        [2] = { { "crit" }, { "mastery" }, { "haste" }, { "versatility" } }, -- 사격
+        [1] = { { "crit", "mastery" }, { "haste" }, { "versatility" } }, -- 야수
+        [2] = { { "crit" }, { "mastery" }, { "versatility" }, { "haste" } }, -- 사격
         [3] = { { "mastery" }, { "crit" }, { "haste" }, { "versatility" } }, -- 생존
     },
     MAGE = {
-        [1] = { { "haste" }, { "versatility", "crit", "mastery" } }, -- 비전
+        [1] = { { "haste" }, { "crit", "mastery", "versatility" } }, -- 비전
         [2] = { { "haste" }, { "mastery" }, { "versatility" }, { "crit" } }, -- 화염
         [3] = { { "mastery" }, { "crit" }, { "haste" }, { "versatility" } }, -- 냉기
     },
     MONK = {
         [1] = { { "crit", "versatility", "mastery" }, { "haste" } }, -- 양조
         [2] = { { "haste" }, { "crit" }, { "versatility" }, { "mastery" } }, -- 운무
-        [3] = { { "haste", "crit", "mastery" }, { "versatility" } }, -- 풍운
+        [3] = { { "haste" }, { "crit", "mastery" }, { "versatility" } }, -- 풍운
     },
     PALADIN = {
-        [1] = { { "mastery" }, { "haste", "crit" }, { "versatility" } }, -- 신성
-        [2] = { { "haste" }, { "mastery" }, { "crit", "versatility" } }, -- 보호
-        [3] = { { "mastery" }, { "crit" }, { "haste" }, { "versatility" } }, -- 징벌
+        [1] = { { "mastery" }, { "crit", "haste" }, { "versatility" } }, -- 신성
+        [2] = { { "haste" }, { "crit", "mastery" }, { "versatility" } }, -- 보호
+        [3] = { { "mastery" }, { "haste" }, { "crit" }, { "versatility" } }, -- 징벌
     },
     PRIEST = {
         [1] = { { "haste" }, { "mastery" }, { "crit" }, { "versatility" } }, -- 수양
@@ -52,21 +52,21 @@ ns.Data.StatPriorities = {
     ROGUE = {
         [1] = { { "crit" }, { "haste" }, { "mastery" }, { "versatility" } }, -- 암살
         [2] = { { "crit" }, { "versatility" }, { "mastery" }, { "haste" } }, -- 무법
-        [3] = { { "mastery" }, { "haste" }, { "crit" }, { "versatility" } }, -- 잠행
+        [3] = { { "mastery" }, { "haste" }, { "versatility" }, { "crit" } }, -- 잠행
     },
     SHAMAN = {
         [1] = { { "mastery" }, { "crit", "haste" }, { "versatility" } }, -- 정기
         [2] = { { "mastery", "haste" }, { "crit" }, { "versatility" } }, -- 고양
-        [3] = { { "crit" }, { "mastery", "versatility" }, { "haste" } }, -- 복원
+        [3] = { { "crit" }, { "haste" }, { "versatility" }, { "mastery" } }, -- 복원
     },
     WARLOCK = {
         [1] = { { "haste" }, { "crit" }, { "versatility" }, { "mastery" } }, -- 고통
-        [2] = { { "haste", "crit" }, { "mastery" }, { "versatility" } }, -- 악마
-        [3] = { { "haste", "crit" }, { "mastery" }, { "versatility" } }, -- 파괴
+        [2] = { { "crit", "haste" }, { "mastery" }, { "versatility" } }, -- 악마
+        [3] = { { "haste" }, { "mastery" }, { "crit" }, { "versatility" } }, -- 파괴
     },
     WARRIOR = {
         [1] = { { "crit" }, { "haste" }, { "mastery" }, { "versatility" } }, -- 무기
         [2] = { { "haste" }, { "mastery" }, { "crit" }, { "versatility" } }, -- 분노
-        [3] = { { "haste" }, { "versatility", "crit" }, { "mastery" } }, -- 방어
+        [3] = { { "haste" }, { "crit" }, { "versatility" }, { "mastery" } }, -- 방어
     },
 }

@@ -32,29 +32,43 @@ REWARD_PROFILES_MARKER = "ns.Data.BISRewardProfiles"
 # 런타임에 로드되는 BIS 데이터와 스탯 우선순위다. TOC에 등재돼 있어 값을
 # 바꾸면 즉시 인게임 동작이 달라진다.
 #
-# 2026-08-28 시즌 2로 전환했다. BISCatalog은 와우헤드 overall 641행으로
-# 재생성했고, EncounterJournal은 인게임 덤프로 확인한 시즌 2 던전 8종이며,
-# preview selector 두 종은 시즌 2 값을 확인하지 못해 비활성으로 두었다.
-# 스탯 우선순위는 12.0.5 기준 동결을 유지한다.
+# 2026-08-28 시즌 2로 전환했다. EncounterJournal은 인게임 덤프로 확인한 시즌 2
+# 던전 8종이며, preview selector 두 종은 시즌 2 값을 확인하지 못해 비활성으로
+# 두었다. 스탯 우선순위는 12.0.5 기준 동결을 유지한다.
+#
+# 2026-08-30 BISCatalog을 657행으로 재생성했다. 와우헤드 bis_items 탭이 둘인
+# 전문화의 두 번째 탭을 읽도록 수집기를 고쳤다.
+#
+# 2026-08-30 스탯 우선순위를 전문화별 stat-priority 페이지 기준으로 다시 받았다.
+# 40개 전문화 중 23개가 바뀌었다. 개요 페이지 문장 수집이 조건부 1순위 스탯을
+# 잘라 먹던 문제와, 문장이 없어 시즌 1 값이 남아 있던 6개 전문화를 함께 고쳤다.
+# `source="USER_SELECTED"` 8개 전문화는 사람이 고른 값이라 수집 결과로 덮지
+# 않는다. 수집기가 그 8개를 덮어썼던 것을 되돌리고, 수집기에도 보호를 넣었다.
 FROZEN_BLOB_HASHES = {
-    "ABProfileManager/Data/BISCatalog.lua": "1403c3c26d7c98f59d39ce4e4a83e1a65ca5a136",
+    "ABProfileManager/Data/BISCatalog.lua": "89c257583a99f13f6fa176f4a464a0c8f7faecad",
     "ABProfileManager/Data/BISRuntimeScoring.lua": "d8952d9c5dc49c08466c8609b1de2f628cdc71ab",
     "ABProfileManager/Data/BISMythicVaultLinks.lua": "5cdaf725b8f9bc7851118c841ab5a22c60fb22ba",
     "ABProfileManager/Data/BISSeasonPreviewLinks.lua": "48a2e022629eb9cfc28b8a1f671b2314f7229585",
     "ABProfileManager/Data/BISEncounterJournal.lua": "230a26f4704a6d81634ce6553fabf106a76a0f6b",
-    "ABProfileManager/Data/MidnightS1MPlusDB.lua": "5e32e4ddc1cb6864119b04b4a891a9b786bf1d15",
-    "ABProfileManager/Data/StatPriorities.lua": "a80a1441f3d9f88e48412f50c01ebfe47ba5f63d",
-    "ABProfileManager/Data/StatPriorityTable.lua": "440790be9d920c52d3b99e366f2a2155825467b0",
+    "ABProfileManager/Data/MidnightS1MPlusDB.lua": "5f8daf1730307e4084196c2a8e8a74b1cb451a02",
+    "ABProfileManager/Data/StatPriorities.lua": "02a290d41221e208c8e61e99b870519a0fdd171a",
+    "ABProfileManager/Data/StatPriorityTable.lua": "531f37f60ac1be7c45cdc33b2263278799443834",
 }
 
 # 카탈로그 생성 입력이다. TOC에 없어 런타임에 로드되지 않으므로 갱신해도
 # 인게임 동작이 바뀌지 않는다. 다만 다음 카탈로그 재생성 결과를 좌우하므로
 # 무엇이 들어 있는지 추적한다.
 #
-# BISData_Method.lua는 2026-08-28 `scripts/refresh_wowhead_bis.py`로 시즌 2
-# 와우헤드 데이터를 반영했다. 40개 전문화 641행이며 시즌 1 던전 참조는 없다.
+# BISData_Method.lua는 2026-08-30 `scripts/refresh_wowhead_bis.py`로 시즌 2
+# 와우헤드 데이터를 다시 받았다. 40개 전문화 657행이며 시즌 1 던전 참조는 없다.
+#
+# 2026-08-30 수집 결과의 슬롯·출처 오류를 손으로 바로잡았다. 냉기 죽음의
+# 기사(251) 가슴의 투구 아이템을 티어 가슴으로, 다리 방어구 251153을 발에서
+# 다리로, 수양·신성 사제와 악마 흑마의 crafted 오분류 25행을 다른 전문화와
+# 대조해 확인되는 출처로 돌렸다. 파멸 악마사냥꾼(577)의 근거 없는 교체 2행도
+# 이전 값으로 되돌렸다.
 GENERATION_INPUT_HASHES = {
-    "ABProfileManager/Data/BISData_Method.lua": "14d7c4f974fdbd1a870891ae55facf3c88fc7d99",
+    "ABProfileManager/Data/BISData_Method.lua": "bcccde56de55aa523b1285f87fd267dfba519b68",
 }
 
 # 개행 정규화 후 UTF-8 기준 sha256. 2026-08-28 시즌 2 보상 프로필로 교체했다.

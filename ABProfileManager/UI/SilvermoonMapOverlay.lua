@@ -15,6 +15,15 @@ local _scoreRect         = { left=0, right=0, top=0, bottom=0 }
 local _bestRect          = { left=0, right=0, top=0, bottom=0 }
 
 local _mapInfoCache      = {}
+local _runtimeCache      = {}
+local _combinedPoints    = {}
+
+local RuntimePoints = {
+    cacheSeconds = 15,
+    emptyCacheSeconds = 2,
+    dedupeDistance = 2.5,
+    positionKinds = { dungeon = true, raid = true, delve = true },
+}
 
 local _candidateBuf = {}
 for _ci = 1, 16 do _candidateBuf[_ci] = { x=0, y=0 } end
@@ -251,15 +260,27 @@ local function tryResolveMapID(data, mapID)
     return nil, nil
 end
 
+local function isWorldMapID(mapID)
+    if not mapID then
+        return false
+    end
+
+    local info = getMapInfo(mapID)
+    local mapType = info and tonumber(info.mapType) or nil
+    if mapType and mapType >= MAP_TYPE_DUNGEON then
+        return false
+    end
+
+    return true
+end
+
 local function resolveMapData(mapID)
     local data = ns.Data and ns.Data.SilvermoonMapData
     if not data or not data.maps then
         return nil, nil
     end
 
-    local info = getMapInfo(mapID)
-    local mapType = info and tonumber(info.mapType) or nil
-    if mapType and mapType >= MAP_TYPE_DUNGEON then
+    if not isWorldMapID(mapID) then
         return nil, nil
     end
 
@@ -269,6 +290,382 @@ local function resolveMapData(mapID)
     end
 
     return nil, nil
+end
+
+local function callMapApi(fn, ...)
+    if type(fn) ~= "function" then
+        return nil
+    end
+
+    local ok, result = pcall(fn, ...)
+    if not ok then
+        return nil
+    end
+
+    return result
+end
+
+local function normalizeMapName(text)
+    if type(text) ~= "string" or text == "" then
+        return ""
+    end
+
+    text = string.gsub(text, "\226\128\153", "")
+    text = string.gsub(text, "[%s%p]+", "")
+    return string.lower(text)
+end
+
+local function namesOverlap(left, right)
+    if left == "" or right == "" then
+        return false
+    end
+
+    if left == right then
+        return true
+    end
+
+    if #left < 9 or #right < 9 then
+        return false
+    end
+
+    return string.find(left, right, 1, true) ~= nil
+        or string.find(right, left, 1, true) ~= nil
+end
+
+local function readMapPosition(position)
+    if position == nil then
+        return nil, nil
+    end
+
+    local ok, rawX, rawY = pcall(function()
+        if type(position.GetXY) == "function" then
+            return position:GetXY()
+        end
+        return position.x, position.y
+    end)
+    if not ok then
+        return nil, nil
+    end
+
+    local x = tonumber(rawX)
+    local y = tonumber(rawY)
+    if not x or not y then
+        return nil, nil
+    end
+
+    if x <= 0 or y <= 0 or x >= 1 or y >= 1 then
+        return nil, nil
+    end
+
+    return x * 100, y * 100
+end
+
+function RuntimePoints.GetInstanceCategory(instanceID)
+    instanceID = tonumber(instanceID)
+    if not instanceID then
+        return nil
+    end
+
+    local data = ns.Data and ns.Data.SilvermoonMapData
+    local categories = data and data.runtimeInstances
+    if type(categories) == "table" and categories[instanceID] then
+        return categories[instanceID]
+    end
+
+    local journal = ns.Data and ns.Data.BISEncounterJournal
+    local byDungeon = journal and journal.instanceIDsByDungeon
+    if type(byDungeon) == "table" then
+        for _, id in pairs(byDungeon) do
+            if tonumber(id) == instanceID then
+                return "dungeon"
+            end
+        end
+    end
+
+    return nil
+end
+
+function RuntimePoints.GetSeasonNames()
+    local cached = RuntimePoints.seasonNames
+    if cached then
+        return cached
+    end
+
+    local data = ns.Data and ns.Data.SilvermoonMapData
+    local categories = data and data.runtimeInstances
+    if type(categories) ~= "table" then
+        return nil
+    end
+
+    local names = {}
+    local resolved = 0
+    local ejResolved = 0
+    for instanceID, category in pairs(categories) do
+        local name = callMapApi(EJ_GetInstanceInfo, tonumber(instanceID))
+        if type(name) == "string" and name ~= "" then
+            local normalized = normalizeMapName(name)
+            if normalized ~= "" then
+                names[normalized] = category
+                resolved = resolved + 1
+                ejResolved = ejResolved + 1
+            end
+        end
+    end
+
+    local journal = ns.Data and ns.Data.BISEncounterJournal
+    local byDungeon = journal and journal.instanceIDsByDungeon
+    if type(byDungeon) == "table" then
+        for label in pairs(byDungeon) do
+            local normalized = normalizeMapName(label)
+            if normalized ~= "" and not names[normalized] then
+                names[normalized] = "dungeon"
+                resolved = resolved + 1
+            end
+        end
+    end
+
+    if resolved == 0 then
+        return nil
+    end
+
+    if ejResolved > 0 then
+        RuntimePoints.seasonNames = names
+    end
+
+    return names
+end
+
+function RuntimePoints.IsTargetMap(mapID)
+    local data = ns.Data and ns.Data.SilvermoonMapData
+    local maps = data and data.runtimeMaps
+    if type(maps) ~= "table" or not mapID then
+        return false
+    end
+
+    return maps[mapID] and true or false
+end
+
+function RuntimePoints.BuildStaticIndex(staticData)
+    local index = RuntimePoints.staticIndex
+    if not index then
+        index = { names = {}, spots = {} }
+        RuntimePoints.staticIndex = index
+    end
+
+    wipe(index.names)
+    wipe(index.spots)
+
+    for _, point in ipairs((staticData and staticData.points) or {}) do
+        if RuntimePoints.positionKinds[point.category] then
+            local name = normalizeMapName(ns.L(point.labelKey))
+            if name ~= "" then
+                index.names[name] = true
+            end
+            index.spots[#index.spots + 1] = point
+        end
+    end
+
+    return index
+end
+
+function RuntimePoints.IsDuplicate(index, name, x, y)
+    if not index then
+        return false
+    end
+
+    local normalized = normalizeMapName(name)
+    if normalized ~= "" then
+        for staticName in pairs(index.names) do
+            if namesOverlap(staticName, normalized) then
+                return true
+            end
+        end
+    end
+
+    local limit = RuntimePoints.dedupeDistance * RuntimePoints.dedupeDistance
+    for _, point in ipairs(index.spots) do
+        local dx = (point.x or 0) - x
+        local dy = (point.y or 0) - y
+        if ((dx * dx) + (dy * dy)) <= limit then
+            return true
+        end
+    end
+
+    return false
+end
+
+function RuntimePoints.Add(points, index, point)
+    points[#points + 1] = point
+    if not index then
+        return
+    end
+
+    local normalized = normalizeMapName(point.labelText)
+    if normalized ~= "" then
+        index.names[normalized] = true
+    end
+    index.spots[#index.spots + 1] = point
+end
+
+function RuntimePoints.CollectEntrances(mapID, points, index)
+    local entries = callMapApi(C_EncounterJournal and C_EncounterJournal.GetDungeonEntrancesForMap, mapID)
+    if type(entries) ~= "table" then
+        return false
+    end
+
+    local matched = false
+    for _, entry in ipairs(entries) do
+        if type(entry) == "table" then
+            local category = RuntimePoints.GetInstanceCategory(entry.journalInstanceID)
+            local name = entry.name
+            if type(name) ~= "string" or name == "" then
+                name = callMapApi(EJ_GetInstanceInfo, tonumber(entry.journalInstanceID))
+            end
+            if not category and type(name) == "string" and name ~= "" then
+                local seasonNames = RuntimePoints.GetSeasonNames()
+                if type(seasonNames) == "table" then
+                    category = seasonNames[normalizeMapName(name)]
+                end
+            end
+            if category then
+                matched = true
+                local x, y = readMapPosition(entry.position)
+                if x and y and type(name) == "string" and name ~= "" and not RuntimePoints.IsDuplicate(index, name, x, y) then
+                    RuntimePoints.Add(points, index, {
+                        key = "runtime_instance_" .. tostring(entry.journalInstanceID or entry.areaPoiID or name),
+                        labelText = name,
+                        x = x,
+                        y = y,
+                        category = category,
+                        size = 15,
+                        priority = (category == "raid") and 10 or 12,
+                        offsetY = -4,
+                    })
+                end
+            end
+        end
+    end
+
+    return matched
+end
+
+function RuntimePoints.CollectDelves(mapID, points, index)
+    local poiIDs = callMapApi(C_AreaPoiInfo and C_AreaPoiInfo.GetDelvesForMap, mapID)
+    if type(poiIDs) ~= "table" then
+        return
+    end
+
+    for _, poiID in ipairs(poiIDs) do
+        local info = callMapApi(C_AreaPoiInfo and C_AreaPoiInfo.GetAreaPOIInfo, mapID, poiID)
+        if type(info) == "table" then
+            local x, y = readMapPosition(info.position)
+            local name = info.name
+            if x and y and type(name) == "string" and name ~= "" and not RuntimePoints.IsDuplicate(index, name, x, y) then
+                RuntimePoints.Add(points, index, {
+                    key = "runtime_delve_" .. tostring(poiID),
+                    labelText = name,
+                    x = x,
+                    y = y,
+                    category = "delve",
+                    size = 15,
+                    priority = 18,
+                    offsetY = -4,
+                })
+            end
+        end
+    end
+end
+
+function RuntimePoints.CollectEntrancePOIs(mapID, points, index)
+    local seasonNames = RuntimePoints.GetSeasonNames()
+    if type(seasonNames) ~= "table" then
+        return false
+    end
+
+    local poiIDs = callMapApi(C_AreaPoiInfo and C_AreaPoiInfo.GetAreaPOIForMap, mapID)
+    if type(poiIDs) ~= "table" then
+        return false
+    end
+
+    local matched = false
+    for _, poiID in ipairs(poiIDs) do
+        local info = callMapApi(C_AreaPoiInfo and C_AreaPoiInfo.GetAreaPOIInfo, mapID, poiID)
+        if type(info) == "table" then
+            local name = info.name
+            local category = nil
+            if type(name) == "string" and name ~= "" then
+                category = seasonNames[normalizeMapName(name)]
+            end
+            if category then
+                matched = true
+                local x, y = readMapPosition(info.position)
+                if x and y and not RuntimePoints.IsDuplicate(index, name, x, y) then
+                    RuntimePoints.Add(points, index, {
+                        key = "runtime_poi_" .. tostring(poiID),
+                        labelText = name,
+                        x = x,
+                        y = y,
+                        category = category,
+                        size = 15,
+                        priority = (category == "raid") and 10 or 12,
+                        offsetY = -4,
+                    })
+                end
+            end
+        end
+    end
+
+    return matched
+end
+
+function RuntimePoints.Get(mapID, staticData)
+    if not mapID then
+        return nil, ""
+    end
+
+    local now = getNow()
+    local cached = _runtimeCache[mapID]
+    if cached and cached.expires and cached.expires > now then
+        return cached.points, cached.signature
+    end
+
+    local points = (cached and cached.points) or {}
+    wipe(points)
+
+    local index = RuntimePoints.BuildStaticIndex(staticData)
+    local isTargetMap = RuntimePoints.IsTargetMap(mapID)
+    local hasSeasonEntrance = RuntimePoints.CollectEntrances(mapID, points, index)
+    if staticData or isTargetMap then
+        if RuntimePoints.CollectEntrancePOIs(mapID, points, index) then
+            hasSeasonEntrance = true
+        end
+    end
+    if staticData or hasSeasonEntrance or isTargetMap then
+        RuntimePoints.CollectDelves(mapID, points, index)
+    end
+
+    local parts = RuntimePoints.signatureBuffer
+    if not parts then
+        parts = {}
+        RuntimePoints.signatureBuffer = parts
+    end
+    wipe(parts)
+    for _, point in ipairs(points) do
+        parts[#parts + 1] = tostring(point.key) .. "|" .. tostring(point.labelText)
+    end
+
+    cached = cached or {}
+    cached.points = points
+    cached.signature = table.concat(parts, ";")
+    cached.expires = now + ((#points > 0) and RuntimePoints.cacheSeconds or RuntimePoints.emptyCacheSeconds)
+    _runtimeCache[mapID] = cached
+
+    return cached.points, cached.signature
+end
+
+function RuntimePoints.Invalidate()
+    wipe(_runtimeCache)
+    RuntimePoints.seasonNames = nil
 end
 
 local function utf8Chars(text)
@@ -447,7 +844,10 @@ local function isKoreanLocale()
 end
 
 local function resolveLabelName(point)
-    local text = tostring(ns.L(point.labelKey) or "")
+    local text = point.labelText
+    if type(text) ~= "string" or text == "" then
+        text = tostring(ns.L(point.labelKey) or "")
+    end
     if text == "" then
         return text
     end
@@ -704,7 +1104,23 @@ function SilvermoonMapOverlay:Initialize()
     end
 
     self.driver = CreateFrame("Frame")
+    self.driver:SetScript("OnEvent", function()
+        self:HandleDataUpdate()
+    end)
+    if type(self.driver.RegisterEvent) == "function" then
+        pcall(self.driver.RegisterEvent, self.driver, "AREA_POIS_UPDATED")
+    end
     self:EnsureHooks()
+end
+
+function SilvermoonMapOverlay:HandleDataUpdate()
+    RuntimePoints.Invalidate()
+    self.lastLayoutKey = nil
+
+    if WorldMapFrame and WorldMapFrame.IsShown and WorldMapFrame:IsShown() then
+        self:RequestRefreshBurst()
+        self:Refresh()
+    end
 end
 
 function SilvermoonMapOverlay:HandleDriverUpdate(elapsed)
@@ -885,7 +1301,7 @@ function SilvermoonMapOverlay:HideAll()
     end
 end
 
-function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
+function SilvermoonMapOverlay:LayoutPoints(parent, mapData, points)
     if not isValidCanvasParent(parent) or not self.overlayFrame then
         self:HideAll()
         return
@@ -893,14 +1309,14 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData)
 
     local width = parent:GetWidth() or 0
     local height = parent:GetHeight() or 0
-    if width <= 0 or height <= 0 or not mapData then
+    local sourcePoints = points or (mapData and mapData.points) or {}
+    if width <= 0 or height <= 0 or #sourcePoints == 0 then
         self:HideAll()
         return
     end
 
     local zoomScale, zoomBucket, canvasBucket = getZoomScaleMultiplier()
     local densityScale = getDensityScale(mapData)
-    local sourcePoints = mapData.points or {}
 
     wipe(_layoutPoints)
     for _, point in ipairs(sourcePoints) do
@@ -1037,7 +1453,13 @@ function SilvermoonMapOverlay:RefreshInternal()
 
     local currentMapID = WorldMapFrame:GetMapID()
     local mapData, resolvedMapID = resolveMapData(currentMapID)
-    if not mapData then
+    local runtimePoints, runtimeSignature = nil, ""
+    if isWorldMapID(currentMapID) then
+        runtimePoints, runtimeSignature = RuntimePoints.Get(currentMapID, mapData)
+    end
+
+    local runtimeCount = (runtimePoints and #runtimePoints) or 0
+    if not mapData and runtimeCount == 0 then
         self:HideAll()
         return
     end
@@ -1061,6 +1483,7 @@ function SilvermoonMapOverlay:RefreshInternal()
                        .. (filters.renown      and "1" or "0")
                        .. (filters.dungeons    and "1" or "0")
                        .. (filters.delves      and "1" or "0")
+                       .. (filters.beasts      and "1" or "0")
     end
     local _, zoomBucket, canvasBucket = getZoomScaleMultiplier()
     local mapFontOffset = ns.DB and ns.DB.GetTypographyOffset and ns.DB:GetTypographyOffset("mapOverlay") or 0
@@ -1073,11 +1496,22 @@ function SilvermoonMapOverlay:RefreshInternal()
         .. ":" .. tostring(mapFontOffset)
         .. ":" .. tostring(zoomBucket or 0)
         .. ":" .. tostring(canvasBucket or 0)
+        .. ":" .. tostring(runtimeCount)
+        .. ":" .. tostring(runtimeSignature or "")
 
     if layoutKey ~= self.lastLayoutKey then
         self._layoutChangedOnLastRefresh = true
         self.lastLayoutKey = layoutKey
-        self:LayoutPoints(parent, mapData)
+
+        wipe(_combinedPoints)
+        for _, point in ipairs((mapData and mapData.points) or {}) do
+            _combinedPoints[#_combinedPoints + 1] = point
+        end
+        for index = 1, runtimeCount do
+            _combinedPoints[#_combinedPoints + 1] = runtimePoints[index]
+        end
+
+        self:LayoutPoints(parent, mapData, _combinedPoints)
         self:RequestRefreshBurst()
     end
 

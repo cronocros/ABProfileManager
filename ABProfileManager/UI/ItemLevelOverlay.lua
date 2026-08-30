@@ -5,23 +5,23 @@ ns.UI.ItemLevelOverlay = ItemLevelOverlay
 
 local FONT_PATH  = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FONT_FLAGS = "OUTLINE"
-local FRAME_W    = 448
+local FRAME_W    = 472
 local TITLE_H    = 22
-local TAB_H      = 18
-local ROW_H      = 17
+local TAB_H      = 20
+local ROW_H      = 19
 local ROW_GAP    = 2
 local PADDING    = 6
-local CREST_LINE_H = 16
-local CREST_VALUE_W = 34
+local CREST_LINE_H = 18
+local CREST_VALUE_W = 38
 
 local TAB_GAP    = 2
 
-local CREST_STRIP_H = 40
+local CREST_STRIP_H = 44
 local CONTENT_W     = FRAME_W - 8
 local TABLE_W       = CONTENT_W
-local COL_DROP_X    = 96
-local COL_CREST_X   = 232
-local COL_VAULT_X   = 300
+local COL_DROP_X    = 102
+local COL_CREST_X   = 248
+local COL_VAULT_X   = 316
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
@@ -279,7 +279,7 @@ local function getBestEffortBountifulDelveNames()
     end
 
     if #names == 0 then
-        names[1] = ns.L("ilvl_key_unknown")
+        return { ns.L("ilvl_key_unknown") }
     end
     _cachedBountifulDelveNames = names
     return names
@@ -611,17 +611,17 @@ function ItemLevelOverlay:EnsureFrame()
     titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -2, -2)
     titleBar:SetHeight(TITLE_H)
 
-    local titleText = makeFS(frame, 12, 0.85, 0.85, 1.00)
+    local titleText = makeFS(frame, 13, 0.85, 0.85, 1.00)
     titleText:SetPoint("LEFT", titleBar, "LEFT", 6, 2)
     titleText:SetText(ns.L("ilvl_overlay_title"))
     frame.titleText = titleText
 
-    local hintText = makeFS(frame, 9, 0.50, 0.50, 0.60)
+    local hintText = makeFS(frame, 10, 0.50, 0.50, 0.60)
     hintText:SetPoint("LEFT", titleText, "RIGHT", 4, 0)
     hintText:SetText(ns.L("ilvl_overlay_hint"))
     frame.hintText = hintText
 
-    local avgLabel = makeFS(frame, 10, 0.70, 0.70, 0.80)
+    local avgLabel = makeFS(frame, 11, 0.70, 0.70, 0.80)
     avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -66, 0)
     avgLabel:SetText("")
     frame.avgLabel = avgLabel
@@ -734,14 +734,15 @@ function ItemLevelOverlay:EnsureFrame()
         bg:SetAllPoints()
         bg:SetColorTexture(0.15, 0.15, 0.25, 0.80)
         btn.bg = bg
-        makeBtnText(btn, 10, 0.70, 0.70, 0.80)
+        makeBtnText(btn, 11, 0.70, 0.70, 0.80)
         btn.tabKey = tabKey
         frame.tabs[i] = btn
     end
 
     local content = CreateFrame("Frame", nil, frame)
-    content:SetPoint("TOPLEFT",  tabRow, "BOTTOMLEFT",  2, -2)
-    content:SetPoint("RIGHT",    frame,  "RIGHT",       -4, 0)
+    content:SetPoint("TOPLEFT",  tabRow, "BOTTOMLEFT",   2, -2)
+    content:SetPoint("TOPRIGHT", tabRow, "BOTTOMRIGHT", -2, -2)
+    content:SetPoint("BOTTOM",   frame,  "BOTTOM",       0, PADDING)
     frame.content = content
 
     local crestPanel = CreateFrame("Frame", nil, content, "BackdropTemplate")
@@ -772,7 +773,7 @@ function ItemLevelOverlay:EnsureFrame()
         else
             line:SetPoint("TOPLEFT", frame.crestLines[i-1], "TOPRIGHT", 0, 0)
         end
-        line.label = makeFS(line, 11, 1, 1, 1)
+        line.label = makeFS(line, 12, 1, 1, 1)
         line.label:SetPoint("LEFT", line, "LEFT", 0, 0)
         line.label:SetPoint("RIGHT", line, "RIGHT", -CREST_VALUE_W, 0)
         line.label:SetJustifyH("LEFT")
@@ -780,7 +781,7 @@ function ItemLevelOverlay:EnsureFrame()
             line.label:SetWordWrap(false)
         end
 
-        line.value = makeFS(line, 11, 1, 1, 1)
+        line.value = makeFS(line, 12, 1, 1, 1)
         line.value:SetPoint("RIGHT", line, "RIGHT", -4, 0)
         line.value:SetWidth(CREST_VALUE_W)
         line.value:SetJustifyH("RIGHT")
@@ -791,7 +792,7 @@ function ItemLevelOverlay:EnsureFrame()
     frame.keyDivider = nil
     frame.keyTitle = nil
 
-    local keySummary = makeFS(crestPanel, 10, 1, 1, 1)
+    local keySummary = makeFS(crestPanel, 11, 1, 1, 1)
     keySummary:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -4 - CREST_LINE_H - 2)
     keySummary:SetPoint("TOPRIGHT", crestPanel, "TOPRIGHT", -6, -4 - CREST_LINE_H - 2)
     keySummary:SetJustifyH("LEFT")
@@ -799,6 +800,22 @@ function ItemLevelOverlay:EnsureFrame()
         keySummary:SetWordWrap(false)
     end
     frame.keySummary = keySummary
+
+    local bountifulText = makeFS(crestPanel, 11, 1, 1, 1)
+    bountifulText:SetPoint("TOPLEFT", keySummary, "BOTTOMLEFT", 0, -3)
+    bountifulText:SetPoint("TOPRIGHT", keySummary, "BOTTOMRIGHT", 0, -3)
+    bountifulText:SetJustifyH("LEFT")
+    if bountifulText.SetWordWrap then
+        bountifulText:SetWordWrap(true)
+    end
+    if bountifulText.SetMaxLines then
+        bountifulText:SetMaxLines(2)
+    end
+    if bountifulText.SetSpacing then
+        bountifulText:SetSpacing(2)
+    end
+    frame.bountifulText = bountifulText
+
     frame.keyLines = {}
 
     crestPanel:EnableMouse(true)
@@ -818,7 +835,7 @@ function ItemLevelOverlay:EnsureFrame()
 
     local tableArea = CreateFrame("Frame", nil, content)
     tableArea:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
-    tableArea:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+    tableArea:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, 0)
     tableArea:SetPoint("BOTTOM", crestPanel, "TOP", 0, 4)
     frame.tableArea = tableArea
 
@@ -844,7 +861,7 @@ function ItemLevelOverlay:EnsureRow(index)
     local row = CreateFrame("Frame", nil, self.frame.tableArea or self.frame.content)
     row:SetHeight(ROW_H)
 
-    row.label = makeFS(row, 11, 0.78, 0.78, 0.90)
+    row.label = makeFS(row, 13, 0.78, 0.78, 0.90)
     row.label:SetPoint("LEFT", row, "LEFT", 4, 0)
     row.label:SetWidth(COL_DROP_X - 6)
     row.label:SetJustifyH("LEFT")
@@ -852,7 +869,7 @@ function ItemLevelOverlay:EnsureRow(index)
         row.label:SetWordWrap(false)
     end
 
-    row.drop = makeFS(row, 10, 0.96, 0.86, 0.60)
+    row.drop = makeFS(row, 12, 0.96, 0.86, 0.60)
     row.drop:SetPoint("LEFT", row, "LEFT", COL_DROP_X, 0)
     row.drop:SetWidth(COL_CREST_X - COL_DROP_X - 2)
     row.drop:SetJustifyH("LEFT")
@@ -860,7 +877,7 @@ function ItemLevelOverlay:EnsureRow(index)
         row.drop:SetWordWrap(false)
     end
 
-    row.crest = makeFS(row, 10, 0.70, 0.70, 0.80)
+    row.crest = makeFS(row, 12, 0.70, 0.70, 0.80)
     row.crest:SetPoint("LEFT", row, "LEFT", COL_CREST_X, 0)
     row.crest:SetWidth(COL_VAULT_X - COL_CREST_X - 2)
     row.crest:SetJustifyH("LEFT")
@@ -868,7 +885,7 @@ function ItemLevelOverlay:EnsureRow(index)
         row.crest:SetWordWrap(false)
     end
 
-    row.vault = makeFS(row, 10, 0.55, 0.85, 0.55)
+    row.vault = makeFS(row, 12, 0.55, 0.85, 0.55)
     row.vault:SetPoint("LEFT", row, "LEFT", COL_VAULT_X, 0)
     row.vault:SetWidth(TABLE_W - COL_VAULT_X - 4)
     row.vault:SetJustifyH("LEFT")
@@ -956,11 +973,41 @@ function ItemLevelOverlay:RefreshSidePanel()
             parts[#parts + 1] = string.format("%s %s", inlineColor(labelHex, ns.L("ilvl_key_fragments")),
                 inlineColor(valueHex, tostring(fragments)))
         end
-        parts[#parts + 1] = inlineColor(colorHex(0.62, 0.66, 0.76), ns.L("ilvl_key_bountiful"))
         frame.keySummary:SetText(table.concat(parts, "   "))
     end
 
-    frame.crestPanel:SetHeight(CREST_STRIP_H)
+    if frame.bountifulText then
+        local names = getBestEffortBountifulDelveNames()
+        local labelHex = colorHex(0.68, 0.82, 1.00)
+        local nameHex = colorHex(0.92, 0.94, 1.00)
+        local shown = {}
+        for i = 1, 4 do
+            local name = names[i]
+            if name and name ~= "" then
+                shown[#shown + 1] = inlineColor(nameHex, name)
+            end
+        end
+        if #shown == 0 then
+            shown[1] = inlineColor(colorHex(0.55, 0.57, 0.62), ns.L("ilvl_key_unknown"))
+        end
+        frame.bountifulText:SetText(string.format("%s  %s",
+            inlineColor(labelHex, ns.L("ilvl_key_bountiful")),
+            table.concat(shown, "  ·  ")))
+    end
+
+    local panelHeight = 4 + CREST_LINE_H + 2
+    if frame.keySummary then
+        local keyHeight = frame.keySummary.GetStringHeight and frame.keySummary:GetStringHeight() or 0
+        panelHeight = panelHeight + math.max(tonumber(keyHeight) or 0, 12) + 3
+    end
+    if frame.bountifulText then
+        local bountifulHeight = frame.bountifulText.GetStringHeight and frame.bountifulText:GetStringHeight() or 0
+        panelHeight = panelHeight + math.max(tonumber(bountifulHeight) or 0, 12) + 5
+    end
+
+    local finalHeight = math.max(CREST_STRIP_H, math.floor(panelHeight + 0.5))
+    frame.crestPanel:SetHeight(finalHeight)
+    self._sidePanelHeight = finalHeight
 end
 
 function ItemLevelOverlay:SelectTab(tabKey)
@@ -1000,8 +1047,9 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
         local row = self:EnsureRow(i)
         if not row then break end
         row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", frame.tableArea or frame.content, "TOPLEFT", 0, -yOffset)
-        row:SetPoint("RIGHT",   frame.tableArea or frame.content, "RIGHT",   0, 0)
+        local rowParent = frame.tableArea or frame.content
+        row:SetPoint("TOPLEFT",  rowParent, "TOPLEFT",  0, -yOffset)
+        row:SetPoint("TOPRIGHT", rowParent, "TOPRIGHT", 0, -yOffset)
         row:Show()
 
         if data.isSpacer then
@@ -1013,16 +1061,16 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
         elseif data.isColumnHeader then
             local cr, cg, cb = HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3]
             row.label:SetWidth(COL_DROP_X - 6)
-            row.label:SetFont(FONT_PATH, 9, FONT_FLAGS); row.label:SetTextColor(cr,cg,cb,1); row.label:SetText(data.label or "")
-            row.drop:SetFont(FONT_PATH, 9, FONT_FLAGS);  row.drop:SetTextColor(cr,cg,cb,1);  row.drop:SetText(data.dropStr or "")
-            row.vault:SetFont(FONT_PATH, 9, FONT_FLAGS); row.vault:SetTextColor(cr,cg,cb,1); row.vault:SetText(data.vaultStr or "")
-            row.crest:SetFont(FONT_PATH, 9, FONT_FLAGS); row.crest:SetTextColor(cr,cg,cb,1); row.crest:SetText(data.crestStr or "")
+            row.label:SetFont(FONT_PATH, 11, FONT_FLAGS); row.label:SetTextColor(cr,cg,cb,1); row.label:SetText(data.label or "")
+            row.drop:SetFont(FONT_PATH, 11, FONT_FLAGS);  row.drop:SetTextColor(cr,cg,cb,1);  row.drop:SetText(data.dropStr or "")
+            row.vault:SetFont(FONT_PATH, 11, FONT_FLAGS); row.vault:SetTextColor(cr,cg,cb,1); row.vault:SetText(data.vaultStr or "")
+            row.crest:SetFont(FONT_PATH, 11, FONT_FLAGS); row.crest:SetTextColor(cr,cg,cb,1); row.crest:SetText(data.crestStr or "")
             row:SetHeight(ROW_H - 2)
             yOffset = yOffset + (ROW_H - 2) + ROW_GAP + 1
 
         elseif data.isHeader then
             row.label:SetWidth(TABLE_W - 10)
-            row.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
+            row.label:SetFont(FONT_PATH, 12, FONT_FLAGS)
             row.label:SetTextColor(0.65, 0.85, 1.00, 1)
             row.label:SetText(data.label or "")
             row.drop:SetText(""); row.vault:SetText(""); row.crest:SetText("")
@@ -1031,10 +1079,10 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
 
         else
             row.label:SetWidth(COL_DROP_X - 6)
-            row.label:SetFont(FONT_PATH, 11, FONT_FLAGS)
-            row.drop:SetFont(FONT_PATH, 10, FONT_FLAGS)
-            row.vault:SetFont(FONT_PATH, 10, FONT_FLAGS)
-            row.crest:SetFont(FONT_PATH, 10, FONT_FLAGS)
+            row.label:SetFont(FONT_PATH, 13, FONT_FLAGS)
+            row.drop:SetFont(FONT_PATH, 12, FONT_FLAGS)
+            row.vault:SetFont(FONT_PATH, 12, FONT_FLAGS)
+            row.crest:SetFont(FONT_PATH, 12, FONT_FLAGS)
 
             local up = data.highlight
             row.label:SetTextColor(up and 0.95 or 0.68, up and 0.95 or 0.68, up and 0.95 or 0.75, 1)
@@ -1081,6 +1129,7 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
     end
 
     local crestPanelH = frame.crestPanel and frame.crestPanel:GetHeight() or 0
+    self._layoutSidePanelHeight = crestPanelH
     self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + yOffset + crestPanelH + 6 + PADDING
     self._lastContentSignature = self:BuildContentSignature(avgIlvl)
     self:UpdateLayout()
@@ -1126,6 +1175,9 @@ function ItemLevelOverlay:Refresh()
     else
         self:RefreshHeader(avgIlvl)
         self:RefreshSidePanel()
+        if self._sidePanelHeight ~= self._layoutSidePanelHeight then
+            self:RebuildContent(avgIlvl)
+        end
     end
     self.frame:Show()
 end

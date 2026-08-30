@@ -1,10 +1,31 @@
 # ABProfileManager Handoff
 
-버전 기준: `v1.12.0` (WoW 12.1.0 / Midnight 시즌 2 대응, 작업 진행 중)
+버전 기준: `v1.13.0` (WoW 12.1.0 / Midnight 시즌 2 대응)
 
 시즌 2 작업의 원본 인계 문서는 [SEASON2_HANDOFF.md](./SEASON2_HANDOFF.md)다. wave별 진행 로그, 미확정 데이터 표, 재개 프롬프트는 그쪽을 본다. 이 문서는 릴리스 이후에도 남길 운영 메모, 회귀 포인트, 미완성 기능만 담는다.
 
-## 0. v1.12.0 작업 메모
+## 0. v1.13.0 작업 메모
+
+시즌 2 인게임 QA에서 나온 결함을 고친 릴리스다. 상세 내역은 [releases/RELEASE_NOTES_v1.13.0.md](./releases/RELEASE_NOTES_v1.13.0.md)와 `CHANGELOG.md`를 본다. 여기에는 다시 밟기 쉬운 함정만 남긴다.
+
+### 회귀 포인트
+
+- **문자열 안 CR.** `UI/MythicPlusRecordOverlay.lua`가 문자열 리터럴 안에 `0x0d`가 섞여 로드에 실패한 적이 있다. Lua는 CRLF 줄바꿈은 받아들이지만 문자열 **안**의 CR은 `unfinished string`이다. Windows에서 `perl -i`로 Lua를 편집하면 이 상태가 만들어진다. 편집은 정규 편집 도구로 하고, 끝나면 문자열 내 단독 CR이 없는지 확인한다.
+- **부정 캐시.** 모험 안내서 데이터는 로드 직후 비어 있다. 그 시점의 조회 실패를 캐시에 `false`로 박으면 세션 내내 복구되지 않는다. 실패를 캐시하기 전에 조회 대상 목록이 비어 있지 않은지 먼저 본다.
+- **`C_MythicPlus.GetCurrentSeason()`은 준비 전 `-1`을 준다.** `if ok and current then`은 `-1`도 통과시킨다. 캐시 무효화 키에 이 값을 그대로 넣으면 매 접속마다 캐시가 폐기된다.
+- **`EJ_GetEncounterInfoByIndex(index, instanceID)`** 는 인스턴스 인자를 받아도 해당 인스턴스가 선택되지 않았으면 빈 값을 준다. 조회 전에 `EJ_SelectInstance`로 선택하고 끝나면 되돌린다.
+- **EJ 상태 복원.** 티어·인스턴스·난이도·전리품 필터를 바꾸면 사용자가 보던 안내서 화면이 튄다. 바꾼 것은 전부 되돌린다.
+- **프레임 앵커 과제약.** `RIGHT` 앵커는 가로 위치뿐 아니라 세로 중심까지 고정한다. `TOPLEFT` + `RIGHT`만 잡으면 높이가 의도와 다르게 계산된다. 상·하단을 명시한다.
+- **`USER_SELECTED` 스탯 우선순위.** `MidnightS1_MPlus_Addon_DB_v1.7.lua`에서 `source="USER_SELECTED"` 표식이 붙은 전문화는 수동 확정값이다. `scripts/refresh_wowhead_stat_priority.py`가 이 줄을 건너뛴다. 수집기를 고칠 때 이 가드를 지우지 않는다.
+- **`BISOverlay.lua` top-level local 예산.** 상한 `198`, 현재 `195`. 넘기면 WoW가 청크를 로드하지 못한다. 새 상태는 `EJournal` / `SourcePreview` 테이블 필드로 붙인다.
+
+### 데이터 한계
+
+- BIS 카탈로그의 `boss` 필드는 `657`행 전부 `nil`이다. 보스명은 모험 안내서 전리품 인덱스로 런타임 해석하고 `SavedVariables`에 캐시한다.
+- Wowhead 시즌 2 가이드는 슬롯 대안을 제시하지 않는다. 40개 전문화 중 36개가 `Overall BiS` 탭 하나뿐이라 슬롯당 2순위 후보를 만들 수 없다. 다른 출처를 붙이지 않는 한 이 상태가 유지된다.
+- 임의 업그레이드 단계의 정확한 아이템 링크는 클라이언트가 제공하지 않는다. `C_ItemUpgrade`는 실제 보유 아이템 전용이고 검증된 bonusID 표가 없다. 툴팁 단계 선택은 `기준:` 줄만 바꾼다.
+
+## 0-1. v1.12.0 작업 메모
 
 ### 반영된 변경
 

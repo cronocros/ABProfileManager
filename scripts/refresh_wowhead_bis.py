@@ -339,10 +339,20 @@ def parse_gatherer_data(html_text: str) -> Dict[str, Dict[str, object]]:
 
 
 def extract_overall_segment(html_text: str) -> str:
+    """bis_items 탭 묶음 전체를 돌려준다.
+
+    예전에는 첫 `[\\/tab]`에서 끊었다. 대부분의 전문화는 "Overall BiS" 탭
+    하나뿐이라 문제가 없었지만, 와우헤드가 탭을 둘로 나눈 전문화(혈기 죽음의
+    기사의 죽음인도자/피의 낙인, 운무 수도사의 레이드/쐐기, 회복 드루이드의
+    쐐기 전용)에서는 두 번째 탭의 슬롯별 후보가 통째로 버려졌다. 묶음 끝까지
+    읽어야 그 후보가 살아남는다.
+    """
     start = html_text.find("name=bis_items")
     if start == -1:
         raise ValueError("bis_items section not found")
-    end = html_text.find("[\\/tab]", start)
+    end = html_text.find("[\\/tabs]", start)
+    if end == -1:
+        end = html_text.find("[\\/tab]", start)
     if end == -1:
         end = start + 50000
     return html_text[start:end]
@@ -369,6 +379,20 @@ def extract_source_options(raw_cell: str) -> List[str]:
     return [normalize_source_label(raw_cell)]
 
 
+ITEM_TAG_RE = re.compile(r"\[item=\d+[^\]]*\]")
+
+
+def item_cell_is_item_only(item_cell: str) -> bool:
+    """아이템 칸이 아이템 링크만으로 이뤄졌는지 본다.
+
+    "[item=A] crafted with [item=B]"처럼 설명 문구가 붙은 칸의 두 번째 링크는
+    장신구가 아니라 세공 재료다. 반대로 링크만 나열된 칸은 같은 슬롯의 실제
+    후보 둘이다. 남은 글자가 있는지로 둘을 가른다.
+    """
+    residue = strip_bbcode(ITEM_TAG_RE.sub(" ", item_cell))
+    return not re.search(r"[0-9A-Za-z가-힣]", residue)
+
+
 def extract_item_ids(item_cell: str, source_option_count: int) -> List[int]:
     item_ids: List[int] = []
     seen = set()
@@ -382,6 +406,8 @@ def extract_item_ids(item_cell: str, source_option_count: int) -> List[int]:
     if len(item_ids) <= 1:
         return item_ids
     if source_option_count > 1 and source_option_count == len(item_ids):
+        return item_ids
+    if item_cell_is_item_only(item_cell):
         return item_ids
     return item_ids[:1]
 
@@ -403,6 +429,7 @@ def parse_page(spec_id: int, url: str) -> Tuple[List[Dict[str, object]], Optiona
     segment = extract_overall_segment(html_text)
 
     entries: List[Dict[str, object]] = []
+    seen_slot_items: set = set()
     for row in extract_rows(segment):
         if "[item=" not in row:
             continue
@@ -419,6 +446,13 @@ def parse_page(spec_id: int, url: str) -> Tuple[List[Dict[str, object]], Optiona
 
         slot_name = normalize_slot(cells[0])
         for index, item_id in enumerate(item_ids):
+            # 탭이 둘인 전문화는 두 목록이 같은 슬롯에 같은 아이템을 올린다.
+            # 중복 행을 만들지 않는다.
+            dedupe_key = (slot_name, item_id)
+            if dedupe_key in seen_slot_items:
+                continue
+            seen_slot_items.add(dedupe_key)
+
             source_label = source_options[min(index, len(source_options) - 1)]
             source_type, dungeon_name = classify_source(source_label)
 
@@ -495,13 +529,17 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
     if total_rows < 600:
         raise ValueError(f"Unexpectedly low row count: {total_rows}")
 
+    # 250/270/105는 와우헤드가 bis_items를 탭 둘로 나눈 전문화다. 두 탭을 모두
+    # 읽으므로 단일 탭 전문화보다 행이 많다.
     representative_counts = {
         269: 15,
-        270: 16,
+        270: 21,
         263: 16,
         577: 16,
         1382: 17,
         1473: 16,
+        250: 17,
+        105: 24,
     }
     for spec_id, expected_count in representative_counts.items():
         actual_count = len(overrides[spec_id])

@@ -35,12 +35,20 @@ DOC_DB_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.3.lua"
 STAT_PRIORITIES_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorities.lua"
 STAT_PRIORITY_TABLE_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorityTable.lua"
 TOC_FILE = REPO_ROOT / "ABProfileManager" / "ABProfileManager.toc"
-# 시즌 2 카탈로그는 와우헤드 overall 데이터만으로 생성한다. 시즌 1처럼 넓은
-# 후보 시드를 쓰지 않으므로 행 수가 훨씬 적다.
+# 시즌 2 카탈로그는 와우헤드 BiS 표만으로 생성한다. 시즌 1처럼 넓은 후보
+# 시드를 쓰지 않으므로 행 수가 훨씬 적다.
+#
+# 2026-08-30 641행에서 657행이 됐다. bis_items 탭이 둘인 전문화(250/270/105)의
+# 두 번째 탭과, 아이템 링크만 둘 들어 있던 칸(268) 하나를 더 읽는다.
+#
+# 2026-08-30 수양(256)·신성(257) 사제와 악마 흑마(266)의 출처를 바로잡았다.
+# 두 사제 전문화는 32행 전부가 crafted였는데, 같은 itemID를 쓰는 다른 전문화와
+# 대조해 확인되는 25행을 레이드/쐐기로 되돌렸다. crafted가 103에서 78로 줄고
+# raid가 374에서 393, mythicplus가 101에서 107로 늘었다.
 EXPECTED_SOURCE_GROUP_COUNTS = {
-    "mythicplus": 88,
-    "raid": 371,
-    "crafted": 103,
+    "mythicplus": 107,
+    "raid": 393,
+    "crafted": 78,
     "tier": 79,
 }
 
