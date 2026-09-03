@@ -172,7 +172,7 @@ selector 후보를 2026-09-03 DB2에서 찾았습니다. 아직 파일에 넣지
 `-Strict`가 통과한 뒤 진행합니다. 자세한 절차는 [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)를 봅니다.
 
 - `CHANGELOG.md`의 `1.13.0` 항목을 릴리스 기준으로 확정
-- `DOC/releases/RELEASE_NOTES_v1.13.0.md`와 영문판 작성
+- `DOC/releases/RELEASE_NOTES_v1.13.0.md`와 영문판 작성 (완료)
 - `ABProfileManager/ADDON_INTRO.txt`의 버전 문구에서 `작업 중` 표기를 제거하고 변경 내역 추가
 - `scripts/package_release.ps1` 실행
 - `dist/` 루트에는 최신 ZIP만 두고 이전 ZIP은 `dist/archive/`로 이동

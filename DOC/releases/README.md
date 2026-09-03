@@ -5,7 +5,7 @@
 기준:
 
 - 최신 로컬 한글 릴리스 노트: `RELEASE_NOTES_v1.13.0.md`
-- 최신 로컬 영문 릴리스 노트: `RELEASE_NOTES_v1.11.11_EN.md` (v1.13.0 영문판 미작성)
+- 최신 로컬 영문 릴리스 노트: `RELEASE_NOTES_v1.13.0_EN.md`
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0`
 - 원격 GitHub 공개 최신 한글 릴리스 노트: `RELEASE_NOTES_v1.11.0.md`
 - 원격 GitHub 공개 최신 영문 릴리스 노트: `RELEASE_NOTES_v1.11.0_EN.md`
