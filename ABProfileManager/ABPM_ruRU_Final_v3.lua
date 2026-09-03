@@ -1896,6 +1896,7 @@ local OBJECTIVE_PREFIX_RURU = {
   { pattern = "^Whisper of the Loa: (.+)$", format = "Шёпот лоа: %s" },
   { pattern = "^Echo of Abundance: (.+)$", format = "Эхо изобилия: %s" },
   { pattern = "^Traditions of the Haranir: (.+)$", format = "Традиции хараниров: %s" },
+  { pattern = "^Demystifyin': (.+)$", format = "Просто о сложном: %s" },
 }
 
 local function getRuObjectiveName(name)

@@ -14,7 +14,7 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 | 구간 | 확인 방법 | 비고 |
 | --- | --- | --- |
-| `delves` | 구렁 완료 후 보상 상자 아이템 툴팁 | API가 없다. 이번 주 구렁을 돌면 위대한 금고 `세계` 칸이 채워져 금고값은 `C_WeeklyRewards.GetActivities`로도 확인된다 |
+| `delves` | 구렁 완료 후 보상 상자 아이템 툴팁 | API가 없다. 이번 주 구렁을 돌면 위대한 금고 `세계` 칸이 채워져 금고값은 `C_WeeklyRewards.GetActivities`로도 확인된다. 2026-09-03 와우헤드 구렁 표로 11단계 전 구간(완료 보상 `266/269/272/276/279/282/292/295/295/295/295`, 금고 `279/282/285/289/292/298/302/305/305/305/305`)이 저장소 값과 일치함을 확인했다. 외부 자료라 태그는 그대로 `guide`다 |
 | `mythicPlus` | 쐐기 한 판 완료 후 종료 상자 아이템 | 금고 열은 `C_MythicPlus.GetRewardLevelForDifficultyLevel`로 검증했다(11개 중 10개 일치). 던전 종료 열만 남았다. `+8` 금고값이 API에서 `305`로 나오나 앞뒤가 `315`라 API 이상값으로 판단해 표는 `315`를 유지한다 |
 
 확인이 끝난 구간만 골라 태그를 바꿔도 됩니다. 전부 `tooltip` 또는 `dump`가 되면 `-Strict`가 통과합니다.
@@ -65,7 +65,25 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 `Data/ProfessionKnowledge.lua`, `Data/ProfessionKnowledgeWaypoints.lua`, `Modules/ProfessionKnowledgeTracker.lua`가 대상입니다.
 
-12.1 지식 소스와 주간 리셋 정책, 신규 questID가 필요합니다. 인게임 퀘스트 로그에서 확인합니다.
+2026-09-03에 12.1 신규 평판 서적을 반영했습니다. `Zul'jarra's Forces` 평판 6단계에서 열리는 `Demystifyin': <직업>` 11종이며 각 10점입니다. 판매처는 똬리의 섬의 `Jan'sari the Watchful`입니다. questID는 DB2로 확인했습니다.
+
+| 직업 | itemID | questID |
+| --- | --- | --- |
+| 연금술 | 274500 | 96459 |
+| 대장기술 | 274515 | 96511 |
+| 마법부여 | 274511 | 96512 |
+| 기계공학 | 274516 | 96513 |
+| 약초채집 | 274513 | 96514 |
+| 주문각인 | 274514 | 96515 |
+| 보석세공 | 274510 | 96516 |
+| 가죽세공 | 274507 | 96517 |
+| 채광 | 274509 | 96518 |
+| 무두질 | 274508 | 96519 |
+| 재봉술 | 274512 | 96520 |
+
+확인 경로는 `ItemXItemEffect` → `ItemEffect` → `SpellEffect`입니다. `Effect = 16`(퀘스트 완료)의 `EffectMiscValue_0`이 questID이고, `Effect = 157`의 `EffectBasePointsF`가 지식 `10`점입니다. 공식 한국어명은 `누구나 쉽게 배우는 기술: <직업>`입니다.
+
+남은 것은 주간 questID 검증입니다. 각 직업의 `weekly_quest`, `weekly_drops`, `treatise` questID가 12.1에서도 유효한지 인게임 퀘스트 로그로 확인해야 합니다. 채집 노드 지식과 후원 제작 의뢰는 저장소가 집계하지 않는 예외로 남아 있습니다.
 
 ### W5b 로케일
 
@@ -132,7 +150,18 @@ BIS 런타임 데이터를 전부 시즌 2로 전환했고 `SeasonGuard`를 해�
 
 다만 preview selector 두 종은 시즌 2 값을 확인하지 못해 비활성입니다. `BISMythicVaultLinks`의 `generatedPreviewBonusListID`와 `BISSeasonPreviewLinks`의 selector item string이 그것이며, 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 비워 두었습니다. 그 결과 M+ 자동 점수화가 동작하지 않고 hover는 기본 `itemLink`로 표시됩니다.
 
-selector를 확인하려면 ItemBonus DB2에서 시즌 2 Myth 1/6(318) 조합을 추출해 검토해야 합니다. 확인되면 두 파일과 각 검증기의 고정값을 함께 갱신합니다. 시즌 2 던전 풀은 시즌 1과 겹치는 던전이 하나도 없으므로 BIS의 M+ 후보는 전부 획득할 수 없는 아이템입니다.
+selector 후보를 2026-09-03 DB2에서 찾았습니다. 아직 파일에 넣지 않았고 인게임 확인이 남았습니다.
+
+- `ItemBonusListGroup`에서 시즌 1 Myth 트랙은 그룹 `612`(`ItemGroupIlvlScalingID = 11`), 시즌 2는 그룹 `618`(`ItemGroupIlvlScalingID = 12`)입니다. 두 그룹 모두 `ItemBonus` `Type=34`의 두 번째 값이 `978`로 같습니다.
+- `ItemBonusTreeNode`에 `MinMythicPlusLevel = 10`인 행이 시즌 1은 그룹 `612`, 시즌 2는 그룹 `618`을 가리킵니다. 저장소가 쓰는 `+10 금고 = Myth 1/6` 규칙과 같습니다.
+- `ItemBonusListGroupEntry`에서 그룹 `618`의 `SequenceValue = 1`은 `ItemBonusListID = 12849`입니다. 시즌 1의 같은 자리는 `12801`이고 저장소가 시즌 1에 쓰던 값과 일치합니다.
+- 즉 `generatedPreviewBonusListID` 후보는 `12849`입니다. 아이템 레벨은 `ItemGroupIlvlScaling` 표에서 계산되고 이 표는 외부로 공개되지 않아 저장소 밖에서는 `318`을 확인할 수 없습니다. 인게임에서 아래를 실행해 `318`이 나오면 확정입니다.
+
+```text
+/dump GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")
+```
+
+확인되면 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`와 `scripts/validate_bis_mythic_vault_links.py`의 고정값을 함께 갱신합니다. 확인 전에는 넣지 않습니다. 잘못된 selector는 잘못된 아이템 레벨의 preview를 만듭니다. 시즌 2 던전 풀은 시즌 1과 겹치는 던전이 하나도 없으므로 BIS의 M+ 후보는 전부 획득할 수 없는 아이템입니다.
 
 `SeasonGuard`가 자동 동작을 꺼서 잘못된 값을 보여주지는 않지만, 추천 목록 자체는 여전히 시즌 1 아이템입니다. 남은 단계는 다음과 같습니다.
 

@@ -126,6 +126,9 @@ ABProfileManager/
 
 이벤트: `QUEST_TURNED_IN`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `LOOT_CLOSED`
 
+- 평판 서적은 직업마다 2종이다. 시즌 1 세력 서적 1종과 12.1 `Zul'jarra's Forces` 서적 `Demystifyin': <직업>` 1종이며 각 10점이다. questID는 `96459`, `96511~96520`이다.
+- `Modules/ProfessionKnowledgeTracker.lua`의 `translateObjectiveName`은 한국어 선택일 때만 번역표를 적용한다. 영어/러시아어에서는 원문 이름을 그대로 쓴다.
+
 ### 전투메시지 관리
 
 `_v2` CVar 우선, 없으면 구형 이름 fallback. 모드 값: `1=위로`, `2=아래로`, `3=부채꼴`

@@ -152,6 +152,7 @@ local function translateObjectiveName(name)
         { pattern = "^Whisper of the Loa: (.+)$", label = "로아의 속삭임: %s" },
         { pattern = "^Echo of Abundance: (.+)$", label = "풍요의 메아리: %s" },
         { pattern = "^Traditions of the Haranir: (.+)$", label = "하라니르의 전통: %s" },
+        { pattern = "^Demystifyin': (.+)$", label = "누구나 쉽게 배우는 기술: %s" },
     }
 
     for _, entry in ipairs(prefixTransforms) do

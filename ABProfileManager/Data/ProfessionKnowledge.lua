@@ -56,6 +56,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Beyond the Event Horizon: Alchemy", 10, { 93794 } },
+                { "Demystifyin': Alchemy", 10, { 96459 } },
             })),
         },
     },
@@ -89,6 +90,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Beyond the Event Horizon: Blacksmithing", 10, { 93795 } },
+                { "Demystifyin': Blacksmithing", 10, { 96511 } },
             })),
         },
     },
@@ -130,6 +132,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Skill Issue: Enchanting", 10, { 92374 } },
+                { "Demystifyin': Enchanting", 10, { 96512 } },
             })),
             source("abundance_reward", "pk_source_abundance_reward", buildObjectives({
                 { "Echo of Abundance: Enchanting", 10, { 92186 } },
@@ -166,6 +169,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Beyond the Event Horizon: Engineering", 10, { 93796 } },
+                { "Demystifyin': Engineering", 10, { 96513 } },
             })),
         },
     },
@@ -203,6 +207,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Traditions of the Haranir: Herbalism", 10, { 93411 } },
+                { "Demystifyin': Herbalism", 10, { 96514 } },
             })),
             source("abundance_reward", "pk_source_abundance_reward", buildObjectives({
                 { "Echo of Abundance: Herbalism", 10, { 92174 } },
@@ -271,6 +276,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Traditions of the Haranir: Inscription", 10, { 93412 } },
+                { "Demystifyin': Inscription", 10, { 96515 } },
             })),
         },
     },
@@ -304,6 +310,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Skill Issue: Jewelcrafting", 10, { 93222 } },
+                { "Demystifyin': Jewelcrafting", 10, { 96516 } },
             })),
         },
     },
@@ -337,6 +344,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Whisper of the Loa: Leatherworking", 10, { 92371 } },
+                { "Demystifyin': Leatherworking", 10, { 96517 } },
             })),
         },
     },
@@ -374,6 +382,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Whisper of the Loa: Mining", 10, { 92372 } },
+                { "Demystifyin': Mining", 10, { 96518 } },
             })),
             source("abundance_reward", "pk_source_abundance_reward", buildObjectives({
                 { "Echo of Abundance: Mining", 10, { 92187 } },
@@ -437,6 +446,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Whisper of the Loa: Skinning", 10, { 92373 } },
+                { "Demystifyin': Skinning", 10, { 96519 } },
             })),
             source("abundance_reward", "pk_source_abundance_reward", buildObjectives({
                 { "Echo of Abundance: Skinning", 10, { 92188 } },
@@ -473,6 +483,7 @@ local professions = {
             })),
             source("renown_reward", "pk_source_renown_reward", buildObjectives({
                 { "Skill Issue: Tailoring", 10, { 93201 } },
+                { "Demystifyin': Tailoring", 10, { 96520 } },
             })),
         },
     },
