@@ -11,6 +11,35 @@
 시즌 2 인게임 QA에서 확인된 로드 오류와 오버레이 결함을 고치고, 시즌 2 데이터를
 와우헤드/DB2로 재검증하고, 영어 표시 결함을 정리한 로컬 릴리스.
 
+2026-09-04 교차 리뷰 반영:
+- `/abpm log` 창이 호출마다 새 프레임을 만들고 있었다. `ABPMLogPopup`을 캐시하고
+  `UISpecialFrames`에 등록해 ESC로 닫히게 했다. 복사 창(`ensureCopyPopup`)과 같은 구조다
+- 상태 메시지의 성공·실패 판별 낱말표에 한국어·영어만 있어 러시아어는 항상 `안내`로
+  분류됐다. 실패 6종·성공 10종의 러시아어 어간을 추가했다
+- `ABPM_ruRU_Final_v3.lua`가 덮어쓴 `FormatStatusMessage`의 `kind` 경로가 접두 9종을
+  하드코딩하고 `kind == "error"`만 봤다. 실제 분류값은 `failure`라 실패 접두가 붙지 않았다.
+  세 언어 모두 `status_prefix_*` 키를 쓰도록 통일하고 `failure`와 `error`를 함께 받는다
+- `Utils.FormatStatusMessage`의 접두 중복 방지 가드 두 개가 동작하지 않고 있었다.
+  Lua 문자 클래스는 바이트 집합이라 `[●◆▲■]`가 멀티바이트 기호를 잡지 못하고,
+  `^(성공|실패|안내):%s`는 Lua 패턴에 대안(`|`)이 없어 리터럴로만 맞는다.
+  `status_prefix_*` 값과 직접 대조하는 방식으로 바꿨다
+- 은행·복사 안내 7종의 값에 `[ABPM]`이 들어 있어 `Utils.Print`의 애드온 접두와 겹쳤다.
+  세 언어에서 접두를 뺐다
+- 복사 창 사용법의 매크로 예시가 `ABPMCopy(내용)` / `ABPMCopy(текст)`였다. Lua 식별자는
+  ASCII만 받으므로 그대로 붙여넣으면 실패한다. 세 언어를 `ABPMCopy(text)`로 맞추고
+  안내 문장도 다듬었다
+- BIS 모험 안내서 자동 이동이 막혔을 때의 안내 2종이 언어 분기 없이 한국어였다.
+  로케일 키 2종을 세 언어에 추가했다
+- 복사 창이 전투 중에도 `EditBox`에 포커스를 가져가던 것을 `InCombatLockdown`으로 막았다
+- 언어 판별 헬퍼가 세 벌이었다. `UI/ProfessionKnowledgeOverlay.lua`와
+  `UI/SilvermoonMapOverlay.lua`가 `ns.Utils.IsKoreanLanguageSelected`를 쓰도록 통일했다
+- `Modules/ProfessionKnowledgeTracker.lua`의 중복 `local rawName` 선언과 미사용
+  `local language`를 제거하고 언어 판정 표기를 통일했다
+- 문서 정합성을 맞췄다. `BISOverlay` top-level local 표기(현재 `195` / 예산 `198` /
+  상한 `200`), 동결 파일 개수 `9`종, `SeasonGuard.dataSeason`과 `[S2]` 접두,
+  `baselineItemLevel = 318`, preview 검증 범위 `318~334`, PvP 실측값, `sources` 태그 현황,
+  `DOC/SEASON2_HANDOFF.md`의 낡은 해시 목록(사라진 `BISData.lua` 포함) 제거가 대상이다
+
 2026-09-03 추가 변경:
 - 전문기술 지식에 12.1 신규 평판 서적 11종을 추가했다. `Zul'jarra's Forces` 평판 6단계에서
   열리는 `Demystifyin': <직업>`이며 각 10점이다. questID는 `96459`, `96511~96520`이고

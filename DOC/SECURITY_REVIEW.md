@@ -2,6 +2,8 @@
 
 검토 기준일: `2026-08-28` (v1.12.0 / WoW 12.1.0 기준)
 
+v1.13.0의 변경(오버레이 결함 수정, 로케일 키 추가, 전문기술 데이터 추가, 스탯 우선순위 갱신)은 아직 별도 보안 검토를 하지 않았다. 새 외부 입력이나 실행 경로를 추가하지 않은 데이터·문자열 변경이다.
+
 ## 범위
 
 입력 경로, 파괴적 작업, CVar 제어, 외부 의존성, tooltip / secret-number 방어를 본다. 대상은 템플릿 import/export, profession 자동 추적, 전투메시지 CVar, ABPM 보호 오류 로그, Blizzard 기본 창 이동, PrivateAuras assertion 방어, 퀘스트 대량 포기, 지도/스탯/BIS/드랍템/시즌 최고기록 오버레이, 스탯 우선순위 표, 선택적 TomTom 연동, 오프라인 빌드 도구다.
@@ -95,7 +97,7 @@ BIS 데이터는 시즌 1 기준으로 동결됐고 시즌 2 M+ 던전 풀과 �
 - locale 문자열은 생성 시점에 `koKR/enUS`로 분리 저장되며 게임 안에서는 해당 locale 필드만 노출한다.
 - M+/tier row는 `staticFinalBisVerified=false`, `runtimeItemLinkRequired=true`, `mythTrackVerified=false` 메타를 표시하며 itemID만으로 트랙이나 최종 BiS를 확정하지 않는다.
 - `Data/MidnightS1MPlusDB.lua`는 저장소에 고정된 v1.7 컴팩트 코어이며 네트워크나 동적 코드 로드를 하지 않는다. `Data/BISRuntimeScoring.lua`는 실제 full link를 `C_Item.GetItemStats()`와 `GetDetailedItemLevelInfo()` 기반 점수 함수에 전달한다.
-- preview item string 템플릿은 시즌 1 기준으로 동결돼 있다. `Data/BISMythicVaultLinks.lua`의 selector `12801`(baseline `272`)과 `Data/BISSeasonPreviewLinks.lua`의 raid/tier `272~289`, crafted `285`다. 런타임은 이를 그대로 신뢰하지 않고 Blizzard tooltip의 실제 item level과 `Myth/신화` text를 다시 확인한다. 시즌 불일치 상태에서는 SeasonGuard가 이 스캔 자체를 막는다.
+- preview item string 템플릿은 시즌 2 기준이다. `Data/BISMythicVaultLinks.lua`는 `baselineItemLevel = 318`이고 시즌 2 selector는 인게임 미확인이라 `nil`이다. `Data/BISSeasonPreviewLinks.lua`의 검증 범위는 raid/tier `318~334`, crafted `331`이며 링크 표는 비어 있다. 런타임은 이를 그대로 신뢰하지 않고 Blizzard tooltip의 실제 item level과 `Myth/신화` text를 다시 확인한다. 시즌 불일치 상태에서는 SeasonGuard가 이 스캔 자체를 막는다.
 - 검토되지 않은 bonusID를 `itemID`와 임의 조합하는 경로는 금지한다. selector 교체는 해당 데이터 파일과 validator를 함께 갱신한다.
 - 검증에 실패하면 기본 `itemLink` 또는 `item:<itemID>` tooltip으로 fallback하고 성공한 링크만 세션 캐시에 재사용한다.
 - `mythicplus`, `raid`만 Encounter Journal 랜딩을 시도한다. `crafted`, `tier`는 제외다. 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않고 전투 중에는 자동 랜딩을 건너뛴다.

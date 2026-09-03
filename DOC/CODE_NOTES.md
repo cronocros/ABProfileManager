@@ -8,14 +8,18 @@
 
 여기 없는 내용은 자명한 설명이거나 함수명으로 드러나는 내용이라 버린 것이다. 코드와 이 문서가 어긋나면 코드가 사실이고, 이 문서를 고친다.
 
-기준: v1.12.0 / Interface 120100 / WoW 12.1.0.
+기준: v1.13.0 / Interface 120100 / WoW 12.1.0.
 
-주석 제거는 `scripts/strip_lua_comments.py`가 담당하며, 동결 파일 10개와 `Data/ItemLevelTable.lua`의 `BISRewardProfiles` 블록은 제외 대상이다.
+주석 제거는 `scripts/strip_lua_comments.py`가 담당하며, 동결 파일 9개와 `Data/ItemLevelTable.lua`의 `BISRewardProfiles` 블록은 제외 대상이다.
 
 ---
 
 ## Utils.lua
 
+- 상태 메시지 접두는 `status_prefix_info` / `status_prefix_success` / `status_prefix_failure` 세 키로 나간다. 성공·실패 판정은 `failureMarkers`와 `successMarkers` 낱말표에 의존하므로 새 언어를 추가하면 이 표에도 낱말을 넣어야 `info` 밖으로 나간다. 이 heuristic은 특정 언어 전용이 아니라 세 언어 공통 경로다.
+- 접두 중복 방지 가드는 `status_prefix_*` 값과 직접 대조한다. Lua 패턴의 문자 클래스는 바이트 집합이라 `[●◆▲■]` 같은 멀티바이트 기호 집합이 동작하지 않고, `|` 대안 문법도 없다. 예전 두 가드는 이 때문에 한 번도 참이 되지 않았다.
+- 진단 출력은 로케일화하지 않는다. `/abpm debug`와 `/abpm copy`의 **본문**(`Diagnose`, `DiagnoseJournal`, `[AH Debug]`, `ns.Utils.Debug`)은 한국어로 두고, 창 제목·사용법·버튼 같은 UI 껍데기만 로케일 키를 쓴다. 진단은 개발자가 읽는 출력이라 언어를 섞으면 대조가 어렵다.
+- `ABPM_ruRU_Final_v3.lua`가 `FormatStatusMessage`를 언어와 무관하게 덮어쓴다. `kind`가 `nil`이면 원본에 위임해 낱말표 분류를 살리고, `kind`가 오면 `status_prefix_*` 키로 접두를 만든다. 이 위임을 걷어내면 `kind` 없이 부르는 호출부 9곳이 전부 `안내`로 고정된다.
 - `safeNumber`는 WoW 12.0.5+ 의 secret number 보호 플래그를 벗기는 함수다. 플래그가 붙은 값에 `*`나 `math.floor` 같은 산술을 직접 걸면 `execution tainted by '<addon>'` 오류가 난다. `C_UnitAuras` 등 외부 API 결과에 산술이나 포맷을 적용하기 직전에 반드시 통과시킨다.
 - 변환은 `tostring` → `tonumber`다. 실패하면 원본이 아니라 **0을 돌려준다.** 원본 secret number를 그대로 반환하면 오염된 값이 이후 산술·렌더 경로로 다시 퍼진다.
 - `tostring` 호출 자체가 taint 오류를 내는 극단 케이스가 있어 전체를 `pcall`로 감싼다. 이 `pcall`을 최적화로 걷어내지 않는다.
@@ -34,10 +38,8 @@
 - `DUNGEON_NAME_OVERRIDES`는 던전명 줄바꿈 위치를 잡는 표다. 시즌이 바뀌면 함께 갱신하지 않으면 이름이 한 줄로 넘쳐 잘린다.
 - 이 오버레이는 기본값이 꺼짐이다. 표시가 안 된다는 보고를 받으면 설정부터 확인한다.
 
-## Utils.lua
-
 - 여러 파일에서 같은 본문으로 중복되던 헬퍼를 여기로 모았다. `Clamp`, `GetAverageItemLevel`, `IsKoreanLanguageSelected`, `SafeTooltipString`, `Colorize`, `FormatOffsetValue`, `IsEmptyRecord`, `BuildRecordSignature`다.
-- 소비 파일은 원래 정의 자리에 `local name = ns.Utils.Name` 한 줄만 남긴다. 호출부를 건드리지 않아 회귀 범위가 좁고, `Utils.lua`가 TOC 13번째로 모든 소비자보다 먼저 로드되므로 별칭이 안전하다.
+- 소비 파일은 원래 정의 자리에 `local name = ns.Utils.Name` 한 줄만 남긴다. 호출부를 건드리지 않아 회귀 범위가 좁고, `Utils.lua`가 TOC 파일 목록의 5번째(`Core` → `Constants` → `Locale` → `Locale_Additions` → `Utils`, TOC 13행)라 모든 소비자보다 먼저 로드되므로 별칭이 안전하다. `UI/ProfessionKnowledgeOverlay.lua`의 `isKoreanOverlay`와 `UI/SilvermoonMapOverlay.lua`의 `isKoreanLocale`도 이 별칭 방식으로 통일했다.
 - `BuildRecordSignature`는 `ActionBarApplier`와 `TemplateSyncManager`가 함께 쓴다. 두 곳이 어긋나면 템플릿 비교가 조용히 틀어지므로 반드시 한 곳에서만 고친다.
 - 아직 통합하지 않은 중복이 있다. `makeBtnText`는 파일마다 다른 `FONT_PATH`와 `FONT_FLAGS` 상위 지역변수를 참조해 그대로 옮기면 깨진다. `setStatus`와 `setTooltip`은 패널 구조에 묶여 있고, `safeHandler`는 `ns.Utils.SafeHandler` 부재를 대비한 방어 껍데기라 그대로 둔다.
 
@@ -103,11 +105,11 @@
 
 ## UI/BISOverlay.lua
 
-- 이 파일의 top-level local이 이미 197개다. Lua의 스코프당 local 상한은 200이므로 **새 top-level local을 추가하면 파일이 컴파일되지 않을 수 있다.** helper는 전부 기존 테이블의 필드로 넣는다.
+- 이 파일의 top-level local은 현재 `195`개다. `scripts/validate_bis_tooltip_contract.py`가 세는 값이며(선언된 이름 수, `LocalAssign` targets + `LocalFunction`) 예산은 `198`, Lua 스코프당 상한은 `200`이다. **새 top-level local을 추가하면 파일이 컴파일되지 않을 수 있다.** helper는 전부 기존 테이블의 필드로 넣는다.
 - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터(`Data/BISCatalog.lua`, `BISMythicVaultLinks.lua`, `BISSeasonPreviewLinks.lua`, `BISEncounterJournal.lua`)가 기준으로 삼는 시즌이다. BIS 데이터를 갱신할 때 이 값도 함께 올린다.
 - `Data/ItemLevelTable.lua`의 시즌이 `dataSeason`과 다르면 BIS 후보·템렙·Encounter Journal tier가 현재 시즌과 맞지 않는다. 이때 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 끈다. 틀린 tier로 이동시키거나 이전 시즌 snapshot으로 현재 시즌 순위를 매기지 않기 위한 것이다.
 - `SeasonGuard.IsMismatched`의 판정은 `ItemLevelTable`을 아직 못 읽은 상태에서 **캐시하면 안 된다.** 그 시점의 판정을 굳히면 이후 데이터가 올라와도 영구히 "일치"로 남는다.
-- 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있고 폭이 좁다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘리므로 `[S1]` 형태의 짧은 접두만 붙이고, 불일치 시 경고색을 함께 적용한다. 로케일 파일 소유가 달라 새 번역 키를 만들지 않고 데이터에서 유도한다.
+- 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있고 폭이 좁다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘리므로 `[S2]` 형태의 짧은 접두만 붙이고, 불일치 시 경고색을 함께 적용한다. 로케일 파일 소유가 달라 새 번역 키를 만들지 않고 데이터에서 유도한다.
 - **Encounter Journal 열기에 `itemID`를 넘기지 않는다.** Blizzard가 Encounter Journal 아이템 툴팁 버튼을 secret sell-price 데이터로 만들기 때문에, 애드온이 소유한 클릭 경로에서 특정 아이템에 포커스를 주면 사용자가 전리품 행에 마우스를 올릴 때 그 툴팁 경로가 오염된 채로 남는다. Encounter Journal 열기 자체도 `pcall`로 보호한다.
 - BIS 아이템 툴팁은 shopping tooltip 경로를 써서 sell price `MoneyFrame` 렌더링을 막는다. 이 플래그는 **단일 `SetHyperlink` 호출 동안만** 세우고, 애드온 소유 툴팁이 숨겨질 때 즉시 해제한다. 계속 켜 두면 다른 툴팁에 영향이 간다.
 - difficulty 24(시간여행 던전)에서는 아이템이 스케일다운된 ilvl로 표시되므로 범위 검증을 우회한다. 이 예외를 빼면 시간여행 중 정상 아이템이 걸러진다.

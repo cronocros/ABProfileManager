@@ -249,9 +249,7 @@ local function getWeeklyResetRemainingParts()
     return days, hours, minutes
 end
 
-local function isKoreanOverlay()
-    return ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN)
-end
+local isKoreanOverlay = ns.Utils.IsKoreanLanguageSelected
 
 local function getDetailPrefixText(sectionKey)
     if isKoreanOverlay() then

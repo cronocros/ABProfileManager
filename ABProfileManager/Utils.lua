@@ -315,12 +315,15 @@ function Utils.FormatStatusMessage(message)
         return message
     end
 
-    if message:match("^[●◆▲■] ") then
-        return message
-    end
-
-    if message:match("^(성공|실패|안내):%s") or message:match("^(Success|Failure|Info):%s") then
-        return message
+    local knownPrefixes = {
+        ns.L("status_prefix_info"),
+        ns.L("status_prefix_success"),
+        ns.L("status_prefix_failure"),
+    }
+    for _, knownPrefix in ipairs(knownPrefixes) do
+        if knownPrefix ~= "" and message:find(knownPrefix, 1, true) == 1 then
+            return message
+        end
     end
 
     local heading = message
@@ -354,6 +357,18 @@ function Utils.FormatStatusMessage(message)
         "cannot",
         "failed",
         "error",
+        "Ошибка",
+        "ошибка",
+        "Не удалось",
+        "не удалось",
+        "Не найден",
+        "не найден",
+        "Недоступ",
+        "недоступ",
+        "Неверн",
+        "неверн",
+        "Нельзя",
+        "нельзя",
     }
 
     local successMarkers = {
@@ -373,6 +388,26 @@ function Utils.FormatStatusMessage(message)
         "enabled",
         "disabled",
         "changed",
+        "Успешно",
+        "успешно",
+        "Сохранен",
+        "сохранен",
+        "Сохранён",
+        "сохранён",
+        "Удален",
+        "удален",
+        "Удалён",
+        "удалён",
+        "Импортирован",
+        "импортирован",
+        "Изменен",
+        "изменен",
+        "Изменён",
+        "изменён",
+        "Сброшен",
+        "сброшен",
+        "Открыт",
+        "открыт",
     }
 
     local kind = "info"

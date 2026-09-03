@@ -10,10 +10,10 @@
   - 기본 사용자 안내와 기능 요약
 - [../AGENTS.md](../AGENTS.md)
   - 작업자/에이전트용 저장소 운영 지침
-- [releases/RELEASE_NOTES_v1.11.11.md](./releases/RELEASE_NOTES_v1.11.11.md)
-  - 최신 로컬 한글 릴리스 노트 (v1.11.11)
+- [releases/RELEASE_NOTES_v1.13.0.md](./releases/RELEASE_NOTES_v1.13.0.md)
+  - 최신 로컬 한글 릴리스 노트 (v1.13.0)
 - [releases/RELEASE_NOTES_v1.11.11_EN.md](./releases/RELEASE_NOTES_v1.11.11_EN.md)
-  - 최신 로컬 영문 릴리스 노트 (v1.11.11)
+  - 최신 로컬 영문 릴리스 노트 (v1.11.11, v1.13.0 영문판 미작성)
 - [releases/RELEASE_NOTES_v1.11.0.md](./releases/RELEASE_NOTES_v1.11.0.md)
   - 원격 GitHub 공개 최신 한글 릴리스 노트 (v1.11.0)
 - [releases/RELEASE_NOTES_v1.11.0_EN.md](./releases/RELEASE_NOTES_v1.11.0_EN.md)
@@ -31,7 +31,7 @@
 - [HANDOFF.md](./HANDOFF.md)
   - 다음 작업자를 위한 운영 메모, 회귀 포인트, 미완성 기능 기록
 - [SEASON2_HANDOFF.md](./SEASON2_HANDOFF.md)
-  - Midnight 시즌 2(v1.12.0~v1.13.0 / WoW 12.1.0) 작업 인계 문서, 작업 DAG, 진행 로그, 재개 프롬프트
+  - Midnight 시즌 2 전환(v1.12.0) 작업 인계 기록, 작업 DAG, 진행 로그, 재개 프롬프트
 - [TODO.md](./TODO.md)
   - 남은 할 일. 릴리스 차단 요인, 인게임 확인 항목, 미착수 작업, 미결 판단
 - [CODE_NOTES.md](./CODE_NOTES.md)
@@ -50,7 +50,7 @@
 - BIS 데이터 seed 갱신 스크립트:
   - `../scripts/refresh_wowhead_bis.py`
 - BIS 통합 카탈로그 생성 스크립트:
-  - `../scripts/build_bis_catalog.py --addon-db`
+  - `../scripts/build_bis_catalog.py --overall-only`
   - `../scripts/build_bis_runtime_scoring.py`
   - `../scripts/validate_bis_mythic_vault_links.py`
   - `../scripts/validate_bis_season_preview_links.py`
@@ -62,7 +62,7 @@
   - `MidnightS1_MPlus_Addon_Master_v1.7.md`
   - `MidnightS1_MPlus_Addon_DB_v1.7.lua`
 
-`../scripts/rebuild_bis_database.ps1`는 카탈로그 생성 → v1.7 scoring 입력 → 각종 validate → audit 순서로 실행합니다. 카탈로그 후보는 `../scripts/refresh_wowhead_bis.py`가 만든 `Data/BISData_Method.lua`에서만 옵니다. 점수 정책은 v1.7 파일에서 관리하며 `12.0.5` 기준으로 유지합니다.
+`../scripts/rebuild_bis_database.ps1`는 카탈로그 생성 → v1.7 scoring 입력 → 각종 validate → audit 순서로 실행합니다. 카탈로그 후보는 `../scripts/refresh_wowhead_bis.py`가 만든 `Data/BISData_Method.lua`에서만 옵니다. 점수 정책은 v1.7 파일에서 관리합니다. 코어 구조는 `12.0.5` 시점 그대로이고 스탯 우선순위 값은 시즌 2 기준입니다.
 
 시즌 preview selector와 full link override는 `../ABProfileManager/Data/BISMythicVaultLinks.lua`와 `../ABProfileManager/Data/BISSeasonPreviewLinks.lua`에서만 관리합니다. 시즌 2 selector는 아직 확인되지 않아 두 파일 모두 비어 있고, 그래서 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않습니다.
 

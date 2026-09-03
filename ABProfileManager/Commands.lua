@@ -138,12 +138,76 @@ local function ensureCopyPopup()
     return popup
 end
 
+local logPopup
+
+local function ensureLogPopup()
+    if logPopup then
+        return logPopup
+    end
+
+    local popup = CreateFrame("Frame", "ABPMLogPopup", UIParent, "BackdropTemplate")
+    popup:SetSize(580, 380)
+    popup:SetPoint("CENTER")
+    popup:SetFrameStrata("DIALOG")
+    popup:SetClampedToScreen(true)
+    if popup.SetBackdrop then
+        popup:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = true, tileSize = 32, edgeSize = 32,
+            insets = { left = 8, right = 8, top = 8, bottom = 8 } })
+    end
+    popup:EnableMouse(true)
+    popup:SetMovable(true)
+    popup:RegisterForDrag("LeftButton")
+    popup:SetScript("OnDragStart", function(frame) frame:StartMoving() end)
+    popup:SetScript("OnDragStop", function(frame) frame:StopMovingOrSizing() end)
+
+    local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -4, -4)
+    close:SetScript("OnClick", function() popup:Hide() end)
+
+    local scroll = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", popup, "TOPLEFT", 12, -28)
+    scroll:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -30, 38)
+
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetWidth(510)
+    edit:SetAutoFocus(false)
+    edit:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
+    edit:SetScript("OnEscapePressed", function(frame)
+        frame:ClearFocus()
+        popup:Hide()
+    end)
+    scroll:SetScrollChild(edit)
+    popup.edit = edit
+
+    local clearButton = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
+    clearButton:SetSize(90, 22)
+    clearButton:SetPoint("BOTTOMLEFT", 14, 10)
+    clearButton:SetScript("OnClick", function()
+        if ns.Utils.ClearDebugLog then ns.Utils.ClearDebugLog() end
+        if ns.Utils.ClearCaughtErrorLog then ns.Utils.ClearCaughtErrorLog() end
+        edit:SetText(ns.L("log_window_cleared"))
+    end)
+    popup.clearButton = clearButton
+
+    if type(UISpecialFrames) == "table" then
+        UISpecialFrames[#UISpecialFrames + 1] = "ABPMLogPopup"
+    end
+
+    logPopup = popup
+    return popup
+end
+
 local function showCopyWindow(titleText, bodyText)
     local popup = ensureCopyPopup()
     popup.title:SetText(tostring(titleText or "ABPM"))
     popup.edit:SetText(tostring(bodyText or ""))
     popup:Show()
-    popup.edit:SetFocus()
+    if not (type(InCombatLockdown) == "function" and InCombatLockdown()) then
+        popup.edit:SetFocus()
+    end
     popup.edit:HighlightText()
     return popup
 end
@@ -533,50 +597,10 @@ function Commands:HandleSlash(message)
         end
         local text = table.concat(sections, "\n\n")
 
-        if ABPMLogPopup then ABPMLogPopup:Hide() end
-        local popup = CreateFrame("Frame", "ABPMLogPopup", UIParent, "BackdropTemplate")
-        popup:SetSize(580, 380)
-        popup:SetPoint("CENTER")
-        popup:SetFrameStrata("DIALOG")
-        popup:SetClampedToScreen(true)
-        if popup.SetBackdrop then
-            popup:SetBackdrop({ bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",
-                edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",
-                tile=true, tileSize=32, edgeSize=32,
-                insets={left=8,right=8,top=8,bottom=8} })
-        end
-        popup:EnableMouse(true)
-        popup:SetMovable(true)
-        popup:RegisterForDrag("LeftButton")
-        popup:SetScript("OnDragStart", function(f) f:StartMoving() end)
-        popup:SetScript("OnDragStop", function(f) f:StopMovingOrSizing() end)
-
-        local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
-        close:SetPoint("TOPRIGHT", -4, -4)
-        close:SetScript("OnClick", function() popup:Hide() end)
-
-        local sf = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
-        sf:SetPoint("TOPLEFT", popup, "TOPLEFT", 12, -28)
-        sf:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -30, 38)
-
-        local eb = CreateFrame("EditBox", nil, sf)
-        eb:SetMultiLine(true)
-        eb:SetWidth(510)
-        eb:SetAutoFocus(false)
-        eb:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
-        eb:SetText(text)
-        eb:HighlightText()
-        sf:SetScrollChild(eb)
-
-        local clrBtn = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
-        clrBtn:SetSize(90, 22)
-        clrBtn:SetPoint("BOTTOMLEFT", 14, 10)
-        clrBtn:SetText(ns.L("log_window_clear"))
-        clrBtn:SetScript("OnClick", function()
-            if ns.Utils.ClearDebugLog then ns.Utils.ClearDebugLog() end
-            if ns.Utils.ClearCaughtErrorLog then ns.Utils.ClearCaughtErrorLog() end
-            eb:SetText(ns.L("log_window_cleared"))
-        end)
+        local popup = ensureLogPopup()
+        popup.clearButton:SetText(ns.L("log_window_clear"))
+        popup.edit:SetText(text)
+        popup.edit:HighlightText()
         popup:Show()
         return
     end

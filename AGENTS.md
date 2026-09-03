@@ -85,7 +85,7 @@ ABProfileManager/
    - 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있다. 시즌이 어긋날 때만 `SeasonGuard.ApplyNotice()`가 `S1` 형태의 짧은 접두와 경고색을 붙인다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘린다
    - BIS 데이터를 새 시즌으로 갱신할 때 `SeasonGuard.dataSeason`도 함께 올린다. 올리지 않으면 자동 동작이 계속 꺼져 있다
    - 정적 후보는 `Data/BISCatalog.lua`만 읽고, 링크 점수는 `Data/BISRuntimeScoring.lua`로 계산한다
-   - top-level local 예산은 현재 `198`로 상한과 같다. 새 기능은 새 local 대신 기존 테이블 필드를 쓴다. 시즌 preview helper는 `SourcePreview` 테이블에 묶어 둔다
+   - top-level local은 현재 `195`개다. `scripts/validate_bis_tooltip_contract.py`의 예산은 `198`, Lua 청크 상한은 `200`이다. 새 기능은 새 local 대신 기존 테이블 필드를 쓴다. 시즌 preview helper는 `SourcePreview` 테이블에 묶어 둔다
    - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다. 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않으며, 전투 중에는 자동 랜딩을 건너뛴다
    - 스크롤 중 tooltip 렌더 억제, 점수 캐시, 아이템 요청 dedupe, 분산 큐로 rebuild 스로틀을 완화한다. `GET_ITEM_INFO_RECEIVED`는 visible row만 갱신한다
@@ -147,7 +147,7 @@ ABProfileManager/
 
 생성 입력:
 - `Data/BISData_Method.lua` — 와우헤드 전문화별 overall BiS. 카탈로그의 유일한 후보 원천이다
-- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua` — 40개 전문화 스탯 우선순위 정책. 파일명에 `MidnightS1`이 붙어 있지만 시즌 1 BIS 데이터가 아니라 시즌 무관한 점수 정책이며 `12.0.5` 기준으로 유지한다. 카탈로그 행의 검증 메타데이터도 여기서 나온다
+- `DOC/MidnightS1_MPlus_Addon_Master_v1.7.md`, `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua` — 40개 전문화 스탯 우선순위 정책. 파일명에 `MidnightS1`이 붙어 있지만 시즌 1 BIS 데이터가 아니다. 점수화 코어 구조는 `12.0.5` 시점 그대로이고, `DB.SPECS`의 `priority`와 `weights`는 와우헤드 전문화별 stat-priority 페이지의 시즌 2 값으로 갱신했다. 카탈로그 행의 검증 메타데이터도 여기서 나온다
 
 생성/검증 스크립트:
 - `scripts/refresh_wowhead_bis.py` — 와우헤드 수집. `--review <경로>`는 파일을 쓰지 않고 결과만 JSON으로 남긴다
@@ -161,7 +161,7 @@ ABProfileManager/
 - 런타임 merge/정규화/웹 조회 금지
 - `mythicplus / raid / crafted / tier` 4개 필터 모두 기본 on. 필터 후 visible list 기준으로 `1순위 / 2순위 / 3순위+`를 재번호화
 - 카탈로그는 `scripts/build_bis_catalog.py --overall-only`로 와우헤드 overall 데이터만 사용해 만든다. 시즌 1 후보 시드와 문서 입력은 제거됐다
-- `ns.Data.BISSpecPolicies` 블록은 재생성하지 않고 기존 값을 옮긴다. `12.0.5` 기준 스탯 우선순위 정책이다
+- `ns.Data.BISSpecPolicies` 블록은 `scripts/build_bis_catalog.py`가 재생성하지 않고 기존 값을 옮긴다. 값을 바꾸려면 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`를 고치고 `scripts/build_bis_runtime_scoring.py`를 돌린다. 이 스크립트가 `BISSpecPolicies`와 각 행의 `statPrioritySummary`를 함께 고친다
 - DB2 빌드 접두사는 TOC의 Interface 번호에서 유도한다. 하드코딩하면 다음 패치에서 신규 아이템 메타데이터를 찾지 못한다
 - 한글명은 공식 한글 클라이언트, Blizzard KO 문서, Wowhead KO 개별 페이지만 허용한다. 영어명 임의 번역과 위키 표기는 쓰지 않는다
 - 검증 snapshot이 없는 후보는 기존 정적 순서를 유지한다
@@ -205,8 +205,8 @@ ABProfileManager/
 
 - 스탯 오버레이 `mythicPlusMode` 저장 키는 이전 SavedVariables 호환용으로만 유지
 - 경매장 현행 확장팩 필터 자동 선택
-- `Data/ItemLevelTable.lua`의 `delves / mythicPlus / raid / pvp` 출처를 인게임 확인으로 바꿔 `guide`를 없애야 `-Strict` 검증이 통과한다
-- BIS 시즌 2 재생성: M+ 던전 `JournalInstanceID`와 현재 시즌 tier 재검증, 정적 후보 갱신, `SeasonGuard.dataSeason` 상향. `DOC/SEASON2_HANDOFF.md` 5장 참조
+- `Data/ItemLevelTable.lua`의 `delves / mythicPlus` 출처를 인게임 확인으로 바꿔 `guide`를 없애야 `-Strict` 검증이 통과한다. `raid`는 `dump`, `pvp`와 `worldBoss`·`crafted`는 `tooltip`으로 승급했다
+- BIS 시즌 2 preview selector 확정: `BISMythicVaultLinks.generatedPreviewBonusListID` 후보 `12849`와 `BISSeasonPreviewLinks`의 selector item string을 인게임에서 확인한 뒤 반영한다. `DOC/TODO.md` 5장 참조
 
 ## 릴리스 프로세스
 

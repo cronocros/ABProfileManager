@@ -109,7 +109,7 @@ SavedVariables 마이그레이션 부분은 끝났습니다.
 
 - 일반 던전 아이템 레벨 `214`는 강화 트랙이 없습니다. 현재 스키마에 일반 던전 항목이 없어 넣지 않았습니다. 표시할 가치가 있는지 결정이 필요합니다.
 - 시즌 불일치 상태에서도 raid·tier·crafted hover는 계속 preview 링크를 시도합니다. `SeasonGuard`가 이 경로까지 막을지 결정이 필요합니다. 명세의 처리 방침에는 없는 범위입니다.
-- `UI/BISOverlay.lua`의 top-level local이 `198`로 상한과 같습니다. 이 파일에 새 local을 추가하면 `scripts/validate_bis_tooltip_contract.py`가 실패합니다. 새 기능은 기존 테이블의 필드로 넣어야 합니다.
+- `UI/BISOverlay.lua`의 top-level local은 `195`개입니다. `scripts/validate_bis_tooltip_contract.py`의 예산이 `198`, Lua 상한이 `200`이라 여유가 세 개뿐입니다. 새 기능은 기존 테이블의 필드로 넣습니다.
 
 ## 5. BIS 시즌 2 (진행 중)
 
@@ -161,18 +161,11 @@ selector 후보를 2026-09-03 DB2에서 찾았습니다. 아직 파일에 넣지
 /dump GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")
 ```
 
-확인되면 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`와 `scripts/validate_bis_mythic_vault_links.py`의 고정값을 함께 갱신합니다. 확인 전에는 넣지 않습니다. 잘못된 selector는 잘못된 아이템 레벨의 preview를 만듭니다. 시즌 2 던전 풀은 시즌 1과 겹치는 던전이 하나도 없으므로 BIS의 M+ 후보는 전부 획득할 수 없는 아이템입니다.
+확인되면 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`와 `scripts/validate_bis_mythic_vault_links.py`의 고정값을 함께 갱신합니다. 확인 전에는 넣지 않습니다. 잘못된 selector는 잘못된 아이템 레벨의 preview를 만듭니다.
 
-`SeasonGuard`가 자동 동작을 꺼서 잘못된 값을 보여주지는 않지만, 추천 목록 자체는 여전히 시즌 1 아이템입니다. 남은 단계는 다음과 같습니다.
+나머지 데이터 교체는 v1.13.0에서 끝났습니다. `baselineItemLevel = 318`, preview 검증 범위 `318~334`, 제작 `331`, `BISRewardProfiles` 시즌 2 값(`311` / `318`), `SeasonGuard.dataSeason = "Midnight Season 2"`, `FROZEN_BLOB_HASHES`와 `REWARD_PROFILES_SHA256` 갱신까지 반영돼 있습니다. 남은 것은 위 `12849` 인게임 확인 한 건입니다.
 
-- `Data/BISMythicVaultLinks.lua`의 `baselineItemLevel`을 `272`에서 시즌 2 값으로 교체하고 selector 재검토
-- `Data/BISSeasonPreviewLinks.lua`의 검증 범위 갱신
-- `Data/BISEncounterJournal.lua`의 `currentSeasonJournalTierID`와 `currentSeasonTierIndex` 갱신
-- `Data/ItemLevelTable.lua` 하단 `BISRewardProfiles`의 아이템 레벨과 라벨 갱신
-- 위 작업 후 `UI/BISOverlay.lua`의 `SeasonGuard.dataSeason`을 `Midnight Season 2`로 올린다. 올리지 않으면 자동 동작이 계속 꺼진 상태로 남는다
-- `scripts/validate_season2_scope.py`의 `FROZEN_BLOB_HASHES`와 `REWARD_PROFILES_SHA256`도 새 값으로 교체한다
-
-스탯 우선순위 값도 `12.0.5` 기준으로 동결돼 있습니다. BIS 점수 파이프라인과 공유하므로 함께 다뤄야 합니다.
+스탯 우선순위 값은 2026-09-03에 와우헤드 시즌 2 기준으로 전수 재대조를 마쳤습니다.
 
 ## 6. 릴리스 절차
 

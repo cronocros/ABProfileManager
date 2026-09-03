@@ -107,14 +107,14 @@ repo에는 있으나 TOC에서 제외된 비활성 파일: `Modules\MerchantHelp
 
 BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은 꺼져 있습니다. 다음 시즌 전환 때 데이터가 뒤처지면 다시 켜져 조용한 오작동을 드러냅니다.
 
-- 기준값은 `SeasonGuard.dataSeason = "Midnight Season 1"`. 현재 시즌은 `ns.Data.ItemLevelTable.season`에서 읽는다. 새 API를 쓰지 않는다
+- 기준값은 `SeasonGuard.dataSeason = "Midnight Season 2"`. 현재 시즌은 `ns.Data.ItemLevelTable.season`에서 읽는다. 새 API를 쓰지 않는다
 - `SeasonGuard.IsMismatched()`는 판정 결과를 `cachedMismatch`에 캐시한다. `ItemLevelTable`이 없으면 `false`로 본다
 - 불일치일 때 다음 자동 동작을 끈다
   - Encounter Journal 자동 랜딩 (안내 메시지 출력 후 반환)
   - `scheduleAutomaticRuntimeScores()` M+ 자동 점수화 큐
   - `resolveMythPreviewSnapshot()` preview snapshot 스캔
   - `getPreviewRankingScore()` preview 기반 순위 점수
-- 시즌이 어긋날 때만 `SeasonGuard.ApplyNotice()`가 상단 안내에 `S1` 형태의 짧은 접두를 붙이고 경고색으로 칠한다. 상단 안내는 한 줄 고정이라 시즌 이름 전체를 붙이면 스탯 정책 요약이 잘린다
+- 시즌이 어긋날 때만 `SeasonGuard.ApplyNotice()`가 상단 안내에 데이터 시즌에서 유도한 `[S2]` 형태의 짧은 접두를 붙이고 경고색으로 칠한다. 상단 안내는 한 줄 고정이라 시즌 이름 전체를 붙이면 스탯 정책 요약이 잘린다
 - 후보 목록, 정적 순위, 카탈로그 데이터는 그대로 둔다
 
 ### aura backoff (`UI/StatsOverlay.lua`)
@@ -131,7 +131,7 @@ BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은
 `DB:GetBISOverlayMythPreviewCache()`는 계정 SavedVariables의 preview snapshot 캐시를 반환하며, 아래 중 하나라도 어긋나면 캐시를 통째로 새로 만듭니다.
 
 - `schemaVersion` (기본 3)
-- `baselineItemLevel` (기본 272)
+- `baselineItemLevel` (기본 318)
 - `generatedPreviewBonusListID`
 - `generatedPreviewItemStringTemplate`
 - `season` — `ns.Data.ItemLevelTable.season` 값. 시즌 2 신설 조건이다
@@ -146,7 +146,7 @@ BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은
 
 - `season = "Midnight Season 2"` — SeasonGuard와 preview 캐시 무효화의 판정 근거
 - `sources` — 섹션별 근거 표기. 값은 `dump` / `tooltip` / `guide`
-  - 현재: `worldBoss`, `crafted`는 `tooltip`. `delves`, `mythicPlus`, `raid`, `pvp`는 `guide`
+  - 현재: `raid`는 `dump`, `worldBoss` / `crafted` / `pvp`는 `tooltip`. `delves`, `mythicPlus`만 `guide`
   - `guide`가 남아 있으면 `-Strict` 검증이 실패한다. 릴리스 전에 실측으로 승급해야 한다
 - `gradeMax` — 5등급 `adv 282 / vet 295 / chmp 308 / hero 321 / myth 334`. 시즌 2에 대응 문장이 없는 탐험가(`expl`) 트랙은 제거했다
 - `delves` — 1~11단계. 단계별 `ilvl / grade / maxilvl / vault / vaultGrade / vaultMax / crestDrop`
@@ -154,7 +154,7 @@ BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은
 - `raid` — `normal / heroic / mythic`. 난이도별 `min~max`와 금고
 - `worldBoss` — 4난이도로 확장. `world 279 / normal 292 / heroic 305 / mythic 318`
 - `crafted` — `base 318`, `r5 331`
-- `pvp` — `honor 266~295`, `conquest 295~321`. 추정치이며 인게임 미확인
+- `pvp` — `honor 263~295`, `conquest 292~308`. 2026-08-28 상인 툴팁 실측(`sources.pvp = "tooltip"`)
 - 하단 `ns.Data.BISRewardProfiles` — BIS row가 참조하는 대표 보상 트랙. 시즌 2 값(`311` / `318`)이며 sha256으로 고정된다. 주석 제거 대상에서도 제외된다
 
 랭크 사다리는 기준값 `+0, +3, +6, +10, +13, +16`의 6단계, 제작 품질 사다리는 `+0, +3, +6, +9, +13`의 5단계입니다.
@@ -164,20 +164,20 @@ BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은
 - `Data/Defaults.lua` — SavedVariables 기본값. BIS source filter는 `mythicplus/raid/crafted/tier` 전부 on, BIS item tooltip 토글은 on
 - `Data/ProfessionKnowledge.lua`, `Data/ProfessionKnowledgeWaypoints.lua` — profession 획득원 정의와 1회성 보물 좌표
 - `Data/SilvermoonMapData.lua` — 한밤 지도 라벨 정의
-- `Data/StatPriorities.lua` — 스탯 오버레이 한 줄 표시용 단일 대표 우선순위 (12.0.5 기준, 동결)
-- `Data/StatPriorityTable.lua` — 스탯 우선순위 표 팝업용 40개 전문화 표와 specID map (12.0.5 기준, 동결)
+- `Data/StatPriorities.lua` — 스탯 오버레이 한 줄 표시용 단일 대표 우선순위 (와우헤드 시즌 2 값, 해시 동결)
+- `Data/StatPriorityTable.lua` — 스탯 우선순위 표 팝업용 40개 전문화 표와 specID map (와우헤드 시즌 2 값, 해시 동결)
 
 ### BIS 데이터 (시즌 2 기준, 해시 동결)
 
 - `Data/BISCatalog.lua` — 런타임이 직접 읽는 단일 정적 후보 카탈로그. 총 `657`행 (`raid 393`, `mythicplus 107`, `tier 79`, `crafted 78`). 시즌 1 v1.11 계열은 `3330`행이었다. row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank`와 source detail, 검증 메타를 함께 보관
 - `Data/MidnightS1MPlusDB.lua` — 실제 `itemLink`에서 아이템 레벨과 스탯을 읽어 전문화별 점수를 계산하는 런타임 점수 코어
 - `Data/BISRuntimeScoring.lua` — ABPM specID / slot / sourceGroup을 점수 코어 키로 변환하는 어댑터
-- `Data/BISMythicVaultLinks.lua` — M+ 금고 Myth 1/6 selector `12801`, `baselineItemLevel = 272`, 예외 full link override, snapshot schema v3
-- `Data/BISSeasonPreviewLinks.lua` — raid Myth `272~298`, tier Myth `272~289`, crafted r5 `285` preview item string 템플릿과 override
+- `Data/BISMythicVaultLinks.lua` — M+ 금고 Myth 1/6 `baselineItemLevel = 318`, snapshot schema v3. 시즌 2 selector(`generatedPreviewBonusListID`)는 인게임 미확인이라 `nil`이고 자동 preview가 꺼져 있다. 후보 `12849`는 `DOC/TODO.md` 5장에 있다
+- `Data/BISSeasonPreviewLinks.lua` — raid Myth `318~334`, tier Myth `318~334`, crafted r5 `331` 검증 범위. `linksBySourceAndItemID`는 세 출처 모두 비어 있다
 - `Data/BISEncounterJournal.lua` — M+ 도감 랜딩용 UI tier index, `JournalTierID`, 검증된 `JournalInstanceID`. `MapID`는 `EJ_SelectInstance()` 입력으로 쓰지 않는다
 - `Data/BISData_Method.lua` — 와우헤드 전문화별 overall BiS. 카탈로그의 유일한 후보 원천이며 런타임에 로드되지 않는다
 
-시즌 2에서 이 값들은 전부 범위 밖입니다. SeasonGuard가 관련 자동 동작을 차단하므로 검증 실패가 반복되지 않습니다.
+카탈로그와 도감 랜딩 데이터는 v1.13.0에서 시즌 2로 재생성했습니다. preview selector 두 종만 인게임 미확인이라 비활성이며, 그 결과 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않습니다.
 
 ## BIS 오버레이 런타임
 
@@ -194,7 +194,7 @@ BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은
 
 tooltip:
 
-- M+ hover는 검증된 272 snapshot의 full item link를 addon-owned Blizzard item tooltip에 `SetHyperlink()`로 전달한다. 없으면 미검증 안내만 표시
+- M+ hover는 검증된 Myth 1/6 snapshot의 full item link를 addon-owned Blizzard item tooltip에 `SetHyperlink()`로 전달한다. 없으면 미검증 안내만 표시
 - raid / tier / crafted hover는 검증된 시즌 preview를 먼저 시도하고, 실패하면 기본 `itemLink` 또는 `item:<itemID>`를 세션 캐시에 넣어 같은 경로로 fallback
 - 시즌 preview helper는 `SourcePreview` 테이블 필드로 묶어 WoW Lua chunk의 top-level local 200개 제한을 넘지 않게 유지한다
 - BIS 전용 tooltip은 shopping tooltip 경로로 sell price `MoneyFrame` 렌더링을 차단한다
@@ -249,8 +249,8 @@ tooltip:
 
 seed 경계:
 
-- 후보는 와우헤드 overall 데이터에서만 온다. 점수 정책은 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`에서 관리하며 `12.0.5` 기준으로 유지한다
-- M+ selector 교체와 Myth 272 full link override는 `Data/BISMythicVaultLinks.lua`만 갱신한다
+- 후보는 와우헤드 overall 데이터에서만 온다. 점수 정책은 `DOC/MidnightS1_MPlus_Addon_DB_v1.7.lua`에서 관리한다. 코어 구조는 `12.0.5` 시점 그대로이고 스탯 우선순위 값은 시즌 2 기준이다
+- M+ selector 교체와 Myth full link override는 `Data/BISMythicVaultLinks.lua`만 갱신한다
 - raid / tier / crafted preview selector와 override는 `Data/BISSeasonPreviewLinks.lua`만 갱신한다
 - raid / crafted는 아직 기존 `BISCatalog.lua` 보존 seed다. 완전 단일 seed 재생성은 후속 범위다
 
@@ -264,19 +264,19 @@ seed 경계:
 | --- | --- | --- |
 | Lua 전체 파싱 | `ABProfileManager/**/*.lua` | `luaparser`로 전 파일 파싱 |
 | 공백 오류 검사 | 작업 트리 | `git diff --check` |
-| `validate_season2_scope.py` | 동결 파일 10종 + `BISRewardProfiles` | `git hash-object` 블롭 해시와 블록 sha256 대조 |
+| `validate_season2_scope.py` | 동결 파일 8종 + 생성 입력 1종 + `BISRewardProfiles` | `git hash-object` 블롭 해시와 블록 sha256 대조 |
 | `validate_season2_itemlevel.py` | `ns.Data.ItemLevelTable` | 등급 상한 오름차순, 구렁 단계 연속, 행별 ilvl이 등급 상한 이하, `sources` 표기. `--strict`에서 `guide`는 실패 |
 | `validate_locale_contract.py` | `Locale` + `Locale_Additions` + ruRU 확장 | `koKR`/`enUS` 키 집합 동일, `ruRU` 누락·잉여가 기준선(`143` / `11`)을 넘지 않는지 |
-| `validate_bis_mythic_vault_links.py` | `BISMythicVaultLinks` | baseline, selector `12801`, override itemID, item string 형식 |
+| `validate_bis_mythic_vault_links.py` | `BISMythicVaultLinks` | baseline, selector, override itemID, item string 형식 |
 | `validate_bis_season_preview_links.py` | `BISSeasonPreviewLinks` | raid/tier/crafted profile, TOC 로드, selector 템플릿, override itemID |
-| `validate_bis_tooltip_contract.py` | `BISOverlay`, `StatsOverlay` | addon-owned tooltip, shopping sell-price 차단, snapshot schema v3, setter 제거, `SafeNumber()` fallback, top-level local 200개 예산 |
+| `validate_bis_tooltip_contract.py` | `BISOverlay`, `StatsOverlay` | addon-owned tooltip, shopping sell-price 차단, snapshot schema v3, setter 제거, `SafeNumber()` fallback, top-level local 예산(현재 `195`, 검증기 상한 `198`, Lua 상한 `200`) |
 | `validate_bis_encounter_journal.py` | `BISEncounterJournal` | 시즌 tier와 `JournalInstanceID` 매핑, TOC 로드 |
 | `validate_bis_catalog.py` | `BISCatalog` | 40개 전문화, raid/crafted row 보존, reward profile, 정적 itemLink/bonusID 미생성 |
 | `audit_bis_data.py` | BIS 데이터 전반 | 감사 리포트 |
 
 보조 스크립트:
 
-- `scripts/strip_lua_comments.py` — 소스 주석 제거. 동결 파일 10종은 건드리지 않고, `Data/ItemLevelTable.lua`는 `ns.Data.BISRewardProfiles` 앞까지만 처리한다. 파일마다 처리 전후 AST를 비교해 주석만 사라졌음을 증명하고, 다르면 쓰지 않는다. `--check`는 검사만, `--extract`는 제거할 주석을 별도 파일로 남긴다
+- `scripts/strip_lua_comments.py` — 소스 주석 제거. 동결 파일 9종은 건드리지 않고, `Data/ItemLevelTable.lua`는 `ns.Data.BISRewardProfiles` 앞까지만 처리한다. 파일마다 처리 전후 AST를 비교해 주석만 사라졌음을 증명하고, 다르면 쓰지 않는다. `--check`는 검사만, `--extract`는 제거할 주석을 별도 파일로 남긴다
 - `scripts/package_release.ps1` — `dist/` ZIP 생성
 - `scripts/refresh_wowhead_bis.py` — 와우헤드 수집. `--review <경로>`는 파일을 쓰지 않고 결과만 확인한다
 - `scripts/validate_bis_reward_profiles.py` — M+ BIS row의 보상 프로필 key 참조 검증

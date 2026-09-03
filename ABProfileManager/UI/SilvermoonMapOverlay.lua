@@ -839,9 +839,7 @@ local function wrapKoreanSmart(text, point)
     return wrapByGroupSizes(text, groups)
 end
 
-local function isKoreanLocale()
-    return ns.DB and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
-end
+local isKoreanLocale = ns.Utils.IsKoreanLanguageSelected
 
 local function resolveLabelName(point)
     local text = point.labelText

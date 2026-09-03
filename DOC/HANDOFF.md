@@ -57,11 +57,11 @@
 - PvP 값(명예 `266~295`, 정복 `295~321`)은 랭크 사다리에서 유도한 추정치다. 와우헤드에 시즌 2 PvP 페이지가 없어 인게임 상인 툴팁 확인이 필요하다.
 - 영웅 던전 위대한 금고 아이템 레벨이 미확인이다. 클리어 값 `276`(모험가 4/6)은 확정이다.
 - `expl` 탐험가 트랙은 대응 문장이 없어 제거했지만 인게임 존재 여부는 미확인이다.
-- `Coiled Isle` UiMapID(후보 `2512`), 신규 구렁·던전 UiMapID, 전문기술 지식 questID, 주간 이벤트 좌표가 전부 미확정이다. 지도 / 전문기술 / 주간 이벤트 데이터 작업이 이 때문에 막혀 있다.
-- 로케일 3종 갱신 미착수다. `Locale.lua`, `Locale_Additions.lua`, `ABPM_ruRU_Final_v3.lua`는 단일 소유 파일이므로 다른 작업은 키만 요청한다.
+- (v1.12.0 시점 기록) `Coiled Isle` UiMapID, 신규 구렁·던전 UiMapID, 전문기술 지식 questID, 주간 이벤트 좌표가 미확정이었다. v1.13.0에서 `Coiled Isle = 2512`와 전문기술 12.1 평판 서적 questID 11종을 DB2로 확정했고, 주간 이벤트 좌표는 여전히 미확정이다.
+- 로케일 3종은 v1.13.0에서 갱신했다. 영어 표시 결함 수정으로 키 32종을 세 언어에 추가했다. `Locale.lua`, `Locale_Additions.lua`, `ABPM_ruRU_Final_v3.lua`는 단일 소유 파일이므로 다른 작업은 키만 요청한다.
 - `UI/MythicPlusRecordOverlay.lua`의 `DUNGEON_NAME_OVERRIDES`가 아직 시즌 1 던전 기준이다. 시즌 2 던전 이름 줄바꿈 override는 없다.
 - BIS 후보 수가 시즌 1보다 크게 줄었다. 넓은 후보 시드 없이 와우헤드 overall 데이터만 쓰기 때문이며, 적지만 시즌 2에서 실제 획득 가능한 아이템이다.
-- 인게임 QA와 v1.12.0 패키징 미착수다. 릴리스 마무리 체크리스트는 `SEASON2_HANDOFF.md` 13장에 있다.
+- v1.12.0은 패키징하지 않고 v1.13.0으로 넘어갔다. 인게임 QA 항목은 `DOC/TODO.md` 2장에 있다.
 
 ## 0-prev. v1.11 계열 요약
 
@@ -97,11 +97,11 @@ v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)�
 시즌 동결 상태:
 
 - BIS 런타임 데이터의 기준 해시는 `scripts/validate_season2_scope.py`가 관리한다. 값을 바꾸면 해시도 함께 갱신한다.
-- 시즌 2 M+ 던전 풀 8종은 시즌 1과 하나도 겹치지 않는다. 동결된 M+ 후보는 시즌 2에서 전부 획득 불가다.
+- 시즌 2 M+ 던전 풀 8종은 시즌 1과 하나도 겹치지 않는다. v1.13.0에서 카탈로그를 시즌 2로 재생성해 `mythicplus 107`행이 전부 현재 시즌 던전 아이템이다.
 - `SeasonGuard`가 `ItemLevelTable.season`과 `dataSeason`을 비교해 불일치를 감지하면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 끈다. 실패를 반복 시도하지 않는다.
-- 상단 안내는 한 줄 고정이고 줄바꿈이 꺼져 있다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘리므로 `[S1]` 형태의 짧은 접두만 쓴다.
-- `Data/MidnightS1MPlusDB.lua`와 `v1.7` 입력은 파일명과 달리 시즌 1 BIS 데이터가 아니라 40개 전문화 스탯 우선순위 정책이다. `12.0.5` 기준으로 유지하며 카탈로그 행의 검증 메타데이터도 여기서 나온다.
-- `scripts/validate_bis_tooltip_contract.py`가 `BISOverlay` top-level local 개수를 검사한다. 현재 `198`로 상한 `200`에 붙어 있으므로 새 local 대신 기존 테이블 필드를 쓴다.
+- 상단 안내는 한 줄 고정이고 줄바꿈이 꺼져 있다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘리므로 `[S2]` 형태의 짧은 접두만 쓴다.
+- `Data/MidnightS1MPlusDB.lua`와 `v1.7` 입력은 파일명과 달리 시즌 1 BIS 데이터가 아니라 40개 전문화 스탯 우선순위 정책이다. 점수화 코어 구조는 `12.0.5` 시점 그대로이고 `priority`와 `weights`는 와우헤드 시즌 2 값이다. 카탈로그 행의 검증 메타데이터도 여기서 나온다.
+- `scripts/validate_bis_tooltip_contract.py`가 `BISOverlay` top-level local 개수를 검사한다. 현재 `195`개, 검증기 예산 `198`, Lua 청크 상한 `200`이다. 새 local 대신 기존 테이블 필드를 쓴다.
 
 구조와 표시 규칙:
 
@@ -176,7 +176,7 @@ v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)�
 ### 소스 주석 정책
 
 - 소스 Lua 주석은 전부 제거된 상태다. `scripts/strip_lua_comments.py`가 담당한다.
-- 동결 파일 10종과 `Data/ItemLevelTable.lua`의 `BISRewardProfiles` 블록은 제외 대상이다. 이 파일들은 byte-identical을 유지해야 한다.
+- 동결 파일 9종과 `Data/ItemLevelTable.lua`의 `BISRewardProfiles` 블록은 제외 대상이다. 이 파일들은 byte-identical을 유지해야 한다.
 
 ### TomTom waypoint 지역 컨텍스트
 
@@ -187,21 +187,22 @@ v1.10.0 이전 버전별 메모는 [archive/legacy-docs](./archive/legacy-docs)�
 
 ### 시즌 2 미확정 데이터
 
-- PvP 명예 / 정복 아이템 레벨, 영웅 던전 금고 아이템 레벨, `expl` 트랙 존재 여부는 미확인이다. 인게임 툴팁으로만 확정한다.
-- `Coiled Isle` UiMapID, 신규 구렁·던전 UiMapID, 전문기술 지식 questID, 주간 이벤트 좌표(시즌 1분도 미실측)가 미확정이라 지도/전문기술/주간 이벤트 작업이 막혀 있다.
+- PvP 명예 / 정복 아이템 레벨은 2026-08-28 상인 툴팁으로 확정했다(`263~295` / `292~308`). 영웅 던전 금고 아이템 레벨과 `expl` 트랙 존재 여부는 아직 미확인이다.
+- `Coiled Isle` UiMapID(`2512`)와 전문기술 12.1 평판 서적 questID 11종은 DB2로 확정했다. 신규 구렁·던전 입구 UiMapID와 주간 이벤트 좌표는 여전히 미확정이다.
+- 구렁 단계별 아이템 레벨과 신화+ 던전 종료 열은 와우헤드 표와 일치하지만 `sources` 태그는 외부 자료 기준이라 `guide`다.
 - 추정값이나 산술 유도값을 코드에 넣지 않는다. 라이브 덤프나 실제 툴팁으로 확인된 값만 반영한다.
 
 ### BIS 시즌 동결
 
-- 시즌 2 BIS 후보 재생성은 v1.12.0 범위 밖이다. SeasonGuard 안내로 저하를 드러내는 것까지가 이번 범위다.
-- 시즌 2 데이터를 다시 만들 때는 던전 8종의 `JournalInstanceID`와 현재 시즌 tier를 새로 검증해야 한다. `challengeMapID`를 그대로 쓸 수 없다.
+- 시즌 2 BIS 후보 재생성은 v1.13.0에서 끝났다. 카탈로그 `657`행이며 던전 8종의 `JournalInstanceID`와 현재 시즌 tier는 DB2로 검증했다.
+- 남은 것은 preview selector 두 종의 인게임 확인이다. `challengeMapID`를 `JournalInstanceID`로 그대로 쓸 수 없다.
 
 ### 스탯 오버레이 쐐기(M+) 우선순위 호환 키
 
 - 전문화별 단일 대표 우선순위를 쓰므로 M+ 전용 UI와 런타임 분기는 제거됐다.
 - `DB.lua`의 `mythicPlusMode` 저장 키와 getter/setter는 이전 SavedVariables 호환을 위해 유지한다.
 - 콘텐츠별 우선순위를 다시 도입하면 검증된 별도 정책 입력과 UI 문구를 함께 설계해야 한다.
-- 스탯 우선순위 값 자체는 12.0.5 기준으로 동결이다.
+- 스탯 우선순위 값은 와우헤드 시즌 2 페이지 기준이다. 점수화 코어(`v1.7`) 구조만 `12.0.5` 시점 그대로다.
 
 ### 경매장 현행 확장팩 필터 자동 선택
 

@@ -1998,7 +1998,7 @@ local function openEncounterJournalForEntry(entry)
     if InCombatLockdown and InCombatLockdown() then
         EJournal.LogStep(EJournal.lastOpenLog, "차단: 전투 중")
         if ns.Utils and ns.Utils.Print then
-            ns.Utils.Print("[ABPM] 전투 중에는 모험 안내서 자동 이동을 사용할 수 없습니다.")
+            ns.Utils.Print(ns.L("bis_journal_blocked_combat"))
         end
         return
     end
@@ -2007,9 +2007,7 @@ local function openEncounterJournalForEntry(entry)
         EJournal.LogStep(EJournal.lastOpenLog, "차단: 시즌 가드(%s)",
             tostring(SeasonGuard.dataSeason))
         if ns.Utils and ns.Utils.Print then
-            ns.Utils.Print(string.format(
-                "[ABPM] BIS 데이터가 %s 기준이라 모험 안내서 자동 이동을 사용하지 않습니다.",
-                SeasonGuard.dataSeason))
+            ns.Utils.Print(ns.L("bis_journal_blocked_season", tostring(SeasonGuard.dataSeason)))
         end
         return
     end

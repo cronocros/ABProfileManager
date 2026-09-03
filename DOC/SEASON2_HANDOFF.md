@@ -113,19 +113,10 @@ M+ 던전 풀은 8개이며 라이브 덤프로 확정했습니다. 6장 표를 
 
 ### 동결 파일 기준 해시
 
-작업 종료 시 아래 파일은 byte-identical이어야 합니다. `git hash-object <파일>` 결과가 아래와 같아야 합니다.
+이 문서는 v1.12.0 작업 시점 기록입니다. 아래에 있던 해시 목록은 그 시점 값이라 지금은 맞지 않고, 목록에 있던 `Data/BISData.lua`는 저장소에서 사라졌습니다. 기준 해시의 단일 출처는 `scripts/validate_season2_scope.py`의 `FROZEN_BLOB_HASHES`(8종)와 `GENERATION_INPUT_HASHES`(1종)입니다. 확인은 아래로 합니다.
 
-```text
-9e89e80a0de93b4e76fd395be153506c27f737a0  ABProfileManager/Data/BISCatalog.lua
-d8952d9c5dc49c08466c8609b1de2f628cdc71ab  ABProfileManager/Data/BISRuntimeScoring.lua
-b1184cc041d179d6d43463b58543e13d6504ac27  ABProfileManager/Data/BISMythicVaultLinks.lua
-b27b68e8ddc95dba1a9f238432d7878c9e0deaaa  ABProfileManager/Data/BISSeasonPreviewLinks.lua
-0192dcf511efd708e82b6e1a2521ca87358cf638  ABProfileManager/Data/BISEncounterJournal.lua
-7c57c1c13d5cb5a1e8e8b8bba2de85bf33b9d5a4  ABProfileManager/Data/MidnightS1MPlusDB.lua
-5e2e7ab04673834413cb9e169dc0a840454a05d4  ABProfileManager/Data/BISData.lua
-367603310b6366448e8f93e267d2f732c1ef7254  ABProfileManager/Data/BISData_Method.lua
-6b88749d036c3b25aa970d27506d851af92ee2a3  ABProfileManager/Data/StatPriorities.lua
-0f5fe46cd949b72a160ec804ace9c5e37978c0fd  ABProfileManager/Data/StatPriorityTable.lua
+```powershell
+python scripts/validate_season2_scope.py
 ```
 
 참고: `UI/BISOverlay.lua`는 동결 대상이 아닙니다. v1.11.11 기준 해시는 `581eb5ba7cc2e1662cf42f7c302ae5f9dd5eec58`이고, W8과 G1 반영 후 해시는 `b317cc5f165f988b5db87e55544e19fd00c528af`입니다.

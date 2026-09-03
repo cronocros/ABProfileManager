@@ -872,31 +872,33 @@ local LOCALE_STRINGS_RURU = {
   ["template_duplicate_suffix"] = "Копия",
   ["help_bankcheck"] = "/abpm bankcheck   - Проверить доступность банка отряда",
   ["help_bankreset"] = "/abpm bankreset   - Принудительно сбросить сессию банка отряда",
-  ["bank_api_missing"] = "[ABPM] Не найден API банка отряда (C_Bank).",
-  ["bank_not_enabled"] = "[ABPM] Банк отряда не активирован.",
-  ["bank_unavailable"] = "[ABPM] Сейчас банк отряда недоступен.",
-  ["bank_session_reset"] = "[ABPM] Сессия банка отряда сброшена.",
-  ["bank_session_closed_external"] = "[ABPM] Банк используется в другом месте. Сессия банка отряда закрыта.",
-  ["bank_available"] = "[ABPM] Банк отряда доступен.",
+  ["bank_api_missing"] = "Не найден API банка отряда (C_Bank).",
+  ["bank_not_enabled"] = "Банк отряда не активирован.",
+  ["bank_unavailable"] = "Сейчас банк отряда недоступен.",
+  ["bank_session_reset"] = "Сессия банка отряда сброшена.",
+  ["bank_session_closed_external"] = "Банк используется в другом месте. Сессия банка отряда закрыта.",
+  ["bank_available"] = "Банк отряда доступен.",
   ["diag_mplus_overlay_missing"] = "Модуль оверлея рекордов M+ не загружен.",
   ["diag_bis_overlay_missing"] = "Модуль оверлея BIS не загружен.",
   ["diag_no_output"] = "(нет вывода)",
   ["log_window_empty"] = "Записей в журнале отладки и ошибок нет.",
   ["log_window_clear"] = "Очистить журнал",
   ["log_window_cleared"] = "(журнал очищен)",
-  ["copy_window_title"] = "ABPM копирование",
-  ["copy_window_title_mplus"] = "ABPM диагностика оверлея M+",
-  ["copy_window_title_ej"] = "ABPM диагностика путеводителя",
-  ["copy_window_title_log"] = "ABPM журнал",
-  ["copy_window_title_usage"] = "Окно копирования ABPM",
+  ["copy_window_title"] = "ABPM: копирование",
+  ["copy_window_title_mplus"] = "ABPM: диагностика оверлея M+",
+  ["copy_window_title_ej"] = "ABPM: диагностика Атласа приключений",
+  ["copy_window_title_log"] = "ABPM: журнал",
+  ["copy_window_title_usage"] = "ABPM: окно копирования",
   ["copy_usage_header"] = "Использование",
   ["copy_usage_mplus"] = "/abpm copy mplus   диагностика оверлея M+",
-  ["copy_usage_ej"] = "/abpm copy ej      диагностика перехода к путеводителю",
+  ["copy_usage_ej"] = "/abpm copy ej      диагностика перехода к Атласу приключений",
   ["copy_usage_log"] = "/abpm copy log     журнал отладки и ошибок",
-  ["copy_usage_macro_hint"] = "Чтобы вставить результат своего скрипта, вызовите из макроса",
-  ["copy_usage_macro_call"] = "/run ABPMCopy(текст)",
-  ["copy_usage_macro_tail"] = "Затем нажмите Ctrl+A, Ctrl+C для копирования.",
-  ["copy_window_opened"] = "[ABPM] Окно копирования открыто.",
+  ["copy_usage_macro_hint"] = "Чтобы вывести результат своего скрипта в это окно, вызовите из макроса:",
+  ["copy_usage_macro_call"] = "/run ABPMCopy(text)",
+  ["copy_usage_macro_tail"] = "Затем нажмите Ctrl+A и Ctrl+C, чтобы скопировать текст.",
+  ["copy_window_opened"] = "Окно копирования открыто.",
+  ["bis_journal_blocked_combat"] = "Атлас приключений нельзя открыть автоматически в бою.",
+  ["bis_journal_blocked_season"] = "Данные BIS относятся к %s, поэтому автопереход к Атласу приключений отключён.",
 }
 
 local CLASS_NAMES_RURU = {
@@ -1769,20 +1771,14 @@ local function patchStatusMessages()
       return originalFormatStatusMessage(message)
     end
 
-    local language = getAddonLanguage()
     message = tostring(message or "")
-    if language == "ruRU" then
-      if kind == "error" then return "Ошибка: " .. message end
-      if kind == "success" then return "Успешно: " .. message end
-      return "Инфо: " .. message
-    elseif language == "enUS" then
-      if kind == "error" then return "Error: " .. message end
-      if kind == "success" then return "Success: " .. message end
-      return "Info: " .. message
+    if kind == "success" then
+      return ns.L("status_prefix_success") .. message
     end
-    if kind == "error" then return "오류: " .. message end
-    if kind == "success" then return "성공: " .. message end
-    return "안내: " .. message
+    if kind == "failure" or kind == "error" then
+      return ns.L("status_prefix_failure") .. message
+    end
+    return ns.L("status_prefix_info") .. message
   end
 end
 
