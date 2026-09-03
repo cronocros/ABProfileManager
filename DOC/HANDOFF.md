@@ -42,7 +42,7 @@
 - 12.1 aura 접근 제한에 대응했다. 전투 / 레이드 조우 / 쐐기 / PvP 중에는 `C_UnitAuras`의 index·slot·instanceID 조회가 Lua 오류를 낸다. `UI/StatsOverlay.lua`의 버프 hash는 `pcall` 실패 시 backoff `2.0초`를 걸고 부분 hash 대신 빈 문자열을 돌려준다. spellID 기반 조회는 종전대로 동작한다.
 - `UI/MythicPlusRecordOverlay.lua`의 훅 감시자가 addon 이름에 의존하지 않도록 바꾸고 `PLAYER_ENTERING_WORLD`를 추가했다. `_hooksReady`로 1회 설치는 유지한다.
 - `UI/BISOverlay.lua`에 `SeasonGuard`를 추가했다. `dataSeason`과 `ItemLevelTable.season`을 비교해 불일치면 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 끄고 상단 안내에 짧은 시즌 접두와 경고색을 붙인다. BIS 데이터를 시즌 2로 재생성한 뒤 `dataSeason`도 `Midnight Season 2`로 올려 현재 차단은 꺼져 있다.
-- BIS 데이터를 시즌 2로 재생성했다. `scripts/build_bis_catalog.py --overall-only`가 와우헤드 overall 데이터만 사용하며 결과는 `641`행이다(raid 371, crafted 103, mythicplus 88, tier 79). 시즌 1 후보 시드와 관련 입력·스크립트는 제거했다.
+- BIS 데이터를 시즌 2로 재생성했다. `scripts/build_bis_catalog.py --overall-only`가 와우헤드 overall 데이터만 사용하며 결과는 `641`행이다(raid 371, crafted 103, mythicplus 88, tier 79). 시즌 1 후보 시드와 관련 입력·스크립트는 제거했다. v1.13.0에서 `657`행(raid 393, crafted 78, mythicplus 107, tier 79)으로 재생성했다.
 - Encounter Journal 랜딩 데이터를 시즌 2 던전 8종으로 갱신했다. `currentSeasonTierIndex`는 `13` 그대로다. "현재 시즌" tier가 동적이라 시즌이 바뀌어도 인덱스가 같다는 것을 인게임 덤프로 확인했다.
 - 시즌 2 preview selector 두 종은 값을 확인하지 못해 비활성이다. 그 결과 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않는다. 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 비워 두었다.
 - `DB:GetBISOverlayMythPreviewCache()`의 무효화 키에 현재 시즌을 추가했다. 기존 무효화 조건이 전부 동결된 `BISMythicVaultLinks.lua`에서 와서 시즌 전환을 감지하지 못했다.

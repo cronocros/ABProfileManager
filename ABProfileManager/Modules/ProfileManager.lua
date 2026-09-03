@@ -141,7 +141,7 @@ end
 function ProfileManager:GetUniqueTemplateName(baseName)
     local trimmed = ns.Utils.SanitizeSingleLine(baseName or "")
     if trimmed == "" then
-        trimmed = "템플릿"
+        trimmed = ns.L("template_default_name")
     end
 
     local candidate = trimmed
@@ -167,7 +167,7 @@ function ProfileManager:DuplicateTemplate(sourceName, targetName)
 
     targetName = ns.Utils.SanitizeSingleLine(targetName or "")
     if targetName == "" or targetName == sourceName then
-        targetName = self:GetUniqueTemplateName(sourceName .. " 복제")
+        targetName = self:GetUniqueTemplateName(sourceName .. " " .. ns.L("template_duplicate_suffix"))
     elseif ns.DB:HasTemplate(targetName) then
         targetName = self:GetUniqueTemplateName(targetName)
     end

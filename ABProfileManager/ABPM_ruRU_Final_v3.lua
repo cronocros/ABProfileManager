@@ -136,7 +136,7 @@ local LOCALE_STRINGS_RURU = {
   ["bis_tooltip_basis"] = "Основа",
   ["bis_tooltip_boss"] = "Босс",
   ["bis_tooltip_crafted_fallback"] = "Для изготовленных предметов нужны качество и контекст украшения, поэтому показан только уровень изготовления текущего сезона.",
-  ["bis_tooltip_current_season"] = "Предпросмотр предмета 1-го сезона Midnight",
+  ["bis_tooltip_current_season"] = "Предпросмотр предмета 2-го сезона Midnight",
   ["bis_tooltip_dungeon"] = "Подземелье",
   ["bis_tooltip_end_of_run"] = "Награда за прохождение",
   ["bis_tooltip_item_level_scaled"] = "Диапазон награды текущего сезона за прохождение: %d-%d",
@@ -147,7 +147,7 @@ local LOCALE_STRINGS_RURU = {
   ["bis_tooltip_preview_fallback"] = "Для этого предмета из возвращённого подземелья данные предпросмотра Blizzard нестабильны, поэтому показана только сезонная информация награды.",
   ["bis_tooltip_preview_key"] = "Статы и уровень предмета для награды текущего сезона за ключ +%d.",
   ["bis_tooltip_raid"] = "Рейд",
-  ["bis_tooltip_raid_fallback"] = "Для этого рейдового предмета не удалось безопасно создать ссылку предпросмотра 1-го сезона, поэтому показан только диапазон уровня предметов рейда текущего сезона.",
+  ["bis_tooltip_raid_fallback"] = "Для этого рейдового предмета не удалось безопасно создать ссылку предпросмотра 2-го сезона, поэтому показан только диапазон уровня предметов рейда текущего сезона.",
   ["bis_tooltip_raid_preview"] = "Этот рейдовый предмет показан по предпросмотру рейда текущего сезона в Атласе приключений.",
   ["bis_tooltip_rank"] = "Приоритет",
   ["bis_tooltip_slot"] = "Ячейка",
@@ -865,6 +865,38 @@ local LOCALE_STRINGS_RURU = {
   ["world_event_tooltip_mark_done"] = "Щелчок: отметить выполненным сегодня",
   ["world_event_tooltip_unmark"] = "Щелчок: снять отметку выполнения",
   ["world_event_void_storm"] = "Буря Бездны",
+  ["status_prefix_info"] = "● Инфо: ",
+  ["status_prefix_success"] = "● Успешно: ",
+  ["status_prefix_failure"] = "◆ Ошибка: ",
+  ["template_default_name"] = "Шаблон",
+  ["template_duplicate_suffix"] = "Копия",
+  ["help_bankcheck"] = "/abpm bankcheck   - Проверить доступность банка отряда",
+  ["help_bankreset"] = "/abpm bankreset   - Принудительно сбросить сессию банка отряда",
+  ["bank_api_missing"] = "[ABPM] Не найден API банка отряда (C_Bank).",
+  ["bank_not_enabled"] = "[ABPM] Банк отряда не активирован.",
+  ["bank_unavailable"] = "[ABPM] Сейчас банк отряда недоступен.",
+  ["bank_session_reset"] = "[ABPM] Сессия банка отряда сброшена.",
+  ["bank_session_closed_external"] = "[ABPM] Банк используется в другом месте. Сессия банка отряда закрыта.",
+  ["bank_available"] = "[ABPM] Банк отряда доступен.",
+  ["diag_mplus_overlay_missing"] = "Модуль оверлея рекордов M+ не загружен.",
+  ["diag_bis_overlay_missing"] = "Модуль оверлея BIS не загружен.",
+  ["diag_no_output"] = "(нет вывода)",
+  ["log_window_empty"] = "Записей в журнале отладки и ошибок нет.",
+  ["log_window_clear"] = "Очистить журнал",
+  ["log_window_cleared"] = "(журнал очищен)",
+  ["copy_window_title"] = "ABPM копирование",
+  ["copy_window_title_mplus"] = "ABPM диагностика оверлея M+",
+  ["copy_window_title_ej"] = "ABPM диагностика путеводителя",
+  ["copy_window_title_log"] = "ABPM журнал",
+  ["copy_window_title_usage"] = "Окно копирования ABPM",
+  ["copy_usage_header"] = "Использование",
+  ["copy_usage_mplus"] = "/abpm copy mplus   диагностика оверлея M+",
+  ["copy_usage_ej"] = "/abpm copy ej      диагностика перехода к путеводителю",
+  ["copy_usage_log"] = "/abpm copy log     журнал отладки и ошибок",
+  ["copy_usage_macro_hint"] = "Чтобы вставить результат своего скрипта, вызовите из макроса",
+  ["copy_usage_macro_call"] = "/run ABPMCopy(текст)",
+  ["copy_usage_macro_tail"] = "Затем нажмите Ctrl+A, Ctrl+C для копирования.",
+  ["copy_window_opened"] = "[ABPM] Окно копирования открыто.",
 }
 
 local CLASS_NAMES_RURU = {
@@ -1730,7 +1762,13 @@ local function patchStatusMessages()
   end
   ns.Utils.__ABPM_RURU_FINAL_STATUS_PATCHED = true
 
+  local originalFormatStatusMessage = ns.Utils.FormatStatusMessage
+
   function ns.Utils.FormatStatusMessage(message, kind)
+    if kind == nil and originalFormatStatusMessage then
+      return originalFormatStatusMessage(message)
+    end
+
     local language = getAddonLanguage()
     message = tostring(message or "")
     if language == "ruRU" then

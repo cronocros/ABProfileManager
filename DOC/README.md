@@ -31,7 +31,7 @@
 - [HANDOFF.md](./HANDOFF.md)
   - 다음 작업자를 위한 운영 메모, 회귀 포인트, 미완성 기능 기록
 - [SEASON2_HANDOFF.md](./SEASON2_HANDOFF.md)
-  - Midnight 시즌 2(v1.12.0 / WoW 12.1.0) 작업 인계 문서, 작업 DAG, 진행 로그, 재개 프롬프트
+  - Midnight 시즌 2(v1.12.0~v1.13.0 / WoW 12.1.0) 작업 인계 문서, 작업 DAG, 진행 로그, 재개 프롬프트
 - [TODO.md](./TODO.md)
   - 남은 할 일. 릴리스 차단 요인, 인게임 확인 항목, 미착수 작업, 미결 판단
 - [CODE_NOTES.md](./CODE_NOTES.md)

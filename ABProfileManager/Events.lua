@@ -315,7 +315,7 @@ end
 
 function ns.ABPM_CanUseWarbandBank()
     if not C_Bank then
-        ns.Utils.Print("[ABPM] 전투부대 은행 API(C_Bank)를 찾을 수 없습니다.")
+        ns.Utils.Print(ns.L("bank_api_missing"))
         return false
     end
     local hasBankType = false
@@ -324,7 +324,7 @@ function ns.ABPM_CanUseWarbandBank()
         if ok then hasBankType = result end
     end
     if not hasBankType then
-        ns.Utils.Print("[ABPM] 전투부대 은행이 활성화되어 있지 않습니다.")
+        ns.Utils.Print(ns.L("bank_not_enabled"))
         return false
     end
     local canUse = false
@@ -333,7 +333,7 @@ function ns.ABPM_CanUseWarbandBank()
         if ok then canUse = result end
     end
     if not canUse then
-        ns.Utils.Print("[ABPM] 현재 전투부대 은행을 사용할 수 없는 상태입니다.")
+        ns.Utils.Print(ns.L("bank_unavailable"))
         return false
     end
     return true
@@ -341,7 +341,7 @@ end
 
 function ns.ABPM_ResetBankSession()
     abpmCloseBankSessions()
-    ns.Utils.Print("[ABPM] 전투부대 은행 세션을 초기화했습니다.")
+    ns.Utils.Print(ns.L("bank_session_reset"))
 end
 
 function Events:Initialize()
@@ -616,7 +616,7 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
     end
     if isBankError and (abpmBankSessionActive or abpmIsAccountBankShown()) then
         abpmCloseBankSessions()
-        ns.Utils.Print("[ABPM] 은행이 다른 곳에서 사용 중입니다. 전투부대 은행 세션을 닫았습니다.")
+        ns.Utils.Print(ns.L("bank_session_closed_external"))
     end
 end
 

@@ -111,6 +111,10 @@ local function translateObjectiveName(name)
         return name or ""
     end
 
+    if not (ns.Utils and ns.Utils.IsKoreanLanguageSelected and ns.Utils.IsKoreanLanguageSelected()) then
+        return name
+    end
+
     local direct = OBJECTIVE_DIRECT_TRANSLATIONS[name]
     if direct then
         return direct

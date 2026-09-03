@@ -132,12 +132,12 @@ DB.SPECS = {
   PRIEST_SHADOW = { classKo="사제", specKo="암흑", role="DPS", armor="CLOTH", primary="지능", priority="가속 > 특화 > 치명타 및 극대화 > 유연성", weights={ ["가속"]=100, ["특화"]=85, ["치명타 및 극대화"]=70, ["유연성"]=55 } },
 
   ROGUE_ASSASSINATION = { classKo="도적", specKo="암살", role="DPS", armor="LEATHER", primary="민첩", priority="치명타 및 극대화 > 가속 > 특화 > 유연성", weights={ ["치명타 및 극대화"]=100, ["가속"]=85, ["특화"]=70, ["유연성"]=55 } },
-  ROGUE_OUTLAW = { classKo="도적", specKo="무법", role="DPS", armor="LEATHER", primary="민첩", priority="치명타 및 극대화 => 유연성 > 특화 > 가속", weights={ ["치명타 및 극대화"]=100, ["유연성"]=95, ["특화"]=80, ["가속"]=65 }, source="USER_SELECTED" },
+  ROGUE_OUTLAW = { classKo="도적", specKo="무법", role="DPS", armor="LEATHER", primary="민첩", priority="가속 > 치명타 및 극대화 > 유연성 > 특화", weights={ ["가속"]=100, ["치명타 및 극대화"]=85, ["유연성"]=70, ["특화"]=55 }, source="USER_SELECTED" },
   ROGUE_SUBTLETY = { classKo="도적", specKo="잠행", role="DPS", armor="LEATHER", primary="민첩", priority="특화 > 가속 > 유연성 > 치명타 및 극대화", weights={ ["특화"]=100, ["가속"]=85, ["유연성"]=70, ["치명타 및 극대화"]=55 } },
 
   SHAMAN_ELEMENTAL = { classKo="주술사", specKo="정기", role="DPS", armor="MAIL", primary="지능", priority="특화 > 치명타 및 극대화 = 가속 > 유연성", weights={ ["특화"]=100, ["치명타 및 극대화"]=85, ["가속"]=85, ["유연성"]=70 } },
   SHAMAN_ENHANCEMENT = { classKo="주술사", specKo="고양", role="DPS", armor="MAIL", primary="민첩", priority="특화 = 가속 > 치명타 및 극대화 >> 유연성", weights={ ["특화"]=100, ["가속"]=100, ["치명타 및 극대화"]=85, ["유연성"]=60 }, source="USER_SELECTED" },
-  SHAMAN_RESTORATION = { classKo="주술사", specKo="복원", role="HEALER", armor="MAIL", primary="지능", priority="치명타 및 극대화 > 가속 > 유연성 > 특화", weights={ ["치명타 및 극대화"]=100, ["가속"]=85, ["유연성"]=70, ["특화"]=55 } },
+  SHAMAN_RESTORATION = { classKo="주술사", specKo="복원", role="HEALER", armor="MAIL", primary="지능", priority="치명타 및 극대화 > 가속 = 유연성 > 특화", weights={ ["치명타 및 극대화"]=100, ["가속"]=85, ["유연성"]=85, ["특화"]=70 } },
 
   WARLOCK_AFFLICTION = { classKo="흑마법사", specKo="고통", role="DPS", armor="CLOTH", primary="지능", priority="가속 > 치명타 및 극대화 > 유연성 > 특화", weights={ ["가속"]=100, ["치명타 및 극대화"]=85, ["유연성"]=70, ["특화"]=55 } },
   WARLOCK_DEMONOLOGY = { classKo="흑마법사", specKo="악마", role="DPS", armor="CLOTH", primary="지능", priority="치명타 및 극대화 = 가속 > 특화 > 유연성", weights={ ["치명타 및 극대화"]=100, ["가속"]=100, ["특화"]=85, ["유연성"]=70 } },

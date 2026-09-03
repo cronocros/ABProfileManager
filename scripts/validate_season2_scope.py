@@ -44,15 +44,20 @@ REWARD_PROFILES_MARKER = "ns.Data.BISRewardProfiles"
 # 잘라 먹던 문제와, 문장이 없어 시즌 1 값이 남아 있던 6개 전문화를 함께 고쳤다.
 # `source="USER_SELECTED"` 8개 전문화는 사람이 고른 값이라 수집 결과로 덮지
 # 않는다. 수집기가 그 8개를 덮어썼던 것을 되돌리고, 수집기에도 보호를 넣었다.
+# 2026-09-03 스탯 우선순위를 와우헤드 시즌 2 전용 페이지로 전수 재대조했다. 40개 중
+# 31개가 이미 같았고 복원 주술사 한 종만 수집값(동률 표기)으로 갱신했다. 무법 도적은
+# `source="USER_SELECTED"`지만 저장된 값이 구형 개요 페이지 수집 버그로 `가속`이 1순위에서
+# 꼴찌로 뒤집힌 형태였다. 전용 페이지 `[ol]` 목록과 `DOC/TODO.md`의 인게임 확인 항목이 모두
+# `가속` 1순위라 값을 정정하고 표식은 남겼다. 나머지 7종은 동률 표기만 달라 수동값을 유지했다.
 FROZEN_BLOB_HASHES = {
-    "ABProfileManager/Data/BISCatalog.lua": "89c257583a99f13f6fa176f4a464a0c8f7faecad",
+    "ABProfileManager/Data/BISCatalog.lua": "31a5a02cef47f644d9ad589522a934ab91b2bb1d",
     "ABProfileManager/Data/BISRuntimeScoring.lua": "d8952d9c5dc49c08466c8609b1de2f628cdc71ab",
     "ABProfileManager/Data/BISMythicVaultLinks.lua": "5cdaf725b8f9bc7851118c841ab5a22c60fb22ba",
     "ABProfileManager/Data/BISSeasonPreviewLinks.lua": "48a2e022629eb9cfc28b8a1f671b2314f7229585",
     "ABProfileManager/Data/BISEncounterJournal.lua": "230a26f4704a6d81634ce6553fabf106a76a0f6b",
-    "ABProfileManager/Data/MidnightS1MPlusDB.lua": "5f8daf1730307e4084196c2a8e8a74b1cb451a02",
-    "ABProfileManager/Data/StatPriorities.lua": "02a290d41221e208c8e61e99b870519a0fdd171a",
-    "ABProfileManager/Data/StatPriorityTable.lua": "531f37f60ac1be7c45cdc33b2263278799443834",
+    "ABProfileManager/Data/MidnightS1MPlusDB.lua": "88571506276d8ad8ef9f0f639fb5b562bd9d3177",
+    "ABProfileManager/Data/StatPriorities.lua": "0511dc6221871887ff424e450be938d474f4023e",
+    "ABProfileManager/Data/StatPriorityTable.lua": "a7880c4fcb94b45f144783767a274700a12f6e4b",
 }
 
 # 카탈로그 생성 입력이다. TOC에 없어 런타임에 로드되지 않으므로 갱신해도

@@ -51,13 +51,13 @@ ns.Data.StatPriorities = {
     },
     ROGUE = {
         [1] = { { "crit" }, { "haste" }, { "mastery" }, { "versatility" } }, -- 암살
-        [2] = { { "crit" }, { "versatility" }, { "mastery" }, { "haste" } }, -- 무법
+        [2] = { { "haste" }, { "crit" }, { "versatility" }, { "mastery" } }, -- 무법
         [3] = { { "mastery" }, { "haste" }, { "versatility" }, { "crit" } }, -- 잠행
     },
     SHAMAN = {
         [1] = { { "mastery" }, { "crit", "haste" }, { "versatility" } }, -- 정기
         [2] = { { "mastery", "haste" }, { "crit" }, { "versatility" } }, -- 고양
-        [3] = { { "crit" }, { "haste" }, { "versatility" }, { "mastery" } }, -- 복원
+        [3] = { { "crit" }, { "haste", "versatility" }, { "mastery" } }, -- 복원
     },
     WARLOCK = {
         [1] = { { "haste" }, { "crit" }, { "versatility" }, { "mastery" } }, -- 고통

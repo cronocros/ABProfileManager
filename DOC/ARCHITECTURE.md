@@ -1,6 +1,6 @@
 # ABProfileManager Architecture
 
-기준: `v1.12.0` / TOC `## Interface: 120100` / WoW `12.1.0` 빌드 `69465` (2026-08-21)
+기준: `v1.13.0` / TOC `## Interface: 120100` / WoW `12.1.0` 빌드 `69465` (2026-08-21)
 시즌: Midnight 시즌 2 (`Curse of Ula'tek`, 2026-08-18 시작)
 
 ## 목적
@@ -167,9 +167,9 @@ BIS 데이터와 `SeasonGuard.dataSeason`이 모두 시즌 2라 현재 차단은
 - `Data/StatPriorities.lua` — 스탯 오버레이 한 줄 표시용 단일 대표 우선순위 (12.0.5 기준, 동결)
 - `Data/StatPriorityTable.lua` — 스탯 우선순위 표 팝업용 40개 전문화 표와 specID map (12.0.5 기준, 동결)
 
-### BIS 데이터 (전부 시즌 1 기준 동결)
+### BIS 데이터 (시즌 2 기준, 해시 동결)
 
-- `Data/BISCatalog.lua` — 런타임이 직접 읽는 단일 정적 후보 카탈로그. 총 `3330`행 (`mythicplus 2554`, `raid 485`, `crafted 91`, `tier 200`). row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank`와 source detail, 검증 메타를 함께 보관
+- `Data/BISCatalog.lua` — 런타임이 직접 읽는 단일 정적 후보 카탈로그. 총 `657`행 (`raid 393`, `mythicplus 107`, `tier 79`, `crafted 78`). 시즌 1 v1.11 계열은 `3330`행이었다. row별 `specID, slot, itemID, nameKoKR, nameEnUS, sourceGroup, sourceLabel, overallRank, sourceRank`와 source detail, 검증 메타를 함께 보관
 - `Data/MidnightS1MPlusDB.lua` — 실제 `itemLink`에서 아이템 레벨과 스탯을 읽어 전문화별 점수를 계산하는 런타임 점수 코어
 - `Data/BISRuntimeScoring.lua` — ABPM specID / slot / sourceGroup을 점수 코어 키로 변환하는 어댑터
 - `Data/BISMythicVaultLinks.lua` — M+ 금고 Myth 1/6 selector `12801`, `baselineItemLevel = 272`, 예외 full link override, snapshot schema v3

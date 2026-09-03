@@ -29,8 +29,8 @@ local function printHelp()
     ns.Utils.Print(ns.L("help_clear"))
     ns.Utils.Print(ns.L("help_quote"))
     ns.Utils.Print(ns.L("help_verifywp"))
-    ns.Utils.Print("/abpm bankcheck   - 전투부대 은행 가용 상태 확인")
-    ns.Utils.Print("/abpm bankreset   - 전투부대 은행 세션 강제 초기화")
+    ns.Utils.Print(ns.L("help_bankcheck"))
+    ns.Utils.Print(ns.L("help_bankreset"))
 end
 
 local PROFESSION_NAME_MAP = {
@@ -151,7 +151,7 @@ end
 ns.Utils.ShowCopyWindow = showCopyWindow
 
 _G.ABPMCopy = function(text, titleText)
-    return showCopyWindow(titleText or "ABPM 복사", text)
+    return showCopyWindow(titleText or ns.L("copy_window_title"), text)
 end
 
 local function collectDiagnostics(kind)
@@ -163,13 +163,13 @@ local function collectDiagnostics(kind)
     if kind == "mplus" then
         local overlay = ns.UI and ns.UI.MythicPlusRecordOverlay
         if not overlay or type(overlay.Diagnose) ~= "function" then
-            return "쐐기 오버레이 모듈이 로드되지 않았습니다."
+            return ns.L("diag_mplus_overlay_missing")
         end
         pcall(overlay.Diagnose, overlay, sink)
     elseif kind == "ej" then
         local overlay = ns.UI and ns.UI.BISOverlay
         if not overlay or type(overlay.DiagnoseJournal) ~= "function" then
-            return "BIS 오버레이 모듈이 로드되지 않았습니다."
+            return ns.L("diag_bis_overlay_missing")
         end
         pcall(overlay.DiagnoseJournal, overlay, sink)
     elseif kind == "log" then
@@ -186,7 +186,7 @@ local function collectDiagnostics(kind)
     end
 
     if #lines == 0 then
-        return "(출력 없음)"
+        return ns.L("diag_no_output")
     end
     return table.concat(lines, "\n")
 end
@@ -521,7 +521,7 @@ function Commands:HandleSlash(message)
         local log = ns.Utils.GetDebugLog and ns.Utils.GetDebugLog() or {}
         local caught = ns.Utils.GetCaughtErrorLog and ns.Utils.GetCaughtErrorLog() or {}
         if #log == 0 and #caught == 0 then
-            ns.Utils.Print("디버그/보호 오류 로그가 없습니다.")
+            ns.Utils.Print(ns.L("log_window_empty"))
             return
         end
         local sections = {}
@@ -571,11 +571,11 @@ function Commands:HandleSlash(message)
         local clrBtn = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
         clrBtn:SetSize(90, 22)
         clrBtn:SetPoint("BOTTOMLEFT", 14, 10)
-        clrBtn:SetText("로그 지우기")
+        clrBtn:SetText(ns.L("log_window_clear"))
         clrBtn:SetScript("OnClick", function()
             if ns.Utils.ClearDebugLog then ns.Utils.ClearDebugLog() end
             if ns.Utils.ClearCaughtErrorLog then ns.Utils.ClearCaughtErrorLog() end
-            eb:SetText("(로그 지움)")
+            eb:SetText(ns.L("log_window_cleared"))
         end)
         popup:Show()
         return
@@ -584,24 +584,24 @@ function Commands:HandleSlash(message)
     if command == "copy" then
         local mode = string.lower(args[2] or "")
         if mode == "mplus" or mode == "mythic" then
-            showCopyWindow("ABPM 쐐기 오버레이 진단", collectDiagnostics("mplus"))
+            showCopyWindow(ns.L("copy_window_title_mplus"), collectDiagnostics("mplus"))
         elseif mode == "ej" or mode == "bis" then
-            showCopyWindow("ABPM 모험 안내서 진단", collectDiagnostics("ej"))
+            showCopyWindow(ns.L("copy_window_title_ej"), collectDiagnostics("ej"))
         elseif mode == "log" then
-            showCopyWindow("ABPM 로그", collectDiagnostics("log"))
+            showCopyWindow(ns.L("copy_window_title_log"), collectDiagnostics("log"))
         else
-            showCopyWindow("ABPM 복사 창", table.concat({
-                "사용법",
-                "/abpm copy mplus   쐐기 오버레이 진단 결과",
-                "/abpm copy ej      모험 안내서 이동 진단",
-                "/abpm copy log     디버그/오류 로그",
+            showCopyWindow(ns.L("copy_window_title_usage"), table.concat({
+                ns.L("copy_usage_header"),
+                ns.L("copy_usage_mplus"),
+                ns.L("copy_usage_ej"),
+                ns.L("copy_usage_log"),
                 "",
-                "직접 만든 스크립트 결과를 넣으려면 매크로에서",
-                "/run ABPMCopy(내용)",
-                "형태로 호출하세요. Ctrl+A, Ctrl+C 로 복사합니다.",
+                ns.L("copy_usage_macro_hint"),
+                ns.L("copy_usage_macro_call"),
+                ns.L("copy_usage_macro_tail"),
             }, "\n"))
         end
-        setStatus("[ABPM] 복사 창을 열었습니다.")
+        setStatus(ns.L("copy_window_opened"))
         return
     end
 
@@ -723,7 +723,7 @@ function Commands:HandleSlash(message)
     if command == "bankcheck" then
         local ok = ns.ABPM_CanUseWarbandBank and ns.ABPM_CanUseWarbandBank()
         if ok then
-            ns.Utils.Print("[ABPM] 전투부대 은행 사용 가능 상태입니다.")
+            ns.Utils.Print(ns.L("bank_available"))
         end
         return
     end

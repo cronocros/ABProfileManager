@@ -27,7 +27,11 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 - 수양·신성 사제로 출처 필터를 `레이드`, `쐐기`로 두었을 때 아이템이 잡히는가
 - `USER_SELECTED` 8개 전문화(혈기 죽기, 수호 드루, 보존 기원사, 양조·운무 수도, 신성 사제,
   무법 도적, 고양 주술)의 스탯 우선순위가 복구된 값으로 나오는가
-- 무법 도적의 스탯 줄이 `가속`으로 시작하는가
+- 무법 도적의 스탯 줄이 `가속`으로 시작하는가 (2026-09-03 데이터를 `가속` 1순위로 정정했습니다)
+- 복원 주술사의 스탯 줄이 `치명타 및 극대화 > 가속 = 유연성 > 특화`로 나오는가
+- 애드온 언어를 `영어`로 바꾼 뒤 `/abpm`, `/abpm help`, `/abpm copy`, `/abpm bankcheck`,
+  전문기술 오버레이의 항목 이름, 상태 메시지 접두(`● Info:` / `● Success:` / `◆ Failure:`)가
+  모두 영어로 나오는가
 - BIS 아이템 클릭 시 모험 안내서가 해당 던전·레이드의 해당 보스까지 열리는가
 - 출처 라벨이 `던전명 · 보스명`, `레이드명 · 보스명`으로 나오는가
 - 툴팁 단계 선택 버튼이 헤더에 보이고, 단계를 바꾸면 `기준:` 줄이 따라 바뀌는가
@@ -49,13 +53,13 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 `Data/SilvermoonMapData.lua`, `UI/SilvermoonMapOverlay.lua`, `UI/MapPanel.lua`가 대상입니다.
 
-`Coiled Isle`의 UiMapID가 아직 없습니다. 후보는 `2512`지만 확인되지 않았습니다. 해당 지역 안에서 아래를 실행해야 합니다.
+`Coiled Isle`(똬리의 섬)의 UiMapID `2512`는 DB2(`UiMap`, ParentUiMapID 2537)로 확인해 `SilvermoonMapData.lua`에 넣었습니다. 하위 지도 `2509`는 `Vaults of Atal'Utek`이며 송곳니의 제단 입구가 있는 구역입니다. 인게임 최종 확인은 해당 지역 안에서 아래를 실행합니다.
 
 ```text
 /dump C_Map.GetBestMapForUnit("player")
 ```
 
-신규 구렁과 던전의 UiMapID도 각각 현지에서 확인해야 합니다. `challengeMapID`는 이미 확보했지만 `UiMapID`와는 다른 값입니다.
+던전·레이드 입구와 구렁 위치는 하드코딩하지 않고 `C_EncounterJournal.GetDungeonEntrancesForMap`, `C_AreaPoiInfo.GetDelvesForMap`으로 런타임 조회합니다. 조회 대상 지도는 `SilvermoonMapData.lua`의 `runtimeMaps`입니다. `challengeMapID`는 `UiMapID`와 다른 값입니다.
 
 ### W4 전문기술 지식
 
@@ -73,7 +77,13 @@ W2와 W2b가 만든 새 문자열이 있으면 세 언어에 반영합니다. �
 
 ### W7 주간 이벤트
 
-`Data/WorldEventSchedule.lua`가 시즌 1 기준입니다. 좌표에 `인게임 실측 후 수정` 주석이 있었고 시즌 1분도 실측되지 않았습니다. 시즌 2 이벤트 목록과 좌표가 필요합니다.
+`Data/WorldEventSchedule.lua`와 `UI/WorldEventOverlay.lua`는 TOC에 없어 로드되지 않습니다(의도적 비활성, `DOC/CODE_NOTES.md` 참조). 데이터는 시즌 1 기준이고 좌표는 실측된 적이 없습니다.
+
+2026-09-03 DB2(`AreaPOI`, `UiMap`)와 Blizzard 공식 소식으로 확인한 결함이며, 다시 켜기 전에 고쳐야 합니다.
+
+- 이벤트 이름: `Saldeeryl's Court/살데릴의 궁정`은 실제로 `Saltheril's Soiree/살데릴의 연회`(AreaPOI 8600), `Stomarion`은 `Stormarion`, `Legend of Haranyr`는 `Legends of the Haranir/하라니르의 전설`(AreaPOI 8423)입니다.
+- mapID: `saldeerylsCourt`(2395=영원노래 숲)와 `abundance`(2393=실버문)의 값이 라벨과 서로 바뀌어 있습니다. `stomarionAttack`의 2444는 공허폭풍 하위 지도 `Slayer's Rise`입니다.
+- 주기: 풍요는 8시간마다 4개 지역을 순환하며 3분 지속, 스토마리온 공격은 30분 주기, 살데릴의 연회와 하라니르의 전설은 주간 이벤트입니다. 현재 분 단위 `interval/duration` 모델과 맞지 않습니다.
 
 SavedVariables 마이그레이션 부분은 끝났습니다.
 
@@ -87,19 +97,19 @@ SavedVariables 마이그레이션 부분은 끝났습니다.
 
 ### 완료
 
-`ABProfileManager/Data/BISData_Method.lua`를 시즌 2 와우헤드 데이터로 갱신했습니다. 40개 전문화 641행이며 시즌 1 던전 참조는 없습니다. 이 파일은 TOC에 없어 런타임에 로드되지 않으므로 인게임 동작은 아직 바뀌지 않습니다.
+`ABProfileManager/Data/BISData_Method.lua`를 시즌 2 와우헤드 데이터로 갱신했습니다. 40개 전문화 657행이며 시즌 1 던전 참조는 없습니다. 이 파일은 TOC에 없어 런타임에 로드되지 않으므로 인게임 동작은 아직 바뀌지 않습니다.
 
 `scripts/refresh_wowhead_bis.py`도 함께 고쳤습니다. 괄호 한정어가 붙은 슬롯 라벨을 처리하고, 시즌 2 던전·보스 정규화를 넣고, 대상 파일을 쓰지 않고 결과만 확인하는 `--review` 모드를 추가했습니다.
 
 ### 카탈로그 재생성 완료 (B안)
 
-와우헤드 overall 데이터만으로 카탈로그를 다시 만들었습니다. `3330`행에서 `641`행으로 줄었지만 전부 시즌 2 데이터입니다.
+와우헤드 overall 데이터만으로 카탈로그를 다시 만들었습니다. `3330`행에서 `641`행으로 줄었고(v1.13.0에서 `657`행으로 재생성) 전부 시즌 2 데이터입니다.
 
 | sourceGroup | 행 |
 | --- | --- |
-| raid | 371 |
-| crafted | 103 |
-| mythicplus | 88 |
+| raid | 393 |
+| crafted | 78 |
+| mythicplus | 107 |
 | tier | 79 |
 
 시즌 1 던전 참조는 하나도 남지 않았습니다. 보스 한글명은 공식 Blizzard 한국어 소식에서 확인한 이름을 씁니다.
@@ -139,8 +149,8 @@ selector를 확인하려면 ItemBonus DB2에서 시즌 2 Myth 1/6(318) 조합을
 
 `-Strict`가 통과한 뒤 진행합니다. 자세한 절차는 [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)를 봅니다.
 
-- `CHANGELOG.md`의 `1.12.0` 항목을 릴리스 기준으로 확정
-- `DOC/releases/RELEASE_NOTES_v1.12.0.md`와 영문판 작성
+- `CHANGELOG.md`의 `1.13.0` 항목을 릴리스 기준으로 확정
+- `DOC/releases/RELEASE_NOTES_v1.13.0.md`와 영문판 작성
 - `ABProfileManager/ADDON_INTRO.txt`의 버전 문구에서 `작업 중` 표기를 제거하고 변경 내역 추가
 - `scripts/package_release.ps1` 실행
 - `dist/` 루트에는 최신 ZIP만 두고 이전 ZIP은 `dist/archive/`로 이동

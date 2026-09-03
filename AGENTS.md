@@ -132,7 +132,7 @@ ABProfileManager/
 
 ### BIS 추천 장비 카탈로그
 
-현재 상태: 시즌 2로 재생성 완료(`--overall-only`, 641행). preview selector 두 종만 값을 확인하지 못해 비활성이며, 그 결과 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않는다. `DOC/TODO.md` 5장 참조.
+현재 상태: 시즌 2로 재생성 완료(`--overall-only`, 657행: raid 393 / crafted 78 / mythicplus 107 / tier 79). preview selector 두 종만 값을 확인하지 못해 비활성이며, 그 결과 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않는다. `DOC/TODO.md` 5장 참조.
 
 런타임 데이터:
 - `Data/BISCatalog.lua`

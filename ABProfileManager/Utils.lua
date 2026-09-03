@@ -393,11 +393,11 @@ function Utils.FormatStatusMessage(message)
         end
     end
 
-    local prefix = "● 안내: "
+    local prefix = ns.L("status_prefix_info")
     if kind == "success" then
-        prefix = "● 성공: "
+        prefix = ns.L("status_prefix_success")
     elseif kind == "failure" then
-        prefix = "◆ 실패: "
+        prefix = ns.L("status_prefix_failure")
     end
 
     if rest ~= "" then
