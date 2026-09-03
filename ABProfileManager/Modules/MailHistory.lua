@@ -9,7 +9,6 @@ local MAX_NAME_LENGTH = 64
 local DROPDOWN_MAX_VISIBLE = 8
 local DROPDOWN_ROW_HEIGHT = 20
 
--- 드롭다운 프레임
 local dropdownFrame = nil
 local dropdownRows = {}
 
@@ -32,10 +31,6 @@ local function buildNameKey(name)
     if name and name:find("-", 1, true) then return name end
     return (name or "") .. "-" .. getRealmSuffix()
 end
-
--- ============================================================
--- DB 접근 (ns.DB:GetMailHistorySettings() 경유, names 서브테이블 보장)
--- ============================================================
 
 function MailHistory:GetHistory()
     if not ns.DB then return { names = {} } end
@@ -61,7 +56,6 @@ function MailHistory:RecordSend(recipientName)
     names[key].lastSent = time()
     names[key].displayName = recipientName
 
-    -- 최대 개수 초과 시 가장 오래된 항목 제거
     local keys = {}
     for k, v in pairs(names) do
         keys[#keys + 1] = { key = k, lastSent = v.lastSent or 0 }
@@ -106,10 +100,6 @@ function MailHistory:GetMatchingNames(prefix)
     table.sort(results, function(a, b) return a.lastSent > b.lastSent end)
     return results
 end
-
--- ============================================================
--- 드롭다운 UI
--- ============================================================
 
 local function ensureDropdown()
     if dropdownFrame then return dropdownFrame end
@@ -228,10 +218,6 @@ local function showDropdown(editBox, matches)
     dropdown:Raise()
 end
 
--- ============================================================
--- EditBox 훅 (MAIL_SHOW 이후 lazy 연결)
--- ============================================================
-
 function MailHistory:HookSendMailEditBox()
     if self._editBoxHooked then return end
     local editBox = SendMailNameEditBox
@@ -271,15 +257,10 @@ function MailHistory:HookSendMailEditBox()
     end
 end
 
--- ============================================================
--- 초기화
--- ============================================================
-
 function MailHistory:Initialize()
     if self._initialized then return end
     self._initialized = true
 
-    -- SendMailNameEditBox 는 우편함을 처음 열 때 생성됨 → MAIL_SHOW 이후 훅
     local eventFrame = CreateFrame("Frame")
     eventFrame:RegisterEvent("MAIL_SHOW")
     eventFrame:SetScript("OnEvent", function(_, event)
@@ -290,7 +271,6 @@ function MailHistory:Initialize()
         end
     end)
 
-    -- 혹시 이미 열려있을 경우 즉시 시도
     if SendMailNameEditBox then
         self:HookSendMailEditBox()
     end

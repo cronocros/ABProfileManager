@@ -8,6 +8,7 @@ fallback merge logic in BISData_Method.lua intact.
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
 import re
@@ -139,31 +140,46 @@ SKILL_LABELS = {
 }
 
 DUNGEON_LABELS = {
-    "magistersterrace": "마법학자의 정원",
-    "magisterterrace": "마법학자의 정원",
-    "maisaracaverns": "마이사라 동굴",
-    "nexuspointxenas": "공결탑 제나스",
-    "nexuspoint": "공결탑 제나스",
-    "windrunnerspire": "윈드러너 첨탑",
-    "algetharacademy": "알게타르 대학",
-    "algetharsacademy": "알게타르 대학",
-    "algetharacademy2": "알게타르 대학",
-    "seatofthetriumvirate": "삼두정의 권좌",
-    "skyreach": "하늘탑",
-    "pitofsaron": "사론의 구덩이",
+    "altaroffangs": "송곳니의 제단",
+    "murderrow": "죽음의 골목",
+    "denofnalorakk": "날로라크의 소굴",
+    "nalorakksden": "날로라크의 소굴",
+    "blindingvale": "눈부신 골짜기",
+    "voidscararena": "공허흉터 투기장",
+    "kingsrest": "왕들의 안식처",
+    "templeofsethraliss": "세스랄리스 사원",
+    "rubylifepools": "루비 생명의 웅덩이",
 }
 
 SOURCE_NORMALIZATIONS = {
     "crafted": "Crafting",
     "craftingmisc": "Crafting",
+    "craftingblacksmithing": "Blacksmithing",
+    "craftingleatherworking": "Leatherworking",
+    "craftingtailoring": "Tailoring",
+    "craftingjewelcrafting": "Jewelcrafting",
     "thecatalyst": "Catalyst",
     "catalystraidvault": "Catalyst / Raid / Vault",
     "catalyst|raid|vault": "Catalyst / Raid / Vault",
     "raid|catalyst|vault": "Raid | Catalyst | Vault",
-    "nexuspointxenas": "Nexus-Point Xenas",
-    "magistersterrace": "Magisters' Terrace",
-    "magisterterrace": "Magisters' Terrace",
-    "salhadaar": "Fallen-King Salhadaar",
+    "kingsrest": "Kings' Rest",
+    "blindingvale": "The Blinding Vale",
+    "altaroffangs": "Altar of Fangs",
+    "murderrow": "Murder Row",
+    "denofnalorakk": "Den of Nalorakk",
+    "voidscararena": "Voidscar Arena",
+    "templeofsethraliss": "Temple of Sethraliss",
+    "rubylifepools": "Ruby Life Pools",
+    "entomedsentinels": "Entombed Sentinels",
+    "entombedsentinels": "Entombed Sentinels",
+    "thecoiledalter": "The Coiled Altar",
+    "thecoiledaltar": "The Coiled Altar",
+    "thecoiledaltarsszorak": "The Coiled Altar",
+    "vashnik": "Vashnik the Malignant",
+    "nymrissawavebinder": "Nymrissa Wavecaller",
+    "nekzalithesoulcoiler": "Nek'zali the Soulcoiler",
+    "thelostexplorers": "The Lost Explorers",
+    "thetwinfangs": "The Twin Fangs",
 }
 
 FILE_HEADER_RE = re.compile(
@@ -189,9 +205,19 @@ def strip_bbcode(text: str) -> str:
 def normalize_slot(raw_slot: str) -> str:
     cleaned = strip_bbcode(raw_slot)
     key = normalize_key(cleaned)
-    if key not in SLOT_MAP:
-        raise ValueError(f"Unknown slot label: {cleaned!r}")
-    return SLOT_MAP[key]
+    if key in SLOT_MAP:
+        return SLOT_MAP[key]
+
+    # Wowhead attaches qualifiers such as "Trinket (Raid only)" to slot labels.
+    # Drop the parenthetical and retry before giving up, so a new qualifier does
+    # not require a new SLOT_MAP entry every season.
+    without_qualifier = re.sub(r"\([^)]*\)", " ", cleaned).strip()
+    if without_qualifier and without_qualifier != cleaned:
+        base_key = normalize_key(without_qualifier)
+        if base_key in SLOT_MAP:
+            return SLOT_MAP[base_key]
+
+    raise ValueError(f"Unknown slot label: {cleaned!r}")
 
 
 def normalize_source_label(raw_cell: str) -> str:
@@ -218,6 +244,11 @@ def normalize_source_label(raw_cell: str) -> str:
     text = text.replace("Catalyst|Raid|Vault", "Catalyst / Raid / Vault")
     text = text.replace("Raid / Catalyst / Vault", "Raid | Catalyst | Vault")
     text = re.sub(r"\s+", " ", text).strip(" |/")
+    # Wowhead sometimes glues the catalyst source to the converted piece, e.g.
+    # "Catalyst the Ula'tek Chest". Collapse those to a plain Catalyst label so
+    # the catalog does not gain one bogus source per armor slot.
+    if re.match(r"^Catalyst the .+", text):
+        text = "Catalyst"
     text = normalize_mixed_source_modes(text)
 
     normalized = SOURCE_NORMALIZATIONS.get(normalize_key(text))
@@ -308,10 +339,20 @@ def parse_gatherer_data(html_text: str) -> Dict[str, Dict[str, object]]:
 
 
 def extract_overall_segment(html_text: str) -> str:
+    """bis_items 탭 묶음 전체를 돌려준다.
+
+    예전에는 첫 `[\\/tab]`에서 끊었다. 대부분의 전문화는 "Overall BiS" 탭
+    하나뿐이라 문제가 없었지만, 와우헤드가 탭을 둘로 나눈 전문화(혈기 죽음의
+    기사의 죽음인도자/피의 낙인, 운무 수도사의 레이드/쐐기, 회복 드루이드의
+    쐐기 전용)에서는 두 번째 탭의 슬롯별 후보가 통째로 버려졌다. 묶음 끝까지
+    읽어야 그 후보가 살아남는다.
+    """
     start = html_text.find("name=bis_items")
     if start == -1:
         raise ValueError("bis_items section not found")
-    end = html_text.find("[\\/tab]", start)
+    end = html_text.find("[\\/tabs]", start)
+    if end == -1:
+        end = html_text.find("[\\/tab]", start)
     if end == -1:
         end = start + 50000
     return html_text[start:end]
@@ -338,6 +379,20 @@ def extract_source_options(raw_cell: str) -> List[str]:
     return [normalize_source_label(raw_cell)]
 
 
+ITEM_TAG_RE = re.compile(r"\[item=\d+[^\]]*\]")
+
+
+def item_cell_is_item_only(item_cell: str) -> bool:
+    """아이템 칸이 아이템 링크만으로 이뤄졌는지 본다.
+
+    "[item=A] crafted with [item=B]"처럼 설명 문구가 붙은 칸의 두 번째 링크는
+    장신구가 아니라 세공 재료다. 반대로 링크만 나열된 칸은 같은 슬롯의 실제
+    후보 둘이다. 남은 글자가 있는지로 둘을 가른다.
+    """
+    residue = strip_bbcode(ITEM_TAG_RE.sub(" ", item_cell))
+    return not re.search(r"[0-9A-Za-z가-힣]", residue)
+
+
 def extract_item_ids(item_cell: str, source_option_count: int) -> List[int]:
     item_ids: List[int] = []
     seen = set()
@@ -351,6 +406,8 @@ def extract_item_ids(item_cell: str, source_option_count: int) -> List[int]:
     if len(item_ids) <= 1:
         return item_ids
     if source_option_count > 1 and source_option_count == len(item_ids):
+        return item_ids
+    if item_cell_is_item_only(item_cell):
         return item_ids
     return item_ids[:1]
 
@@ -372,6 +429,7 @@ def parse_page(spec_id: int, url: str) -> Tuple[List[Dict[str, object]], Optiona
     segment = extract_overall_segment(html_text)
 
     entries: List[Dict[str, object]] = []
+    seen_slot_items: set = set()
     for row in extract_rows(segment):
         if "[item=" not in row:
             continue
@@ -388,6 +446,13 @@ def parse_page(spec_id: int, url: str) -> Tuple[List[Dict[str, object]], Optiona
 
         slot_name = normalize_slot(cells[0])
         for index, item_id in enumerate(item_ids):
+            # 탭이 둘인 전문화는 두 목록이 같은 슬롯에 같은 아이템을 올린다.
+            # 중복 행을 만들지 않는다.
+            dedupe_key = (slot_name, item_id)
+            if dedupe_key in seen_slot_items:
+                continue
+            seen_slot_items.add(dedupe_key)
+
             source_label = source_options[min(index, len(source_options) - 1)]
             source_type, dungeon_name = classify_source(source_label)
 
@@ -464,13 +529,17 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
     if total_rows < 600:
         raise ValueError(f"Unexpectedly low row count: {total_rows}")
 
+    # 250/270/105는 와우헤드가 bis_items를 탭 둘로 나눈 전문화다. 두 탭을 모두
+    # 읽으므로 단일 탭 전문화보다 행이 많다.
     representative_counts = {
-        269: 17,
-        270: 16,
+        269: 15,
+        270: 21,
         263: 16,
         577: 16,
-        1382: 16,
+        1382: 17,
         1473: 16,
+        250: 17,
+        105: 24,
     }
     for spec_id, expected_count in representative_counts.items():
         actual_count = len(overrides[spec_id])
@@ -480,11 +549,11 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
             )
 
     expected = {
-        ("머리", 250015, "raid", "Tier Set"),
-        ("목", 250247, "raid", "Midnight Falls"),
-        ("허리", 251082, "mythicplus", "Windrunner Spire"),
-        ("장신구", 249343, "raid", "Chimaerus"),
-        ("장신구", 193701, "mythicplus", "Algeth'ar Academy"),
+        ("목", 268265, "raid", "Ula'tek"),
+        ("망토", 268253, "raid", "The Coiled Altar"),
+        ("손", 251124, "mythicplus", "Murder Row"),
+        ("장신구", 270175, "raid", "Ula'tek"),
+        ("반지", 158366, "mythicplus", "Temple of Sethraliss"),
     }
     actual = {
         (str(entry["slot"]), int(entry["itemID"]), str(entry["sourceType"]), str(entry["sourceLabel"]))
@@ -514,6 +583,17 @@ def validate(overrides: Dict[int, List[Dict[str, object]]], total_rows: int) -> 
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--review",
+        metavar="PATH",
+        help=(
+            "대상 파일을 쓰지 않고 수집 결과만 JSON으로 남긴다. "
+            "시즌이 바뀌어 고정 검증이 실패할 때 내용을 먼저 확인하는 용도다."
+        ),
+    )
+    args = parser.parse_args()
+
     overrides: Dict[int, List[Dict[str, object]]] = {}
     modified_dates: Dict[int, Optional[str]] = {}
     total_rows = 0
@@ -523,6 +603,27 @@ def main() -> int:
         overrides[spec_id] = rows
         modified_dates[spec_id] = modified
         total_rows += len(rows)
+
+    if args.review:
+        summary = {
+            "totalRows": total_rows,
+            "specCount": len(overrides),
+            "rowsBySpec": {str(k): len(v) for k, v in sorted(overrides.items())},
+            "sourceLabels": sorted(
+                {str(row["sourceLabel"]) for rows in overrides.values() for row in rows}
+            ),
+            "modifiedDates": {
+                str(k): (v.split("T")[0] if v else None) for k, v in sorted(modified_dates.items())
+            },
+            "overrides": {str(k): v for k, v in sorted(overrides.items())},
+        }
+        Path(args.review).write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"Review dump: {args.review}")
+        print(f"Specs: {len(overrides)}")
+        print(f"Rows: {total_rows}")
+        return 0
 
     validate(overrides, total_rows)
     update_target_file(render_overrides(overrides))

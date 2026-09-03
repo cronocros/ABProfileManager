@@ -5,26 +5,23 @@ ns.UI.ItemLevelOverlay = ItemLevelOverlay
 
 local FONT_PATH  = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local FONT_FLAGS = "OUTLINE"
-local FRAME_W    = 448
+local FRAME_W    = 472
 local TITLE_H    = 22
-local TAB_H      = 18
-local ROW_H      = 17
+local TAB_H      = 20
+local ROW_H      = 19
 local ROW_GAP    = 2
 local PADDING    = 6
-local CREST_LINE_H = 16
-local CREST_VALUE_W = 34
+local CREST_LINE_H = 18
+local CREST_VALUE_W = 38
 
 local TAB_GAP    = 2
 
--- 4열: 단(label) | 클리어보상(drop) | 드랍문장(crest) | 위대한금고(vault)
--- 우측에는 나의 문장을 고정 패널로 1회만 표시한다.
-local CREST_PANEL_W = 100
-local TABLE_GAP     = 0
+local CREST_STRIP_H = 44
 local CONTENT_W     = FRAME_W - 8
-local TABLE_W       = CONTENT_W - CREST_PANEL_W - TABLE_GAP
-local COL_DROP_X    = 80
-local COL_CREST_X   = 168
-local COL_VAULT_X   = 218
+local TABLE_W       = CONTENT_W
+local COL_DROP_X    = 102
+local COL_CREST_X   = 248
+local COL_VAULT_X   = 316
 
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
@@ -33,16 +30,14 @@ local SCALE_MAX  = 2.00
 local TAB_KEYS = { "overview", "mythicplus", "delves", "raid", "other" }
 local DELVE_RESTORED_KEY_CURRENCY_ID = 3028
 local DELVE_KEY_FRAGMENT_ITEM_ID = nil
-local DELVE_MAP_IDS = { 2395, 2413, 2405, 2437, 1270 }
+local DELVE_MAP_IDS = { 2512, 2395, 2413, 2405, 2437, 1270 }
 
--- Midnight 시즌 1 Dawncrest 통화 ID — 등급별 보유량 조회용
--- 인게임 확인 결과와 현 시즌 애드온 데이터 기준으로 보정한 값이다.
 local CREST_ID_BY_GRADE = {
-    adv  = 3383,
-    vet  = 3341,
-    chmp = 3343,
-    hero = 3345,
-    myth = 3347,
+    adv  = 3442,
+    vet  = 3443,
+    chmp = 3444,
+    hero = 3445,
+    myth = 3446,
 }
 
 local HEADER_COLOR = { 0.50, 0.58, 0.68 }
@@ -53,18 +48,17 @@ local GRADE_COLORS = {
     expl = { 0.62, 0.62, 0.62 },
     adv  = { 0.90, 0.90, 0.90 },
     vet  = { 0.30, 0.90, 0.30 },
-    chmp = { 0.28, 0.68, 1.00 },  -- 파랑
-    hero = { 0.72, 0.35, 1.00 },  -- 보라
-    myth = { 1.00, 0.20, 0.20 },  -- 빨강
+    chmp = { 0.28, 0.68, 1.00 },
+    hero = { 0.72, 0.35, 1.00 },
+    myth = { 1.00, 0.20, 0.20 },
 }
 
--- 드랍 문장 색상 (등급 색상과 동일)
 local CREST_COLORS = {
-    adv  = { 0.90, 0.90, 0.90 },  -- 밝은 회색 (모험가)
-    vet  = { 0.30, 0.90, 0.30 },  -- 초록 (노련가)
-    chmp = { 0.28, 0.68, 1.00 },  -- 파랑 (챔피언)
-    hero = { 0.72, 0.35, 1.00 },  -- 보라 (영웅)
-    myth = { 1.00, 0.20, 0.20 },  -- 빨강 (신화)
+    adv  = { 0.90, 0.90, 0.90 },
+    vet  = { 0.30, 0.90, 0.30 },
+    chmp = { 0.28, 0.68, 1.00 },
+    hero = { 0.72, 0.35, 1.00 },
+    myth = { 1.00, 0.20, 0.20 },
 }
 
 local function colorHex(r, g, b)
@@ -76,16 +70,7 @@ local function inlineColor(hex, text)
     return "|cFF" .. hex .. text .. "|r"
 end
 
--- ============================================================
--- 헬퍼
--- ============================================================
-
-local function getAverageItemLevel()
-    if type(GetAverageItemLevel) == "function" then
-        return math.floor((GetAverageItemLevel() or 0) + 0.5)
-    end
-    return 0
-end
+local getAverageItemLevel = ns.Utils.GetAverageItemLevel
 
 local function makeFS(parent, size, r, g, b)
     local fs = parent:CreateFontString(nil, "OVERLAY")
@@ -113,7 +98,6 @@ local function makeBtnText(btn, size, r, g, b)
     return fs
 end
 
--- 등급명에 인라인 색상 적용
 local function gradeRankColored(grade, rank, rankMax, showUnknownRank)
     if not grade then return "" end
     local name = ns.L("ilvl_crest_"..grade) or ns.L("ilvl_grade_"..grade) or grade
@@ -127,14 +111,12 @@ local function gradeRankColored(grade, rank, rankMax, showUnknownRank)
     return inlineColor(colorHex(gc[1], gc[2], gc[3]), name)
 end
 
--- 클리어 보상: 숫자(흰색, base color) + 등급명(인라인 색상)
 local function clearRewardStr(ilvl, grade, rank, rankMax, showUnknownRank)
     if not ilvl then return "" end
     local gp = gradeRankColored(grade, rank, rankMax, showUnknownRank)
     return gp ~= "" and (tostring(ilvl).." "..gp) or tostring(ilvl)
 end
 
--- 위대한 금고: 동일 포맷
 local function vaultClearStr(vault, vaultGrade, vaultRank, rankMax, showUnknownRank)
     if not vault then return "-" end
     return clearRewardStr(vault, vaultGrade, vaultRank, rankMax, showUnknownRank)
@@ -194,11 +176,6 @@ local function applyOverlayPoint(frame, anchorTarget)
     )
 end
 
--- ============================================================
--- 행 데이터 빌더
--- ============================================================
-
--- 나의 문장: crestDrop 등급에 해당하는 현재 보유량 조회
 local function getMyCount(grade)
     if not grade then return nil end
     local id = CREST_ID_BY_GRADE[grade]
@@ -302,7 +279,7 @@ local function getBestEffortBountifulDelveNames()
     end
 
     if #names == 0 then
-        names[1] = ns.L("ilvl_key_unknown")
+        return { ns.L("ilvl_key_unknown") }
     end
     _cachedBountifulDelveNames = names
     return names
@@ -340,7 +317,6 @@ local function formatDelveTierLabel(tier)
     return ns.L("ilvl_row_delve_tier", tostring(tier or ""))
 end
 
--- 열 헤더: 단 | 클리어보상 | 드랍문장 | 위대한금고
 local function colHeader(sourceKey, dropKey, vaultKey, crestKey)
     return {
         isColumnHeader = true,
@@ -351,7 +327,6 @@ local function colHeader(sourceKey, dropKey, vaultKey, crestKey)
     }
 end
 
--- 쐐기/던전 행
 local function mRow(label, e, avgIlvl)
     return {
         label      = label,
@@ -365,7 +340,6 @@ local function mRow(label, e, avgIlvl)
     }
 end
 
--- 레이드 행 (min~max 범위 + 주간보상)
 local function raidRow(key, e, avgIlvl)
     return {
         label      = ns.L(e.labelKey or ("ilvl_raid_"..key)),
@@ -379,7 +353,6 @@ local function raidRow(key, e, avgIlvl)
     }
 end
 
--- 구렁 행 (rank 없음)
 local function delveRow(label, e, avgIlvl)
     return {
         label      = label,
@@ -416,7 +389,6 @@ local function buildOverviewRows(avgIlvl)
         end
     end
 
-    -- 쐐기 (전체: heroic/mythic0 + endOfDungeon)
     if tbl.mythicPlus then
         rows[#rows+1] = { isHeader=true, label=mythicPlusSummaryText() }
         rows[#rows+1] = colHeader("ilvl_col_key", "ilvl_col_drop", "ilvl_col_vault", "ilvl_col_crest")
@@ -429,7 +401,6 @@ local function buildOverviewRows(avgIlvl)
         end
     end
 
-    -- 레이드 (전체)
     if tbl.raid then
         spacer()
         rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_raid")) }
@@ -440,7 +411,6 @@ local function buildOverviewRows(avgIlvl)
         end
     end
 
-    -- 구렁 (최고 단계만)
     if tbl.delves and #tbl.delves > 0 then
         spacer()
         rows[#rows+1] = { isHeader=true, label=sectionSummaryText(ns.L("ilvl_section_delves")) }
@@ -450,7 +420,6 @@ local function buildOverviewRows(avgIlvl)
         rows[#rows+1] = bountifulKeyRow(avgIlvl)
     end
 
-    -- 제작 (하단)
     if tbl.crafted then
         spacer()
         rows[#rows+1] = { isHeader=true, label=ns.L("ilvl_section_crafted") }
@@ -514,16 +483,29 @@ local function buildRaidRows(avgIlvl)
     end
     local wb = tbl.worldBoss
     if wb then
-        rows[#rows+1] = { isHeader=true, label="" }
-        rows[#rows+1] = {
-            label     = ns.L("ilvl_world_boss"),
-            dropStr   = clearRewardStr(wb.ilvl, wb.grade),
-            vaultStr  = "",
-            crestDrop = wb.crestDrop,
-            grade     = wb.grade,
-            highlight = avgIlvl > 0 and wb.ilvl > avgIlvl,
-            vaultHL   = false,
-        }
+
+        local wbEntries = {}
+        if wb.ilvl then
+            wbEntries[1] = wb
+        else
+            for _, key in ipairs({ "world", "normal", "heroic", "mythic" }) do
+                if wb[key] then wbEntries[#wbEntries+1] = wb[key] end
+            end
+        end
+        if #wbEntries > 0 then
+            rows[#rows+1] = { isHeader=true, label="" }
+            for _, e in ipairs(wbEntries) do
+                rows[#rows+1] = {
+                    label     = ns.L(e.labelKey or "ilvl_world_boss"),
+                    dropStr   = clearRewardStr(e.ilvl, e.grade),
+                    vaultStr  = "",
+                    crestDrop = e.crestDrop,
+                    grade     = e.grade,
+                    highlight = avgIlvl > 0 and (e.ilvl or 0) > avgIlvl,
+                    vaultHL   = false,
+                }
+            end
+        end
     end
     return rows
 end
@@ -578,10 +560,6 @@ local function buildOtherRows(avgIlvl)
     return rows
 end
 
--- ============================================================
--- 프레임 생성
--- ============================================================
-
 function ItemLevelOverlay:EnsureFrame()
     if self.frame then return self.frame end
 
@@ -627,26 +605,23 @@ function ItemLevelOverlay:EnsureFrame()
         setScale(f, delta * SCALE_STEP)
     end)
 
-    -- 타이틀 바
     local titleBar = frame:CreateTexture(nil, "BACKGROUND")
     titleBar:SetColorTexture(0.14, 0.14, 0.22, 0.80)
     titleBar:SetPoint("TOPLEFT",  frame, "TOPLEFT",  2, -2)
     titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -2, -2)
     titleBar:SetHeight(TITLE_H)
 
-    -- 메인 타이틀
-    local titleText = makeFS(frame, 12, 0.85, 0.85, 1.00)
+    local titleText = makeFS(frame, 13, 0.85, 0.85, 1.00)
     titleText:SetPoint("LEFT", titleBar, "LEFT", 6, 2)
     titleText:SetText(ns.L("ilvl_overlay_title"))
     frame.titleText = titleText
 
-    -- 스크롤 힌트 (작은 폰트)
-    local hintText = makeFS(frame, 9, 0.50, 0.50, 0.60)
+    local hintText = makeFS(frame, 10, 0.50, 0.50, 0.60)
     hintText:SetPoint("LEFT", titleText, "RIGHT", 4, 0)
     hintText:SetText(ns.L("ilvl_overlay_hint"))
     frame.hintText = hintText
 
-    local avgLabel = makeFS(frame, 10, 0.70, 0.70, 0.80)
+    local avgLabel = makeFS(frame, 11, 0.70, 0.70, 0.80)
     avgLabel:SetPoint("RIGHT", titleBar, "RIGHT", -66, 0)
     avgLabel:SetText("")
     frame.avgLabel = avgLabel
@@ -684,7 +659,6 @@ function ItemLevelOverlay:EnsureFrame()
     end)
     frame.toggleBtn = toggleBtn
 
-    -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
     local lockBtn = CreateFrame("Button", nil, frame)
     lockBtn:SetSize(18, 18)
     lockBtn:SetPoint("RIGHT", toggleBtn, "LEFT", -2, 0)
@@ -712,7 +686,6 @@ function ItemLevelOverlay:EnsureFrame()
     end)
     frame.lockBtn = lockBtn
 
-    -- ─── 위치 초기화 버튼 ─────────────────────────────────────
     local resetBtn = CreateFrame("Button", nil, frame)
     resetBtn:SetSize(18, 18)
     resetBtn:SetPoint("RIGHT", lockBtn, "LEFT", -2, 0)
@@ -738,7 +711,6 @@ function ItemLevelOverlay:EnsureFrame()
     attachHeaderButtonTooltip(resetBtn, "overlay_button_reset_title", ns.L("overlay_button_reset_body"))
     frame.resetBtn = resetBtn
 
-    -- 탭 행
     local tabRow = CreateFrame("Frame", nil, frame)
     tabRow:SetPoint("TOPLEFT",  titleBar, "BOTTOMLEFT",  0, -2)
     tabRow:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, -2)
@@ -762,19 +734,21 @@ function ItemLevelOverlay:EnsureFrame()
         bg:SetAllPoints()
         bg:SetColorTexture(0.15, 0.15, 0.25, 0.80)
         btn.bg = bg
-        makeBtnText(btn, 10, 0.70, 0.70, 0.80)
+        makeBtnText(btn, 11, 0.70, 0.70, 0.80)
         btn.tabKey = tabKey
         frame.tabs[i] = btn
     end
 
     local content = CreateFrame("Frame", nil, frame)
-    content:SetPoint("TOPLEFT",  tabRow, "BOTTOMLEFT",  2, -2)
-    content:SetPoint("RIGHT",    frame,  "RIGHT",       -4, 0)
+    content:SetPoint("TOPLEFT",  tabRow, "BOTTOMLEFT",   2, -2)
+    content:SetPoint("TOPRIGHT", tabRow, "BOTTOMRIGHT", -2, -2)
+    content:SetPoint("BOTTOM",   frame,  "BOTTOM",       0, PADDING)
     frame.content = content
 
     local crestPanel = CreateFrame("Frame", nil, content, "BackdropTemplate")
-    crestPanel:SetWidth(CREST_PANEL_W)
-    crestPanel:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, 0)
+    crestPanel:SetHeight(CREST_STRIP_H)
+    crestPanel:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 0, 0)
+    crestPanel:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", 0, 0)
     if crestPanel.SetBackdrop then
         crestPanel:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -787,64 +761,82 @@ function ItemLevelOverlay:EnsureFrame()
     end
     frame.crestPanel = crestPanel
 
-    local crestTitle = makeFS(crestPanel, 13, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
-    crestTitle:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -84)
-    crestTitle:SetJustifyH("LEFT")
-    crestTitle:SetText(ns.L("ilvl_col_my_crest"))
-    frame.crestTitle = crestTitle
+    frame.crestTitle = nil
 
+    local crestCellW = math.floor((CONTENT_W - 12) / #CREST_PANEL_GRADES)
     frame.crestLines = {}
     for i, _ in ipairs(CREST_PANEL_GRADES) do
         local line = CreateFrame("Frame", nil, crestPanel)
-        line:SetSize(CREST_PANEL_W - 10, CREST_LINE_H)
+        line:SetSize(crestCellW, CREST_LINE_H)
         if i == 1 then
-            line:SetPoint("TOPLEFT", crestTitle, "BOTTOMLEFT", 0, -6)
+            line:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -4)
         else
-            line:SetPoint("TOPLEFT", frame.crestLines[i-1], "BOTTOMLEFT", 0, -1)
+            line:SetPoint("TOPLEFT", frame.crestLines[i-1], "TOPRIGHT", 0, 0)
         end
-        line.label = makeFS(line, 14, 1, 1, 1)
+        line.label = makeFS(line, 12, 1, 1, 1)
         line.label:SetPoint("LEFT", line, "LEFT", 0, 0)
         line.label:SetPoint("RIGHT", line, "RIGHT", -CREST_VALUE_W, 0)
         line.label:SetJustifyH("LEFT")
+        if line.label.SetWordWrap then
+            line.label:SetWordWrap(false)
+        end
 
-        line.value = makeFS(line, 14, 1, 1, 1)
-        line.value:SetPoint("RIGHT", line, "RIGHT", 0, 0)
+        line.value = makeFS(line, 12, 1, 1, 1)
+        line.value:SetPoint("RIGHT", line, "RIGHT", -4, 0)
         line.value:SetWidth(CREST_VALUE_W)
         line.value:SetJustifyH("RIGHT")
 
         frame.crestLines[i] = line
     end
 
-    local keyDivider = crestPanel:CreateTexture(nil, "ARTWORK")
-    keyDivider:SetHeight(1)
-    keyDivider:SetPoint("TOPLEFT", frame.crestLines[#frame.crestLines], "BOTTOMLEFT", 0, -6)
-    keyDivider:SetPoint("TOPRIGHT", crestPanel, "TOPRIGHT", -6, -6)
-    keyDivider:SetColorTexture(0.28, 0.34, 0.46, 0.80)
-    frame.keyDivider = keyDivider
+    frame.keyDivider = nil
+    frame.keyTitle = nil
 
-    local keyTitle = makeFS(crestPanel, 13, HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3])
-    keyTitle:SetPoint("TOPLEFT", keyDivider, "BOTTOMLEFT", 0, -6)
-    keyTitle:SetJustifyH("LEFT")
-    keyTitle:SetText(ns.L("ilvl_col_my_key"))
-    frame.keyTitle = keyTitle
+    local keySummary = makeFS(crestPanel, 11, 1, 1, 1)
+    keySummary:SetPoint("TOPLEFT", crestPanel, "TOPLEFT", 6, -4 - CREST_LINE_H - 2)
+    keySummary:SetPoint("TOPRIGHT", crestPanel, "TOPRIGHT", -6, -4 - CREST_LINE_H - 2)
+    keySummary:SetJustifyH("LEFT")
+    if keySummary.SetWordWrap then
+        keySummary:SetWordWrap(false)
+    end
+    frame.keySummary = keySummary
+
+    local bountifulText = makeFS(crestPanel, 11, 1, 1, 1)
+    bountifulText:SetPoint("TOPLEFT", keySummary, "BOTTOMLEFT", 0, -3)
+    bountifulText:SetPoint("TOPRIGHT", keySummary, "BOTTOMRIGHT", 0, -3)
+    bountifulText:SetJustifyH("LEFT")
+    if bountifulText.SetWordWrap then
+        bountifulText:SetWordWrap(true)
+    end
+    if bountifulText.SetMaxLines then
+        bountifulText:SetMaxLines(2)
+    end
+    if bountifulText.SetSpacing then
+        bountifulText:SetSpacing(2)
+    end
+    frame.bountifulText = bountifulText
 
     frame.keyLines = {}
-    for i = 1, 7 do
-        local fontSize = (i >= 2 and i <= 5) and 9 or 10
-        local fs = makeFS(crestPanel, fontSize, 1, 1, 1)
-        if i == 1 then
-            fs:SetPoint("TOPLEFT", keyTitle, "BOTTOMLEFT", 0, -6)
-        else
-            fs:SetPoint("TOPLEFT", frame.keyLines[i-1], "BOTTOMLEFT", 0, -3)
+
+    crestPanel:EnableMouse(true)
+    crestPanel:SetScript("OnEnter", function(panel)
+        local lines = frame._keyDetailLines
+        if type(lines) ~= "table" or #lines == 0 then return end
+        GameTooltip:SetOwner(panel, "ANCHOR_TOP")
+        GameTooltip:ClearLines()
+        for _, text in ipairs(lines) do
+            GameTooltip:AddLine(text, 1, 1, 1, true)
         end
-        fs:SetWidth(CREST_PANEL_W - 10)
-        fs:SetJustifyH("LEFT")
-        frame.keyLines[i] = fs
-    end
+        GameTooltip:Show()
+    end)
+    crestPanel:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 
     local tableArea = CreateFrame("Frame", nil, content)
     tableArea:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
-    tableArea:SetPoint("RIGHT", crestPanel, "LEFT", -TABLE_GAP, 0)
+    tableArea:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, 0)
+    tableArea:SetPoint("BOTTOM", crestPanel, "TOP", 0, 4)
     frame.tableArea = tableArea
 
     frame.rows = {}
@@ -861,10 +853,6 @@ function ItemLevelOverlay:EnsureFrame()
     return frame
 end
 
--- ============================================================
--- 행 보장 (4열: 단 | 드랍 | 드랍문장 | 위대한금고)
--- ============================================================
-
 function ItemLevelOverlay:EnsureRow(index)
     if not self.frame then return nil end
     self.frame.rows = self.frame.rows or {}
@@ -873,8 +861,7 @@ function ItemLevelOverlay:EnsureRow(index)
     local row = CreateFrame("Frame", nil, self.frame.tableArea or self.frame.content)
     row:SetHeight(ROW_H)
 
-    -- 열1: 소스 (단/난이도)
-    row.label = makeFS(row, 11, 0.78, 0.78, 0.90)
+    row.label = makeFS(row, 13, 0.78, 0.78, 0.90)
     row.label:SetPoint("LEFT", row, "LEFT", 4, 0)
     row.label:SetWidth(COL_DROP_X - 6)
     row.label:SetJustifyH("LEFT")
@@ -882,8 +869,7 @@ function ItemLevelOverlay:EnsureRow(index)
         row.label:SetWordWrap(false)
     end
 
-    -- 열2: 클리어 보상 (ilvl + 등급 + rank)
-    row.drop = makeFS(row, 10, 0.96, 0.86, 0.60)
+    row.drop = makeFS(row, 12, 0.96, 0.86, 0.60)
     row.drop:SetPoint("LEFT", row, "LEFT", COL_DROP_X, 0)
     row.drop:SetWidth(COL_CREST_X - COL_DROP_X - 2)
     row.drop:SetJustifyH("LEFT")
@@ -891,8 +877,7 @@ function ItemLevelOverlay:EnsureRow(index)
         row.drop:SetWordWrap(false)
     end
 
-    -- 열3: 드랍 문장
-    row.crest = makeFS(row, 10, 0.70, 0.70, 0.80)
+    row.crest = makeFS(row, 12, 0.70, 0.70, 0.80)
     row.crest:SetPoint("LEFT", row, "LEFT", COL_CREST_X, 0)
     row.crest:SetWidth(COL_VAULT_X - COL_CREST_X - 2)
     row.crest:SetJustifyH("LEFT")
@@ -900,8 +885,7 @@ function ItemLevelOverlay:EnsureRow(index)
         row.crest:SetWordWrap(false)
     end
 
-    -- 열4: 위대한 금고
-    row.vault = makeFS(row, 10, 0.55, 0.85, 0.55)
+    row.vault = makeFS(row, 12, 0.55, 0.85, 0.55)
     row.vault:SetPoint("LEFT", row, "LEFT", COL_VAULT_X, 0)
     row.vault:SetWidth(TABLE_W - COL_VAULT_X - 4)
     row.vault:SetJustifyH("LEFT")
@@ -958,12 +942,6 @@ function ItemLevelOverlay:RefreshSidePanel()
         return
     end
 
-    if frame.crestTitle then
-        frame.crestTitle:SetText(ns.L("ilvl_col_my_crest"))
-    end
-    if frame.keyTitle then
-        frame.keyTitle:SetText(ns.L("ilvl_col_my_key"))
-    end
     if not frame.crestPanel then
         return
     end
@@ -980,24 +958,57 @@ function ItemLevelOverlay:RefreshSidePanel()
     end
 
     local keyLines = getMyKeyLines()
-    for i, fs in ipairs(frame.keyLines or {}) do
-        fs:SetText(keyLines[i] or "")
-        if i == 1 then
-            fs:SetTextColor(0.70, 0.84, 1.00, 1)
-        elseif i <= 5 then
-            fs:SetTextColor(0.92, 0.94, 1.00, 1)
-        else
-            fs:SetTextColor(1.00, 0.84, 0.46, 1)
+    frame._keyDetailLines = keyLines
+
+    if frame.keySummary then
+        local fragments = DELVE_KEY_FRAGMENT_ITEM_ID and getItemCountByID(DELVE_KEY_FRAGMENT_ITEM_ID) or nil
+        local restored = getCurrencyCount(DELVE_RESTORED_KEY_CURRENCY_ID)
+        local valueHex = colorHex(1.00, 0.84, 0.46)
+        local labelHex = colorHex(0.68, 0.82, 1.00)
+        local parts = {
+            string.format("%s %s", inlineColor(labelHex, ns.L("ilvl_key_restored")),
+                inlineColor(valueHex, restored ~= nil and tostring(restored) or "0")),
+        }
+        if fragments ~= nil then
+            parts[#parts + 1] = string.format("%s %s", inlineColor(labelHex, ns.L("ilvl_key_fragments")),
+                inlineColor(valueHex, tostring(fragments)))
         end
+        frame.keySummary:SetText(table.concat(parts, "   "))
     end
 
-    local crestPanelH = 146 + (#CREST_PANEL_GRADES * (CREST_LINE_H + 2)) + (#(frame.keyLines or {}) * 16)
-    frame.crestPanel:SetHeight(crestPanelH)
-end
+    if frame.bountifulText then
+        local names = getBestEffortBountifulDelveNames()
+        local labelHex = colorHex(0.68, 0.82, 1.00)
+        local nameHex = colorHex(0.92, 0.94, 1.00)
+        local shown = {}
+        for i = 1, 4 do
+            local name = names[i]
+            if name and name ~= "" then
+                shown[#shown + 1] = inlineColor(nameHex, name)
+            end
+        end
+        if #shown == 0 then
+            shown[1] = inlineColor(colorHex(0.55, 0.57, 0.62), ns.L("ilvl_key_unknown"))
+        end
+        frame.bountifulText:SetText(string.format("%s  %s",
+            inlineColor(labelHex, ns.L("ilvl_key_bountiful")),
+            table.concat(shown, "  ·  ")))
+    end
 
--- ============================================================
--- 탭 선택 / 최소화
--- ============================================================
+    local panelHeight = 4 + CREST_LINE_H + 2
+    if frame.keySummary then
+        local keyHeight = frame.keySummary.GetStringHeight and frame.keySummary:GetStringHeight() or 0
+        panelHeight = panelHeight + math.max(tonumber(keyHeight) or 0, 12) + 3
+    end
+    if frame.bountifulText then
+        local bountifulHeight = frame.bountifulText.GetStringHeight and frame.bountifulText:GetStringHeight() or 0
+        panelHeight = panelHeight + math.max(tonumber(bountifulHeight) or 0, 12) + 5
+    end
+
+    local finalHeight = math.max(CREST_STRIP_H, math.floor(panelHeight + 0.5))
+    frame.crestPanel:SetHeight(finalHeight)
+    self._sidePanelHeight = finalHeight
+end
 
 function ItemLevelOverlay:SelectTab(tabKey)
     self.currentTab = tabKey or "overview"
@@ -1013,10 +1024,6 @@ function ItemLevelOverlay:ToggleCollapsed()
     if config then config.collapsed = self.collapsed end
     self:UpdateLayout()
 end
-
--- ============================================================
--- 컨텐츠 재구성
--- ============================================================
 
 function ItemLevelOverlay:RebuildContent(avgIlvl)
     local frame = self.frame
@@ -1040,8 +1047,9 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
         local row = self:EnsureRow(i)
         if not row then break end
         row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", frame.tableArea or frame.content, "TOPLEFT", 0, -yOffset)
-        row:SetPoint("RIGHT",   frame.tableArea or frame.content, "RIGHT",   0, 0)
+        local rowParent = frame.tableArea or frame.content
+        row:SetPoint("TOPLEFT",  rowParent, "TOPLEFT",  0, -yOffset)
+        row:SetPoint("TOPRIGHT", rowParent, "TOPRIGHT", 0, -yOffset)
         row:Show()
 
         if data.isSpacer then
@@ -1053,16 +1061,16 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
         elseif data.isColumnHeader then
             local cr, cg, cb = HEADER_COLOR[1], HEADER_COLOR[2], HEADER_COLOR[3]
             row.label:SetWidth(COL_DROP_X - 6)
-            row.label:SetFont(FONT_PATH, 9, FONT_FLAGS); row.label:SetTextColor(cr,cg,cb,1); row.label:SetText(data.label or "")
-            row.drop:SetFont(FONT_PATH, 9, FONT_FLAGS);  row.drop:SetTextColor(cr,cg,cb,1);  row.drop:SetText(data.dropStr or "")
-            row.vault:SetFont(FONT_PATH, 9, FONT_FLAGS); row.vault:SetTextColor(cr,cg,cb,1); row.vault:SetText(data.vaultStr or "")
-            row.crest:SetFont(FONT_PATH, 9, FONT_FLAGS); row.crest:SetTextColor(cr,cg,cb,1); row.crest:SetText(data.crestStr or "")
+            row.label:SetFont(FONT_PATH, 11, FONT_FLAGS); row.label:SetTextColor(cr,cg,cb,1); row.label:SetText(data.label or "")
+            row.drop:SetFont(FONT_PATH, 11, FONT_FLAGS);  row.drop:SetTextColor(cr,cg,cb,1);  row.drop:SetText(data.dropStr or "")
+            row.vault:SetFont(FONT_PATH, 11, FONT_FLAGS); row.vault:SetTextColor(cr,cg,cb,1); row.vault:SetText(data.vaultStr or "")
+            row.crest:SetFont(FONT_PATH, 11, FONT_FLAGS); row.crest:SetTextColor(cr,cg,cb,1); row.crest:SetText(data.crestStr or "")
             row:SetHeight(ROW_H - 2)
             yOffset = yOffset + (ROW_H - 2) + ROW_GAP + 1
 
         elseif data.isHeader then
             row.label:SetWidth(TABLE_W - 10)
-            row.label:SetFont(FONT_PATH, 10, FONT_FLAGS)
+            row.label:SetFont(FONT_PATH, 12, FONT_FLAGS)
             row.label:SetTextColor(0.65, 0.85, 1.00, 1)
             row.label:SetText(data.label or "")
             row.drop:SetText(""); row.vault:SetText(""); row.crest:SetText("")
@@ -1071,16 +1079,15 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
 
         else
             row.label:SetWidth(COL_DROP_X - 6)
-            row.label:SetFont(FONT_PATH, 11, FONT_FLAGS)
-            row.drop:SetFont(FONT_PATH, 10, FONT_FLAGS)
-            row.vault:SetFont(FONT_PATH, 10, FONT_FLAGS)
-            row.crest:SetFont(FONT_PATH, 10, FONT_FLAGS)
+            row.label:SetFont(FONT_PATH, 13, FONT_FLAGS)
+            row.drop:SetFont(FONT_PATH, 12, FONT_FLAGS)
+            row.vault:SetFont(FONT_PATH, 12, FONT_FLAGS)
+            row.crest:SetFont(FONT_PATH, 12, FONT_FLAGS)
 
             local up = data.highlight
             row.label:SetTextColor(up and 0.95 or 0.68, up and 0.95 or 0.68, up and 0.95 or 0.75, 1)
             row.label:SetText(data.label or "")
 
-            -- 클리어 보상: 숫자는 base color(흰색/녹색), 등급명은 인라인 색상
             if up then
                 row.drop:SetTextColor(0.40, 0.94, 0.55, 1)
             else
@@ -1088,7 +1095,6 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
             end
             row.drop:SetText(data.dropStr or "")
 
-            -- 위대한 금고 열
             local vs = data.vaultStr or ""
             if vs == "" or vs == "-" then
                 row.vault:SetTextColor(0.35, 0.35, 0.38, 1)
@@ -1102,7 +1108,6 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
                 row.vault:SetText(vs)
             end
 
-            -- 드랍 문장 열 (인라인 색상)
             if data.crestDrop then
                 local cc = CREST_COLORS[data.crestDrop] or { 0.70, 0.70, 0.80 }
                 local hex = colorHex(cc[1], cc[2], cc[3])
@@ -1124,14 +1129,11 @@ function ItemLevelOverlay:RebuildContent(avgIlvl)
     end
 
     local crestPanelH = frame.crestPanel and frame.crestPanel:GetHeight() or 0
-    self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + math.max(yOffset, crestPanelH + 4) + PADDING
+    self._layoutSidePanelHeight = crestPanelH
+    self.contentHeight = TITLE_H + 4 + (TAB_H + 4) + yOffset + crestPanelH + 6 + PADDING
     self._lastContentSignature = self:BuildContentSignature(avgIlvl)
     self:UpdateLayout()
 end
-
--- ============================================================
--- 레이아웃
--- ============================================================
 
 function ItemLevelOverlay:UpdateLayout()
     local frame = self.frame
@@ -1151,17 +1153,12 @@ function ItemLevelOverlay:UpdateLayout()
     end
 end
 
--- ============================================================
--- Refresh / Initialize
--- ============================================================
-
 function ItemLevelOverlay:Refresh()
     if not ns.DB or not ns.DB:IsItemLevelOverlayEnabled() then
         if self.frame then self.frame:Hide() end
         return
     end
 
-    -- 파티찾기(PVEFrame)가 열려있을 때만 표시
     local pve = PVEFrame or LFGParentFrame
     if not pve or not pve:IsShown() then
         if self.frame then self.frame:Hide() end
@@ -1178,6 +1175,9 @@ function ItemLevelOverlay:Refresh()
     else
         self:RefreshHeader(avgIlvl)
         self:RefreshSidePanel()
+        if self._sidePanelHeight ~= self._layoutSidePanelHeight then
+            self:RebuildContent(avgIlvl)
+        end
     end
     self.frame:Show()
 end
@@ -1186,7 +1186,6 @@ function ItemLevelOverlay:Initialize()
     if self._initialized then return end
     self._initialized = true
 
-    -- PVEFrame (파티찾기) 전용 연동
     local function setupPVEHooks()
         local pve = PVEFrame or LFGParentFrame
         if not pve then return false end
@@ -1205,7 +1204,6 @@ function ItemLevelOverlay:Initialize()
             if self.frame then self.frame:Hide() end
         end)
 
-        -- 이미 열려 있으면 즉시 표시
         if pve:IsShown() and ns.DB and ns.DB:IsItemLevelOverlayEnabled() then
             self:EnsureFrame()
             if self.frame then

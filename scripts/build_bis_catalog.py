@@ -21,16 +21,27 @@ import requests
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OVERALL_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData_Method.lua"
-FALLBACK_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData.lua"
-DOC_FINAL_FILE = REPO_ROOT / "DOC" / "wow_midnight_s1_mplus_bis_final.md"
-DOC_COMPANION_FILE = REPO_ROOT / "DOC" / "wow_midnight_s1_mplus_bis_korean_companion.md"
-ADDON_DB_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.3.lua"
 TARGET_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
 STAT_PRIORITIES_TARGET_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorities.lua"
 STAT_PRIORITY_TABLE_TARGET_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "StatPriorityTable.lua"
 WAGO_DB2_INDEX_URL = "https://wago.tools/db2"
 WAGO_DB2_URL_TEMPLATE = "https://wago.tools/db2/{table}/csv?build={build}{locale_param}"
-RETAIL_DB2_PREFIX = "12.0.1."
+def retail_db2_prefix() -> str:
+    """TOC의 Interface 번호에서 DB2 빌드 접두사를 만든다.
+
+    시즌 1에는 "12.0.1."이 하드코딩돼 있었다. 클라이언트가 12.1.0으로 올라간
+    뒤에도 옛 빌드를 계속 읽어 신규 아이템 메타데이터를 찾지 못했다. TOC에서
+    유도하면 다음 패치에도 따라간다. Interface 120100은 12.1.0을 뜻한다.
+    """
+    toc = (REPO_ROOT / "ABProfileManager" / "ABProfileManager.toc").read_text(encoding="utf-8")
+    match = re.search(r"^##\s*Interface:\s*(\d+)", toc, re.M)
+    if not match:
+        raise ValueError("ABProfileManager.toc: Interface 번호를 찾지 못했다")
+    number = match.group(1)
+    return f"{int(number[:-4])}.{int(number[-4:-2])}.{int(number[-2:])}."
+
+
+RETAIL_DB2_PREFIX = retail_db2_prefix()
 REQUEST_TIMEOUT_SECONDS = 120
 
 DOC_SECTION_SPEC_IDS = {
@@ -227,12 +238,12 @@ MPLUS_REWARD_PROFILES = {
         "rewardContext": "end_of_dungeon",
         "rewardContextLabel": "던전 종료",
         "minKeystoneLevel": 10,
-        "itemLevel": 266,
+        "itemLevel": 311,
         "upgradeTrack": "Hero",
         "upgradeTrackKo": "영웅",
         "upgradeRank": "3/6",
         "displayLabel": "쐐기 영웅 트랙",
-        "fullLabel": "쐐기 영웅 트랙 3/6 · 266 · 던전 종료 · M+10 이상",
+        "fullLabel": "쐐기 영웅 트랙 3/6 · 311 · 던전 종료 · M+10 이상",
         "itemString": None,
         "itemLink": None,
     },
@@ -242,12 +253,12 @@ MPLUS_REWARD_PROFILES = {
         "rewardContext": "great_vault_voidcore",
         "rewardContextLabel": "위대한 금고/Voidcore",
         "minKeystoneLevel": 10,
-        "itemLevel": 272,
+        "itemLevel": 318,
         "upgradeTrack": "Myth",
         "upgradeTrackKo": "신화",
         "upgradeRank": "1/6",
         "displayLabel": "쐐기 신화 트랙",
-        "fullLabel": "쐐기 신화 트랙 1/6 · 272 · 위대한 금고/Voidcore · M+10 이상",
+        "fullLabel": "쐐기 신화 트랙 1/6 · 318 · 위대한 금고/Voidcore · M+10 이상",
         "itemString": None,
         "itemLink": None,
     },
@@ -272,52 +283,32 @@ DOC_TIER_LINE_RE = re.compile(r"^- ([^:]+):\s*\*\*([^*]+)\*\*(?:\s*[-—]\s*item
 COMPANION_RE = re.compile(r"^- \*\*([^*]+)\*\* \(([^)]+)\)")
 
 DUNGEON_DATA = {
-    "마법학자의 정원": {
-        "en": "Magisters' Terrace",
-        "aliases": ("마법학자의 정원", "magisters' terrace", "magister's terrace", "magisters terrace"),
+    "송곳니의 제단": {"en": "Altar of Fangs", "aliases": ("송곳니의 제단", "altar of fangs")},
+    "죽음의 골목": {"en": "Murder Row", "aliases": ("죽음의 골목", "murder row")},
+    "날로라크의 소굴": {"en": "Den of Nalorakk", "aliases": ("날로라크의 소굴", "den of nalorakk")},
+    "눈부신 골짜기": {
+        "en": "The Blinding Vale",
+        "aliases": ("눈부신 골짜기", "the blinding vale", "blinding vale"),
     },
-    "마이사라 동굴": {"en": "Maisara Caverns", "aliases": ("마이사라 동굴", "maisara caverns")},
-    "제나스 지점": {
-        "en": "Nexus-Point Xenas",
-        "aliases": (
-            "제나스 지점", "공결탑 제나스", "공결점 제나스",
-            "nexus-point xenas", "nexus point xenas", "nexus-point",
-        ),
+    "공허흉터 투기장": {"en": "Voidscar Arena", "aliases": ("공허흉터 투기장", "voidscar arena")},
+    "왕들의 안식처": {
+        "en": "Kings' Rest",
+        "aliases": ("왕들의 안식처", "kings' rest", "king's rest", "kings rest"),
     },
-    "윈드러너 첨탑": {"en": "Windrunner Spire", "aliases": ("윈드러너 첨탑", "windrunner spire")},
-    "알게타르 대학": {
-        "en": "Algeth'ar Academy",
-        "aliases": ("알게타르 대학", "알게타르 아카데미", "algeth'ar academy", "algethar academy"),
+    "세스랄리스 사원": {
+        "en": "Temple of Sethraliss",
+        "aliases": ("세스랄리스 사원", "temple of sethraliss"),
     },
-    "삼두정의 권좌": {"en": "Seat of the Triumvirate", "aliases": ("삼두정의 권좌", "seat of the triumvirate")},
-    "하늘탑": {"en": "Skyreach", "aliases": ("하늘탑", "skyreach")},
-    "사론의 구덩이": {"en": "Pit of Saron", "aliases": ("사론의 구덩이", "pit of saron")},
+    "루비 생명의 웅덩이": {
+        "en": "Ruby Life Pools",
+        "aliases": ("루비 생명의 웅덩이", "ruby life pools"),
+    },
 }
 
 RAID_SOURCE_DATA = {
-    "공허 첨탑": {
-        "en": "The Voidspire",
-        "aliases": ("공허 첨탑", "공허첨탑", "the voidspire", "공허첨탑(the voidspire)", "공허 첨탑(the voidspire)"),
-    },
-    "꿈의 균열": {
-        "en": "The Dreamrift",
-        "aliases": ("꿈의 균열", "꿈의균열", "the dreamrift", "꿈의 균열(the dreamrift)", "꿈의균열(the dreamrift)"),
-    },
-    "쿠엘다나스 진격로": {
-        "en": "March on Quel'Danas",
-        "aliases": (
-            "쿠엘다나스 진격로",
-            "쿠엘다나스행군",
-            "쿠엘다나스 행군",
-            "march on quel'danas",
-            "march on quel’danas",
-            "쿠엘다나스 행군(march on quel'danas)",
-            "쿠엘다나스 행군(march on quel’danas)",
-        ),
-    },
-    "진균나락": {
-        "en": "Sporefall",
-        "aliases": ("진균나락", "sporefall", "진균나락(sporefall)"),
+    "맹독 심연": {
+        "en": "The Venomous Abyss",
+        "aliases": ("맹독 심연", "맹독심연", "the venomous abyss", "venomous abyss"),
     },
 }
 
@@ -334,6 +325,22 @@ ZONE_ID_TO_DUNGEON = {
 
 SOURCE_DETAIL_KOKR = {
     "Raid": "레이드",
+    # 시즌 2 맹독 심연 8보스. 공식 한국어 Blizzard 소식(울라텍의 저주 공격대
+    # 안내)에서 확인한 이름이다. 임의 번역이 아니다.
+    "Nek'zali the Soulcoiler": "영혼살무사 네크잘리",
+    "Nek’zali the Soulcoiler": "영혼살무사 네크잘리",
+    "Entombed Sentinels": "매장된 파수꾼",
+    "The Lost Explorers": "길 잃은 탐험가",
+    "Vashnik the Malignant": "악성의 바쉬니크",
+    "Sszorak": "스조라크",
+    "The Twin Fangs": "쌍둥이 송곳니",
+    "The Coiled Altar": "똬리의 제단",
+    "Ula'tek": "울라텍",
+    "Ula’tek": "울라텍",
+    # Lair 보스. 인게임 아이템 툴팁에서 확인한 한글명이다.
+    "Nymrissa Wavecaller": "님리사 웨이브콜러",
+    "BoE Trash Drop": "쓰레기 몹 드랍",
+    "Token": "징표",
     "Crafting": "제작",
     "Blacksmithing": "대장기술",
     "Leatherworking": "가죽세공",
@@ -2425,6 +2432,74 @@ def render_catalog(
     return "\n".join(lines)
 
 
+SCORING_POLICY_FILE = REPO_ROOT / "DOC" / "MidnightS1_MPlus_Addon_DB_v1.7.lua"
+SCORING_SPEC_ALIASES = {
+    "DRUID_RESTO": "DRUID_RESTORATION",
+    "HUNTER_BEASTMASTERY": "HUNTER_BEAST_MASTERY",
+    "PRIEST_DISC": "PRIEST_DISCIPLINE",
+}
+
+
+def extract_spec_policy_block(path: Path) -> str:
+    """기존 카탈로그에서 `ns.Data.BISSpecPolicies` 블록을 그대로 떼어 온다.
+
+    이 블록은 12.0.5 기준으로 동결된 전문화별 스탯 우선순위 정책이다. 시즌이
+    바뀌어도 값이 그대로여야 하므로 재생성하지 않고 옮긴다.
+    """
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8")
+    marker = "ns.Data.BISSpecPolicies = {"
+    start = text.find(marker)
+    if start < 0:
+        return ""
+    end = text.find("\n}\n", start)
+    if end < 0:
+        return text[start:].rstrip("\n") + "\n"
+    return text[start:end + 3]
+
+
+def load_scoring_spec_policies() -> Dict[int, Dict[str, object]]:
+    """v1.7 컴팩트 코어에서 전문화별 스탯 우선순위 정책을 읽는다.
+
+    카탈로그 행에는 어떤 근거로 정적 후보를 골랐는지 남기는 메타데이터가 붙는다.
+    시즌 1 후보 시드를 쓰던 경로에서는 그 시드가 정책을 함께 들고 있었지만,
+    와우헤드 overall만 쓰는 경로에는 정책이 없다. 스탯 우선순위는 12.0.5 기준
+    으로 동결된 값이므로 v1.7 입력에서 그대로 가져온다.
+    """
+    text = SCORING_POLICY_FILE.read_text(encoding="utf-8")
+    match = re.search(
+        r"DB\.SPECS\s*=\s*\{\n(?P<body>.*?)\n\}\n\nlocal function", text, re.S
+    )
+    if not match:
+        raise ValueError(f"{SCORING_POLICY_FILE.name}: DB.SPECS 블록을 찾지 못했다")
+
+    policies: Dict[int, Dict[str, object]] = {}
+    for raw_key, raw in re.findall(r"^\s{2}([A-Z0-9_]+)\s*=\s*\{(.*)\},\s*$", match.group("body"), re.M):
+        spec_key = SCORING_SPEC_ALIASES.get(raw_key, raw_key)
+        spec_id = SPEC_KEY_TO_ID.get(spec_key)
+        if not spec_id:
+            raise ValueError(f"알 수 없는 전문화 키: {raw_key}")
+        priority = re.search(r'priority="([^"]*)"', raw)
+        policies[spec_id] = {
+            "secondaryPriority": priority.group(1) if priority else "",
+            "statPriorityVerified": True,
+            "bisValidationLevel": "STRICT_STATIC_DB_CANNOT_CERTIFY_FINAL_BIS__RUNTIME_SIM_REQUIRED",
+        }
+    if len(policies) != len(SPEC_NAMES):
+        raise ValueError(f"전문화 {len(SPEC_NAMES)}개를 기대했으나 {len(policies)}개를 읽었다")
+    return policies
+
+
+def apply_scoring_metadata(catalog: Dict[int, List[Dict[str, object]]]) -> None:
+    """정적 후보 행에 검증 메타데이터를 붙인다."""
+    policies = load_scoring_spec_policies()
+    for spec_id, rows in catalog.items():
+        policy = policies[spec_id]
+        for row in rows:
+            row.update(addon_db_validation_meta(policy, str(row["sourceGroup"])))
+
+
 def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
     if len(catalog) != len(SPEC_NAMES):
         raise ValueError(f"Expected {len(SPEC_NAMES)} specs, got {len(catalog)}")
@@ -2450,9 +2525,9 @@ def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
                 vault_profile = profiles.get("mplus_great_vault_voidcore")
                 if not isinstance(end_profile, dict) or not isinstance(vault_profile, dict):
                     raise ValueError(f"Mythic+ row has incomplete rewardProfiles in spec {spec_id}, item {row['itemID']}")
-                if end_profile.get("upgradeTrack") != "Hero" or int(end_profile.get("itemLevel") or 0) != 266:
+                if end_profile.get("upgradeTrack") != "Hero" or int(end_profile.get("itemLevel") or 0) != 311:
                     raise ValueError(f"Invalid M+ end reward profile in spec {spec_id}, item {row['itemID']}")
-                if vault_profile.get("upgradeTrack") != "Myth" or int(vault_profile.get("itemLevel") or 0) != 272:
+                if vault_profile.get("upgradeTrack") != "Myth" or int(vault_profile.get("itemLevel") or 0) != 318:
                     raise ValueError(f"Invalid M+ vault reward profile in spec {spec_id}, item {row['itemID']}")
                 for profile_key, profile in profiles.items():
                     if not isinstance(profile, dict):
@@ -2523,37 +2598,30 @@ def validate_catalog(catalog: Dict[int, List[Dict[str, object]]]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build ABProfileManager BIS catalog.")
     parser.add_argument(
-        "--xlsx",
-        type=Path,
-        help="Optional Midnight S1 12.0.5 BIS xlsx source. Uses Long_ID as the catalog source.",
-    )
-    parser.add_argument(
-        "--addon-db",
-        nargs="?",
-        const=ADDON_DB_FILE,
-        type=Path,
-        help="Optional Midnight S1 addon Lua DB source. Defaults to DOC/MidnightS1_MPlus_Addon_DB_v1.3.lua.",
+        "--overall-only",
+        action="store_true",
+        help=(
+            "BISData_Method.lua의 와우헤드 overall 데이터만으로 카탈로그를 만든다. "
+            "시즌 1 후보 시드와 시즌 1 문서 입력을 섞지 않는다."
+        ),
     )
     args = parser.parse_args()
 
     spec_policies = None
-    if args.addon_db:
-        preserved_rows = parse_existing_catalog_rows(TARGET_FILE)
-        catalog, spec_policies = build_catalog_rows_from_addon_db(args.addon_db, preserved_rows)
-    else:
-        overall_rows = parse_overall_rows(OVERALL_FILE)
-        fallback_rows = parse_fallback_rows(FALLBACK_FILE)
-        companion_map = parse_companion_map(DOC_COMPANION_FILE)
-    if args.addon_db:
-        pass
-    elif args.xlsx:
-        xlsx_rows = parse_xlsx_rows(args.xlsx)
-        catalog = build_catalog_rows_from_xlsx(xlsx_rows, overall_rows + fallback_rows, companion_map)
-    else:
-        doc_rows = parse_doc_rows(DOC_FINAL_FILE)
-        catalog = build_catalog_rows(overall_rows, fallback_rows, doc_rows, companion_map)
+    preserved_policy_block = ""
+    if True:
+        # BISSpecPolicies는 12.0.5 기준으로 동결된 스탯 우선순위 정책이다.
+        # 와우헤드 overall 경로는 이 블록을 만들어내지 않으므로 기존 카탈로그의
+        # 블록을 그대로 옮긴다. 정책을 갱신하려면 v1.7 입력을 고치고
+        # scripts/build_bis_runtime_scoring.py를 돌린다.
+        preserved_policy_block = extract_spec_policy_block(TARGET_FILE)
+        catalog = build_catalog_rows(parse_overall_rows(OVERALL_FILE), [], [], {})
+        apply_scoring_metadata(catalog)
     validate_catalog(catalog)
-    TARGET_FILE.write_text(render_catalog(catalog, spec_policies), encoding="utf-8")
+    rendered = render_catalog(catalog, spec_policies)
+    if preserved_policy_block:
+        rendered = rendered.rstrip("\n") + "\n\n" + preserved_policy_block
+    TARGET_FILE.write_text(rendered, encoding="utf-8")
     print(f"Updated {TARGET_FILE}")
     if spec_policies and all(policy.get("secondaryOrder") for policy in spec_policies.values()):
         STAT_PRIORITIES_TARGET_FILE.write_text(render_stat_priorities(spec_policies), encoding="utf-8")

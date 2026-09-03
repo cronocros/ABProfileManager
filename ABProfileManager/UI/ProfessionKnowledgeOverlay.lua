@@ -102,16 +102,7 @@ local function createHeaderGlyphButton(parent, text)
     return button
 end
 
-local function colorize(text, colorHex)
-    local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
-    if #hex == 6 then
-        hex = "ff" .. hex
-    end
-    if #hex ~= 8 then
-        hex = "ffffffff"
-    end
-    return string.format("|c%s%s|r", hex, tostring(text or ""))
-end
+local colorize = ns.Utils.Colorize
 
 local function getOverlayConfig()
     return ns.DB and ns.DB:GetProfessionKnowledgeOverlayConfig() or ns.Data.Defaults.ui.professionKnowledgeOverlay
@@ -258,9 +249,7 @@ local function getWeeklyResetRemainingParts()
     return days, hours, minutes
 end
 
-local function isKoreanOverlay()
-    return ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN)
-end
+local isKoreanOverlay = ns.Utils.IsKoreanLanguageSelected
 
 local function getDetailPrefixText(sectionKey)
     if isKoreanOverlay() then
@@ -1248,8 +1237,6 @@ function ProfessionKnowledgeOverlay:RefreshInternal()
     )
     self.frame:SetSize(width, math.max(MIN_HEIGHT, totalHeight))
 
-    -- 프레임 실제 너비에 맞게 각 row와 내부 텍스트 너비를 재조정한다.
-    -- contentWidth를 크게 잡아 측정하는 방식이므로, 확정된 width 기준으로 두 번째 pass가 필요하다.
     local finalContentWidth = width - (PADDING_X * 2) - 18
     local finalDetailPrefixWidth = getDetailPrefixWidth()
     local finalDetailWidth = math.max(finalContentWidth - ICON_SIZE - 8 - finalDetailPrefixWidth - 6, 120)

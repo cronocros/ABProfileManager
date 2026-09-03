@@ -52,29 +52,9 @@ local function safeIsSpellKnown(spellID)
     return false
 end
 
-local function isEmptyRecord(record)
-    return not record or not record.kind or record.kind == "empty"
-end
+local isEmptyRecord = ns.Utils.IsEmptyRecord
 
-local function buildRecordSignature(record)
-    if isEmptyRecord(record) then
-        return "empty"
-    end
-
-    if record.kind == "spell" or record.kind == "item" or record.kind == "equipmentset" then
-        return string.format("%s:%s", tostring(record.kind), tostring(record.id))
-    end
-
-    if record.kind == "macro" then
-        return string.format(
-            "macro:%s:%s",
-            tostring(record.name or ""),
-            tostring(record.macroBody or "")
-        )
-    end
-
-    return string.format("%s:%s:%s", tostring(record.kind), tostring(record.id), tostring(record.name))
-end
+local buildRecordSignature = ns.Utils.BuildRecordSignature
 
 local function itemIsAvailable(itemID)
     if not itemID then
@@ -592,8 +572,7 @@ function ActionBarApplier:ReconcilePendingGhosts()
 end
 
 function ActionBarApplier:RetryPendingGhosts()
-    -- 처리할 ghost 가 없으면 silently 종료. ACTIONBAR_SLOT_CHANGED 등이 매우
-    -- 빈번하게 발화되므로 빈 retry 가 디버그 로그 버퍼를 폭주시키지 않게 한다.
+
     if not next(self.pendingGhosts) then
         self._lastRetrySkipReason = nil
         return
@@ -610,7 +589,7 @@ function ActionBarApplier:RetryPendingGhosts()
     end
 
     if skipReason then
-        -- skip 사유가 바뀔 때만 1회 로그. 동일 사유의 연속 호출은 suppress.
+
         if skipReason ~= self._lastRetrySkipReason then
             ns.Utils.Debug("Ghost retry skipped: " .. skipReason)
             self._lastRetrySkipReason = skipReason

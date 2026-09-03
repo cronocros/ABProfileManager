@@ -1,7 +1,3 @@
--- ABPM_ruRU_Final.lua
--- Clean ruRU localization extension for ABProfileManager.
--- Load after Locale.lua, Locale_Additions.lua, DB.lua and UI/ConfigPanel.lua.
--- This file intentionally avoids UIParent scanning and global GameTooltip hooks.
 
 local _, ns = ...
 
@@ -13,9 +9,6 @@ ns.ABPM_RURU_FINAL_LOADED = true
 local RURU = {}
 ns.ABPM_RURU = RURU
 
--- -----------------------------------------------------------------------------
--- 1. Language bootstrap and fallback
--- -----------------------------------------------------------------------------
 local Constants = ns.Constants or {}
 ns.Constants = Constants
 Constants.LANGUAGE = Constants.LANGUAGE or {}
@@ -82,10 +75,15 @@ RURU.NormalizeLanguage = normalizeLanguage
 RURU.GetLanguage = getAddonLanguage
 RURU.IsRuRU = isRuRU
 
--- -----------------------------------------------------------------------------
--- 2. Locale data
--- -----------------------------------------------------------------------------
 local LOCALE_STRINGS_RURU = {
+  ["bis_dungeon_altar_of_fangs"] = "Алтарь Клыков",
+  ["bis_dungeon_murder_row"] = "Улица Убийц",
+  ["bis_dungeon_den_of_nalorakk"] = "Логово Налоракка",
+  ["bis_dungeon_the_blinding_vale"] = "Слепящая Долина",
+  ["bis_dungeon_voidscar_arena"] = "Арена Пустотного Шрама",
+  ["bis_dungeon_kings_rest"] = "Покой Королей",
+  ["bis_dungeon_temple_of_sethraliss"] = "Храм Сетралисса",
+  ["bis_dungeon_ruby_life_pools"] = "Рубиновые Купели Жизни",
   ["action_bar_number"] = "Панель",
   ["action_bar_range"] = "Диапазон панелей",
   ["action_bar_set"] = "Номера панелей",
@@ -118,14 +116,6 @@ local LOCALE_STRINGS_RURU = {
   ["bis_basis_mplus"] = "+2",
   ["bis_basis_raid"] = "Обычный",
   ["bis_basis_tier"] = "Рейд/катализатор",
-  ["bis_dungeon_algethar_academy"] = "Академия Алгет'ар",
-  ["bis_dungeon_magisters_terrace"] = "Терраса Магистров",
-  ["bis_dungeon_maisara_caverns"] = "Пещеры Майсары",
-  ["bis_dungeon_nexus_point_xenas"] = "Точка Нексуса Ксенас",
-  ["bis_dungeon_pit_of_saron"] = "Яма Сарона",
-  ["bis_dungeon_seat_of_the_triumvirate"] = "Престол Триумвирата",
-  ["bis_dungeon_skyreach"] = "Небесный Путь",
-  ["bis_dungeon_windrunner_spire"] = "Шпиль Ветрокрылых",
   ["bis_note_alt"] = "Замена",
   ["bis_note_bis"] = "BIS",
   ["bis_note_rank"] = "№%d",
@@ -146,7 +136,7 @@ local LOCALE_STRINGS_RURU = {
   ["bis_tooltip_basis"] = "Основа",
   ["bis_tooltip_boss"] = "Босс",
   ["bis_tooltip_crafted_fallback"] = "Для изготовленных предметов нужны качество и контекст украшения, поэтому показан только уровень изготовления текущего сезона.",
-  ["bis_tooltip_current_season"] = "Предпросмотр предмета 1-го сезона Midnight",
+  ["bis_tooltip_current_season"] = "Предпросмотр предмета 2-го сезона Midnight",
   ["bis_tooltip_dungeon"] = "Подземелье",
   ["bis_tooltip_end_of_run"] = "Награда за прохождение",
   ["bis_tooltip_item_level_scaled"] = "Диапазон награды текущего сезона за прохождение: %d-%d",
@@ -157,7 +147,7 @@ local LOCALE_STRINGS_RURU = {
   ["bis_tooltip_preview_fallback"] = "Для этого предмета из возвращённого подземелья данные предпросмотра Blizzard нестабильны, поэтому показана только сезонная информация награды.",
   ["bis_tooltip_preview_key"] = "Статы и уровень предмета для награды текущего сезона за ключ +%d.",
   ["bis_tooltip_raid"] = "Рейд",
-  ["bis_tooltip_raid_fallback"] = "Для этого рейдового предмета не удалось безопасно создать ссылку предпросмотра 1-го сезона, поэтому показан только диапазон уровня предметов рейда текущего сезона.",
+  ["bis_tooltip_raid_fallback"] = "Для этого рейдового предмета не удалось безопасно создать ссылку предпросмотра 2-го сезона, поэтому показан только диапазон уровня предметов рейда текущего сезона.",
   ["bis_tooltip_raid_preview"] = "Этот рейдовый предмет показан по предпросмотру рейда текущего сезона в Атласе приключений.",
   ["bis_tooltip_rank"] = "Приоритет",
   ["bis_tooltip_slot"] = "Ячейка",
@@ -875,6 +865,40 @@ local LOCALE_STRINGS_RURU = {
   ["world_event_tooltip_mark_done"] = "Щелчок: отметить выполненным сегодня",
   ["world_event_tooltip_unmark"] = "Щелчок: снять отметку выполнения",
   ["world_event_void_storm"] = "Буря Бездны",
+  ["status_prefix_info"] = "● Инфо: ",
+  ["status_prefix_success"] = "● Успешно: ",
+  ["status_prefix_failure"] = "◆ Ошибка: ",
+  ["template_default_name"] = "Шаблон",
+  ["template_duplicate_suffix"] = "Копия",
+  ["help_bankcheck"] = "/abpm bankcheck   - Проверить доступность банка отряда",
+  ["help_bankreset"] = "/abpm bankreset   - Принудительно сбросить сессию банка отряда",
+  ["bank_api_missing"] = "Не найден API банка отряда (C_Bank).",
+  ["bank_not_enabled"] = "Банк отряда не активирован.",
+  ["bank_unavailable"] = "Сейчас банк отряда недоступен.",
+  ["bank_session_reset"] = "Сессия банка отряда сброшена.",
+  ["bank_session_closed_external"] = "Банк используется в другом месте. Сессия банка отряда закрыта.",
+  ["bank_available"] = "Банк отряда доступен.",
+  ["diag_mplus_overlay_missing"] = "Модуль оверлея рекордов M+ не загружен.",
+  ["diag_bis_overlay_missing"] = "Модуль оверлея BIS не загружен.",
+  ["diag_no_output"] = "(нет вывода)",
+  ["log_window_empty"] = "Записей в журнале отладки и ошибок нет.",
+  ["log_window_clear"] = "Очистить журнал",
+  ["log_window_cleared"] = "(журнал очищен)",
+  ["copy_window_title"] = "ABPM: копирование",
+  ["copy_window_title_mplus"] = "ABPM: диагностика оверлея M+",
+  ["copy_window_title_ej"] = "ABPM: диагностика Атласа приключений",
+  ["copy_window_title_log"] = "ABPM: журнал",
+  ["copy_window_title_usage"] = "ABPM: окно копирования",
+  ["copy_usage_header"] = "Использование",
+  ["copy_usage_mplus"] = "/abpm copy mplus   диагностика оверлея M+",
+  ["copy_usage_ej"] = "/abpm copy ej      диагностика перехода к Атласу приключений",
+  ["copy_usage_log"] = "/abpm copy log     журнал отладки и ошибок",
+  ["copy_usage_macro_hint"] = "Чтобы вывести результат своего скрипта в это окно, вызовите из макроса:",
+  ["copy_usage_macro_call"] = "/run ABPMCopy(text)",
+  ["copy_usage_macro_tail"] = "Затем нажмите Ctrl+A и Ctrl+C, чтобы скопировать текст.",
+  ["copy_window_opened"] = "Окно копирования открыто.",
+  ["bis_journal_blocked_combat"] = "Атлас приключений нельзя открыть автоматически в бою.",
+  ["bis_journal_blocked_season"] = "Данные BIS относятся к %s, поэтому автопереход к Атласу приключений отключён.",
 }
 
 local CLASS_NAMES_RURU = {
@@ -1482,9 +1506,6 @@ local PROFESSION_NAMES = {
   },
 }
 
--- -----------------------------------------------------------------------------
--- 3. Small helpers
--- -----------------------------------------------------------------------------
 local function merge(target, source)
   if type(target) ~= "table" or type(source) ~= "table" then
     return
@@ -1512,7 +1533,7 @@ local function safeCall(object, methodName, ...)
 end
 
 local function refreshKnownABPMUI()
-  -- Refresh only ABProfileManager components. Never scan UIParent or global game tooltips.
+
   if ns.UI then
     safeCall(ns.UI.MainWindow, "RefreshLocale")
     safeCall(ns.UI.ProfilePanel, "RefreshLocale")
@@ -1527,9 +1548,6 @@ local function refreshKnownABPMUI()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 4. Locale registration and fallback
--- -----------------------------------------------------------------------------
 local function registerLocaleData()
   local Locale = ns.Locale
   if not Locale then
@@ -1606,9 +1624,6 @@ local function patchLocaleFallback()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 5. DB language patch
--- -----------------------------------------------------------------------------
 local function patchDefaultsAndDB()
   if ns.Data and ns.Data.Defaults and ns.Data.Defaults.global and ns.Data.Defaults.global.settings then
     ns.Data.Defaults.global.settings.language = getClientDefaultLanguage()
@@ -1655,9 +1670,6 @@ local function patchDefaultsAndDB()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 6. ConfigPanel language selector
--- -----------------------------------------------------------------------------
 local function getLanguageLabel(language)
   if language == Constants.LANGUAGE.KOREAN then
     return ns.L and ns.L("config_language_korean") or "Korean"
@@ -1746,30 +1758,27 @@ local function patchConfigPanel()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 7. Status and scoped tooltip helpers
--- -----------------------------------------------------------------------------
 local function patchStatusMessages()
   if not ns.Utils or ns.Utils.__ABPM_RURU_FINAL_STATUS_PATCHED then
     return
   end
   ns.Utils.__ABPM_RURU_FINAL_STATUS_PATCHED = true
 
+  local originalFormatStatusMessage = ns.Utils.FormatStatusMessage
+
   function ns.Utils.FormatStatusMessage(message, kind)
-    local language = getAddonLanguage()
-    message = tostring(message or "")
-    if language == "ruRU" then
-      if kind == "error" then return "Ошибка: " .. message end
-      if kind == "success" then return "Успешно: " .. message end
-      return "Инфо: " .. message
-    elseif language == "enUS" then
-      if kind == "error" then return "Error: " .. message end
-      if kind == "success" then return "Success: " .. message end
-      return "Info: " .. message
+    if kind == nil and originalFormatStatusMessage then
+      return originalFormatStatusMessage(message)
     end
-    if kind == "error" then return "오류: " .. message end
-    if kind == "success" then return "성공: " .. message end
-    return "안내: " .. message
+
+    message = tostring(message or "")
+    if kind == "success" then
+      return ns.L("status_prefix_success") .. message
+    end
+    if kind == "failure" or kind == "error" then
+      return ns.L("status_prefix_failure") .. message
+    end
+    return ns.L("status_prefix_info") .. message
   end
 end
 
@@ -1784,7 +1793,7 @@ local function translateProfessionText(text)
   end
 
   local value = text
-  -- ABPM helper tooltips only; this is not applied to global game tooltips.
+
   local replacements = {
     ["Trainer Weekly Quest"] = "Еженедельное задание тренера профессии",
     ["Weekly Quest"] = "Еженедельное задание",
@@ -1841,14 +1850,11 @@ local function patchABPMTooltipHelper()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 8. Profession Knowledge source-level localization
--- -----------------------------------------------------------------------------
 local function upperFirstAsciiSafe(text)
   if type(text) ~= "string" or text == "" then
     return text
   end
-  -- Cyrillic case conversion is not reliable in Lua 5.1; keep explicit map entries preferred.
+
   return text
 end
 
@@ -1886,6 +1892,7 @@ local OBJECTIVE_PREFIX_RURU = {
   { pattern = "^Whisper of the Loa: (.+)$", format = "Шёпот лоа: %s" },
   { pattern = "^Echo of Abundance: (.+)$", format = "Эхо изобилия: %s" },
   { pattern = "^Traditions of the Haranir: (.+)$", format = "Традиции хараниров: %s" },
+  { pattern = "^Demystifyin': (.+)$", format = "Просто о сложном: %s" },
 }
 
 local function getRuObjectiveName(name)
@@ -1992,9 +1999,6 @@ local function patchProfessionTracker()
   RURU.RefreshProfessionCaches()
 end
 
--- -----------------------------------------------------------------------------
--- 9. Map labels, stats overlay and other source-level helpers
--- -----------------------------------------------------------------------------
 function RURU.GetMapLabel(label)
   if not isRuRU() or type(label) ~= "string" then
     return label
@@ -2018,7 +2022,7 @@ local function patchProfilePanelRefresh()
     if not isRuRU() or type(text) ~= "string" or text == "" then
       return text
     end
-    -- Use ASCII in ruRU because the default ruRU font can render the triangle as a square.
+
     return (text:gsub("^▶%s*", "> "))
   end
 
@@ -2068,10 +2072,6 @@ local function patchProfilePanelRefresh()
   end
 end
 
-
--- -----------------------------------------------------------------------------
--- 10. Targeted overlay refresh helpers
--- -----------------------------------------------------------------------------
 local CLASS_TEXT_BY_LANGUAGE = {
   ruRU = {
     ["Druid"] = "Друид", ["Warrior"] = "Воин", ["Paladin"] = "Паладин", ["Hunter"] = "Охотник",
@@ -2173,9 +2173,6 @@ local function patchStatsOverlayRefresh()
   end
 end
 
--- -----------------------------------------------------------------------------
--- 10. Initialization
--- -----------------------------------------------------------------------------
 local function applyAllPatches()
   registerLocaleData()
   patchLocaleFallback()
@@ -2200,7 +2197,6 @@ if C_Timer and C_Timer.After then
   end)
 end
 
--- Drop static locale source tables after merge. Runtime maps stay available.
 LOCALE_STRINGS_RURU = nil
 CLASS_NAMES_RURU = nil
 SPEC_NAMES_RURU = nil

@@ -18,8 +18,6 @@ local function isHarmlessPrivateDispelCollision(existingDispel, aura, dispelName
         return false
     end
 
-    -- Blizzard can reuse auraInstanceID values across private auras and public
-    -- helpful buffs. The original assertion is diagnostic; keep both entries.
     return existingDispel.isPrivate
         and aura.isHelpful
         and not aura.isHarmful

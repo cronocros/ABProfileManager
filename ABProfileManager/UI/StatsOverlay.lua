@@ -19,18 +19,20 @@ local MIN_FRAME_WIDTH = 96
 local MIN_FRAME_HEIGHT = 28
 local FONT_PATH = UNIT_NAME_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 
--- BuildSnapshotSignature 재사용 버퍼: 매 호출마다 table 생성 방지
 local _snapshotParts = {}
 local _stateSignatureParts = {}
 local _buffHashParts = {}
--- BuildSnapshot 재사용 버퍼: 매 Refresh 마다 snapshot/entry 테이블 생성 방지
+
+local AURA_SCAN_BACKOFF_SECONDS = 2.0
+local _auraScanBlockedUntil = 0
+
 local _snapshot = {}
 local _entryPool = {}
 local _entryPoolSize = 0
--- buildPriorityText 재사용 버퍼: 매 Refresh마다 labels/segments 테이블 생성 방지
+
 local _priorityLabels = {}
 local _prioritySegments = {}
--- getDisplayClassName 지연 캐시: 로케일 로드 후 첫 호출 시 1회만 생성
+
 local _classLabels = nil
 
 local function acquireEntry()
@@ -88,17 +90,7 @@ local function toPlainNumber(value)
     return stringifyOk and stripped or nil
 end
 
-local function safeTooltipString(value)
-    if value == nil then
-        return nil
-    end
-
-    local ok, text = pcall(string.format, "%s", value)
-    if not ok or type(text) ~= "string" or text == "" then
-        return nil
-    end
-    return text
-end
+local safeTooltipString = ns.Utils.SafeTooltipString
 
 local function getTooltipDataField(data, key)
     if type(data) ~= "table" then
@@ -155,9 +147,7 @@ local function getOverlayScale()
 end
 
 local function safeNumber(value)
-    -- StatsOverlay는 보호된 player stat 값을 0으로 확정 표시하면 인던 진입 뒤
-    -- 계속 0%처럼 보일 수 있다. 이 파일 내부에서는 보호값을 nil로 분리하고,
-    -- 표시 단계에서 마지막 정상 값 또는 명시적 fallback을 사용한다.
+
     local numeric = toPlainNumber(value)
     return numeric ~= nil and numeric or 0
 end
@@ -393,21 +383,28 @@ local function shouldShowTankDefensiveStats(specIndex)
     return tankStatsEnabled and getCurrentSpecRole(specIndex) == "TANK"
 end
 
--- 활성 버프 hash: 트링킷/사용효과/소모품 등 절대값 stat 변동을 signature에 포함시켜
--- BuildStateSignature 가 동일하더라도 buff state 가 바뀌면 즉시 갱신되도록 한다.
 local function getPlayerBuffHash()
     wipe(_buffHashParts)
     if not C_UnitAuras or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then
         return ""
     end
 
+    local now = (type(GetTime) == "function" and GetTime()) or nil
+    if now and now < _auraScanBlockedUntil then
+        return ""
+    end
+
     for index = 1, 40 do
         local fetchOk, data = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
-        if not fetchOk or not data then break end
-        -- WoW 12.0.5+ 의 C_UnitAuras 반환 테이블은 secret number 로 표시되어
-        -- 직접 산술 연산(*, math.floor 등) 시 taint 오류가 발생한다.
-        -- 보호값은 safeNumber에서 0으로 격리하고, 산술/포맷 자체도 pcall로
-        -- 감싸 한 aura가 실패해도 다음 aura 처리는 계속되도록 격리한다.
+        if not fetchOk then
+
+            if now then
+                _auraScanBlockedUntil = now + AURA_SCAN_BACKOFF_SECONDS
+            end
+            return ""
+        end
+        if not data then break end
+
         local formatOk, line = pcall(string.format,
             "%d:%d:%d",
             safeNumber(data.spellId),
@@ -499,7 +496,6 @@ local function addPercentStat(snapshot, key, label, percent)
     snapshot[#snapshot + 1] = entry
 end
 
--- applyTextStyle 옵션 테이블 사전 생성: 매 호출마다 3개 테이블 생성 방지
 local _textStyleOptions = {
     domain = "statsOverlay",
     flags = FONT_FLAGS,
@@ -1012,18 +1008,15 @@ function StatsOverlay:BuildStateSignature()
         appendSignatureValue(_stateSignatureParts, 0, true)
     end
 
-    -- 인스턴스 컨텍스트(none/party/raid/pvp/scenario): 인던 진입/이탈 시 stale signature 방지
     local inInstance, instanceType = isInsideInstanceContext()
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(inInstance)
     _stateSignatureParts[#_stateSignatureParts + 1] = tostring(instanceType)
 
-    -- 활성 버프 hash: 트링킷 사용효과/물약/외부 버프가 stat 절대값에 영향 줘도 즉시 갱신
     _stateSignatureParts[#_stateSignatureParts + 1] = getPlayerBuffHash()
 
     return table.concat(_stateSignatureParts, "\030")
 end
 
--- 외부에서 캐시 무효화: 인던 진입/특성 변경/장비 교체 등 critical 시점에서 호출
 function StatsOverlay:InvalidateState()
     self.lastStateSignature = nil
     self.lastSnapshotSignature = nil

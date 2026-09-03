@@ -63,8 +63,7 @@ function ns:InitializeStartupModules()
         self.Modules.CombatTextManager,
         self.Modules.BlizzardFrameManager,
         self.Modules.PrivateAurasGuard,
-        -- [비활성] self.Modules.MerchantHelper,  -- 도안 감지 미동작
-        -- [비활성] self.Modules.MailHistory,     -- 우편 자동완성 미구현
+
         self.Commands,
         self.UI.ConfirmDialogs,
         self.UI.MinimapButton,
@@ -73,7 +72,7 @@ function ns:InitializeStartupModules()
         self.UI.ItemLevelOverlay,
         self.UI.BISOverlay,
         self.UI.MythicPlusRecordOverlay,
-        -- [비활성] self.UI.WorldEventOverlay,  -- 월드이벤트 자동감지 미동작
+
         self.UI.TransferDialog,
         self.UI.ConfigPanel,
         self.UI.UtilityPanel,
@@ -92,9 +91,6 @@ function ns:SafeCall(target, methodName, ...)
         return nil
     end
 
-    -- WoW 12.0.5+ 의 secret number taint 등 일시적 오류가 발생해도 다음 frame
-    -- 에서 자연스럽게 회복되도록 pcall 로 감싸 사용자에게 lua 오류 화면이
-    -- 직접 노출되지 않게 한다. 디버그 모드일 때만 stack trace 를 남긴다.
     local ok, result = pcall(target[methodName], target, ...)
     if not ok then
         if ns.Utils and ns.Utils.RecordCaughtError then
@@ -177,7 +173,7 @@ function ns:RefreshUI()
     self:SafeCall(self.UI.ItemLevelOverlay, "Refresh")
     self:SafeCall(self.UI.BISOverlay, "Refresh")
     self:SafeCall(self.UI.MythicPlusRecordOverlay, "Refresh")
-    -- [비활성] self:SafeCall(self.UI.WorldEventOverlay, "Refresh")
+
     self:SafeCall(self.UI.SilvermoonMapOverlay, "Refresh")
     if isMainWindowVisible(self) then
         self:SafeCall(self.UI.MainWindow, "RefreshStatus")

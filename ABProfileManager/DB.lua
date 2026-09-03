@@ -695,10 +695,6 @@ function DB:SaveProfessionKnowledgeOverlayPosition(frame)
     config.y = y or 0
 end
 
--- ============================================================
--- BlizzardFrameManager
--- ============================================================
-
 function DB:GetBlizzardFrameSettings()
     local settings = self:GetGlobalSettings()
     settings.blizzardFrames = settings.blizzardFrames or {
@@ -733,7 +729,7 @@ function DB:IsBlizzardFrameMovable(key)
 
     local movable = bfs.movable or {}
     if movable[key] == nil then
-        return true  -- 기본적으로 모두 이동 가능
+        return true
     end
 
     return movable[key] and true or false
@@ -777,10 +773,6 @@ function DB:ResetAllBlizzardFramePositions()
     self:GetBlizzardFrameSettings().positions = {}
 end
 
--- ============================================================
--- MerchantHelper
--- ============================================================
-
 function DB:GetMerchantHelperSettings()
     local settings = self:GetGlobalSettings()
     settings.merchantHelper = settings.merchantHelper or { enabled = false }
@@ -796,10 +788,6 @@ function DB:SetMerchantHelperEnabled(enabled)
     return self:IsMerchantHelperEnabled()
 end
 
--- ============================================================
--- MailHistory
--- ============================================================
-
 function DB:GetMailHistorySettings()
     local settings = self:GetGlobalSettings()
     settings.mailHistory = settings.mailHistory or { enabled = true }
@@ -814,10 +802,6 @@ function DB:SetMailHistoryEnabled(enabled)
     self:GetMailHistorySettings().enabled = enabled and true or false
     return self:IsMailHistoryEnabled()
 end
-
--- ============================================================
--- ItemLevelOverlay
--- ============================================================
 
 function DB:GetItemLevelOverlaySettings()
     local settings = self:GetGlobalSettings()
@@ -902,10 +886,6 @@ function DB:SaveBISOverlayPosition(frame)
     config.y = y or 0
 end
 
--- ============================================================
--- WorldEventOverlay
--- ============================================================
-
 function DB:GetWorldEventOverlaySettings()
     local settings = self:GetGlobalSettings()
     settings.worldEventOverlay = settings.worldEventOverlay or { enabled = false }
@@ -964,10 +944,6 @@ function DB:SetWorldEventCompleted(eventKey, completed)
     self:GetWorldEventCompletions()[key] = completed or nil
 end
 
--- ============================================================
--- BISOverlay
--- ============================================================
-
 function DB:GetBISOverlaySettings()
     local settings = self:GetGlobalSettings()
     settings.bisOverlay = settings.bisOverlay or { enabled = false }
@@ -1004,6 +980,9 @@ function DB:GetBISOverlaySettings()
     if type(settings.bisOverlay.itemTooltip) ~= "boolean" then
         settings.bisOverlay.itemTooltip = true
     end
+    if type(settings.bisOverlay.previewStep) ~= "string" or settings.bisOverlay.previewStep == "" then
+        settings.bisOverlay.previewStep = "myth1"
+    end
     return settings.bisOverlay
 end
 
@@ -1036,6 +1015,22 @@ function DB:SetBISOverlayItemTooltipEnabled(enabled)
     return self:IsBISOverlayItemTooltipEnabled()
 end
 
+function DB:GetBISOverlayPreviewStep()
+    local step = self:GetBISOverlaySettings().previewStep
+    if type(step) == "string" and step ~= "" then
+        return step
+    end
+    return nil
+end
+
+function DB:SetBISOverlayPreviewStep(step)
+    local settings = self:GetBISOverlaySettings()
+    if type(step) == "string" and step ~= "" then
+        settings.previewStep = step
+    end
+    return settings.previewStep
+end
+
 function DB:GetBISOverlayMythPreviewCache()
     local settings = self:GetBISOverlaySettings()
     local cache = settings.mythPreviewCache
@@ -1044,16 +1039,20 @@ function DB:GetBISOverlayMythPreviewCache()
     local previewBaselineItemLevel = tonumber(previewDB and previewDB.baselineItemLevel) or 272
     local previewBonusListID = tonumber(previewDB and previewDB.generatedPreviewBonusListID)
     local previewItemStringTemplate = previewDB and previewDB.generatedPreviewItemStringTemplate
+
+    local previewSeason = (ns.Data and ns.Data.ItemLevelTable and ns.Data.ItemLevelTable.season) or ""
     if type(cache) ~= "table"
         or tonumber(cache.schemaVersion) ~= previewSchemaVersion
         or tonumber(cache.baselineItemLevel) ~= previewBaselineItemLevel
         or tonumber(cache.generatedPreviewBonusListID) ~= previewBonusListID
-        or cache.generatedPreviewItemStringTemplate ~= previewItemStringTemplate then
+        or cache.generatedPreviewItemStringTemplate ~= previewItemStringTemplate
+        or (cache.season or "") ~= previewSeason then
         cache = {
             schemaVersion = previewSchemaVersion,
             baselineItemLevel = previewBaselineItemLevel,
             generatedPreviewBonusListID = previewBonusListID,
             generatedPreviewItemStringTemplate = previewItemStringTemplate,
+            season = previewSeason,
             itemsByID = {},
         }
         settings.mythPreviewCache = cache
@@ -1187,10 +1186,6 @@ function DB:SetBISOverlayItemFavorite(specID, itemID, enabled)
     return self:SetBISOverlayItemState(specID, itemID, "favorite", enabled)
 end
 
--- ============================================================
--- MythicPlusRecordOverlay
--- ============================================================
-
 function DB:GetMythicPlusRecordOverlaySettings()
     local settings = self:GetGlobalSettings()
     settings.mythicPlusRecordOverlay = settings.mythicPlusRecordOverlay or { enabled = false }
@@ -1204,4 +1199,184 @@ end
 function DB:SetMythicPlusRecordOverlayEnabled(enabled)
     self:GetMythicPlusRecordOverlaySettings().enabled = enabled and true or false
     return self:IsMythicPlusRecordOverlayEnabled()
+end
+
+local JOURNAL_CACHE_SCHEMA = 3
+
+local journalCacheStatus = {
+    resetReason = nil,
+    resetCount = 0,
+    saveCount = 0,
+    lastSaveOk = nil,
+    lastSaveReason = nil,
+    lastSaveInstance = nil,
+    lastSaveCount = nil,
+}
+
+local function journalCacheMarkReset(reason)
+    journalCacheStatus.resetReason = reason
+    journalCacheStatus.resetCount = (journalCacheStatus.resetCount or 0) + 1
+end
+
+local function journalCacheBuildKey()
+    local build = "?"
+    if type(GetBuildInfo) == "function" then
+        local ok, version, buildNumber = pcall(GetBuildInfo)
+        if ok then
+            build = string.format("%s.%s", tostring(version or "?"), tostring(buildNumber or "?"))
+        end
+    end
+    return build
+end
+
+local function journalCacheSeasonKey()
+    if not C_MythicPlus or type(C_MythicPlus.GetCurrentSeason) ~= "function" then
+        return nil
+    end
+
+    local ok, current = pcall(C_MythicPlus.GetCurrentSeason)
+    if not ok then
+        return nil
+    end
+
+    local season = tonumber(current)
+    if not season or season <= 0 then
+        return nil
+    end
+    return season
+end
+
+function DB:GetJournalLootCache()
+    if not ns.db then
+        return nil
+    end
+
+    local settings = self:GetGlobalSettings()
+    local cache = settings.journalLootCache
+    local build = journalCacheBuildKey()
+
+    local resetReason = nil
+    if type(cache) ~= "table" or type(cache.byInstance) ~= "table" then
+        resetReason = "저장본 없음"
+    elseif tonumber(cache.schema) ~= JOURNAL_CACHE_SCHEMA then
+        resetReason = string.format("스키마 %s -> %d", tostring(cache.schema), JOURNAL_CACHE_SCHEMA)
+    elseif cache.build ~= build then
+        resetReason = string.format("빌드 %s -> %s", tostring(cache.build), tostring(build))
+    end
+
+    if resetReason then
+        cache = { schema = JOURNAL_CACHE_SCHEMA, build = build, byInstance = {} }
+        settings.journalLootCache = cache
+        journalCacheMarkReset(resetReason)
+    end
+
+    local season = journalCacheSeasonKey()
+    if season then
+        if cache.season and cache.season ~= season then
+            cache.byInstance = {}
+            journalCacheMarkReset(string.format("시즌 %s -> %s", tostring(cache.season), tostring(season)))
+        end
+        cache.season = season
+    end
+
+    return cache
+end
+
+function DB:GetJournalInstanceLoot(instanceID)
+    instanceID = tonumber(instanceID)
+    if not instanceID then
+        return nil
+    end
+
+    local cache = self:GetJournalLootCache()
+    if type(cache) ~= "table" then
+        return nil
+    end
+    return cache.byInstance[instanceID]
+end
+
+function DB:SetJournalInstanceLoot(instanceID, entries, isRaid, tierIndex)
+    instanceID = tonumber(instanceID)
+    if not instanceID or type(entries) ~= "table" then
+        journalCacheStatus.lastSaveOk = false
+        journalCacheStatus.lastSaveReason = "인자 오류"
+        return false
+    end
+
+    local cache = self:GetJournalLootCache()
+    if type(cache) ~= "table" or type(cache.byInstance) ~= "table" then
+        journalCacheStatus.lastSaveOk = false
+        journalCacheStatus.lastSaveReason = "ns.db 미준비"
+        journalCacheStatus.lastSaveInstance = instanceID
+        return false
+    end
+
+    local count = 0
+    for _ in pairs(entries) do
+        count = count + 1
+    end
+
+    cache.byInstance[instanceID] = {
+        isRaid = isRaid and true or false,
+        tier = tonumber(tierIndex),
+        items = entries,
+    }
+
+    journalCacheStatus.saveCount = (journalCacheStatus.saveCount or 0) + 1
+    journalCacheStatus.lastSaveOk = true
+    journalCacheStatus.lastSaveReason = nil
+    journalCacheStatus.lastSaveInstance = instanceID
+    journalCacheStatus.lastSaveCount = count
+    return true
+end
+
+function DB:GetJournalLootCacheStatus()
+    local status = {
+        dbReady = ns.db ~= nil,
+        expectedSchema = JOURNAL_CACHE_SCHEMA,
+        expectedBuild = journalCacheBuildKey(),
+        expectedSeason = journalCacheSeasonKey(),
+        instances = 0,
+        items = 0,
+        stored = false,
+        resetReason = journalCacheStatus.resetReason,
+        resetCount = journalCacheStatus.resetCount or 0,
+        saveCount = journalCacheStatus.saveCount or 0,
+        lastSaveOk = journalCacheStatus.lastSaveOk,
+        lastSaveReason = journalCacheStatus.lastSaveReason,
+        lastSaveInstance = journalCacheStatus.lastSaveInstance,
+        lastSaveCount = journalCacheStatus.lastSaveCount,
+    }
+
+    local raw = ns.db and ns.db.global and ns.db.global.settings
+        and ns.db.global.settings.journalLootCache or nil
+    if type(raw) == "table" then
+        status.stored = true
+        status.schema = raw.schema
+        status.build = raw.build
+        status.season = raw.season
+        if type(raw.byInstance) == "table" then
+            for _, record in pairs(raw.byInstance) do
+                status.instances = status.instances + 1
+                if type(record) == "table" and type(record.items) == "table" then
+                    for _ in pairs(record.items) do
+                        status.items = status.items + 1
+                    end
+                end
+            end
+        end
+    end
+
+    return status
+end
+
+function DB:ClearJournalLootCache()
+    if not ns.db then
+        return false
+    end
+
+    local settings = self:GetGlobalSettings()
+    settings.journalLootCache = nil
+    journalCacheMarkReset("수동 초기화")
+    return true
 end

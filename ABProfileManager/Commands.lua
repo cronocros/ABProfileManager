@@ -29,8 +29,8 @@ local function printHelp()
     ns.Utils.Print(ns.L("help_clear"))
     ns.Utils.Print(ns.L("help_quote"))
     ns.Utils.Print(ns.L("help_verifywp"))
-    ns.Utils.Print("/abpm bankcheck   - 전투부대 은행 가용 상태 확인")
-    ns.Utils.Print("/abpm bankreset   - 전투부대 은행 세션 강제 초기화")
+    ns.Utils.Print(ns.L("help_bankcheck"))
+    ns.Utils.Print(ns.L("help_bankreset"))
 end
 
 local PROFESSION_NAME_MAP = {
@@ -80,6 +80,179 @@ end
 
 local function setStatus(message)
     ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
+end
+
+local copyPopup
+
+local function ensureCopyPopup()
+    if copyPopup then
+        return copyPopup
+    end
+
+    local popup = CreateFrame("Frame", "ABPMCopyPopup", UIParent, "BackdropTemplate")
+    popup:SetSize(620, 420)
+    popup:SetPoint("CENTER")
+    popup:SetFrameStrata("DIALOG")
+    popup:SetClampedToScreen(true)
+    if popup.SetBackdrop then
+        popup:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = true, tileSize = 32, edgeSize = 32,
+            insets = { left = 8, right = 8, top = 8, bottom = 8 } })
+    end
+    popup:EnableMouse(true)
+    popup:SetMovable(true)
+    popup:RegisterForDrag("LeftButton")
+    popup:SetScript("OnDragStart", function(frame) frame:StartMoving() end)
+    popup:SetScript("OnDragStop", function(frame) frame:StopMovingOrSizing() end)
+
+    local title = popup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", popup, "TOP", 0, -14)
+    popup.title = title
+
+    local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -4, -4)
+    close:SetScript("OnClick", function() popup:Hide() end)
+
+    local scroll = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", popup, "TOPLEFT", 14, -36)
+    scroll:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -32, 16)
+
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetWidth(548)
+    edit:SetAutoFocus(false)
+    edit:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 11, "")
+    edit:SetScript("OnEscapePressed", function(frame)
+        frame:ClearFocus()
+        popup:Hide()
+    end)
+    scroll:SetScrollChild(edit)
+    popup.edit = edit
+
+    if type(UISpecialFrames) == "table" then
+        UISpecialFrames[#UISpecialFrames + 1] = "ABPMCopyPopup"
+    end
+
+    copyPopup = popup
+    return popup
+end
+
+local logPopup
+
+local function ensureLogPopup()
+    if logPopup then
+        return logPopup
+    end
+
+    local popup = CreateFrame("Frame", "ABPMLogPopup", UIParent, "BackdropTemplate")
+    popup:SetSize(580, 380)
+    popup:SetPoint("CENTER")
+    popup:SetFrameStrata("DIALOG")
+    popup:SetClampedToScreen(true)
+    if popup.SetBackdrop then
+        popup:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = true, tileSize = 32, edgeSize = 32,
+            insets = { left = 8, right = 8, top = 8, bottom = 8 } })
+    end
+    popup:EnableMouse(true)
+    popup:SetMovable(true)
+    popup:RegisterForDrag("LeftButton")
+    popup:SetScript("OnDragStart", function(frame) frame:StartMoving() end)
+    popup:SetScript("OnDragStop", function(frame) frame:StopMovingOrSizing() end)
+
+    local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -4, -4)
+    close:SetScript("OnClick", function() popup:Hide() end)
+
+    local scroll = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", popup, "TOPLEFT", 12, -28)
+    scroll:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -30, 38)
+
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetWidth(510)
+    edit:SetAutoFocus(false)
+    edit:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
+    edit:SetScript("OnEscapePressed", function(frame)
+        frame:ClearFocus()
+        popup:Hide()
+    end)
+    scroll:SetScrollChild(edit)
+    popup.edit = edit
+
+    local clearButton = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
+    clearButton:SetSize(90, 22)
+    clearButton:SetPoint("BOTTOMLEFT", 14, 10)
+    clearButton:SetScript("OnClick", function()
+        if ns.Utils.ClearDebugLog then ns.Utils.ClearDebugLog() end
+        if ns.Utils.ClearCaughtErrorLog then ns.Utils.ClearCaughtErrorLog() end
+        edit:SetText(ns.L("log_window_cleared"))
+    end)
+    popup.clearButton = clearButton
+
+    if type(UISpecialFrames) == "table" then
+        UISpecialFrames[#UISpecialFrames + 1] = "ABPMLogPopup"
+    end
+
+    logPopup = popup
+    return popup
+end
+
+local function showCopyWindow(titleText, bodyText)
+    local popup = ensureCopyPopup()
+    popup.title:SetText(tostring(titleText or "ABPM"))
+    popup.edit:SetText(tostring(bodyText or ""))
+    popup:Show()
+    if not (type(InCombatLockdown) == "function" and InCombatLockdown()) then
+        popup.edit:SetFocus()
+    end
+    popup.edit:HighlightText()
+    return popup
+end
+
+ns.Utils.ShowCopyWindow = showCopyWindow
+
+_G.ABPMCopy = function(text, titleText)
+    return showCopyWindow(titleText or ns.L("copy_window_title"), text)
+end
+
+local function collectDiagnostics(kind)
+    local lines = {}
+    local function sink(message)
+        lines[#lines + 1] = tostring(message)
+    end
+
+    if kind == "mplus" then
+        local overlay = ns.UI and ns.UI.MythicPlusRecordOverlay
+        if not overlay or type(overlay.Diagnose) ~= "function" then
+            return ns.L("diag_mplus_overlay_missing")
+        end
+        pcall(overlay.Diagnose, overlay, sink)
+    elseif kind == "ej" then
+        local overlay = ns.UI and ns.UI.BISOverlay
+        if not overlay or type(overlay.DiagnoseJournal) ~= "function" then
+            return ns.L("diag_bis_overlay_missing")
+        end
+        pcall(overlay.DiagnoseJournal, overlay, sink)
+    elseif kind == "log" then
+        local log = ns.Utils.GetDebugLog and ns.Utils.GetDebugLog() or {}
+        local caught = ns.Utils.GetCaughtErrorLog and ns.Utils.GetCaughtErrorLog() or {}
+        if #log > 0 then
+            sink("[Debug Log]")
+            for _, line in ipairs(log) do sink(line) end
+        end
+        if #caught > 0 then
+            sink("[Caught ABPM Errors]")
+            for _, line in ipairs(caught) do sink(line) end
+        end
+    end
+
+    if #lines == 0 then
+        return ns.L("diag_no_output")
+    end
+    return table.concat(lines, "\n")
 end
 
 local function printList(titleKey, values)
@@ -312,7 +485,7 @@ function Commands:HandleSlash(message)
             end
         end
         if mode == "checks" then
-            -- scan AuctionHouseFrame for all CheckButtons (by type, bypass text taint)
+
             ns.Utils.Print("[AH Debug] CheckButton 스캔 (d12):")
             local function scanChecks(f, depth, parentName)
                 if depth > 12 or not f then return end
@@ -337,7 +510,7 @@ function Commands:HandleSlash(message)
             end
             scanChecks(AuctionHouseFrame, 0, "AuctionHouseFrame")
         elseif mode == "names" then
-            -- scan AuctionHouseFrame for named frames (useful when text is tainted)
+
             ns.Utils.Print("[AH Debug] AuctionHouseFrame 이름 스캔 (d12):")
             local function scanNames(f, depth)
                 if depth > 12 or not f then return end
@@ -356,7 +529,7 @@ function Commands:HandleSlash(message)
             end
             scanNames(AuctionHouseFrame, 0)
         elseif mode == "find" then
-            -- search UIParent visible children for frames whose text contains keyword (depth 12)
+
             local keyword = ns.Utils.Trim(ns.Utils.JoinArgs(args, 3))
             ns.Utils.Print("[AH Debug] 키워드 검색: '" .. (keyword or "") .. "' (d12)")
             local function findByText(f, depth)
@@ -386,7 +559,7 @@ function Commands:HandleSlash(message)
                 end
             end
         elseif mode == "ui" then
-            -- scan UIParent top-level children (visible only, depth 6)
+
             ns.Utils.Print("[AH Debug] UIParent 스캔 (visible, d6):")
             for _, child in ipairs({ UIParent:GetChildren() }) do
                 local ok, visible = pcall(function() return child:IsVisible() end)
@@ -395,7 +568,7 @@ function Commands:HandleSlash(message)
                 end
             end
         else
-            -- default: scan AuctionHouseFrame
+
             local childCount = select("#", AuctionHouseFrame:GetChildren())
             ns.Utils.Print("[AH Debug] AuctionHouseFrame 직계 자식 수: " .. childCount)
             scanFrame(AuctionHouseFrame, 0, 10)
@@ -408,11 +581,11 @@ function Commands:HandleSlash(message)
     end
 
     if command == "log" or command == "errors" then
-        -- 디버그/보호 오류 로그를 팝업 EditBox에 출력 (복사 가능)
+
         local log = ns.Utils.GetDebugLog and ns.Utils.GetDebugLog() or {}
         local caught = ns.Utils.GetCaughtErrorLog and ns.Utils.GetCaughtErrorLog() or {}
         if #log == 0 and #caught == 0 then
-            ns.Utils.Print("디버그/보호 오류 로그가 없습니다.")
+            ns.Utils.Print(ns.L("log_window_empty"))
             return
         end
         local sections = {}
@@ -423,58 +596,57 @@ function Commands:HandleSlash(message)
             sections[#sections + 1] = "[Caught ABPM Errors]\n" .. table.concat(caught, "\n")
         end
         local text = table.concat(sections, "\n\n")
-        -- 기존 팝업 재사용
-        if ABPMLogPopup then ABPMLogPopup:Hide() end
-        local popup = CreateFrame("Frame", "ABPMLogPopup", UIParent, "BackdropTemplate")
-        popup:SetSize(580, 380)
-        popup:SetPoint("CENTER")
-        popup:SetFrameStrata("DIALOG")
-        popup:SetClampedToScreen(true)
-        if popup.SetBackdrop then
-            popup:SetBackdrop({ bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",
-                edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",
-                tile=true, tileSize=32, edgeSize=32,
-                insets={left=8,right=8,top=8,bottom=8} })
-        end
-        popup:EnableMouse(true)
-        popup:SetMovable(true)
-        popup:RegisterForDrag("LeftButton")
-        popup:SetScript("OnDragStart", function(f) f:StartMoving() end)
-        popup:SetScript("OnDragStop", function(f) f:StopMovingOrSizing() end)
 
-        local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
-        close:SetPoint("TOPRIGHT", -4, -4)
-        close:SetScript("OnClick", function() popup:Hide() end)
-
-        -- 스크롤 프레임
-        local sf = CreateFrame("ScrollFrame", nil, popup, "UIPanelScrollFrameTemplate")
-        sf:SetPoint("TOPLEFT", popup, "TOPLEFT", 12, -28)
-        sf:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -30, 38)
-
-        local eb = CreateFrame("EditBox", nil, sf)
-        eb:SetMultiLine(true)
-        eb:SetWidth(510)
-        eb:SetAutoFocus(false)
-        eb:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 10, "")
-        eb:SetText(text)
-        eb:HighlightText()
-        sf:SetScrollChild(eb)
-
-        local clrBtn = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
-        clrBtn:SetSize(90, 22)
-        clrBtn:SetPoint("BOTTOMLEFT", 14, 10)
-        clrBtn:SetText("로그 지우기")
-        clrBtn:SetScript("OnClick", function()
-            if ns.Utils.ClearDebugLog then ns.Utils.ClearDebugLog() end
-            if ns.Utils.ClearCaughtErrorLog then ns.Utils.ClearCaughtErrorLog() end
-            eb:SetText("(로그 지움)")
-        end)
+        local popup = ensureLogPopup()
+        popup.clearButton:SetText(ns.L("log_window_clear"))
+        popup.edit:SetText(text)
+        popup.edit:HighlightText()
         popup:Show()
+        return
+    end
+
+    if command == "copy" then
+        local mode = string.lower(args[2] or "")
+        if mode == "mplus" or mode == "mythic" then
+            showCopyWindow(ns.L("copy_window_title_mplus"), collectDiagnostics("mplus"))
+        elseif mode == "ej" or mode == "bis" then
+            showCopyWindow(ns.L("copy_window_title_ej"), collectDiagnostics("ej"))
+        elseif mode == "log" then
+            showCopyWindow(ns.L("copy_window_title_log"), collectDiagnostics("log"))
+        else
+            showCopyWindow(ns.L("copy_window_title_usage"), table.concat({
+                ns.L("copy_usage_header"),
+                ns.L("copy_usage_mplus"),
+                ns.L("copy_usage_ej"),
+                ns.L("copy_usage_log"),
+                "",
+                ns.L("copy_usage_macro_hint"),
+                ns.L("copy_usage_macro_call"),
+                ns.L("copy_usage_macro_tail"),
+            }, "\n"))
+        end
+        setStatus(ns.L("copy_window_opened"))
         return
     end
 
     if command == "debug" then
         local mode = string.lower(args[2] or "toggle")
+        if mode == "mplus" or mode == "mythic" then
+            local overlay = ns.UI and ns.UI.MythicPlusRecordOverlay
+            if not overlay or type(overlay.Diagnose) ~= "function" then
+                ns.Utils.Print("[쐐기오버레이] 모듈이 로드되지 않았습니다.")
+                setStatus("[쐐기오버레이] 모듈이 로드되지 않았습니다.")
+                return
+            end
+
+            local ok, err = pcall(overlay.Diagnose, overlay)
+            if not ok then
+                ns.Utils.Print("[쐐기오버레이] 진단 실패: " .. tostring(err))
+            end
+            setStatus("[쐐기오버레이] 진단 출력 완료")
+            return
+        end
+
         if mode == "status" then
             local statusMessage = ns.L(
                 "debug_status",
@@ -575,7 +747,7 @@ function Commands:HandleSlash(message)
     if command == "bankcheck" then
         local ok = ns.ABPM_CanUseWarbandBank and ns.ABPM_CanUseWarbandBank()
         if ok then
-            ns.Utils.Print("[ABPM] 전투부대 은행 사용 가능 상태입니다.")
+            ns.Utils.Print(ns.L("bank_available"))
         end
         return
     end

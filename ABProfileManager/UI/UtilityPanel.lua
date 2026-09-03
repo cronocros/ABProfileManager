@@ -11,19 +11,14 @@ local function on(enabled)
     return enabled and ns.L("state_enabled") or ns.L("state_disabled")
 end
 
--- 2열 그리드 치수 (창 폭 900px, content inset 16*2, box 시작 오프셋 16 = 유효 852px)
-local COL_W   = 406   -- 열 폭 (852 - 40gap) / 2 ≈ 406
-local COL_GAP = 20    -- 열 사이 간격
-local FULL_W  = COL_W * 2 + COL_GAP  -- ~832 (블리자드 박스 전체 폭)
-local ROW1_H  = 264   -- 1행 박스 높이
-local ROW2_H  = 210   -- 2행 박스 높이
-local BF_H    = 145   -- 블리자드 박스 높이
-local ROW_GAP = 10    -- 행 사이 간격
-local cW      = COL_W - 24  -- 컬럼 내부 텍스트 폭 (382)
-
--- ============================================================
--- 내부 헬퍼
--- ============================================================
+local COL_W   = 406
+local COL_GAP = 20
+local FULL_W  = COL_W * 2 + COL_GAP
+local ROW1_H  = 264
+local ROW2_H  = 210
+local BF_H    = 145
+local ROW_GAP = 10
+local cW      = COL_W - 24
 
 local function makeBox(parent, widgets, w, h)
     return widgets.CreatePanelBox(parent, w, h, "")
@@ -48,13 +43,9 @@ local function styleCheck(chk, w)
         chk.Text:SetWidth(w)
         chk.Text:SetJustifyH("LEFT")
         if chk.Text.SetWordWrap then chk.Text:SetWordWrap(true) end
-        chk.Text:SetTextColor(0.88, 0.88, 0.95, 1)  -- 밝은 청백색 (노란색 대신)
+        chk.Text:SetTextColor(0.88, 0.88, 0.95, 1)
     end
 end
-
--- ============================================================
--- 패널 생성
--- ============================================================
 
 function UtilityPanel:Create(parent)
     local frame = CreateFrame("Frame", nil, parent)
@@ -62,13 +53,9 @@ function UtilityPanel:Create(parent)
 
     local widgets = ns.UI.Widgets
 
-    -- 제목
     local title = widgets.CreateLabel(frame, "", nil, 16, -20, "GameFontHighlightLarge")
     frame.title = title
 
-    -- ═══════════════════════════════════════════════════════════
-    -- 1행 좌: 드랍템 오버레이
-    -- ═══════════════════════════════════════════════════════════
     local overlayBox = makeBox(frame, widgets, COL_W, ROW1_H)
     overlayBox:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -14)
     frame.overlayBox = overlayBox
@@ -91,9 +78,6 @@ function UtilityPanel:Create(parent)
     local mplusRecordCheck = makeCheck(overlayBox, widgets, bisLockCheck)
     frame.mplusRecordCheck = mplusRecordCheck
 
-    -- ═══════════════════════════════════════════════════════════
-    -- 1행 우: 스탯 오버레이
-    -- ═══════════════════════════════════════════════════════════
     local statsBox = makeBox(frame, widgets, COL_W, ROW1_H)
     statsBox:SetPoint("TOPLEFT", title, "BOTTOMLEFT", COL_W + COL_GAP, -14)
     frame.statsBox = statsBox
@@ -110,9 +94,6 @@ function UtilityPanel:Create(parent)
     local statsLockCheck = makeCheck(statsBox, widgets, tankCheck)
     frame.statsLockCheck = statsLockCheck
 
-    -- ═══════════════════════════════════════════════════════════
-    -- 2행 좌: 전문기술 오버레이
-    -- ═══════════════════════════════════════════════════════════
     local profBox = makeBox(frame, widgets, COL_W, ROW2_H)
     profBox:SetPoint("TOPLEFT", overlayBox, "BOTTOMLEFT", 0, -ROW_GAP)
     frame.profBox = profBox
@@ -126,13 +107,6 @@ function UtilityPanel:Create(parent)
     local profLockCheck = makeCheck(profBox, widgets, profCheck)
     frame.profLockCheck = profLockCheck
 
-    -- ═══════════════════════════════════════════════════════════
-    -- 2행 우: (빈 자리)
-    -- ═══════════════════════════════════════════════════════════
-
-    -- ═══════════════════════════════════════════════════════════
-    -- 3행 전체: 블리자드 창 이동 (전체 폭)
-    -- ═══════════════════════════════════════════════════════════
     local bfBox = makeBox(frame, widgets, FULL_W, BF_H)
     bfBox:SetPoint("TOPLEFT", profBox, "BOTTOMLEFT", 0, -ROW_GAP)
     frame.bfBox = bfBox
@@ -147,7 +121,6 @@ function UtilityPanel:Create(parent)
     bfResetBtn:SetPoint("TOPLEFT", bfCheck, "BOTTOMLEFT", 0, -6)
     frame.bfResetBtn = bfResetBtn
 
-    -- 체크박스 텍스트 스타일 적용
     for _, pair in ipairs({
         { ilCheck,        cW },
         { ilLockCheck,    cW },
@@ -168,10 +141,6 @@ function UtilityPanel:Create(parent)
     self.frame = frame
     return frame
 end
-
--- ============================================================
--- 이벤트 바인딩
--- ============================================================
 
 function UtilityPanel:BindControls(refs)
     refs.ilCheck:SetScript("OnClick", function(chk)
@@ -248,10 +217,6 @@ function UtilityPanel:BindControls(refs)
         setStatus(ns.L("config_blizzard_frames_reset_done"))
     end)
 end
-
--- ============================================================
--- 갱신
--- ============================================================
 
 function UtilityPanel:Refresh()
     local refs = self.frame

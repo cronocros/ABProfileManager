@@ -70,11 +70,14 @@ ns.Data.Defaults = {
                 locked  = false,
                 itemTooltip = true,
                 _itemTooltipDefaultOnV1 = true,
+                previewStep = "myth1",
                 mythPreviewCache = {
                     schemaVersion = 3,
                     baselineItemLevel = 272,
                     generatedPreviewBonusListID = 12801,
                     generatedPreviewItemStringTemplate = "item:%d::::::::::::1:%d",
+
+                    season = "",
                     itemsByID = {},
                 },
                 sources = {

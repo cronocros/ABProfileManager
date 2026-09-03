@@ -3,23 +3,18 @@ local _, ns = ...
 local BISOverlay = {}
 ns.UI.BISOverlay = BISOverlay
 
--- ============================================================
--- 레이아웃 상수
--- ============================================================
-
 local FRAME_W      = 560
 local PADDING      = 6
 local ROW_H        = 19
 local SECTION_H    = 24
 local ICON_SIZE    = 15
 local TAB_SIZE     = 24
-local TABS_H       = 30              -- spec tabs + source filter row
+local TABS_H       = 30
 local TITLE_H      = 26
 local MAX_SCROLL_H = 340
 local FONT_PATH    = "Fonts\\2002.TTF"
 local FONT_FLAGS   = "OUTLINE"
 
--- 스케일 조절 (헤더 영역 마우스 휠)
 local SCALE_STEP = 0.05
 local SCALE_MIN  = 0.50
 local SCALE_MAX  = 2.00
@@ -29,17 +24,13 @@ local SHARED_BIS_LIMIT_BY_SLOT = {
     ["장신구"] = 2,
 }
 
--- 커스텀 스크롤바 치수
-local SB_W   = 7    -- 스크롤바 폭
-local SB_GAP = 5    -- 스크롤바와 컨텐츠 사이 간격
+local SB_W   = 7
+local SB_GAP = 5
 
--- 헤더 총 높이
 local HEADER_H  = TITLE_H + 8 + TABS_H + 12
 
--- 컨텐츠 폭: 스크롤바(+갭+오른쪽 패딩) 제외
-local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)  -- = 536
+local CONTENT_W = FRAME_W - PADDING - (PADDING + SB_W + SB_GAP)
 
--- 아이템 행 컬럼 레이아웃
 local ITEM_INDENT = 1
 local ITEM_W      = CONTENT_W - ITEM_INDENT
 local CHECK_SIZE  = 14
@@ -62,7 +53,7 @@ local TITLE_TOGGLE_H = 18
 local SCROLL_TOOLTIP_SUPPRESS_SECONDS = 0.20
 
 local BIS_SOURCE_ORDER = { "mythicplus", "raid", "crafted", "tier" }
--- table.sort 보조 — sourceGroup → 정렬 우선순위 (낮을수록 먼저)
+
 local SOURCE_GROUP_ORDER = {
     mythicplus = 1,
     raid       = 2,
@@ -82,7 +73,6 @@ local BIS_SOURCE_LABEL_KEYS = {
     tier = "bis_source_tier",
 }
 
--- 아이템 품질 색상
 local QC = {
     [0] = { 0.55, 0.55, 0.55 },
     [1] = { 0.85, 0.85, 0.85 },
@@ -94,7 +84,7 @@ local QC = {
 local QUALITY_COLOR_CACHE = {}
 
 local function getSeasonDisplayQuality(itemQuality)
-    -- 시즌 M+ 드랍은 구던 원본 품질이 파템이어도 최소 에픽으로 보정해서 보여준다.
+
     local ok, quality = pcall(function()
         return math.max(tonumber(itemQuality) or 4, 4)
     end)
@@ -180,17 +170,7 @@ local function areContainerFramesShown()
     return false
 end
 
-local function safeTooltipString(value)
-    if value == nil then
-        return nil
-    end
-
-    local ok, text = pcall(string.format, "%s", value)
-    if not ok or type(text) ~= "string" or text == "" then
-        return nil
-    end
-    return text
-end
+local safeTooltipString = ns.Utils.SafeTooltipString
 
 local function getTooltipDataField(data, key)
     if type(data) ~= "table" then
@@ -315,17 +295,14 @@ local SLOT_LOCALE_KEYS = {
 }
 
 local DUNGEON_LOCALE_KEYS = {
-    ["마법학자의 정원"] = "bis_dungeon_magisters_terrace",
-    ["마이사라 동굴"] = "bis_dungeon_maisara_caverns",
-    ["제나스 지점"] = "bis_dungeon_nexus_point_xenas",
-    ["공결점 제나스"] = "bis_dungeon_nexus_point_xenas",
-    ["공결탑 제나스"] = "bis_dungeon_nexus_point_xenas",
-    ["윈드러너 첨탑"] = "bis_dungeon_windrunner_spire",
-    ["알게타르 아카데미"] = "bis_dungeon_algethar_academy",
-    ["알게타르 대학"] = "bis_dungeon_algethar_academy",
-    ["삼두정의 권좌"] = "bis_dungeon_seat_of_the_triumvirate",
-    ["하늘탑"] = "bis_dungeon_skyreach",
-    ["사론의 구덩이"] = "bis_dungeon_pit_of_saron",
+    ["송곳니의 제단"] = "bis_dungeon_altar_of_fangs",
+    ["죽음의 골목"] = "bis_dungeon_murder_row",
+    ["날로라크의 소굴"] = "bis_dungeon_den_of_nalorakk",
+    ["눈부신 골짜기"] = "bis_dungeon_the_blinding_vale",
+    ["공허흉터 투기장"] = "bis_dungeon_voidscar_arena",
+    ["왕들의 안식처"] = "bis_dungeon_kings_rest",
+    ["세스랄리스 사원"] = "bis_dungeon_temple_of_sethraliss",
+    ["루비 생명의 웅덩이"] = "bis_dungeon_ruby_life_pools",
 }
 
 local RAID_META_LABEL_PATTERNS = {
@@ -353,8 +330,6 @@ local SOURCE_TYPE_COLOR = {
 local BIS_EJ_DATA = ns.Data and ns.Data.BISEncounterJournal or {}
 local DUNGEON_EJ_IDS = BIS_EJ_DATA.instanceIDsByDungeon or {}
 local CURRENT_SEASON_EJ_TIER_INDEX = tonumber(BIS_EJ_DATA.currentSeasonTierIndex) or 13
-local EJ_TIER_BY_INSTANCE_CACHE = {}
-local EJ_ENCOUNTER_CACHE = {}
 local PENDING_ITEM_DATA = {}
 local PENDING_MYTH_PREVIEW_LINKS = {}
 local MYTH_PREVIEW_LINK_LOAD_ATTEMPTS = {}
@@ -367,7 +342,69 @@ local SourcePreview = {
     loadAttempts = {},
     rejectedLinks = {},
     maxAttempts = 2,
+    defaultStepKey = "myth1",
+    stepOrder = { "myth1", "myth6", "hero6", "chmp6" },
+    stepDefs = {
+        myth1 = { gradeKey = "myth", rank = 1 },
+        myth6 = { gradeKey = "myth", rank = "max" },
+        hero6 = { gradeKey = "hero", rank = "max" },
+        chmp6 = { gradeKey = "chmp", rank = "max" },
+    },
+    gradeLocaleKeys = {
+        myth = "ilvl_grade_myth",
+        hero = "ilvl_grade_hero",
+        chmp = "ilvl_grade_chmp",
+    },
 }
+
+local SeasonGuard = {
+    dataSeason = "Midnight Season 2",
+    cachedMismatch = nil,
+}
+
+function SeasonGuard.CurrentSeason()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    local season = tbl and tbl.season
+    if type(season) == "string" and season ~= "" then
+        return season
+    end
+    return nil
+end
+
+function SeasonGuard.IsMismatched()
+    if SeasonGuard.cachedMismatch == nil then
+        local current = SeasonGuard.CurrentSeason()
+        if current == nil then
+
+            return false
+        end
+        SeasonGuard.cachedMismatch = (current ~= SeasonGuard.dataSeason)
+    end
+    return SeasonGuard.cachedMismatch
+end
+
+function SeasonGuard.ShortLabel()
+    local season = SeasonGuard.dataSeason or ""
+    local number = season:match("(%d+)%s*$")
+    if number then
+        return "S" .. number
+    end
+    return season
+end
+
+function SeasonGuard.ApplyNotice(fontString, text)
+    if not fontString then
+        return
+    end
+    if not SeasonGuard.IsMismatched() then
+        fontString:SetText(text or "")
+        fontString:SetTextColor(1.00, 0.82, 0.46, 1)
+        return
+    end
+    fontString:SetText(string.format("[%s] %s", SeasonGuard.ShortLabel(), text or ""))
+    fontString:SetTextColor(1.00, 0.55, 0.35, 1)
+end
+
 local MYTH_PREVIEW_LINK_MAX_ATTEMPTS = 2
 local MYTH_PREVIEW_LINK_LOAD_TIMEOUT = 1.5
 local normalizeCompareText
@@ -381,10 +418,6 @@ local isEnglishOnlyLabel
 local localizeSourceLabel
 local resolveSeasonDungeonName
 local isItemHyperlink
-
--- ============================================================
--- Helper 함수들
--- ============================================================
 
 local function getPlayerClassID()
     if not UnitClass then return nil end
@@ -407,11 +440,7 @@ local function getEnglishLocaleText(key)
     return enUS and enUS[key] or nil
 end
 
-local function isKoreanLanguageSelected()
-    return ns.DB and ns.DB.GetLanguage and ns.Constants
-        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
-        or false
-end
+local isKoreanLanguageSelected = ns.Utils.IsKoreanLanguageSelected
 
 local function getEntryLocalizedName(entry)
     if not entry then
@@ -444,10 +473,6 @@ end
 local function getEntryQuality(entry)
     local quality = entry and tonumber(entry.quality) or nil
     return quality or 4
-end
-
-local function getSeasonPreviewKeyLevel()
-    return 10
 end
 
 local function getMythicPlusVaultPreviewItemLevel(entry)
@@ -568,6 +593,986 @@ local function getPlayerSpecID()
     return nil
 end
 
+local EJournal = {
+    tierByInstance = {},
+    encounterCache = {},
+    dungeonByName = {},
+    raidByName = {},
+    raidInstances = {},
+    raidSeen = {},
+    encounterListCache = {},
+    scannedTiers = {},
+    bossTargetCache = {},
+    lootByInstance = {},
+    lootScanned = {},
+    entryLootCache = {},
+    isRaidInstance = {},
+    numTiers = nil,
+    allTiersScanned = false,
+}
+
+function EJournal.AddName(list, value)
+    if type(list) ~= "table" or type(value) ~= "string" then
+        return
+    end
+    local text = value:match("^%s*(.-)%s*$")
+    if not text or text == "" or normalizeCompareText(text) == "" then
+        return
+    end
+    for _, existing in ipairs(list) do
+        if existing == text then
+            return
+        end
+    end
+    list[#list + 1] = text
+end
+
+function EJournal.GetNumTiers()
+    if EJournal.numTiers then
+        return EJournal.numTiers
+    end
+    if type(EJ_GetNumTiers) ~= "function" then
+        return nil
+    end
+    local ok, numTiers = pcall(EJ_GetNumTiers)
+    EJournal.numTiers = ok and tonumber(numTiers) or nil
+    return EJournal.numTiers
+end
+
+function EJournal.GetCurrentTier()
+    if type(EJ_GetCurrentTier) ~= "function" then
+        return nil
+    end
+    local ok, tierIndex = pcall(EJ_GetCurrentTier)
+    if ok then
+        return tonumber(tierIndex)
+    end
+    return nil
+end
+
+function EJournal.SelectTier(tierIndex)
+    tierIndex = tonumber(tierIndex)
+    local numTiers = EJournal.GetNumTiers()
+    if not tierIndex or not numTiers or tierIndex < 1 or tierIndex > numTiers
+        or type(EJ_SelectTier) ~= "function" then
+        return false
+    end
+    local ok = pcall(EJ_SelectTier, tierIndex)
+    return ok and true or false
+end
+
+function EJournal.RestoreTier(tierIndex)
+    if tierIndex then
+        EJournal.SelectTier(tierIndex)
+    end
+end
+
+function EJournal.ResolveInstanceName(instanceID, listedName)
+    if type(listedName) == "string" and listedName ~= "" then
+        return listedName
+    end
+    if not instanceID or type(EJ_GetInstanceInfo) ~= "function" then
+        return nil
+    end
+    local ok, name = pcall(EJ_GetInstanceInfo, instanceID)
+    if ok and type(name) == "string" and name ~= "" then
+        return name
+    end
+    return nil
+end
+
+function EJournal.ScanTierBucket(tierIndex, isRaid)
+    local bucket = isRaid and EJournal.raidByName or EJournal.dungeonByName
+    local index = 1
+    local found = 0
+    while index <= 300 do
+        local ok, instanceID, listedName = pcall(EJ_GetInstanceByIndex, index, isRaid)
+        if not ok or not instanceID then
+            return found
+        end
+        local numericID = tonumber(instanceID)
+        local name = EJournal.ResolveInstanceName(numericID, listedName)
+        if name then
+            local key = normalizeCompareText(name)
+            if key ~= "" and not bucket[key] then
+                bucket[key] = { instanceID = numericID, tier = tierIndex }
+            end
+        end
+        if numericID then
+            if EJournal.tierByInstance[numericID] == nil then
+                EJournal.tierByInstance[numericID] = tierIndex
+            end
+            if EJournal.isRaidInstance[numericID] == nil then
+                EJournal.isRaidInstance[numericID] = isRaid and true or false
+            end
+            if isRaid and not EJournal.raidSeen[numericID] then
+                EJournal.raidSeen[numericID] = true
+                EJournal.raidInstances[#EJournal.raidInstances + 1] = {
+                    instanceID = numericID,
+                    tier = tierIndex,
+                }
+            end
+            found = found + 1
+        end
+        index = index + 1
+    end
+    return found
+end
+
+function EJournal.EnsureTier(tierIndex)
+    tierIndex = tonumber(tierIndex)
+    if not tierIndex or EJournal.scannedTiers[tierIndex] then
+        return false
+    end
+    if type(EJ_GetInstanceByIndex) ~= "function" then
+        return false
+    end
+    local previousTier = EJournal.GetCurrentTier()
+    if not EJournal.SelectTier(tierIndex) then
+        return false
+    end
+    local dungeonCount = tonumber(EJournal.ScanTierBucket(tierIndex, false)) or 0
+    local raidCount = tonumber(EJournal.ScanTierBucket(tierIndex, true)) or 0
+    if previousTier and previousTier ~= tierIndex then
+        EJournal.RestoreTier(previousTier)
+    end
+    if dungeonCount <= 0 or raidCount <= 0 then
+        return false
+    end
+
+    EJournal.scannedTiers[tierIndex] = true
+    return true
+end
+
+function EJournal.EnsureAllTiers()
+    if EJournal.allTiersScanned then
+        return
+    end
+    local numTiers = EJournal.GetNumTiers()
+    if not numTiers then
+        return
+    end
+    EJournal.EnsureTier(CURRENT_SEASON_EJ_TIER_INDEX)
+    for tierIndex = numTiers, 1, -1 do
+        EJournal.EnsureTier(tierIndex)
+    end
+    EJournal.allTiersScanned = true
+end
+
+function EJournal.MatchInstanceName(isRaid, names)
+    local bucket = isRaid and EJournal.raidByName or EJournal.dungeonByName
+    for _, name in ipairs(names) do
+        local found = bucket[normalizeCompareText(name)]
+        if found then
+            return found.instanceID, found.tier
+        end
+    end
+    return nil
+end
+
+function EJournal.LookupInstanceByNames(isRaid, names)
+    if type(names) ~= "table" or #names == 0 then
+        return nil
+    end
+
+    local previousTier = EJournal.GetCurrentTier()
+    EJournal.EnsureTier(CURRENT_SEASON_EJ_TIER_INDEX)
+    local instanceID, tierIndex = EJournal.MatchInstanceName(isRaid, names)
+    if not instanceID then
+        EJournal.EnsureAllTiers()
+        instanceID, tierIndex = EJournal.MatchInstanceName(isRaid, names)
+    end
+    EJournal.RestoreTier(previousTier)
+    return instanceID, tierIndex
+end
+
+function EJournal.ListEncounters(instanceID)
+    instanceID = tonumber(instanceID)
+    if not instanceID or type(EJ_GetEncounterInfoByIndex) ~= "function" then
+        return {}
+    end
+
+    local cached = EJournal.encounterListCache[instanceID]
+    if cached and #cached > 0 then
+        return cached
+    end
+
+    local previousInstance = EJournal.GetCurrentInstance()
+    local selected = EJournal.SelectInstance(instanceID)
+
+    local list = {}
+    local index = 1
+    while index <= 60 do
+        local ok, encounterName, _, encounterID = pcall(EJ_GetEncounterInfoByIndex, index, instanceID)
+        if not ok or not encounterName then
+            break
+        end
+        list[#list + 1] = {
+            name = encounterName,
+            normalized = normalizeCompareText(encounterName),
+            encounterID = encounterID,
+        }
+        index = index + 1
+    end
+
+    if selected and previousInstance and previousInstance ~= instanceID then
+        EJournal.SelectInstance(previousInstance)
+    end
+
+    if #list > 0 then
+        EJournal.encounterListCache[instanceID] = list
+    end
+    return list
+end
+
+function EJournal.FindEncounterID(instanceID, encounterHints)
+    if not instanceID or type(encounterHints) ~= "table" or #encounterHints == 0 then
+        return nil
+    end
+
+    local encounters = EJournal.ListEncounters(instanceID)
+    if #encounters == 0 then
+        return nil
+    end
+
+    for _, hint in ipairs(encounterHints) do
+        for _, encounter in ipairs(encounters) do
+            if encounter.normalized == hint.normalized then
+                return encounter.encounterID
+            end
+        end
+    end
+
+    return nil
+end
+
+function EJournal.GetSeasonRaidInstances()
+    local list = {}
+    if type(EJ_GetInstanceByIndex) ~= "function" then
+        return list
+    end
+    if not EJournal.SelectTier(CURRENT_SEASON_EJ_TIER_INDEX) then
+        return list
+    end
+
+    for index = 1, 40 do
+        local ok, instanceID = pcall(EJ_GetInstanceByIndex, index, true)
+        if not ok or not instanceID then
+            break
+        end
+        list[#list + 1] = {
+            instanceID = tonumber(instanceID),
+            tier = CURRENT_SEASON_EJ_TIER_INDEX,
+        }
+    end
+    return list
+end
+
+function EJournal.MatchRaidBoss(encounterHints, startIndex, requiredTier)
+    local pool = EJournal.raidInstances
+    if #pool == 0 then
+        pool = EJournal.GetSeasonRaidInstances()
+        for _, raid in ipairs(pool) do
+            if raid.instanceID and EJournal.tierByInstance[raid.instanceID] == nil then
+                EJournal.tierByInstance[raid.instanceID] = raid.tier
+                EJournal.isRaidInstance[raid.instanceID] = true
+            end
+        end
+    end
+
+    for index = startIndex, #pool do
+        local raid = pool[index]
+        if requiredTier == nil or raid.tier == requiredTier then
+            local encounterID = EJournal.FindEncounterID(raid.instanceID, encounterHints)
+            if encounterID then
+                return raid.instanceID, encounterID, raid.tier
+            end
+        end
+    end
+    return nil
+end
+
+function EJournal.FindRaidTargetByBoss(encounterHints)
+    if type(encounterHints) ~= "table" or #encounterHints == 0 then
+        return nil
+    end
+
+    local keyParts = {}
+    for _, hint in ipairs(encounterHints) do
+        keyParts[#keyParts + 1] = hint.normalized
+    end
+
+    local cacheKey = table.concat(keyParts, "|")
+    local cached = EJournal.bossTargetCache[cacheKey]
+    if cached ~= nil then
+        if cached == false then
+            return nil
+        end
+        return cached.instanceID, cached.encounterID, cached.tier
+    end
+
+    local previousTier = EJournal.GetCurrentTier()
+    EJournal.EnsureTier(CURRENT_SEASON_EJ_TIER_INDEX)
+    local instanceID, encounterID, tierIndex =
+        EJournal.MatchRaidBoss(encounterHints, 1, CURRENT_SEASON_EJ_TIER_INDEX)
+    if not instanceID then
+        EJournal.EnsureAllTiers()
+        instanceID, encounterID, tierIndex = EJournal.MatchRaidBoss(encounterHints, 1, nil)
+    end
+    EJournal.RestoreTier(previousTier)
+
+    if not instanceID then
+        if #EJournal.raidInstances > 0 then
+            EJournal.bossTargetCache[cacheKey] = false
+        end
+        return nil
+    end
+
+    EJournal.bossTargetCache[cacheKey] = {
+        instanceID = instanceID,
+        encounterID = encounterID,
+        tier = tierIndex,
+    }
+    return instanceID, encounterID, tierIndex
+end
+
+function EJournal.GetCurrentInstance()
+    if type(EJ_GetCurrentInstance) ~= "function" then
+        return nil
+    end
+    local ok, instanceID = pcall(EJ_GetCurrentInstance)
+    if ok then
+        return tonumber(instanceID)
+    end
+    return nil
+end
+
+function EJournal.SelectInstance(instanceID)
+    instanceID = tonumber(instanceID)
+    if not instanceID or type(EJ_SelectInstance) ~= "function" then
+        return false
+    end
+    local ok = pcall(EJ_SelectInstance, instanceID)
+    return ok and true or false
+end
+
+function EJournal.InstanceIsRaid(instanceID)
+    local cached = EJournal.isRaidInstance[tonumber(instanceID) or 0]
+    if cached ~= nil then
+        return cached and true or false
+    end
+    if type(EJ_InstanceIsRaid) == "function" then
+        local ok, isRaid = pcall(EJ_InstanceIsRaid)
+        if ok then
+            return isRaid and true or false
+        end
+    end
+    return false
+end
+
+function EJournal.GetPreviewDifficulty(isRaid)
+    local ids = DifficultyUtil and DifficultyUtil.ID or nil
+    if isRaid then
+        return tonumber(ids and ids.PrimaryRaidMythic) or 16
+    end
+    return tonumber(ids and ids.DungeonMythic) or 23
+end
+
+function EJournal.GetCurrentDifficulty()
+    if type(EJ_GetDifficulty) ~= "function" then
+        return nil
+    end
+    local ok, difficultyID = pcall(EJ_GetDifficulty)
+    if ok then
+        return tonumber(difficultyID)
+    end
+    return nil
+end
+
+function EJournal.SelectDifficulty(difficultyID)
+    difficultyID = tonumber(difficultyID)
+    if not difficultyID then
+        return false
+    end
+    if type(EJ_SetDifficulty) == "function" then
+        local ok = pcall(EJ_SetDifficulty, difficultyID)
+        if ok then
+            return true
+        end
+    end
+    if C_EncounterJournal and type(C_EncounterJournal.SetPreferredDifficulty) == "function" then
+        local ok = pcall(C_EncounterJournal.SetPreferredDifficulty, difficultyID)
+        if ok then
+            return true
+        end
+    end
+    return false
+end
+
+function EJournal.RestoreDifficulty(difficultyID)
+    if difficultyID then
+        EJournal.SelectDifficulty(difficultyID)
+    end
+end
+
+function EJournal.SaveLootFilter()
+    if type(EJ_GetLootFilter) ~= "function" then
+        return nil
+    end
+    local ok, classID, specID = pcall(EJ_GetLootFilter)
+    if not ok then
+        return nil
+    end
+    return { classID = tonumber(classID) or 0, specID = tonumber(specID) or 0 }
+end
+
+function EJournal.RestoreLootFilter(saved)
+    if type(saved) ~= "table" or type(EJ_SetLootFilter) ~= "function" then
+        return
+    end
+    pcall(EJ_SetLootFilter, saved.classID or 0, saved.specID or 0)
+end
+
+function EJournal.ResetLootFilter()
+    if type(EJ_ResetLootFilter) == "function" and pcall(EJ_ResetLootFilter) then
+        return true
+    end
+    if type(EJ_SetLootFilter) == "function" then
+        return (pcall(EJ_SetLootFilter, 0, 0))
+    end
+    return false
+end
+
+function EJournal.CanScanLoot()
+    if type(EJ_SelectInstance) ~= "function" or type(EJ_GetNumLoot) ~= "function" then
+        return false
+    end
+    if type(EJ_GetLootInfoByIndex) == "function" then
+        return true
+    end
+    return C_EncounterJournal ~= nil and type(C_EncounterJournal.GetLootInfoByIndex) == "function"
+end
+
+function EJournal.BuildEncounterNames(instanceID)
+    local names = {}
+    if type(EJ_GetEncounterInfoByIndex) ~= "function" then
+        return names
+    end
+    local index = 1
+    while index <= 100 do
+        local ok, encounterName, _, encounterID = pcall(EJ_GetEncounterInfoByIndex, index, instanceID)
+        if not ok or not encounterName then
+            break
+        end
+        local numericID = tonumber(encounterID)
+        if numericID and type(encounterName) == "string" and encounterName ~= "" then
+            names[numericID] = encounterName
+        end
+        index = index + 1
+    end
+    return names
+end
+
+function EJournal.GetEncounterName(names, encounterID)
+    encounterID = tonumber(encounterID)
+    if not encounterID then
+        return nil
+    end
+    local cached = names and names[encounterID]
+    if type(cached) == "string" and cached ~= "" then
+        return cached
+    end
+    if type(EJ_GetEncounterInfo) ~= "function" then
+        return nil
+    end
+    local ok, name = pcall(EJ_GetEncounterInfo, encounterID)
+    if ok and type(name) == "string" and name ~= "" then
+        return name
+    end
+    return nil
+end
+
+function EJournal.ReadLootInfo(index)
+    local info = nil
+    if C_EncounterJournal and type(C_EncounterJournal.GetLootInfoByIndex) == "function" then
+        local ok, result = pcall(C_EncounterJournal.GetLootInfoByIndex, index)
+        if ok and type(result) == "table" then
+            info = result
+        end
+    end
+    if info == nil and type(EJ_GetLootInfoByIndex) == "function" then
+        local ok, first, second = pcall(EJ_GetLootInfoByIndex, index)
+        if ok then
+            if type(first) == "table" then
+                info = first
+            elseif tonumber(first) then
+                info = { itemID = tonumber(first), encounterID = tonumber(second) }
+            end
+        end
+    end
+    if type(info) ~= "table" then
+        return nil
+    end
+    local itemID = tonumber(info.itemID)
+    if not itemID then
+        return nil
+    end
+    local encounterName = type(info.encounterName) == "string" and info.encounterName or nil
+    local link = info.link
+    if type(link) ~= "string" or link == "" then
+        link = info.itemLink
+    end
+    if type(link) ~= "string" or link == "" then
+        link = nil
+    end
+    return itemID, tonumber(info.encounterID), encounterName, link
+end
+
+function EJournal.ScanLootBucket(instanceID, map)
+    local okCount, numLoot = pcall(EJ_GetNumLoot)
+    numLoot = okCount and tonumber(numLoot) or 0
+    if numLoot <= 0 then
+        return 0
+    end
+
+    local encounterNames = EJournal.BuildEncounterNames(instanceID)
+    local stored = 0
+    for index = 1, math.min(numLoot, 600) do
+        local itemID, encounterID, encounterName, lootLink = EJournal.ReadLootInfo(index)
+        if itemID and map[itemID] == nil then
+            local bossName = encounterName
+            if type(bossName) ~= "string" or bossName == "" then
+                bossName = EJournal.GetEncounterName(encounterNames, encounterID)
+            end
+            if encounterID or bossName or lootLink then
+                map[itemID] = { encounterID = encounterID, boss = bossName, link = lootLink }
+                stored = stored + 1
+            end
+        end
+    end
+    return stored
+end
+
+function EJournal.LoadPersistentLoot()
+    if EJournal.persistentLoaded then
+        return
+    end
+
+    if not ns.DB or type(ns.DB.GetJournalLootCache) ~= "function" then
+        EJournal.persistentLoadState = "DB 모듈 없음"
+        return
+    end
+
+    local ok, cache = pcall(ns.DB.GetJournalLootCache, ns.DB)
+    if not ok then
+        EJournal.persistentLoadState = "캐시 읽기 오류"
+        return
+    end
+    if type(cache) ~= "table" or type(cache.byInstance) ~= "table" then
+        EJournal.persistentLoadState = "SavedVariables 미준비"
+        return
+    end
+
+    EJournal.persistentLoaded = true
+    EJournal.persistentInstances = 0
+    EJournal.persistentItems = 0
+
+    for instanceID, record in pairs(cache.byInstance) do
+        local numericID = tonumber(instanceID)
+        if numericID and type(record) == "table" and type(record.items) == "table" then
+            local map = {}
+            local count = 0
+            for itemID, stored in pairs(record.items) do
+                local numericItemID = tonumber(itemID)
+                if numericItemID and type(stored) == "table" then
+                    local storedLink = stored.l
+                    if type(storedLink) ~= "string" or storedLink == "" then
+                        storedLink = nil
+                    end
+                    map[numericItemID] = {
+                        encounterID = tonumber(stored.e),
+                        boss = stored.b,
+                        link = storedLink,
+                    }
+                    count = count + 1
+                end
+            end
+            if count > 0 then
+                EJournal.lootByInstance[numericID] = map
+                EJournal.lootScanned[numericID] = true
+                EJournal.persistentInstances = EJournal.persistentInstances + 1
+                EJournal.persistentItems = EJournal.persistentItems + count
+                if EJournal.isRaidInstance[numericID] == nil then
+                    EJournal.isRaidInstance[numericID] = record.isRaid and true or false
+                end
+                if EJournal.tierByInstance[numericID] == nil and record.tier then
+                    EJournal.tierByInstance[numericID] = tonumber(record.tier)
+                end
+            end
+        end
+    end
+
+    EJournal.persistentLoadState = string.format("복원 %d개 / 항목 %d개",
+        EJournal.persistentInstances, EJournal.persistentItems)
+end
+
+function EJournal.SavePersistentLoot(instanceID, map)
+    if not ns.DB or type(ns.DB.SetJournalInstanceLoot) ~= "function" or type(map) ~= "table" then
+        EJournal.lastSaveState = "DB 모듈 없음"
+        return
+    end
+
+    local entries = {}
+    local count = 0
+    for itemID, found in pairs(map) do
+        local link = type(found) == "table" and found.link or nil
+        if type(link) ~= "string" or link == "" then
+            link = nil
+        end
+        if type(found) == "table" and (found.encounterID or found.boss or link) then
+            entries[itemID] = { e = found.encounterID, b = found.boss, l = link }
+            count = count + 1
+        end
+    end
+
+    if count == 0 then
+        EJournal.lastSaveState = string.format("%s 저장 생략(항목 0)", tostring(instanceID))
+        return
+    end
+
+    local ok, saved = pcall(ns.DB.SetJournalInstanceLoot, ns.DB, instanceID,
+        entries, EJournal.InstanceIsRaid(instanceID), EJournal.tierByInstance[tonumber(instanceID)])
+    EJournal.lastSaveState = string.format("%s 항목 %d / 결과 %s",
+        tostring(instanceID), count, tostring(ok and saved or false))
+end
+
+function EJournal.EnsureLootIndex(instanceID)
+    instanceID = tonumber(instanceID)
+    if not instanceID then
+        return nil
+    end
+    EJournal.LoadPersistentLoot()
+    if EJournal.lootScanned[instanceID] then
+        return EJournal.lootByInstance[instanceID]
+    end
+    if not EJournal.CanScanLoot() then
+        return nil
+    end
+
+    local previousTier = EJournal.GetCurrentTier()
+    local previousInstance = EJournal.GetCurrentInstance()
+    local previousFilter = EJournal.SaveLootFilter()
+    local previousDifficulty = EJournal.GetCurrentDifficulty()
+
+    local map = {}
+    local scanned = 0
+    local difficultyChanged = false
+    if EJournal.SelectInstance(instanceID) then
+        EJournal.ResetLootFilter()
+        local difficultySelected = EJournal.SelectDifficulty(
+            EJournal.GetPreviewDifficulty(EJournal.InstanceIsRaid(instanceID))
+        )
+        difficultyChanged = difficultySelected and previousDifficulty ~= nil
+        scanned = EJournal.ScanLootBucket(instanceID, map)
+        if scanned <= 0 and difficultyChanged then
+            EJournal.RestoreDifficulty(previousDifficulty)
+            difficultyChanged = false
+            EJournal.ResetLootFilter()
+            map = {}
+            scanned = EJournal.ScanLootBucket(instanceID, map)
+        end
+    end
+
+    EJournal.RestoreLootFilter(previousFilter)
+    if previousInstance and previousInstance ~= instanceID then
+        EJournal.SelectInstance(previousInstance)
+    end
+    if difficultyChanged then
+        EJournal.RestoreDifficulty(previousDifficulty)
+    end
+    EJournal.RestoreTier(previousTier)
+
+    if scanned <= 0 then
+        return nil
+    end
+
+    EJournal.lootByInstance[instanceID] = map
+    EJournal.lootScanned[instanceID] = true
+    EJournal.SavePersistentLoot(instanceID, map)
+    return map
+end
+
+function EJournal.ResolveDungeonInstance(entry)
+    if not entry then
+        return nil
+    end
+
+    EJournal.LoadPersistentLoot()
+
+    local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
+    local mappedInstanceID = tonumber(dungeonName and DUNGEON_EJ_IDS[dungeonName] or nil)
+    local instanceID, tierIndex = nil, nil
+
+    if mappedInstanceID then
+        EJournal.EnsureTier(CURRENT_SEASON_EJ_TIER_INDEX)
+        tierIndex = EJournal.tierByInstance[mappedInstanceID]
+        if tierIndex then
+            instanceID = mappedInstanceID
+        end
+    end
+
+    if not instanceID then
+        local names = {}
+        EJournal.AddName(names, dungeonName)
+        EJournal.AddName(names, entry.dungeon)
+        EJournal.AddName(names, entry.dungeonEnUS)
+        EJournal.AddName(names, entry.displaySourceKoKR)
+        EJournal.AddName(names, entry.displaySourceEnUS)
+        EJournal.AddName(names, entry.sourceLabel)
+        EJournal.AddName(names, localizeSourceLabel(entry.sourceLabel))
+        instanceID, tierIndex = EJournal.LookupInstanceByNames(false, names)
+    end
+
+    if not instanceID and mappedInstanceID then
+        instanceID = mappedInstanceID
+    end
+
+    return instanceID, tierIndex
+end
+
+function EJournal.ResolveRaidInstance(entry)
+    if not entry or hasRaidMetaLabel(entry.sourceLabel) then
+        return nil
+    end
+
+    local names = {}
+    EJournal.AddName(names, entry.displaySourceKoKR)
+    EJournal.AddName(names, entry.displaySourceEnUS)
+    EJournal.AddName(names, entry.sourceLabel)
+    EJournal.AddName(names, localizeSourceLabel(entry.sourceLabel))
+    return EJournal.LookupInstanceByNames(true, names)
+end
+
+function EJournal.ResolveEntryInstance(entry)
+    local sourceType = getEntrySourceType(entry)
+    if sourceType == "mythicplus" then
+        return EJournal.ResolveDungeonInstance(entry)
+    end
+    if sourceType == "raid" then
+        return EJournal.ResolveRaidInstance(entry)
+    end
+    return nil
+end
+
+function EJournal.ResolveLootEncounter(instanceID, itemID)
+    itemID = tonumber(itemID)
+    if not itemID or not instanceID then
+        return nil
+    end
+    local map = EJournal.EnsureLootIndex(instanceID)
+    local found = map and map[itemID] or nil
+    if not found then
+        return nil
+    end
+    return found.encounterID, found.boss
+end
+
+function EJournal.ResolveEntryLoot(entry, allowScan)
+    local itemID = entry and tonumber(entry.itemID)
+    if not itemID then
+        return nil
+    end
+
+    local cached = EJournal.entryLootCache[itemID]
+    if cached ~= nil then
+        if cached == false then
+            return nil
+        end
+        return cached.encounterID, cached.boss, cached.instanceID, cached.tier
+    end
+    if not allowScan or not EJournal.CanScanLoot() then
+        return nil
+    end
+
+    local instanceID, tierIndex = EJournal.ResolveEntryInstance(entry)
+    if not instanceID then
+        return nil
+    end
+
+    local map = EJournal.EnsureLootIndex(instanceID)
+    if not map then
+        return nil
+    end
+
+    local found = map[itemID]
+    if not found then
+        EJournal.entryLootCache[itemID] = false
+        return nil
+    end
+
+    EJournal.entryLootCache[itemID] = {
+        encounterID = found.encounterID,
+        boss = found.boss,
+        instanceID = instanceID,
+        tier = tierIndex,
+        link = found.link,
+    }
+    return found.encounterID, found.boss, instanceID, tierIndex
+end
+
+function EJournal.ScanSeasonRaidsForLoot(itemID)
+    EJournal.EnsureTier(CURRENT_SEASON_EJ_TIER_INDEX)
+    local visited = 0
+    local seasonRaids = 0
+    local complete = true
+    for _, raid in ipairs(EJournal.raidInstances) do
+        if raid.tier == CURRENT_SEASON_EJ_TIER_INDEX then
+            seasonRaids = seasonRaids + 1
+            if visited < 4 then
+                visited = visited + 1
+                local map = EJournal.EnsureLootIndex(raid.instanceID)
+                if not map then
+                    complete = false
+                end
+                local found = map and map[itemID] or nil
+                if found then
+                    local resolved = {
+                        encounterID = found.encounterID,
+                        boss = found.boss,
+                        instanceID = raid.instanceID,
+                        tier = raid.tier,
+                        link = found.link,
+                    }
+                    EJournal.entryLootCache[itemID] = resolved
+                    return resolved
+                end
+            else
+                complete = false
+            end
+        end
+    end
+    if seasonRaids > 0 and complete then
+        EJournal.entryLootCache[itemID] = false
+    end
+    return nil
+end
+
+function EJournal.GetEntryLootLink(entry, allowScan)
+    local itemID = entry and tonumber(entry.itemID)
+    if not itemID then
+        return nil
+    end
+
+    local cached = EJournal.entryLootCache[itemID]
+    if cached == nil and allowScan then
+        EJournal.ResolveEntryLoot(entry, true)
+        cached = EJournal.entryLootCache[itemID]
+    end
+    if cached == nil and allowScan and EJournal.CanScanLoot() then
+        local sourceType = getEntrySourceType(entry)
+        if sourceType == "raid" or sourceType == "tier" then
+            cached = EJournal.ScanSeasonRaidsForLoot(itemID)
+        end
+    end
+    if type(cached) ~= "table" then
+        return nil
+    end
+
+    local link = cached.link
+    if type(link) == "string" and link ~= "" then
+        return link
+    end
+    return nil
+end
+
+function EJournal.GetEntryBossName(entry, allowScan)
+    local _, bossName = EJournal.ResolveEntryLoot(entry, allowScan)
+    if type(bossName) == "string" and bossName ~= "" then
+        return bossName
+    end
+    return nil
+end
+
+function EJournal.GetEntryInstanceName(entry)
+    local _, _, instanceID = EJournal.ResolveEntryLoot(entry, false)
+    if not instanceID then
+        return nil
+    end
+    local name = EJournal.ResolveInstanceName(instanceID, nil)
+    if type(name) == "string" and name ~= "" then
+        return name
+    end
+    return nil
+end
+
+function EJournal.DecorateRaidLabel(entry, fallbackLabel)
+    local bossName = EJournal.GetEntryBossName(entry, false)
+    if type(bossName) ~= "string" or bossName == "" then
+        bossName = type(fallbackLabel) == "string" and fallbackLabel or nil
+    end
+
+    local instanceName = EJournal.GetEntryInstanceName(entry)
+    if instanceName and bossName
+        and normalizeCompareText(instanceName) ~= normalizeCompareText(bossName) then
+        return instanceName .. " · " .. bossName
+    end
+    if instanceName then
+        return instanceName
+    end
+    return bossName
+end
+
+function EJournal.WarmupSeasonInstances()
+    EJournal.LoadPersistentLoot()
+    if EJournal.warmupStarted or not EJournal.CanScanLoot() then
+        return
+    end
+    if type(C_Timer) ~= "table" or type(C_Timer.After) ~= "function" then
+        return
+    end
+
+    EJournal.warmupStarted = true
+    EJournal.EnsureTier(CURRENT_SEASON_EJ_TIER_INDEX)
+
+    local queue = {}
+    for instanceID, tierIndex in pairs(EJournal.tierByInstance) do
+        if tierIndex == CURRENT_SEASON_EJ_TIER_INDEX and not EJournal.lootScanned[instanceID] then
+            queue[#queue + 1] = instanceID
+        end
+    end
+
+    if #queue == 0 then
+        EJournal.warmupStarted = nil
+        return
+    end
+
+    local index = 1
+    local function step()
+        local instanceID = queue[index]
+        index = index + 1
+        if not instanceID then
+            EJournal.entryLootCache = {}
+            ns:SafeCall(ns.UI.BISOverlay, "RebuildContent")
+            return
+        end
+        pcall(EJournal.EnsureLootIndex, instanceID)
+        C_Timer.After(0.15, step)
+    end
+
+    C_Timer.After(0.2, step)
+end
+
+function EJournal.DecorateDungeonLabel(entry, dungeonLabel)
+    if type(dungeonLabel) ~= "string" or dungeonLabel == "" then
+        return dungeonLabel
+    end
+    local bossName = EJournal.GetEntryBossName(entry, false)
+    if not bossName or normalizeCompareText(bossName) == normalizeCompareText(dungeonLabel) then
+        return dungeonLabel
+    end
+    return dungeonLabel .. " · " .. bossName
+end
+
 local function buildEncounterHints(entry)
     local hints, seen = {}, {}
 
@@ -589,11 +1594,19 @@ local function buildEncounterHints(entry)
 
     addHint(entry and entry.boss)
     addHint(entry and entry.sourceLabel)
+    addHint(entry and entry.displaySourceKoKR)
+    addHint(entry and entry.displaySourceEnUS)
     addHint(localizeSourceLabel(entry and entry.sourceLabel))
     addHint(entry and entry.dungeon)
+    addHint(entry and entry.dungeonEnUS)
 
-    local rawLabel = entry and entry.sourceLabel
-    if type(rawLabel) == "string" then
+    local labelSources = {}
+    EJournal.AddName(labelSources, entry and entry.sourceLabel)
+    EJournal.AddName(labelSources, entry and entry.displaySourceKoKR)
+    EJournal.AddName(labelSources, entry and entry.displaySourceEnUS)
+    EJournal.AddName(labelSources, entry and entry.boss)
+
+    for _, rawLabel in ipairs(labelSources) do
         for token in string.gmatch(rawLabel, "[^,/|]+") do
             local trimmed = token:match("^%s*(.-)%s*$")
             addHint(trimmed)
@@ -602,44 +1615,6 @@ local function buildEncounterHints(entry)
     end
 
     return hints
-end
-
-local function findEncounterIDInInstance(instanceID, encounterHints)
-    if not instanceID or not encounterHints or #encounterHints == 0
-        or type(EJ_GetEncounterInfoByIndex) ~= "function" then
-        return nil
-    end
-
-    for _, hint in ipairs(encounterHints) do
-        local cacheKey = string.format("%s:%s", tostring(instanceID), hint.normalized)
-        local cached = EJ_ENCOUNTER_CACHE[cacheKey]
-        if cached ~= nil then
-            if cached ~= false then
-                return cached
-            end
-        else
-            local foundEncounterID = nil
-            local index = 1
-            while true do
-                local ok, encounterName, _, encounterID = pcall(EJ_GetEncounterInfoByIndex, index, instanceID)
-                if not ok or not encounterName then
-                    break
-                end
-                if normalizeCompareText(encounterName) == hint.normalized then
-                    foundEncounterID = encounterID
-                    break
-                end
-                index = index + 1
-            end
-
-            EJ_ENCOUNTER_CACHE[cacheKey] = foundEncounterID or false
-            if foundEncounterID then
-                return foundEncounterID
-            end
-        end
-    end
-
-    return nil
 end
 
 local function resolveFallbackJournalTarget(entry)
@@ -651,24 +1626,48 @@ local function resolveFallbackJournalTarget(entry)
     local encounterHints = buildEncounterHints(entry)
 
     if sourceType == "mythicplus" then
-        local dungeonName = resolveSeasonDungeonName(entry.dungeon or entry.sourceLabel)
-        local instanceID = dungeonName and DUNGEON_EJ_IDS[dungeonName] or nil
+        local instanceID, tierIndex = EJournal.ResolveDungeonInstance(entry)
+
         if not instanceID then
             return {
                 difficulty = 23,
             }
         end
+
+        local encounterID = EJournal.ResolveLootEncounter(instanceID, entry.itemID)
+            or EJournal.FindEncounterID(instanceID, encounterHints)
+
         return {
             instanceID = instanceID,
-            tier = CURRENT_SEASON_EJ_TIER_INDEX,
+            tier = tierIndex or CURRENT_SEASON_EJ_TIER_INDEX,
             difficulty = 23,
-            encounterID = findEncounterIDInInstance(instanceID, encounterHints),
+            encounterID = encounterID,
         }
     end
 
     if sourceType == "raid" then
+        local difficultyID = getRaidPreviewDifficultyID()
+        local instanceID, tierIndex = EJournal.ResolveRaidInstance(entry)
+        local encounterID = nil
+
+        if instanceID then
+            encounterID = EJournal.ResolveLootEncounter(instanceID, entry.itemID)
+                or EJournal.FindEncounterID(instanceID, encounterHints)
+        else
+            instanceID, encounterID, tierIndex = EJournal.FindRaidTargetByBoss(encounterHints)
+        end
+
+        if not instanceID then
+            return {
+                difficulty = difficultyID,
+            }
+        end
+
         return {
-            difficulty = getRaidPreviewDifficultyID(),
+            instanceID = instanceID,
+            tier = tierIndex or CURRENT_SEASON_EJ_TIER_INDEX,
+            difficulty = difficultyID,
+            encounterID = encounterID,
         }
     end
 
@@ -683,12 +1682,16 @@ local function isValidEncounterJournalTierIndex(tierIndex)
     return ok and tonumber(numTiers) and tierIndex >= 1 and tierIndex <= numTiers
 end
 
-local function selectEncounterJournalDungeonTab()
-    local tab = EncounterJournal and EncounterJournal.dungeonsTab
+local function selectEncounterJournalContentTab(isRaid)
+    local tab = EncounterJournal and (isRaid and EncounterJournal.raidsTab or EncounterJournal.dungeonsTab)
     if not tab or type(EJ_ContentTab_Select) ~= "function" then
         return false
     end
-    return pcall(EJ_ContentTab_Select, tab:GetID())
+    local ok, tabID = pcall(tab.GetID, tab)
+    if not ok or not tabID then
+        return false
+    end
+    return (pcall(EJ_ContentTab_Select, tabID))
 end
 
 local function selectEncounterJournalTier(tierIndex)
@@ -699,14 +1702,14 @@ local function selectEncounterJournalTier(tierIndex)
     return pcall(EncounterJournal_ExpansionDropdown_Select, EncounterJournal, tierIndex)
 end
 
-local function selectedEncounterJournalTierHasInstance(instanceID)
+local function selectedEncounterJournalTierHasInstance(instanceID, isRaid)
     if not instanceID or type(EJ_GetInstanceByIndex) ~= "function" then
         return false
     end
 
     local index = 1
     while true do
-        local ok, listedInstanceID = pcall(EJ_GetInstanceByIndex, index, false)
+        local ok, listedInstanceID = pcall(EJ_GetInstanceByIndex, index, isRaid and true or false)
         if not ok or not listedInstanceID then
             return false
         end
@@ -717,21 +1720,21 @@ local function selectedEncounterJournalTierHasInstance(instanceID)
     end
 end
 
-local function selectEncounterJournalTierForInstance(instanceID, tierIndex)
+local function selectEncounterJournalTierForInstance(instanceID, tierIndex, isRaid)
     if not instanceID or type(EJ_GetInstanceByIndex) ~= "function"
-        or not selectEncounterJournalDungeonTab() then
+        or not selectEncounterJournalContentTab(isRaid) then
         return false
     end
 
-    local cachedTier = EJ_TIER_BY_INSTANCE_CACHE[tonumber(instanceID)]
+    local cachedTier = EJournal.tierByInstance[tonumber(instanceID)]
     if cachedTier and selectEncounterJournalTier(cachedTier)
-        and selectedEncounterJournalTierHasInstance(instanceID) then
+        and selectedEncounterJournalTierHasInstance(instanceID, isRaid) then
         return true
     end
 
     if selectEncounterJournalTier(tierIndex)
-        and selectedEncounterJournalTierHasInstance(instanceID) then
-        EJ_TIER_BY_INSTANCE_CACHE[tonumber(instanceID)] = tierIndex
+        and selectedEncounterJournalTierHasInstance(instanceID, isRaid) then
+        EJournal.tierByInstance[tonumber(instanceID)] = tierIndex
         return true
     end
 
@@ -747,24 +1750,234 @@ local function selectEncounterJournalTierForInstance(instanceID, tierIndex)
     for candidateTier = 1, tonumber(numTiers) do
         if candidateTier ~= tierIndex
             and selectEncounterJournalTier(candidateTier)
-            and selectedEncounterJournalTierHasInstance(instanceID) then
-            EJ_TIER_BY_INSTANCE_CACHE[tonumber(instanceID)] = candidateTier
+            and selectedEncounterJournalTierHasInstance(instanceID, isRaid) then
+            EJournal.tierByInstance[tonumber(instanceID)] = candidateTier
             return true
         end
     end
 
+    selectEncounterJournalTier(tierIndex or CURRENT_SEASON_EJ_TIER_INDEX)
     return false
 end
 
 local function openEncounterJournalDungeonTierList(tierIndex)
-    selectEncounterJournalDungeonTab()
+    selectEncounterJournalContentTab(false)
     if selectEncounterJournalTier(tierIndex)
         and type(EncounterJournal_ListInstances) == "function" then
         pcall(EncounterJournal_ListInstances)
     end
 end
 
--- 모험 안내서 열기 (safe — pcall 보호)
+function EJournal.LogStep(log, template, ...)
+    if type(log) ~= "table" then
+        return
+    end
+    local ok, text = pcall(string.format, template, ...)
+    log[#log + 1] = ok and text or tostring(template)
+end
+
+function EJournal.GetContentTab(isRaid)
+    if type(EncounterJournal) ~= "table" then
+        return nil
+    end
+    local tab = isRaid and EncounterJournal.raidsTab or EncounterJournal.dungeonsTab
+    if type(tab) ~= "table" and type(EncounterJournal.instanceSelect) == "table" then
+        tab = isRaid and EncounterJournal.instanceSelect.raidsTab
+            or EncounterJournal.instanceSelect.dungeonsTab
+    end
+    if type(tab) ~= "table" or type(tab.GetID) ~= "function" then
+        return nil
+    end
+    return tab
+end
+
+function EJournal.GetContentTabID(isRaid)
+    local tab = EJournal.GetContentTab(isRaid)
+    if not tab then
+        return nil
+    end
+    local ok, tabID = pcall(tab.GetID, tab)
+    if not ok then
+        return nil
+    end
+    return tonumber(tabID)
+end
+
+function EJournal.IsValidDifficulty(difficultyID)
+    difficultyID = tonumber(difficultyID)
+    if not difficultyID then
+        return false
+    end
+    if type(EJ_IsValidInstanceDifficulty) ~= "function" then
+        return true
+    end
+    local ok, valid = pcall(EJ_IsValidInstanceDifficulty, difficultyID)
+    if not ok then
+        return true
+    end
+    return valid and true or false
+end
+
+function EJournal.DifficultyCandidates(difficultyID, isRaid)
+    local ids = DifficultyUtil and DifficultyUtil.ID or nil
+    local candidates = {}
+    local seen = {}
+    local function push(value)
+        value = tonumber(value)
+        if value and not seen[value] then
+            seen[value] = true
+            candidates[#candidates + 1] = value
+        end
+    end
+    push(difficultyID)
+    if isRaid then
+        push(ids and ids.PrimaryRaidHeroic or 15)
+        push(ids and ids.PrimaryRaidNormal or 14)
+        push(ids and ids.PrimaryRaidMythic or 16)
+        push(ids and ids.PrimaryRaidLFR or 17)
+    else
+        push(ids and ids.DungeonMythic or 23)
+        push(ids and ids.DungeonHeroic or 2)
+        push(ids and ids.DungeonNormal or 1)
+    end
+    return candidates
+end
+
+function EJournal.ResolveUsableDifficulty(difficultyID, isRaid)
+    for _, candidate in ipairs(EJournal.DifficultyCandidates(difficultyID, isRaid)) do
+        if EJournal.IsValidDifficulty(candidate) then
+            return candidate
+        end
+    end
+    return nil
+end
+
+function EJournal.DisplayedInstanceID()
+    if type(EncounterJournal) ~= "table" then
+        return nil
+    end
+    local displayed = tonumber(EncounterJournal.instanceID)
+    if displayed then
+        return displayed
+    end
+    local encounter = EncounterJournal.encounter
+    displayed = type(encounter) == "table" and tonumber(encounter.instanceID) or nil
+    if displayed then
+        return displayed
+    end
+    return EJournal.GetCurrentInstance()
+end
+
+function EJournal.IsInstanceDisplayed(instanceID)
+    instanceID = tonumber(instanceID)
+    if not instanceID then
+        return false
+    end
+    if type(EncounterJournal) ~= "table" or not EncounterJournal:IsShown() then
+        return false
+    end
+    return EJournal.DisplayedInstanceID() == instanceID
+end
+
+function EJournal.ShowFrame(log)
+    if type(EncounterJournal) ~= "table" then
+        return false
+    end
+    if not EncounterJournal:IsShown() then
+        if type(ShowUIPanel) == "function" then
+            pcall(ShowUIPanel, EncounterJournal)
+        elseif type(ToggleEncounterJournal) == "function" then
+            pcall(ToggleEncounterJournal)
+        end
+    end
+    local shown = EncounterJournal:IsShown() and true or false
+    EJournal.LogStep(log, "프레임 표시=%s", tostring(shown))
+    return shown
+end
+
+function EJournal.DisplayTarget(target, isRaid, log)
+    if type(target) ~= "table" or type(EncounterJournal) ~= "table" then
+        EJournal.LogStep(log, "안내서 프레임 없음")
+        return false
+    end
+
+    local instanceID = tonumber(target.instanceID)
+    local encounterID = tonumber(target.encounterID)
+    local tier = tonumber(target.tier)
+    if not instanceID or type(EncounterJournal_OpenJournal) ~= "function" then
+        EJournal.LogStep(log, "중단: instanceID=%s / OpenJournal=%s",
+            tostring(instanceID or "없음"),
+            tostring(type(EncounterJournal_OpenJournal) == "function"))
+        return false
+    end
+
+    EJournal.ShowFrame(log)
+
+    local tabID = EJournal.GetContentTabID(isRaid)
+    local tabSelected = selectEncounterJournalContentTab(isRaid)
+    EJournal.LogStep(log, "%s탭 ID=%s / 탭 선택=%s",
+        isRaid and "레이드" or "던전",
+        tostring(tabID or "없음"),
+        tostring(tabSelected))
+
+    local tierSelected = selectEncounterJournalTierForInstance(instanceID, tier, isRaid)
+    if not tierSelected then
+        tierSelected = EJournal.SelectTier(tier or CURRENT_SEASON_EJ_TIER_INDEX)
+        EJournal.LogStep(log, "티어 UI 선택 실패 -> API 선택=%s (tier=%s)",
+            tostring(tierSelected), tostring(tier or CURRENT_SEASON_EJ_TIER_INDEX))
+    else
+        EJournal.LogStep(log, "티어 선택=true (tier=%s / 현재=%s)",
+            tostring(tier or "?"), tostring(EJournal.GetCurrentTier() or "?"))
+    end
+
+    EJournal.SelectInstance(instanceID)
+
+    local difficultyID = EJournal.ResolveUsableDifficulty(target.difficulty, isRaid)
+    EJournal.LogStep(log, "요청 난이도=%s / 유효 여부=%s / 사용 난이도=%s",
+        tostring(target.difficulty or "없음"),
+        tostring(EJournal.IsValidDifficulty(target.difficulty)),
+        tostring(difficultyID or "없음"))
+
+    local opened = pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, nil, tier)
+        and EJournal.IsInstanceDisplayed(instanceID)
+    EJournal.LogStep(log, "1차 OpenJournal(보스 포함)=%s", tostring(opened))
+
+    if not opened and encounterID then
+        opened = pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, nil, nil, nil, nil, tier)
+            and EJournal.IsInstanceDisplayed(instanceID)
+        EJournal.LogStep(log, "2차 OpenJournal(보스 제외)=%s", tostring(opened))
+    end
+
+    if not opened then
+        opened = pcall(EncounterJournal_OpenJournal, nil, instanceID)
+            and EJournal.IsInstanceDisplayed(instanceID)
+        EJournal.LogStep(log, "3차 OpenJournal(난이도 제외)=%s", tostring(opened))
+    end
+
+    if not opened and type(EncounterJournal_DisplayInstance) == "function" then
+        EJournal.ShowFrame(log)
+        opened = pcall(EncounterJournal_DisplayInstance, instanceID)
+            and EJournal.IsInstanceDisplayed(instanceID)
+        EJournal.LogStep(log, "4차 DisplayInstance=%s", tostring(opened))
+        if opened then
+            if difficultyID then
+                EJournal.SelectDifficulty(difficultyID)
+            end
+            if encounterID and type(EncounterJournal_DisplayEncounter) == "function" then
+                EJournal.LogStep(log, "4차 DisplayEncounter=%s",
+                    tostring((pcall(EncounterJournal_DisplayEncounter, encounterID))))
+            end
+        end
+    end
+
+    EJournal.LogStep(log, "최종 표시 인스턴스=%s / 목표=%s / 성공=%s",
+        tostring(EJournal.DisplayedInstanceID() or "없음"),
+        tostring(instanceID),
+        tostring(opened and true or false))
+
+    return opened and true or false
+end
+
 local function openEncounterJournalForEntry(entry)
     if not entry then
         return
@@ -772,62 +1985,77 @@ local function openEncounterJournalForEntry(entry)
 
     local sourceType = getEntrySourceType(entry)
     local sourceLabel = entry and (entry.sourceLabel or entry.boss or "")
+    EJournal.lastOpenLog = {}
+    EJournal.lastOpenLabel = string.format("%s / %s",
+        tostring(sourceType), tostring(sourceLabel ~= "" and sourceLabel or "?"))
+
     if sourceType == "crafted" or sourceType == "tier" or hasRaidMetaLabel(sourceLabel) then
+        EJournal.LogStep(EJournal.lastOpenLog, "차단: 출처 유형=%s / 메타 라벨=%s",
+            tostring(sourceType), tostring(hasRaidMetaLabel(sourceLabel)))
         return
     end
 
     if InCombatLockdown and InCombatLockdown() then
+        EJournal.LogStep(EJournal.lastOpenLog, "차단: 전투 중")
         if ns.Utils and ns.Utils.Print then
-            ns.Utils.Print("[ABPM] 전투 중에는 모험 안내서 자동 이동을 사용할 수 없습니다.")
+            ns.Utils.Print(ns.L("bis_journal_blocked_combat"))
         end
         return
     end
 
-    local target = resolveFallbackJournalTarget(entry) or {}
-    local instanceID = target.instanceID
-    local tier = target.tier
-    local encounterID = target.encounterID
-    local difficultyID = target.difficulty
-        or (sourceType == "raid" and getRaidPreviewDifficultyID() or 23)
+    if SeasonGuard.IsMismatched() then
+        EJournal.LogStep(EJournal.lastOpenLog, "차단: 시즌 가드(%s)",
+            tostring(SeasonGuard.dataSeason))
+        if ns.Utils and ns.Utils.Print then
+            ns.Utils.Print(ns.L("bis_journal_blocked_season", tostring(SeasonGuard.dataSeason)))
+        end
+        return
+    end
 
     hideBISTooltip()
     if ns.UI and ns.UI.Widgets and ns.UI.Widgets.HideTooltip then
         ns.UI.Widgets.HideTooltip()
     end
 
+    local isRaid = (sourceType == "raid")
+
     pcall(function()
         if not ensureEncounterJournalLoaded() then
+            EJournal.LogStep(EJournal.lastOpenLog, "차단: 모험 안내서 로드 실패")
             return
         end
-        if EncounterJournal then
-            if not EncounterJournal:IsShown() then
-                if ShowUIPanel then
-                    ShowUIPanel(EncounterJournal)
-                elseif ToggleEncounterJournal then
-                    ToggleEncounterJournal()
-                end
-            end
-            if instanceID
-            and selectEncounterJournalTierForInstance(instanceID, tier)
-            and type(EncounterJournal_OpenJournal) == "function" then
-                -- Do not pass itemID here. Blizzard builds Encounter Journal item
-                -- tooltip buttons with secret sell-price data; focusing a specific
-                -- item from an addon-owned click path can leave that tooltip path
-                -- tainted when the user hovers the loot row.
-                pcall(EncounterJournal_OpenJournal, difficultyID, instanceID, encounterID, nil, nil, nil, tier)
-            elseif sourceType == "mythicplus" then
-                openEncounterJournalDungeonTierList(tier or CURRENT_SEASON_EJ_TIER_INDEX)
-            end
+
+        local target = resolveFallbackJournalTarget(entry) or {}
+        if not target.difficulty then
+            target.difficulty = isRaid and getRaidPreviewDifficultyID() or 23
         end
+
+        if type(EncounterJournal) ~= "table" then
+            EJournal.LogStep(EJournal.lastOpenLog, "차단: EncounterJournal 프레임 없음")
+            return
+        end
+
+        local log = EJournal.lastOpenLog
+        EJournal.LogStep(log, "목표 instanceID=%s tier=%s encounterID=%s difficulty=%s",
+            tostring(target.instanceID or "없음"),
+            tostring(target.tier or "?"),
+            tostring(target.encounterID or "없음"),
+            tostring(target.difficulty or "?"))
+
+        if not target.instanceID then
+            EJournal.ShowFrame(log)
+            EJournal.LogStep(log, "instanceID 해석 실패 -> 목록 표시")
+            if sourceType == "mythicplus" then
+                openEncounterJournalDungeonTierList(target.tier or CURRENT_SEASON_EJ_TIER_INDEX)
+            end
+            return
+        end
+
+        EJournal.DisplayTarget(target, isRaid, log)
     end)
 end
 
-local function getAverageItemLevel()
-    if type(GetAverageItemLevel) == "function" then
-        return math.floor((GetAverageItemLevel() or 0) + 0.5)
-    end
-    return 0
-end
+local getAverageItemLevel = ns.Utils.GetAverageItemLevel
 
 local function getOverlayConfig()
     return ns.DB and ns.DB.GetBISOverlayConfig and ns.DB:GetBISOverlayConfig()
@@ -913,7 +2141,22 @@ local function isOverlayItemTooltipEnabled()
     return ns.DB and ns.DB.IsBISOverlayItemTooltipEnabled and ns.DB:IsBISOverlayItemTooltipEnabled() or false
 end
 
+function SourcePreview.isMythPreviewConfigured()
+    local curated = ns.Data and ns.Data.BISMythicVaultLinks
+    if type(curated) ~= "table" then
+        return false
+    end
+    if tonumber(curated.generatedPreviewBonusListID) then
+        return true
+    end
+    local links = curated.linksByItemID
+    return type(links) == "table" and next(links) ~= nil
+end
+
 local function usesDefaultBlizzardItemTooltip(sourceType)
+    if sourceType == "mythicplus" then
+        return not SourcePreview.isMythPreviewConfigured()
+    end
     return sourceType == "raid" or sourceType == "crafted" or sourceType == "tier"
 end
 
@@ -1062,45 +2305,6 @@ hasRaidMetaLabel = function(label)
     return false
 end
 
-local function getSourceBasisLabel(sourceType)
-    local tbl = ns.Data and ns.Data.ItemLevelTable
-    if sourceType == "mythicplus" then
-        local entries = tbl and tbl.mythicPlus and tbl.mythicPlus.endOfDungeon
-        local entry = nil
-        if entries then
-            for _, candidate in ipairs(entries) do
-                if candidate.grade == "hero" then
-                    entry = candidate
-                    break
-                end
-            end
-            entry = entry or entries[1]
-        end
-        if entry and entry.key and entry.ilvl then
-            return string.format("+%d %d", entry.key, entry.ilvl)
-        end
-        return ns.L("bis_basis_mplus")
-    end
-    if sourceType == "raid" then
-        local heroic = tbl and tbl.raid and tbl.raid.heroic
-        if heroic and heroic.min and heroic.max then
-            return string.format("%d~%d", heroic.min, heroic.max)
-        end
-        return ns.L("bis_basis_raid")
-    end
-    if sourceType == "crafted" then
-        local crafted = tbl and tbl.crafted
-        if crafted and crafted.base and crafted.base.ilvl and crafted.r5 and crafted.r5.ilvl then
-            return string.format("%d/%d", crafted.base.ilvl, crafted.r5.ilvl)
-        end
-        return ns.L("bis_basis_crafted")
-    end
-    if sourceType == "tier" then
-        return ns.L("bis_basis_tier")
-    end
-    return localizeSourceType(sourceType)
-end
-
 local function getSourceTypeColor(sourceType)
     local color = SOURCE_TYPE_COLOR[sourceType or "mythicplus"] or SOURCE_TYPE_COLOR.mythicplus
     return color[1], color[2], color[3]
@@ -1111,18 +2315,31 @@ local function getDisplaySourceLabel(entry)
         return "?"
     end
 
+    local sourceType = getEntrySourceType(entry)
     local preferred = isKoreanLanguageSelected() and entry.displaySourceKoKR or entry.displaySourceEnUS
+
+    if sourceType == "mythicplus" then
+        local dungeonLabel = preferred
+        if not dungeonLabel or dungeonLabel == "" then
+            local dungeonName = resolveSeasonDungeonName(
+                (isKoreanLanguageSelected() and entry.dungeon) or entry.dungeonEnUS or entry.dungeon or entry.sourceLabel
+            )
+            dungeonLabel = localizeDungeon(dungeonName or entry.dungeon or entry.sourceLabel)
+        end
+        return EJournal.DecorateDungeonLabel(entry, dungeonLabel)
+    end
+
+    if sourceType == "raid" and not hasRaidMetaLabel(entry.sourceLabel or "") then
+        local decorated = EJournal.DecorateRaidLabel(entry, preferred or entry.sourceLabel)
+        if type(decorated) == "string" and decorated ~= "" then
+            return decorated
+        end
+    end
+
     if preferred and preferred ~= "" then
         return preferred
     end
 
-    local sourceType = getEntrySourceType(entry)
-    if sourceType == "mythicplus" then
-        local dungeonName = resolveSeasonDungeonName(
-            (isKoreanLanguageSelected() and entry.dungeon) or entry.dungeonEnUS or entry.dungeon or entry.sourceLabel
-        )
-        return localizeDungeon(dungeonName or entry.dungeon or entry.sourceLabel)
-    end
     if sourceType == "crafted" then
         local label = entry.sourceLabel
         if not label or label == "" or isCraftingSourceLabel(label) then
@@ -1148,6 +2365,29 @@ local function getDisplaySourceLabel(entry)
         return entry.displaySourceEnUS or entry.dungeonEnUS or localizeSourceType(sourceType)
     end
     return localized
+end
+
+local function applyRowSourceLabel(row)
+    if not row or not row.slotLabel or not row._entry then
+        return
+    end
+
+    local entry = row._entry
+    local sourceLabel = getDisplaySourceLabel(entry)
+    if row._slotSection == FAVORITES_SLOT and sourceLabel and sourceLabel ~= "" then
+        sourceLabel = localizeSlot(entry.slot) .. " · " .. sourceLabel
+    end
+    if not sourceLabel or sourceLabel == "" then
+        return
+    end
+
+    row.slotLabel:ClearAllPoints()
+    row.slotLabel:SetPoint("LEFT", row, "LEFT", COL_CONTROLS + COL_ICON + COL_NAME, 0)
+    row.slotLabel:SetWidth(COL_SLOT)
+    row.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
+    row.slotLabel:SetTextColor(0.72, 0.72, 0.72, 1)
+    row.slotLabel:SetText(sourceLabel)
+    row.slotLabel:Show()
 end
 
 normalizeCompareText = function(text)
@@ -1582,8 +2822,8 @@ local function applyPreviewScoreOrdering(entries)
 end
 
 local function applySlotDisplayRanks(slotName, entries)
+    local bisLimit = SHARED_BIS_LIMIT_BY_SLOT[slotName] or 1
     for index, entry in ipairs(entries) do
-        local bisLimit = SHARED_BIS_LIMIT_BY_SLOT[slotName] or 1
         if index <= bisLimit then
             entry._displayNoteKind = "bis"
             entry._displayNoteIndex = index
@@ -1598,6 +2838,7 @@ local function applySlotDisplayRanks(slotName, entries)
             entry._displayNoteIndex = index
         end
     end
+    return bisLimit + 2
 end
 
 local function groupBySlot(items, specID)
@@ -1627,13 +2868,15 @@ local function groupBySlot(items, specID)
         end
         table.sort(entries, compareSlotEntries)
         applyPreviewScoreOrdering(entries)
-        applySlotDisplayRanks(slotName, entries)
+        local slotDisplayBudget = applySlotDisplayRanks(slotName, entries)
         for _, entry in ipairs(entries) do
             if isBISItemFavorite(specID, entry.itemID) then
                 favorites[#favorites + 1] = entry
             else
                 slots[slotName] = slots[slotName] or {}
-                slots[slotName][#slots[slotName] + 1] = entry
+                if #slots[slotName] < slotDisplayBudget then
+                    slots[slotName][#slots[slotName] + 1] = entry
+                end
             end
         end
         if slots[slotName] and #slots[slotName] > 0 then
@@ -1656,10 +2899,6 @@ local function groupBySlot(items, specID)
 
     return slots, order
 end
-
--- ============================================================
--- 아이템 정보 로드 이벤트 → 디바운스 재빌드
--- ============================================================
 
 local _rebuildPending = false
 local _fullRebuildPending = false
@@ -1794,10 +3033,6 @@ local function refreshItemRowDisplay(row)
     return false
 end
 
--- ============================================================
--- 스크롤바 썸 업데이트
--- ============================================================
-
 function BISOverlay:UpdateScrollThumb()
     local frame = self.frame
     if not frame or not frame.scrollBarThumb then return end
@@ -1823,10 +3058,6 @@ function BISOverlay:UpdateScrollThumb()
     frame.scrollBarThumb:ClearAllPoints()
     frame.scrollBarThumb:SetPoint("TOPRIGHT", frame.scrollBarTrack, "TOPRIGHT", 0, thumbY)
 end
-
--- ============================================================
--- 접기/펼치기
--- ============================================================
 
 function BISOverlay:ApplyCollapse()
     local frame = self.frame
@@ -1900,16 +3131,22 @@ function BISOverlay:UpdateSourceFilterButtons()
     end
 end
 
+function BISOverlay:UpdatePreviewStepButton()
+    local frame = self.frame
+    local button = frame and frame.previewStepBtn
+    if not button or not button.label then
+        return
+    end
+    local label = SourcePreview.getStepLabel(SourcePreview.getSelectedStepKey())
+    button.label:SetText(type(label) == "string" and label or "")
+end
+
 function BISOverlay:ToggleSourceFilter(sourceType)
     local filters = getSourceFilters()
     filters[sourceType] = not isSourceEnabled(sourceType)
     self:UpdateSourceFilterButtons()
     self:RebuildContent()
 end
-
--- ============================================================
--- 프레임 생성
--- ============================================================
 
 function BISOverlay:EnsureFrame()
     if self.frame then return self.frame end
@@ -1934,12 +3171,11 @@ function BISOverlay:EnsureFrame()
         frame:SetBackdropBorderColor(0.50, 0.40, 0.80, 0.90)
     end
 
-    -- 드래그 (잠금 상태 확인)
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:EnableMouseWheel(true)
     frame:RegisterForDrag("LeftButton")
-    -- 헤더 영역(스크롤프레임 밖)에서 마우스 휠 → 스케일 조절
+
     frame:SetScript("OnMouseWheel", function(f, delta)
         setOverlayScale(f, delta * SCALE_STEP)
     end)
@@ -1965,14 +3201,12 @@ function BISOverlay:EnsureFrame()
         end
     end)
 
-    -- ─── 제목 바 배경 ───────────────────────────────────────
     local titleBar = frame:CreateTexture(nil, "BACKGROUND")
     titleBar:SetHeight(TITLE_H + 14)
     titleBar:SetPoint("TOPLEFT",  frame, "TOPLEFT",  5,  -5)
     titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
     titleBar:SetColorTexture(0.10, 0.07, 0.22, 0.90)
 
-    -- 제목 텍스트
     frame.titleText = frame:CreateFontString(nil, "OVERLAY")
     frame.titleText:SetFont(FONT_PATH, 13, FONT_FLAGS)
     frame.titleText:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING + 2, -10)
@@ -1997,7 +3231,7 @@ function BISOverlay:EnsureFrame()
     if frame.noticeText.SetMaxLines then
         frame.noticeText:SetMaxLines(1)
     end
-    frame.noticeText:SetText(getSpecPolicySummary(getPlayerSpecID()))
+    SeasonGuard.ApplyNotice(frame.noticeText, getSpecPolicySummary(getPlayerSpecID()))
 
     frame.avgLabel = frame:CreateFontString(nil, "OVERLAY")
     frame.avgLabel:SetFont(FONT_PATH, 9, FONT_FLAGS)
@@ -2111,7 +3345,6 @@ function BISOverlay:EnsureFrame()
     frame.updateBISItemTooltipVisual = updateBISItemTooltipVisual
     updateBISItemTooltipVisual()
 
-    -- ─── 접기/펼치기 버튼 ────────────────────────────────────
     local collapseBtn = CreateFrame("Button", nil, frame)
     collapseBtn:SetSize(18, 18)
     collapseBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -9)
@@ -2134,7 +3367,6 @@ function BISOverlay:EnsureFrame()
     end)
     frame.collapseBtn = collapseBtn
 
-    -- ─── 잠금 버튼 (드래그 잠금/해제) ─────────────────────────
     local lockBtn = CreateFrame("Button", nil, frame)
     lockBtn:SetSize(18, 18)
     lockBtn:SetPoint("RIGHT", collapseBtn, "LEFT", -2, 0)
@@ -2162,7 +3394,6 @@ function BISOverlay:EnsureFrame()
     end)
     frame.lockBtn = lockBtn
 
-    -- ─── 위치 초기화 버튼 ─────────────────────────────────────
     local resetBtn = CreateFrame("Button", nil, frame)
     resetBtn:SetSize(18, 18)
     resetBtn:SetPoint("RIGHT", lockBtn, "LEFT", -2, 0)
@@ -2189,14 +3420,12 @@ function BISOverlay:EnsureFrame()
     attachHeaderButtonTooltip(resetBtn, "overlay_button_reset_title", ns.L("overlay_button_reset_body"))
     frame.resetBtn = resetBtn
 
-    -- ─── 구분선 1 ───────────────────────────────────────────
     local sep1 = frame:CreateTexture(nil, "ARTWORK")
     sep1:SetHeight(1)
     sep1:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 10))
     sep1:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 10))
     sep1:SetColorTexture(0.45, 0.35, 0.70, 0.65)
 
-    -- ─── 스펙 탭 영역 ────────────────────────────────────────
     frame.tabsFrame = CreateFrame("Frame", nil, frame)
     frame.tabsFrame:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 12))
     frame.tabsFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 12))
@@ -2316,6 +3545,90 @@ function BISOverlay:EnsureFrame()
         previousSourceButton = button
     end
 
+    frame.previewStepBtn = CreateFrame("Button", nil, frame.tabsFrame, "BackdropTemplate")
+    frame.previewStepBtn:SetSize(76, FILTER_BTN_H)
+    if previousSourceButton then
+        frame.previewStepBtn:SetPoint("RIGHT", previousSourceButton, "LEFT", -6, 0)
+    else
+        frame.previewStepBtn:SetPoint("RIGHT", frame.specPickerBtn, "LEFT", -6, 0)
+    end
+    if frame.previewStepBtn.SetBackdrop then
+        frame.previewStepBtn:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 8, edgeSize = 8,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        frame.previewStepBtn:SetBackdropColor(0.07, 0.10, 0.18, 0.97)
+        frame.previewStepBtn:SetBackdropBorderColor(0.90, 0.72, 0.35, 0.92)
+    end
+    frame.previewStepBtn.fill = frame.previewStepBtn:CreateTexture(nil, "BACKGROUND")
+    frame.previewStepBtn.fill:SetPoint("TOPLEFT", frame.previewStepBtn, "TOPLEFT", 3, -3)
+    frame.previewStepBtn.fill:SetPoint("BOTTOMRIGHT", frame.previewStepBtn, "BOTTOMRIGHT", -3, 3)
+    frame.previewStepBtn.fill:SetColorTexture(0.16, 0.13, 0.07, 0.92)
+    frame.previewStepBtn.label = frame.previewStepBtn:CreateFontString(nil, "OVERLAY")
+    frame.previewStepBtn.label:SetFont(FONT_PATH, 8, FONT_FLAGS)
+    frame.previewStepBtn.label:SetPoint("LEFT", frame.previewStepBtn, "LEFT", 5, 0)
+    frame.previewStepBtn.label:SetPoint("RIGHT", frame.previewStepBtn, "RIGHT", -12, 0)
+    frame.previewStepBtn.label:SetJustifyH("LEFT")
+    frame.previewStepBtn.label:SetJustifyV("MIDDLE")
+    frame.previewStepBtn.label:SetTextColor(1.00, 0.86, 0.42, 1)
+    if frame.previewStepBtn.label.SetWordWrap then
+        frame.previewStepBtn.label:SetWordWrap(false)
+    end
+    if frame.previewStepBtn.label.SetMaxLines then
+        frame.previewStepBtn.label:SetMaxLines(1)
+    end
+    frame.previewStepBtn.arrow = frame.previewStepBtn:CreateFontString(nil, "OVERLAY")
+    frame.previewStepBtn.arrow:SetFont(FONT_PATH, 8, FONT_FLAGS)
+    frame.previewStepBtn.arrow:SetPoint("RIGHT", frame.previewStepBtn, "RIGHT", -4, 0)
+    frame.previewStepBtn.arrow:SetText(">")
+    frame.previewStepBtn.arrow:SetTextColor(0.86, 0.78, 0.56, 1)
+
+    local function showPreviewStepTooltip(stepButton)
+        local tooltip = ns.UI.Widgets.GetTooltip()
+        if not tooltip then
+            return
+        end
+        tooltip:SetOwner(stepButton, "ANCHOR_BOTTOM")
+        tooltip:ClearLines()
+        tooltip:AddLine(ns.L("bis_tooltip_basis"), 1.00, 0.82, 0.44, true)
+        local selectedStep = SourcePreview.getSelectedStepKey()
+        for _, stepKey in ipairs(SourcePreview.stepOrder) do
+            local summary = SourcePreview.getStepSummary(stepKey)
+            if summary then
+                if stepKey == selectedStep then
+                    tooltip:AddLine("> " .. summary, 1.00, 0.86, 0.42, true)
+                else
+                    tooltip:AddLine("   " .. summary, 0.70, 0.78, 0.90, true)
+                end
+            end
+        end
+        local craftedBaseline = SourcePreview.getCraftedBaseline()
+        if craftedBaseline then
+            tooltip:AddLine(" ")
+            tooltip:AddLine(craftedBaseline, 0.70, 0.78, 0.90, true)
+        end
+        tooltip:Show()
+    end
+
+    if type(frame.previewStepBtn.RegisterForClicks) == "function" then
+        pcall(frame.previewStepBtn.RegisterForClicks, frame.previewStepBtn, "LeftButtonUp", "RightButtonUp")
+    end
+    frame.previewStepBtn:SetScript("OnClick", function(stepButton, mouseButton)
+        local direction = mouseButton == "RightButton" and -1 or 1
+        SourcePreview.setSelectedStepKey(
+            SourcePreview.getNextStepKey(SourcePreview.getSelectedStepKey(), direction)
+        )
+        BISOverlay:UpdatePreviewStepButton()
+        showPreviewStepTooltip(stepButton)
+    end)
+    frame.previewStepBtn:SetScript("OnEnter", showPreviewStepTooltip)
+    frame.previewStepBtn:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
+    frame.previewStepBtn.label:SetText(
+        SourcePreview.getStepLabel(SourcePreview.getSelectedStepKey()) or ""
+    )
+
     frame.specPicker = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     frame.specPicker:SetFrameStrata("TOOLTIP")
     frame.specPicker:SetFrameLevel(frame:GetFrameLevel() + 20)
@@ -2346,14 +3659,12 @@ function BISOverlay:EnsureFrame()
         BISOverlay:RefreshSpecPickerRows()
     end)
 
-    -- ─── 구분선 2 ───────────────────────────────────────────
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
     sep2:SetHeight(1)
     sep2:SetPoint("TOPLEFT",  frame, "TOPLEFT",  PADDING,  -(TITLE_H + 12 + TABS_H + 4))
     sep2:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(TITLE_H + 12 + TABS_H + 4))
     sep2:SetColorTexture(0.45, 0.35, 0.70, 0.45)
 
-    -- ─── 스크롤 프레임 ──────────────────────────────────────
     frame.scrollFrame = CreateFrame("ScrollFrame", nil, frame)
     frame.scrollFrame:SetPoint("TOPLEFT",     frame, "TOPLEFT",
         PADDING, -HEADER_H)
@@ -2371,26 +3682,22 @@ function BISOverlay:EnsureFrame()
         self:UpdateScrollThumb()
     end)
 
-    -- ─── 스크롤 자식 ────────────────────────────────────────
     frame.content = CreateFrame("Frame", nil, frame.scrollFrame)
     frame.content:SetSize(CONTENT_W, 1)
     frame.scrollFrame:SetScrollChild(frame.content)
 
-    -- ─── 커스텀 스크롤바 트랙 ───────────────────────────────
     frame.scrollBarTrack = frame:CreateTexture(nil, "ARTWORK")
     frame.scrollBarTrack:SetWidth(SB_W)
     frame.scrollBarTrack:SetPoint("TOPRIGHT",    frame, "TOPRIGHT",    -PADDING, -HEADER_H)
     frame.scrollBarTrack:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING,  PADDING)
     frame.scrollBarTrack:SetColorTexture(0.05, 0.05, 0.12, 0.85)
 
-    -- 트랙 좌측 미묘한 하이라이트 선
     local sbEdge = frame:CreateTexture(nil, "ARTWORK")
     sbEdge:SetWidth(1)
     sbEdge:SetPoint("TOPRIGHT",    frame.scrollBarTrack, "TOPLEFT",    0, 0)
     sbEdge:SetPoint("BOTTOMRIGHT", frame.scrollBarTrack, "BOTTOMLEFT", 0, 0)
     sbEdge:SetColorTexture(0.30, 0.20, 0.55, 0.60)
 
-    -- ─── 커스텀 스크롤바 썸 ─────────────────────────────────
     frame.scrollBarThumb = CreateFrame("Frame", nil, frame)
     frame.scrollBarThumb:SetWidth(SB_W)
     frame.scrollBarThumb:SetHeight(40)
@@ -2401,7 +3708,6 @@ function BISOverlay:EnsureFrame()
     thumbTex:SetAllPoints()
     thumbTex:SetColorTexture(0.55, 0.35, 0.88, 0.88)
 
-    -- 썸 드래그
     local _dragging, _dragY, _dragScroll = false, 0, 0
     local function updateThumbDrag()
         if not _dragging then return end
@@ -2430,7 +3736,6 @@ function BISOverlay:EnsureFrame()
         frame.scrollBarThumb:SetScript("OnUpdate", nil)
     end)
 
-    -- GET_ITEM_INFO_RECEIVED 이벤트
     local evFrame = CreateFrame("Frame")
     evFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
     evFrame:SetScript("OnEvent", function(_, _, itemID, success)
@@ -2461,10 +3766,6 @@ function BISOverlay:EnsureFrame()
     self.frame = frame
     return frame
 end
-
--- ============================================================
--- 스펙 탭 생성/업데이트
--- ============================================================
 
 local function ensureSpecPickerRow(frame, index)
     local picker = frame.specPicker
@@ -2658,7 +3959,6 @@ function BISOverlay:EnsureTabs()
         tab:SetSize(TAB_SIZE, TAB_SIZE)
         tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 6), -2)
 
-        -- 아이콘
         tab.icon = tab:CreateTexture(nil, "ARTWORK")
         tab.icon:SetAllPoints()
         if spec.icon then
@@ -2666,14 +3966,12 @@ function BISOverlay:EnsureTabs()
             tab.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
         end
 
-        -- 하단 활성 인디케이터 바 (아이콘 바로 아래 2px 선)
         tab.indicator = tab:CreateTexture(nil, "OVERLAY")
         tab.indicator:SetHeight(2)
         tab.indicator:SetPoint("BOTTOMLEFT",  tab, "BOTTOMLEFT",  0, -3)
         tab.indicator:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, -3)
         tab.indicator:SetColorTexture(0, 0, 0, 0)
 
-        -- 마우스 오버 하이라이트
         tab.highlight = tab:CreateTexture(nil, "HIGHLIGHT")
         tab.highlight:SetAllPoints()
         tab.highlight:SetColorTexture(1, 1, 1, 0.12)
@@ -2710,6 +4008,7 @@ function BISOverlay:EnsureTabs()
     self:UpdateTabHighlight()
     self:UpdateSpecPickerButton()
     self:UpdateSourceFilterButtons()
+    self:UpdatePreviewStepButton()
 end
 
 function BISOverlay:UpdateTabHighlight()
@@ -2720,7 +4019,7 @@ function BISOverlay:UpdateTabHighlight()
         if tab.specID == activeID then
             tab.icon:SetDesaturated(false)
             tab.icon:SetAlpha(1.0)
-            tab.indicator:SetColorTexture(0.20, 0.85, 1.0, 1.0)  -- 밝은 시안
+            tab.indicator:SetColorTexture(0.20, 0.85, 1.0, 1.0)
         else
             tab.icon:SetDesaturated(true)
             tab.icon:SetAlpha(0.40)
@@ -2729,10 +4028,6 @@ function BISOverlay:UpdateTabHighlight()
     end
     self:UpdateSpecPickerButton()
 end
-
--- ============================================================
--- 행 생성/재사용
--- ============================================================
 
 requestItemData = function(itemID)
     itemID = tonumber(itemID)
@@ -2811,7 +4106,7 @@ end
 local function isTimewalkingInstance()
     local inInstance, instanceType = IsInInstance()
     if not inInstance or instanceType ~= "party" then return false end
-    -- difficulty 24 = Timewalking Dungeon
+
     local _, _, difficulty = GetInstanceInfo()
     return difficulty == 24
 end
@@ -2820,7 +4115,7 @@ local function isValidPreviewItemLevel(sourceType, itemLevel)
     if not itemLevel or itemLevel <= 0 then
         return false
     end
-    -- 시간여행 던전에서는 아이템이 스케일다운된 ilvl로 표시되므로 범위 검증을 우회
+
     if isTimewalkingInstance() then
         return true
     end
@@ -2876,6 +4171,268 @@ function SourcePreview.getSeasonPreviewProfile(sourceType)
     local profiles = db and db.sourceProfiles
     local profile = profiles and profiles[sourceType]
     return type(profile) == "table" and profile or nil
+end
+
+function SourcePreview.getRewardProfileBaseline(entry)
+    local profiles = entry and entry.rewardProfiles
+    if type(profiles) ~= "table" then
+        return nil
+    end
+    local profile = profiles.mplus_great_vault_voidcore or profiles.mplus_end_of_dungeon
+    if type(profile) ~= "table" then
+        return nil
+    end
+    local itemLevel = tonumber(profile.itemLevel)
+    if not itemLevel then
+        return nil
+    end
+    local track = isKoreanLanguageSelected() and profile.upgradeTrackKo or profile.upgradeTrack
+    if type(track) ~= "string" or track == "" then
+        track = nil
+    end
+    local rank = type(profile.upgradeRank) == "string" and profile.upgradeRank ~= "" and profile.upgradeRank or nil
+    if track and rank then
+        return string.format("%s %s · %d", track, rank, itemLevel)
+    end
+    if track then
+        return string.format("%s · %d", track, itemLevel)
+    end
+    return tostring(itemLevel)
+end
+
+function SourcePreview.getSeasonProfileBaseline(sourceType)
+    local profile = SourcePreview.getSeasonPreviewProfile(sourceType)
+    if type(profile) ~= "table" then
+        return nil
+    end
+    local label = profile.requireMythText and ns.L("bis_tooltip_myth_track_status") or localizeSourceType(sourceType)
+    if type(label) ~= "string" or label == "" then
+        label = tostring(sourceType or "")
+    end
+    local target = tonumber(profile.targetItemLevel)
+    if target then
+        return string.format("%s · %d", label, target)
+    end
+    local minLevel = tonumber(profile.minItemLevel)
+    local maxLevel = tonumber(profile.maxItemLevel)
+    if minLevel and maxLevel and maxLevel > minLevel then
+        return string.format("%s · %d~%d", label, minLevel, maxLevel)
+    end
+    if minLevel then
+        return string.format("%s · %d", label, minLevel)
+    end
+    return nil
+end
+
+function SourcePreview.getItemLevelTable()
+    local tbl = ns.Data and ns.Data.ItemLevelTable
+    return type(tbl) == "table" and tbl or nil
+end
+
+function SourcePreview.getGradeMaxItemLevel(gradeKey)
+    local tbl = SourcePreview.getItemLevelTable()
+    local gradeMax = tbl and tbl.gradeMax
+    return tonumber(type(gradeMax) == "table" and gradeMax[gradeKey] or nil)
+end
+
+function SourcePreview.getGradeEntryItemLevel(gradeKey)
+    local tbl = SourcePreview.getItemLevelTable()
+    if not tbl or not gradeKey then
+        return nil
+    end
+    local raid = tbl.raid
+    if type(raid) == "table" then
+        for _, row in pairs(raid) do
+            if type(row) == "table" and row.grade == gradeKey then
+                local minLevel = tonumber(row.min)
+                if minLevel then
+                    return minLevel
+                end
+            end
+        end
+    end
+    local mplus = tbl.mythicPlus
+    local rows = type(mplus) == "table" and mplus.endOfDungeon or nil
+    if type(rows) == "table" then
+        for _, row in ipairs(rows) do
+            if type(row) == "table" then
+                if row.grade == gradeKey and tonumber(row.rank) == 1 then
+                    local ilvl = tonumber(row.ilvl)
+                    if ilvl then
+                        return ilvl
+                    end
+                end
+                if row.vaultGrade == gradeKey and tonumber(row.vaultRank) == 1 then
+                    local vault = tonumber(row.vault)
+                    if vault then
+                        return vault
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+function SourcePreview.getTrackRankMax()
+    local tbl = SourcePreview.getItemLevelTable()
+    local mplus = tbl and tbl.mythicPlus
+    local rows = type(mplus) == "table" and mplus.endOfDungeon or nil
+    if type(rows) == "table" then
+        for _, row in ipairs(rows) do
+            local rankMax = tonumber(type(row) == "table" and row.rankMax or nil)
+            if rankMax and rankMax > 0 then
+                return rankMax
+            end
+        end
+    end
+    local mythic0 = type(mplus) == "table" and mplus.mythic0 or nil
+    local rankMax = tonumber(type(mythic0) == "table" and mythic0.rankMax or nil)
+    if rankMax and rankMax > 0 then
+        return rankMax
+    end
+    return nil
+end
+
+function SourcePreview.getStepDefinition(stepKey)
+    local defs = SourcePreview.stepDefs
+    local def = type(defs) == "table" and defs[stepKey] or nil
+    return type(def) == "table" and def or nil
+end
+
+function SourcePreview.getSelectedStepKey()
+    local stored = ns.DB and type(ns.DB.GetBISOverlayPreviewStep) == "function"
+        and ns.DB:GetBISOverlayPreviewStep() or nil
+    if SourcePreview.getStepDefinition(stored) then
+        return stored
+    end
+    return SourcePreview.defaultStepKey
+end
+
+function SourcePreview.setSelectedStepKey(stepKey)
+    if not SourcePreview.getStepDefinition(stepKey) then
+        return SourcePreview.getSelectedStepKey()
+    end
+    if ns.DB and type(ns.DB.SetBISOverlayPreviewStep) == "function" then
+        ns.DB:SetBISOverlayPreviewStep(stepKey)
+    end
+    return SourcePreview.getSelectedStepKey()
+end
+
+function SourcePreview.getNextStepKey(stepKey, direction)
+    local order = SourcePreview.stepOrder
+    if type(order) ~= "table" or #order == 0 then
+        return SourcePreview.defaultStepKey
+    end
+    local index = 1
+    for position, key in ipairs(order) do
+        if key == stepKey then
+            index = position
+            break
+        end
+    end
+    local step = (tonumber(direction) or 1) >= 0 and 1 or -1
+    index = ((index - 1 + step) % #order) + 1
+    return order[index]
+end
+
+function SourcePreview.getStepItemLevel(stepKey)
+    local def = SourcePreview.getStepDefinition(stepKey)
+    if not def then
+        return nil
+    end
+    if def.rank == "max" then
+        return SourcePreview.getGradeMaxItemLevel(def.gradeKey)
+    end
+    return SourcePreview.getGradeEntryItemLevel(def.gradeKey)
+end
+
+function SourcePreview.getStepRankText(stepKey)
+    local def = SourcePreview.getStepDefinition(stepKey)
+    local rankMax = SourcePreview.getTrackRankMax()
+    if not def or not rankMax then
+        return nil
+    end
+    local rank = def.rank == "max" and rankMax or tonumber(def.rank)
+    if not rank then
+        return nil
+    end
+    return string.format("%d/%d", rank, rankMax)
+end
+
+function SourcePreview.getStepLabel(stepKey)
+    local def = SourcePreview.getStepDefinition(stepKey)
+    if not def then
+        return nil
+    end
+    local localeKeys = SourcePreview.gradeLocaleKeys
+    local localeKey = type(localeKeys) == "table" and localeKeys[def.gradeKey] or nil
+    local gradeText = localeKey and ns.L(localeKey) or def.gradeKey
+    if type(gradeText) ~= "string" or gradeText == "" then
+        gradeText = tostring(def.gradeKey or "")
+    end
+    local rankText = SourcePreview.getStepRankText(stepKey)
+    if rankText then
+        return gradeText .. " " .. rankText
+    end
+    return gradeText
+end
+
+function SourcePreview.getStepSummary(stepKey)
+    local label = SourcePreview.getStepLabel(stepKey)
+    if not label then
+        return nil
+    end
+    local itemLevel = SourcePreview.getStepItemLevel(stepKey)
+    if itemLevel then
+        return string.format("%s · %d", label, itemLevel)
+    end
+    return label
+end
+
+function SourcePreview.getCraftedBaseline()
+    local tbl = SourcePreview.getItemLevelTable()
+    local crafted = tbl and tbl.crafted
+    if type(crafted) ~= "table" then
+        return nil
+    end
+    local base = tonumber(type(crafted.base) == "table" and crafted.base.ilvl or nil)
+    local top = tonumber(type(crafted.r5) == "table" and crafted.r5.ilvl or nil)
+    local label = localizeSourceType("crafted")
+    if type(label) ~= "string" or label == "" then
+        label = "crafted"
+    end
+    if base and top and top > base then
+        return string.format("%s · %d~%d", label, base, top)
+    end
+    local single = top or base
+    if single then
+        return string.format("%s · %d", label, single)
+    end
+    return nil
+end
+
+function SourcePreview.getBaselineSummary(entry)
+    if type(entry) ~= "table" then
+        return nil
+    end
+    local sourceType = getEntrySourceType(entry)
+    if sourceType == "crafted" then
+        local craftedBaseline = SourcePreview.getCraftedBaseline()
+        if craftedBaseline then
+            return craftedBaseline
+        end
+        return SourcePreview.getSeasonProfileBaseline(sourceType)
+    end
+    local stepSummary = SourcePreview.getStepSummary(SourcePreview.getSelectedStepKey())
+    if stepSummary then
+        return stepSummary
+    end
+    local baseline = SourcePreview.getRewardProfileBaseline(entry)
+    if baseline then
+        return baseline
+    end
+    return SourcePreview.getSeasonProfileBaseline(sourceType)
 end
 
 function SourcePreview.addSourcePreviewLink(links, seen, link)
@@ -3203,6 +4760,10 @@ getPreviewRankingScore = function(entry, specID)
     if getEntrySourceType(entry) ~= "mythicplus" then
         return nil
     end
+
+    if SeasonGuard.IsMismatched() then
+        return nil
+    end
     local cacheKey = getPreviewRankingScoreCacheKey(entry, specID)
     local cached = PREVIEW_RANKING_SCORE_CACHE[cacheKey]
     if cached ~= nil then
@@ -3240,8 +4801,7 @@ local function getConfiguredMythicVaultItemLinks(entry)
     addLink(profile and profile.itemString)
     addLink(linksByItemID and linksByItemID[itemID])
     if itemID and generatedPreviewBonusListID and type(generatedPreviewItemStringTemplate) == "string" then
-        -- Retail ItemLink fields before numBonusIDs:
-        -- enchant, four gems, suffix, unique, link level, spec, mask, context.
+
         local ok, generatedLink = pcall(
             string.format,
             generatedPreviewItemStringTemplate,
@@ -3276,6 +4836,10 @@ local function getExactMythicVaultItemLink(entry)
 end
 
 local function resolveMythPreviewSnapshot(entry)
+
+    if SeasonGuard.IsMismatched() then
+        return nil
+    end
     if getMythPreviewSnapshot(entry.itemID) then
         return false
     end
@@ -3295,6 +4859,10 @@ end
 scheduleAutomaticRuntimeScores = function(items, specID)
     BISOverlay._automaticScoreQueueToken = (BISOverlay._automaticScoreQueueToken or 0) + 1
     local queueToken = BISOverlay._automaticScoreQueueToken
+
+    if SeasonGuard.IsMismatched() then
+        return
+    end
     if areContainerFramesShown() or not C_Timer or type(C_Timer.After) ~= "function" then
         return
     end
@@ -3426,11 +4994,16 @@ showSeasonItemTooltip = function(owner, row)
             return bossLabel
         end
 
+        if sourceType == "mythicplus" then
+            return EJournal.GetEntryBossName(entry, true)
+        end
+
         if sourceType == "raid" then
             local display = getDisplaySourceLabel(entry)
             if display and display ~= "" and not isRaidLocationLabel(display) and not hasRaidMetaLabel(display) then
                 return display
             end
+            return EJournal.GetEntryBossName(entry, true)
         end
 
         return nil
@@ -3505,14 +5078,16 @@ showSeasonItemTooltip = function(owner, row)
         local sr, sg, sb = getSourceTypeColor(sourceType)
 
         addStyledTooltipLine(ns.L("bis_tooltip_slot"), localizeSlot(entry.slot))
+        local autoScoreBaseline = nil
         if sourceType == "mythicplus" then
-            addStyledTooltipLine(
-                ns.L("bis_tooltip_myth_baseline"),
-                ns.L("bis_track_mplus_myth_baseline", getMythicPlusVaultPreviewItemLevel(entry)),
-                sr, sg, sb
-            )
+            autoScoreBaseline = ns.L("bis_track_mplus_myth_baseline", getMythicPlusVaultPreviewItemLevel(entry))
+            addStyledTooltipLine(ns.L("bis_tooltip_myth_baseline"), autoScoreBaseline, sr, sg, sb)
         end
         appendSeasonTooltipDetails(sourceType, sr, sg, sb)
+        local baseline = SourcePreview.getBaselineSummary(entry)
+        if baseline and baseline ~= "" and baseline ~= autoScoreBaseline then
+            addStyledTooltipLine(ns.L("bis_tooltip_basis"), baseline, 1.00, 0.86, 0.42)
+        end
         addStyledTooltipLine(ns.L("bis_tooltip_rank"), notePlain(noteKind, noteIndex))
         return sourceType
     end
@@ -3567,6 +5142,10 @@ showSeasonItemTooltip = function(owner, row)
         if tooltip:NumLines() == 0 then
             return false
         end
+        local snapshotBaseline = SourcePreview.getBaselineSummary(entry)
+        if snapshotBaseline and type(tooltip.AddDoubleLine) == "function" then
+            tooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), snapshotBaseline, 0.62, 0.72, 0.92, 1.00, 0.86, 0.42)
+        end
         tooltip:Show()
         return true
     end
@@ -3577,14 +5156,16 @@ showSeasonItemTooltip = function(owner, row)
         end
         tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT")
         resetBISTooltipState(tooltip)
-        -- Blizzard's SellPrice rule skips MoneyFrame rendering for shopping
-        -- tooltips. Set this only for the single SetHyperlink call, then clear
-        -- it when the addon-owned tooltip is hidden.
+
         tooltip.isShopping = true
         local ok = pcall(tooltip.SetHyperlink, tooltip, link)
         if not ok or tooltip:NumLines() == 0 then
             resetBISTooltipState(tooltip)
             return false
+        end
+        local baseline = SourcePreview.getBaselineSummary(entry)
+        if baseline and type(tooltip.AddDoubleLine) == "function" then
+            tooltip:AddDoubleLine(ns.L("bis_tooltip_basis"), baseline, 0.62, 0.72, 0.92, 1.00, 0.86, 0.42)
         end
         tooltip:Show()
         return true
@@ -3594,7 +5175,7 @@ showSeasonItemTooltip = function(owner, row)
         if not itemID or itemID <= 0 then
             return false
         end
-        if sourceType == "mythicplus" then
+        if sourceType == "mythicplus" and SourcePreview.isMythPreviewConfigured() then
             requestItemData(itemID)
             return false
         end
@@ -3604,6 +5185,11 @@ showSeasonItemTooltip = function(owner, row)
             local previewLink = SourcePreview.getVerifiedSourcePreviewItemLink(itemID, sourceType)
             if previewLink and tryShowBlizzardItemTooltip(previewLink) then
                 DEFAULT_ITEM_TOOLTIP_LINK_CACHE[SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)] = previewLink
+                return true
+            end
+            local lootLink = EJournal.GetEntryLootLink(entry, true)
+            if lootLink and isMatchingItemLink(lootLink, itemID) and tryShowBlizzardItemTooltip(lootLink) then
+                DEFAULT_ITEM_TOOLTIP_LINK_CACHE[SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)] = lootLink
                 return true
             end
         end
@@ -3648,8 +5234,10 @@ showSeasonItemTooltip = function(owner, row)
         if snapshot and tryShowSnapshotTooltip(snapshot) then
             return
         end
-        showSeasonFallbackTooltip()
-        return
+        if SourcePreview.isMythPreviewConfigured() then
+            showSeasonFallbackTooltip()
+            return
+        end
     end
 
     if isBISItemOwned(specID, row.itemID) then
@@ -3832,7 +5420,9 @@ local function ensureRow(frame, index)
     end)
     row.tooltipRegion:SetScript("OnEnter", function(self2)
         if row._entry and not isScrollTooltipSuppressed() then
+            pcall(EJournal.ResolveEntryLoot, row._entry, true)
             showSeasonItemTooltip(self2, row)
+            applyRowSourceLabel(row)
         end
     end)
     row.tooltipRegion:SetScript("OnLeave", hideBISTooltip)
@@ -3855,6 +5445,7 @@ local function resetRow(row)
     row._entry = nil
     row._specID = nil
     row._sectionDungeon = nil
+    row._slotSection = nil
     row._displayNoteKind = nil
     row._displayNoteIndex = nil
 end
@@ -3876,15 +5467,10 @@ function BISOverlay:RefreshVisibleItemRows(itemIDs)
     return refreshed
 end
 
--- ============================================================
--- 컨텐츠 빌드
--- ============================================================
-
 function BISOverlay:RebuildContent()
     local frame = self.frame
     if not frame then return end
 
-    -- 스크롤 위치 저장 (아이템 로드 재빌드일 때 복원용)
     local isItemLoadRebuild = self._isItemLoadRebuild
     self._isItemLoadRebuild = false
     local savedScroll = frame.scrollFrame:GetVerticalScroll()
@@ -3900,7 +5486,7 @@ function BISOverlay:RebuildContent()
         frame.hintText:SetText(ns.L("bis_overlay_hint"))
     end
     if frame.noticeText then
-        frame.noticeText:SetText(getSpecPolicySummary(specID))
+        SeasonGuard.ApplyNotice(frame.noticeText, getSpecPolicySummary(specID))
     end
     if frame.avgLabel then
         frame.avgLabel:SetText(ns.L("bis_overlay_avg_label", avgIlvl > 0 and tostring(avgIlvl) or "?"))
@@ -3909,6 +5495,7 @@ function BISOverlay:RebuildContent()
         frame.updateBISItemTooltipVisual()
     end
     self:UpdateSourceFilterButtons()
+    self:UpdatePreviewStepButton()
 
     ns.Utils.Debug(string.format("[BISOverlay] specID=%s bisData=%s",
         tostring(specID), bisData and (#bisData .. "개") or "nil"))
@@ -3985,32 +5572,18 @@ function BISOverlay:RebuildContent()
                 iRow._displayNoteKind = entry._displayNoteKind
                 iRow._displayNoteIndex = entry._displayNoteIndex
 
-                -- 교번 배경
                 if itemRowCount % 2 == 0 then
                     iRow.bg:SetColorTexture(0.06, 0.08, 0.14, 0.55)
                 else
                     iRow.bg:SetColorTexture(0.04, 0.05, 0.10, 0.28)
                 end
 
-                -- 아이템 이름/아이콘은 부분 갱신 가능하도록 별도 처리
                 refreshItemRowDisplay(iRow)
                 iRow.favoriteBtn:Show()
                 iRow.ownedBtn:Show()
 
-                -- 출처 라벨
-                local sourceLabel = getDisplaySourceLabel(entry)
-                if slotName == FAVORITES_SLOT and sourceLabel and sourceLabel ~= "" then
-                    sourceLabel = localizeSlot(entry.slot) .. " · " .. sourceLabel
-                end
-                if sourceLabel and sourceLabel ~= "" then
-                    iRow.slotLabel:ClearAllPoints()
-                    iRow.slotLabel:SetPoint("LEFT", iRow, "LEFT", COL_CONTROLS + COL_ICON + COL_NAME, 0)
-                    iRow.slotLabel:SetWidth(COL_SLOT)
-                    iRow.slotLabel:SetFont(FONT_PATH, 10, FONT_FLAGS)
-                    iRow.slotLabel:SetTextColor(0.72, 0.72, 0.72, 1)
-                    iRow.slotLabel:SetText(sourceLabel)
-                    iRow.slotLabel:Show()
-                end
+                iRow._slotSection = slotName
+                applyRowSourceLabel(iRow)
 
                 local sourceType = getEntrySourceType(entry)
                 local sr, sg, sb = getSourceTypeColor(sourceType)
@@ -4022,7 +5595,6 @@ function BISOverlay:RebuildContent()
                 iRow.typeLabel:SetText(getEntryTrackStatusLabel(entry))
                 iRow.typeLabel:Show()
 
-                -- note 배지
                 local noteTxt = noteBadge(entry._displayNoteKind, entry._displayNoteIndex)
                 if noteTxt and noteTxt ~= "" then
                     iRow.noteLabel:ClearAllPoints()
@@ -4043,7 +5615,6 @@ function BISOverlay:RebuildContent()
         end
     end
 
-    -- 높이 갱신
     frame.content:SetHeight(math.max(1, yOffset))
     local visH   = math.min(MAX_SCROLL_H, yOffset)
     local totalH = HEADER_H + math.max(20, visH) + PADDING
@@ -4052,7 +5623,6 @@ function BISOverlay:RebuildContent()
         scheduleAutomaticRuntimeScores(filteredData, specID)
     end
 
-    -- 스크롤 복원(아이템 로드) 또는 초기화(스펙 변경), 썸 업데이트 (레이아웃 확정 후)
     C_Timer.After(0, function()
         if isItemLoadRebuild and savedScroll > 0 then
             local maxScroll = frame.scrollFrame:GetVerticalScrollRange()
@@ -4063,10 +5633,6 @@ function BISOverlay:RebuildContent()
         self:UpdateScrollThumb()
     end)
 end
-
--- ============================================================
--- Refresh
--- ============================================================
 
 function BISOverlay:Refresh()
     if not ns.DB or not ns.DB:IsBISOverlayEnabled() then
@@ -4085,11 +5651,16 @@ function BISOverlay:Refresh()
 
     self:EnsureTabs()
     self:UpdateSourceFilterButtons()
+    self:UpdatePreviewStepButton()
     self:UpdateSpecPickerButton()
+
+    if not (InCombatLockdown and InCombatLockdown()) then
+        pcall(ensureEncounterJournalLoaded)
+        pcall(EJournal.WarmupSeasonInstances)
+    end
     self.frame:SetScale(getOverlayScale())
     self:ApplyCollapse()
 
-    -- 앵커 대상이 바뀌었을 때만 ClearAllPoints/SetPoint 호출 (깜박임 방지)
     local config = getOverlayConfig()
     local ilFrame = ns.UI.ItemLevelOverlay and ns.UI.ItemLevelOverlay.frame
     local useStoredPoint = (config.anchorMode or "itemlevel") == "overlay"
@@ -4126,7 +5697,7 @@ function BISOverlay:Refresh()
             self.frame.hintText:SetText(ns.L("bis_overlay_hint"))
         end
         if self.frame.noticeText then
-            self.frame.noticeText:SetText(getSpecPolicySummary(specID))
+            SeasonGuard.ApplyNotice(self.frame.noticeText, getSpecPolicySummary(specID))
         end
         if self.frame.avgLabel then
             local avgIlvl = getAverageItemLevel()
@@ -4151,9 +5722,178 @@ function BISOverlay:Refresh()
     self.frame:Show()
 end
 
--- ============================================================
--- Initialize
--- ============================================================
+function BISOverlay:DiagnoseJournal(sink)
+    local out = sink or (ns.Utils and ns.Utils.Print)
+    if type(out) ~= "function" then
+        return
+    end
+
+    ensureEncounterJournalLoaded()
+
+    EJournal.LoadPersistentLoot()
+
+    local cacheStatus = nil
+    if ns.DB and type(ns.DB.GetJournalLootCacheStatus) == "function" then
+        local okStatus, result = pcall(ns.DB.GetJournalLootCacheStatus, ns.DB)
+        if okStatus and type(result) == "table" then
+            cacheStatus = result
+        end
+    end
+
+    if cacheStatus then
+        out(string.format("[BIS캐시] ns.db=%s / 저장본=%s / 스키마=%s(기대 %s) / 빌드=%s(기대 %s) / 시즌=%s(기대 %s)",
+            tostring(cacheStatus.dbReady),
+            tostring(cacheStatus.stored),
+            tostring(cacheStatus.schema or "없음"),
+            tostring(cacheStatus.expectedSchema),
+            tostring(cacheStatus.build or "없음"),
+            tostring(cacheStatus.expectedBuild),
+            tostring(cacheStatus.season or "없음"),
+            tostring(cacheStatus.expectedSeason or "미확정")))
+
+        out(string.format("[BIS캐시] 저장 인스턴스=%d개 / 저장 항목=%d개 / 초기화=%s(%d회)",
+            tonumber(cacheStatus.instances) or 0,
+            tonumber(cacheStatus.items) or 0,
+            tostring(cacheStatus.resetReason or "없음"),
+            tonumber(cacheStatus.resetCount) or 0))
+
+        out(string.format("[BIS캐시] 저장 호출=%d회 / 마지막 저장 성공=%s / 대상=%s / 항목=%s / 실패사유=%s",
+            tonumber(cacheStatus.saveCount) or 0,
+            tostring(cacheStatus.lastSaveOk),
+            tostring(cacheStatus.lastSaveInstance or "없음"),
+            tostring(cacheStatus.lastSaveCount or 0),
+            tostring(cacheStatus.lastSaveReason or "없음")))
+    else
+        out("[BIS캐시] 캐시 상태를 읽지 못했습니다.")
+    end
+
+    local sessionScanned = 0
+    for _ in pairs(EJournal.lootScanned) do
+        sessionScanned = sessionScanned + 1
+    end
+
+    out(string.format("[BIS캐시] 로드 결과=%s / 메모리 인스턴스=%d개 / 마지막 쓰기=%s",
+        tostring(EJournal.persistentLoadState or "미시도"),
+        sessionScanned,
+        tostring(EJournal.lastSaveState or "없음")))
+
+    out(string.format("[BIS안내서] EncounterJournal=%s / OpenJournal=%s / ContentTab_Select=%s",
+        tostring(EncounterJournal ~= nil),
+        tostring(type(EncounterJournal_OpenJournal) == "function"),
+        tostring(type(EJ_ContentTab_Select) == "function")))
+
+    out(string.format("[BIS안내서] dungeonsTab=%s / raidsTab=%s",
+        tostring(EncounterJournal and EncounterJournal.dungeonsTab ~= nil),
+        tostring(EncounterJournal and EncounterJournal.raidsTab ~= nil)))
+
+    out(string.format("[BIS안내서] 탭ID 던전=%s / 레이드=%s / 프레임표시=%s",
+        tostring(EJournal.GetContentTabID(false) or "없음"),
+        tostring(EJournal.GetContentTabID(true) or "없음"),
+        tostring(type(EncounterJournal) == "table" and EncounterJournal:IsShown() or false)))
+
+    out(string.format("[BIS안내서] DisplayInstance=%s / DisplayEncounter=%s / IsValidDifficulty=%s / ExpansionDropdown=%s / EJ_SelectTier=%s",
+        tostring(type(EncounterJournal_DisplayInstance) == "function"),
+        tostring(type(EncounterJournal_DisplayEncounter) == "function"),
+        tostring(type(EJ_IsValidInstanceDifficulty) == "function"),
+        tostring(type(EncounterJournal_ExpansionDropdown_Select) == "function"),
+        tostring(type(EJ_SelectTier) == "function")))
+
+    local numTiers = EJournal.GetNumTiers()
+    out(string.format("[BIS안내서] 티어 수=%s / 시즌 티어 인덱스=%s / 현재 티어=%s",
+        tostring(numTiers or "?"),
+        tostring(CURRENT_SEASON_EJ_TIER_INDEX),
+        tostring(EJournal.GetCurrentTier() or "?")))
+
+    EJournal.bossTargetCache = {}
+    EJournal.entryLootCache = {}
+    EJournal.EnsureTier(CURRENT_SEASON_EJ_TIER_INDEX)
+
+    out(string.format("[BIS안내서] 캐시된 레이드 인스턴스=%d개 / 던전 이름 인덱스=%s",
+        #EJournal.raidInstances,
+        tostring(next(EJournal.dungeonByName) ~= nil)))
+
+    if type(EJ_GetInstanceByIndex) == "function" then
+        EJournal.SelectTier(CURRENT_SEASON_EJ_TIER_INDEX)
+        for _, bucket in ipairs({ { isRaid = true, label = "레이드" }, { isRaid = false, label = "던전" } }) do
+            local listed = {}
+            for index = 1, 40 do
+                local ok, instanceID, listedName = pcall(EJ_GetInstanceByIndex, index, bucket.isRaid)
+                if not ok or not instanceID then
+                    break
+                end
+                local resolvedName = listedName
+                if type(resolvedName) ~= "string" or resolvedName == "" then
+                    resolvedName = EJournal.ResolveInstanceName(instanceID, nil)
+                end
+                listed[#listed + 1] = string.format("%s(%s)", tostring(resolvedName or "?"), tostring(instanceID))
+            end
+            out(string.format("[BIS안내서] 티어%d %s 목록 %d건: %s",
+                CURRENT_SEASON_EJ_TIER_INDEX, bucket.label, #listed,
+                #listed > 0 and table.concat(listed, ", ") or "없음"))
+        end
+    end
+
+    for _, raid in ipairs(EJournal.raidInstances) do
+        local encounters = EJournal.ListEncounters(raid.instanceID)
+        local names = {}
+        for _, encounter in ipairs(encounters) do
+            names[#names + 1] = tostring(encounter.name)
+        end
+        out(string.format("[BIS안내서] 레이드 %s 보스 %d명: %s",
+            tostring(EJournal.ResolveInstanceName(raid.instanceID, nil) or raid.instanceID),
+            #names,
+            #names > 0 and table.concat(names, ", ") or "없음"))
+    end
+
+    local samples = {
+        { label = "레이드", entry = { sourceGroup = "raid", sourceType = "raid",
+            sourceLabel = "The Coiled Altar", displaySourceKoKR = "똬리의 제단",
+            displaySourceEnUS = "The Coiled Altar" } },
+        { label = "레이드보스", entry = { sourceGroup = "raid", sourceType = "raid",
+            sourceLabel = "Ula'tek", displaySourceKoKR = "울라텍",
+            displaySourceEnUS = "Ula'tek" } },
+        { label = "던전", entry = { sourceGroup = "mythicplus", sourceType = "mythicplus",
+            sourceLabel = "Altar of Fangs", dungeon = "송곳니의 제단",
+            dungeonEnUS = "Altar of Fangs" } },
+    }
+
+    for _, sample in ipairs(samples) do
+        local target = resolveFallbackJournalTarget(sample.entry) or {}
+        out(string.format("[BIS안내서] %s -> instanceID=%s tier=%s encounterID=%s difficulty=%s",
+            sample.label,
+            tostring(target.instanceID or "없음"),
+            tostring(target.tier or "?"),
+            tostring(target.encounterID or "없음"),
+            tostring(target.difficulty or "?")))
+
+        if target.instanceID then
+            local map = EJournal.EnsureLootIndex(target.instanceID)
+            local count = 0
+            if type(map) == "table" then
+                for _ in pairs(map) do count = count + 1 end
+            end
+            out(string.format("[BIS안내서] %s 전리품 인덱스=%d건", sample.label, count))
+
+            local replayLog = {}
+            local replayed = EJournal.DisplayTarget(
+                target, getEntrySourceType(sample.entry) == "raid", replayLog)
+            out(string.format("[BIS안내서] %s 클릭 재현 결과=%s", sample.label, tostring(replayed)))
+            for stepIndex, step in ipairs(replayLog) do
+                out(string.format("[BIS안내서]   %s %d) %s", sample.label, stepIndex, step))
+            end
+        end
+    end
+
+    if type(EJournal.lastOpenLog) == "table" and #EJournal.lastOpenLog > 0 then
+        out(string.format("[BIS안내서] 마지막 실제 클릭=%s",
+            tostring(EJournal.lastOpenLabel or "?")))
+        for stepIndex, step in ipairs(EJournal.lastOpenLog) do
+            out(string.format("[BIS안내서]   클릭 %d) %s", stepIndex, step))
+        end
+    else
+        out("[BIS안내서] 마지막 실제 클릭 기록 없음")
+    end
+end
 
 function BISOverlay:Initialize()
     if self._initialized then return end

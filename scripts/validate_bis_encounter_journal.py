@@ -11,19 +11,17 @@ JOURNAL_DB = REPO_ROOT / "ABProfileManager" / "Data" / "BISEncounterJournal.lua"
 TOC = REPO_ROOT / "ABProfileManager" / "ABProfileManager.toc"
 EXPECTED_TIER_INDEX = 13
 EXPECTED_JOURNAL_TIER_ID = 505
-EXPECTED_DB2_BUILD = "12.0.1.66838"
+EXPECTED_DB2_BUILD = "12.1.0.69465"
+# 시즌 2 M+ 던전 8종. 2026-08-28 인게임 EJ_GetInstanceByIndex 덤프로 확인했다.
 EXPECTED_INSTANCE_IDS_BY_DUNGEON = {
-    "마법학자의 정원": 1300,
-    "마이사라 동굴": 1315,
-    "제나스 지점": 1316,
-    "공결점 제나스": 1316,
-    "공결탑 제나스": 1316,
-    "윈드러너 첨탑": 1299,
-    "알게타르 아카데미": 1201,
-    "알게타르 대학": 1201,
-    "삼두정의 권좌": 945,
-    "하늘탑": 476,
-    "사론의 구덩이": 278,
+    "송곳니의 제단": 1322,
+    "날로라크의 소굴": 1311,
+    "죽음의 골목": 1304,
+    "눈부신 골짜기": 1309,
+    "공허흉터 투기장": 1313,
+    "왕들의 안식처": 1041,
+    "루비 생명의 웅덩이": 1202,
+    "세스랄리스 사원": 1030,
 }
 
 

@@ -111,6 +111,10 @@ local function translateObjectiveName(name)
         return name or ""
     end
 
+    if not (ns.Utils and ns.Utils.IsKoreanLanguageSelected and ns.Utils.IsKoreanLanguageSelected()) then
+        return name
+    end
+
     local direct = OBJECTIVE_DIRECT_TRANSLATIONS[name]
     if direct then
         return direct
@@ -148,6 +152,7 @@ local function translateObjectiveName(name)
         { pattern = "^Whisper of the Loa: (.+)$", label = "로아의 속삭임: %s" },
         { pattern = "^Echo of Abundance: (.+)$", label = "풍요의 메아리: %s" },
         { pattern = "^Traditions of the Haranir: (.+)$", label = "하라니르의 전통: %s" },
+        { pattern = "^Demystifyin': (.+)$", label = "누구나 쉽게 배우는 기술: %s" },
     }
 
     for _, entry in ipairs(prefixTransforms) do
@@ -435,7 +440,6 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
     local maxPoints = 0
     local completedObjectives = 0
     local objectiveRows = {}
-    local language = ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage() or nil
 
     for index, objective in ipairs(sourceDefinition.objectives or {}) do
         local isComplete = self:IsObjectiveComplete(objective)
@@ -448,8 +452,7 @@ function Tracker:EvaluateSource(professionKey, sourceKey)
 
         local rawName = objective and objective.name or ""
         local objectiveName = self:GetObjectiveDisplayName(objective)
-        if language == (ns.Constants and ns.Constants.LANGUAGE and ns.Constants.LANGUAGE.KOREAN) then
-            local rawName = objective and objective.name or ""
+        if ns.Utils and ns.Utils.IsKoreanLanguageSelected and ns.Utils.IsKoreanLanguageSelected() then
             if rawName ~= "" and objectiveName == rawName then
                 if sectionKey == "oneTime" and sourceDefinition.key == "treasures" then
                     objectiveName = rawName

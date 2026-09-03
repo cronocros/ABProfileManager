@@ -11,6 +11,7 @@
 현재 기준:
 
 - 기준 브랜치: `main`
-- 기준 버전: `v1.7.4`
-- 최신 로컬 패키지: `dist/ABProfileManager-v1.7.4.zip`
-- 이전 로컬 패키지: `dist/archive/`
+- 진행 중 작업: `v1.13.0` (WoW 12.1.0 / Midnight 시즌 2). 현황은 [DOC/TODO.md](./DOC/TODO.md)를 봅니다.
+- 로컬 패키지는 `dist/`에 최신본만 두고 이전 버전은 `dist/archive/`에 보관합니다.
+
+버전 숫자는 `ABProfileManager/ABProfileManager.toc`의 `## Version`이 유일한 기준입니다. 이 파일에는 중복해서 적지 않습니다.

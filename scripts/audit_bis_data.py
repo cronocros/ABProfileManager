@@ -14,13 +14,8 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OVERALL_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData_Method.lua"
-FALLBACK_FILE = REPO_ROOT / "ABProfileManager" / "Data" / "BISData.lua"
 
 SPEC_HEADER_RE = re.compile(r"^\s*\[(\d+)\]\s*=\s*\{\s*$")
-FALLBACK_ENTRY_RE = re.compile(
-    r'\{\s*dungeon\s*=\s*(nil|"[^"]*"),\s*boss\s*=\s*(nil|"[^"]*"),\s*itemID\s*=\s*(\d+),'
-    r'\s*slot\s*=\s*"([^"]+)",\s*note\s*=\s*"([^"]+)"\s*\}'
-)
 OVERALL_ENTRY_RE = re.compile(
     r'\{\s*dungeon\s*=\s*(nil|"[^"]*"),\s*boss\s*=\s*(nil|"[^"]*"),\s*itemID\s*=\s*(\d+),'
     r'\s*slot\s*=\s*"([^"]+)",\s*note\s*=\s*"([^"]+)",\s*sourceType\s*=\s*"([^"]+)",'
@@ -119,28 +114,10 @@ def print_counter(title: str, counts: Counter[str]) -> None:
 
 def main() -> int:
     overall_by_spec = parse_entries(OVERALL_FILE, OVERALL_ENTRY_RE)
-    fallback_by_spec = parse_entries(FALLBACK_FILE, FALLBACK_ENTRY_RE)
-
     overall_rows = flatten(overall_by_spec)
-    fallback_rows = flatten(fallback_by_spec)
-    overall_mplus_by_spec = overall_mythicplus_slots(overall_by_spec)
-
-    suppressed_rows = 0
-    eligible_rows = 0
-    suppressed_slots: Counter[str] = Counter()
-    eligible_slots: Counter[str] = Counter()
-    for spec_id, entries in fallback_by_spec.items():
-        blocked_slots = overall_mplus_by_spec.get(spec_id, set())
-        for entry in entries:
-            slot = str(entry["slot"])
-            if slot in blocked_slots:
-                suppressed_rows += 1
-                suppressed_slots[slot] += 1
-            else:
-                eligible_rows += 1
-                eligible_slots[slot] += 1
-
-    fallback_dungeons = sorted({str(entry["dungeon"]) for entry in fallback_rows if entry.get("dungeon")})
+    overall_dungeons = sorted(
+        {str(entry["dungeon"]) for entry in overall_rows if entry.get("dungeon")}
+    )
     overall_mplus_labels = sorted(
         {
             str(entry["sourceLabel"])
@@ -157,26 +134,13 @@ def main() -> int:
     print_counter("slot counts:", count_by(overall_rows, "slot"))
     print()
 
-    print("== Fallback dataset ==")
-    print(f"file: {FALLBACK_FILE}")
-    print(f"specs: {len(fallback_by_spec)}")
-    print(f"rows: {len(fallback_rows)}")
-    print_counter("notes:", count_by(fallback_rows, "note"))
-    print_counter("slot counts:", count_by(fallback_rows, "slot"))
     print("unique dungeons:")
-    for name in fallback_dungeons:
+    for name in overall_dungeons:
         print(f"  {name}")
     print()
 
-    print("== Merge impact ==")
-    print(f"fallback rows suppressed by overall Mythic+ BIS slots: {suppressed_rows}")
-    print(f"fallback rows still eligible after merge: {eligible_rows}")
-    print_counter("suppressed slots:", suppressed_slots)
-    print_counter("eligible slots:", eligible_slots)
-    print()
-
     print("== Naming variants ==")
-    hits = variant_hits(fallback_dungeons)
+    hits = variant_hits(overall_dungeons)
     if hits:
         for hit in hits:
             print("  variant group present: " + " / ".join(hit))
@@ -184,11 +148,11 @@ def main() -> int:
         print("  no known variant groups detected")
     print()
 
-    print("== Overall Mythic+ source labels ==")
+    print("== Mythic+ source labels ==")
     for label in overall_mplus_labels:
         print(f"  {label}")
 
-    if len(overall_by_spec) != 40 or len(fallback_by_spec) != 40:
+    if len(overall_by_spec) != 40:
         return 1
     return 0
 

@@ -101,13 +101,7 @@ local function getCombatTextModeLabelKey(mode)
     return "config_combat_text_mode_arc"
 end
 
-local function formatOffsetValue(value)
-    value = math.floor((tonumber(value) or 0) + 0.5)
-    if value > 0 then
-        return string.format("+%dpt", value)
-    end
-    return string.format("%dpt", value)
-end
+local formatOffsetValue = ns.Utils.FormatOffsetValue
 
 local function buildOverviewText()
     local tracker = ns.Modules and ns.Modules.ProfessionKnowledgeTracker
@@ -451,7 +445,6 @@ function ConfigPanel:BuildControlSet(parent, options)
     refs.mouseMoveRestoreCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.mouseMoveRestoreCheck:SetPoint("TOPLEFT", refs.logViewBtn, "BOTTOMLEFT", -24, -8)
 
-    -- 스탯/전문기술 오버레이 체크박스는 편의기능 탭으로 이전 (숨김 처리)
     refs.statsOverlayCheck = widgets.CreateCheckButton(refs.generalBox, "")
     refs.statsOverlayCheck:SetPoint("TOPLEFT", refs.mouseMoveRestoreCheck, "BOTTOMLEFT", 0, -8)
     refs.statsOverlayCheck:Hide()

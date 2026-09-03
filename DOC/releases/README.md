@@ -4,8 +4,8 @@
 
 기준:
 
-- 최신 로컬 한글 릴리스 노트: `RELEASE_NOTES_v1.11.11.md`
-- 최신 로컬 영문 릴리스 노트: `RELEASE_NOTES_v1.11.11_EN.md`
+- 최신 로컬 한글 릴리스 노트: `RELEASE_NOTES_v1.13.0.md`
+- 최신 로컬 영문 릴리스 노트: `RELEASE_NOTES_v1.11.11_EN.md` (v1.13.0 영문판 미작성)
 - 원격 GitHub 공개 최신 릴리스: `v1.11.0`
 - 원격 GitHub 공개 최신 한글 릴리스 노트: `RELEASE_NOTES_v1.11.0.md`
 - 원격 GitHub 공개 최신 영문 릴리스 노트: `RELEASE_NOTES_v1.11.0_EN.md`
@@ -16,4 +16,4 @@
 
 기존 v1.11.0 릴리스 노트와 누적 공지는 원격 공개 최신 v1.11.0 근거로 유지합니다. 더 이전 릴리스 노트는 `DOC/archive/release-notes/`로 이동합니다.
 
-현재 로컬 배포는 작업공간 `dist/ABProfileManager-v1.11.11.zip` 생성까지만 수행합니다. WoW 설치 폴더로 애드온을 복사하지 않습니다.
+현재 로컬 배포는 작업공간 `dist/ABProfileManager-v1.13.0.zip` 생성까지만 수행합니다. WoW 설치 폴더로 애드온을 복사하지 않습니다.

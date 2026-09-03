@@ -4,6 +4,14 @@ local enUS = ns.Locale and ns.Locale.strings and ns.Locale.strings.enUS
 local koKR = ns.Locale and ns.Locale.strings and ns.Locale.strings.koKR
 
 if enUS then
+    enUS.bis_dungeon_altar_of_fangs = "Altar of Fangs"
+    enUS.bis_dungeon_murder_row = "Murder Row"
+    enUS.bis_dungeon_den_of_nalorakk = "Den of Nalorakk"
+    enUS.bis_dungeon_the_blinding_vale = "The Blinding Vale"
+    enUS.bis_dungeon_voidscar_arena = "Voidscar Arena"
+    enUS.bis_dungeon_kings_rest = "Kings' Rest"
+    enUS.bis_dungeon_temple_of_sethraliss = "Temple of Sethraliss"
+    enUS.bis_dungeon_ruby_life_pools = "Ruby Life Pools"
     enUS.stats_overlay_identity_line = "%s %s - %s(%d)"
     enUS.current_character = "Current character: %s | Class: %s | Spec ID: %s (%s)"
     enUS.stats_overlay_class_deathknight = "DK"
@@ -214,13 +222,13 @@ if enUS then
     enUS.bis_note_alt = "Alt"
     enUS.bis_note_third = "3rd"
     enUS.bis_note_rank = "#%d"
-    enUS.bis_tooltip_current_season = "Midnight Season 1 item preview"
+    enUS.bis_tooltip_current_season = "Midnight Season 2 item preview"
     enUS.bis_tooltip_item_level_scaled = "Current season reward range: %d-%d"
     enUS.bis_tooltip_preview_key = "Current-season stats below are based on clearing M+%d."
     enUS.bis_tooltip_preview_fallback = "Blizzard preview data is unstable for this returning-dungeon item, so only season reward info is shown."
     enUS.bis_tooltip_base_item_level_warning = "The tooltip item level can still be the original drop item level, not the current season-scaled item level."
     enUS.bis_tooltip_raid_preview = "Current-season raid preview below is based on the Encounter Journal raid loot link."
-    enUS.bis_tooltip_raid_fallback = "This raid item could not be resolved to a safe Season 1 preview link, so only current-season raid ranges are shown."
+    enUS.bis_tooltip_raid_fallback = "This raid item could not be resolved to a safe Season 2 preview link, so only current-season raid ranges are shown."
     enUS.bis_tooltip_crafted_fallback = "Crafted items need quality and embellishment context, so only current-season crafted item levels are shown."
     enUS.bis_tooltip_tier_fallback = "Tier items need raid or catalyst context, so only current-season raid ranges are shown."
     enUS.bis_tooltip_slot = "Slot"
@@ -287,14 +295,6 @@ if enUS then
     enUS.bis_slot_feet = "Feet"
     enUS.bis_slot_ring = "Ring"
     enUS.bis_slot_trinket = "Trinket"
-    enUS.bis_dungeon_magisters_terrace = "Magisters' Terrace"
-    enUS.bis_dungeon_maisara_caverns = "Maisara Caverns"
-    enUS.bis_dungeon_nexus_point_xenas = "Nexus-Point Xenas"
-    enUS.bis_dungeon_windrunner_spire = "Windrunner Spire"
-    enUS.bis_dungeon_algethar_academy = "Algeth'ar Academy"
-    enUS.bis_dungeon_seat_of_the_triumvirate = "Seat of the Triumvirate"
-    enUS.bis_dungeon_skyreach = "Skyreach"
-    enUS.bis_dungeon_pit_of_saron = "Pit of Saron"
     enUS.config_stats_tank_stats_show = "Show defensive stats (Dodge / Parry / Block) when playing a tank specialization"
     enUS.config_saved_tank_stats = "Tank defensive stats display set to %s."
     enUS.config_saved_silvermoon_map = "Midnight map overlay set to %s."
@@ -457,28 +457,24 @@ if enUS then
     enUS.quest_list_keep_row = "%s  [%s]"
     enUS.quest_list_id_format = "Quest ID: %d"
     enUS.quest_list_progress = "Objective: %s"
-    -- Feature 5: Blizzard Frame Manager
+
     enUS.config_blizzard_frames_show = "Allow moving Blizzard UI frames (World Map, Character, Professions, Spellbook, Achievements, Talent, Friends, Guild, Bank, and more)"
     enUS.config_saved_blizzard_frames = "Blizzard frame movement set to %s."
     enUS.config_blizzard_frames_reset = "Reset All Frame Positions"
     enUS.config_blizzard_frames_reset_done = "All Blizzard frame positions have been reset."
 
-    -- Feature 2: Merchant Helper
     enUS.config_merchant_helper_show = "Dim already-owned items/recipes/toys in vendor windows"
     enUS.config_saved_merchant_helper = "Vendor known-item dimming set to %s."
     enUS.merchant_known_label = "Known"
 
-    -- Feature 3: Mail History
     enUS.config_mail_history_show = "Show send history autocomplete when typing a mail recipient"
     enUS.config_saved_mail_history = "Mail recipient history set to %s."
 
-    -- Feature 4: verifywp command
     enUS.help_verifywp = "/abpm verifywp [profession] - Add TomTom waypoints for unfinished profession one-time treasures"
     enUS.verifywp_no_data = "[VerifyWP] No waypoint data found."
     enUS.verifywp_added = "[VerifyWP] Added %d/%d incomplete treasure waypoints to TomTom."
     enUS.verifywp_listed = "[VerifyWP] Listed %d/%d incomplete treasures (TomTom not found)."
 
-    -- Feature 7: World Event Overlay
     enUS.config_world_event_overlay_show = "Show timed world event countdown overlay"
     enUS.config_saved_world_event_overlay = "World event overlay set to %s."
     enUS.world_event_overlay_title = "World Events"
@@ -490,13 +486,12 @@ if enUS then
     enUS.world_event_dragonbane_keep = "Dragonbane Keep"
     enUS.world_event_the_hunt = "The Hunt"
     enUS.world_event_grand_hunts = "Grand Hunts"
-    -- Midnight events
+
     enUS.world_event_saldeerylsCourt  = "Saldeeryl's Court"
     enUS.world_event_stomarionAttack  = "Stomarion Assault"
     enUS.world_event_abundance        = "Abundance"
     enUS.world_event_haranyrLegend    = "Legend of Haranyr"
 
-    -- Feature 8: Item Level Overlay
     enUS.config_item_level_overlay_show = "Show item level reference overlay"
     enUS.config_saved_item_level_overlay = "Item level overlay set to %s."
     enUS.ilvl_overlay_title = "Drop Item Levels"
@@ -542,7 +537,7 @@ if enUS then
     enUS.ilvl_grade_chmp = "Chmp"
     enUS.ilvl_grade_hero = "Hero"
     enUS.ilvl_grade_myth = "Myth"
-    -- Upgrade Crests (Midnight Season 1)
+
     enUS.ilvl_crest_dawn     = "Dawn"
     enUS.ilvl_crest_dusk     = "Dusk"
     enUS.ilvl_crest_midnight = "Midnight"
@@ -560,7 +555,6 @@ if enUS then
     enUS.ilvl_row_key_level  = "+%s"
     enUS.ilvl_row_delve_tier = "Tier %s"
 
-    -- World event locations & tooltip
     enUS.world_event_loc_community_feast     = "Silvermoon City"
     enUS.world_event_loc_void_storm          = "Voidstorm Region"
     enUS.world_event_loc_dragonbane_keep     = "Dragonbane Keep"
@@ -573,7 +567,6 @@ if enUS then
     enUS.world_event_tooltip_mark_done    = "Click: Mark done today"
     enUS.world_event_tooltip_unmark       = "Click: Unmark as done"
 
-    -- Utility Panel tab
     enUS.tab_utility = "Utility"
     enUS.utility_panel_title = "● Utility Features"
     enUS.utility_section_overlays = "Drop & Event Overlays"
@@ -586,9 +579,51 @@ if enUS then
     enUS.utility_shop_hint = "Dim known recipes and toys in vendor windows. Track mail recipients for easy autocomplete."
     enUS.utility_section_blizzard = "Blizzard Frame Movement"
     enUS.utility_blizzard_hint = "Allow dragging Blizzard default frames (World Map, Character, Professions, Spellbook, Achievements, Talent, Friends, Guild, Bank, and more). Use the reset button to restore default positions."
+    enUS.status_prefix_info = "● Info: "
+    enUS.status_prefix_success = "● Success: "
+    enUS.status_prefix_failure = "◆ Failure: "
+    enUS.template_default_name = "Template"
+    enUS.template_duplicate_suffix = "Copy"
+    enUS.help_bankcheck = "/abpm bankcheck   - Check Warband Bank availability"
+    enUS.help_bankreset = "/abpm bankreset   - Force-reset the Warband Bank session"
+    enUS.bank_api_missing = "Warband Bank API (C_Bank) was not found."
+    enUS.bank_not_enabled = "The Warband Bank is not enabled."
+    enUS.bank_unavailable = "The Warband Bank cannot be used right now."
+    enUS.bank_session_reset = "The Warband Bank session was reset."
+    enUS.bank_session_closed_external = "The bank is in use elsewhere. The Warband Bank session was closed."
+    enUS.bank_available = "The Warband Bank is available."
+    enUS.diag_mplus_overlay_missing = "The Mythic+ record overlay module is not loaded."
+    enUS.diag_bis_overlay_missing = "The BIS overlay module is not loaded."
+    enUS.diag_no_output = "(no output)"
+    enUS.log_window_empty = "No debug or caught-error log entries."
+    enUS.log_window_clear = "Clear Log"
+    enUS.log_window_cleared = "(log cleared)"
+    enUS.copy_window_title = "ABPM Copy"
+    enUS.copy_window_title_mplus = "ABPM Mythic+ Overlay Diagnostics"
+    enUS.copy_window_title_ej = "ABPM Adventure Guide Diagnostics"
+    enUS.copy_window_title_log = "ABPM Log"
+    enUS.copy_window_title_usage = "ABPM Copy Window"
+    enUS.copy_usage_header = "Usage"
+    enUS.copy_usage_mplus = "/abpm copy mplus   Mythic+ overlay diagnostics"
+    enUS.copy_usage_ej = "/abpm copy ej      Adventure Guide navigation diagnostics"
+    enUS.copy_usage_log = "/abpm copy log     Debug and error log"
+    enUS.copy_usage_macro_hint = "To show your own script output in this window, call it from a macro:"
+    enUS.copy_usage_macro_call = "/run ABPMCopy(text)"
+    enUS.copy_usage_macro_tail = "Then press Ctrl+A and Ctrl+C to copy the text."
+    enUS.copy_window_opened = "Copy window opened."
+    enUS.bis_journal_blocked_combat = "The Adventure Guide cannot be opened automatically during combat."
+    enUS.bis_journal_blocked_season = "BIS data is on %s, so automatic Adventure Guide navigation is disabled."
 end
 
 if koKR then
+    koKR.bis_dungeon_altar_of_fangs = "송곳니의 제단"
+    koKR.bis_dungeon_murder_row = "죽음의 골목"
+    koKR.bis_dungeon_den_of_nalorakk = "날로라크의 소굴"
+    koKR.bis_dungeon_the_blinding_vale = "눈부신 골짜기"
+    koKR.bis_dungeon_voidscar_arena = "공허흉터 투기장"
+    koKR.bis_dungeon_kings_rest = "왕들의 안식처"
+    koKR.bis_dungeon_temple_of_sethraliss = "세스랄리스 사원"
+    koKR.bis_dungeon_ruby_life_pools = "루비 생명의 웅덩이"
     koKR.stats_overlay_identity_line = "%s %s - %s(%d)"
     koKR.current_character = "현재 캐릭터: %s | 직업: %s | 특성 ID: %s (%s)"
     koKR.stats_overlay_class_deathknight = "죽기"
@@ -799,13 +834,13 @@ if koKR then
     koKR.bis_note_alt = "대체"
     koKR.bis_note_third = "3순"
     koKR.bis_note_rank = "%d순"
-    koKR.bis_tooltip_current_season = "한밤 시즌 1 아이템 미리보기"
+    koKR.bis_tooltip_current_season = "한밤 시즌 2 아이템 미리보기"
     koKR.bis_tooltip_item_level_scaled = "현재 시즌 클리어 보상 범위: %d~%d"
     koKR.bis_tooltip_preview_key = "쐐기 +%d 클리어 시 현재 시즌 기준 스탯/아이템 레벨입니다."
     koKR.bis_tooltip_preview_fallback = "이 귀환 던전 아이템은 블리자드 미리보기 데이터가 불안정해 시즌 보상 정보만 표시합니다."
     koKR.bis_tooltip_base_item_level_warning = "툴팁에 보이는 아이템 레벨은 현재 시즌 보정 수치가 아니라 원본 드랍 아이템 레벨일 수 있습니다."
     koKR.bis_tooltip_raid_preview = "이 레이드 아이템은 모험 안내서의 현재 시즌 레이드 미리보기 기준으로 표시됩니다."
-    koKR.bis_tooltip_raid_fallback = "이 레이드 아이템은 안전한 시즌 1 미리보기 링크를 만들 수 없어 현재 시즌 레이드 템렙 범위만 표시합니다."
+    koKR.bis_tooltip_raid_fallback = "이 레이드 아이템은 안전한 시즌 2 미리보기 링크를 만들 수 없어 현재 시즌 레이드 템렙 범위만 표시합니다."
     koKR.bis_tooltip_crafted_fallback = "제작 아이템은 품질/장식 맥락이 필요해서 현재 시즌 제작 템렙만 표시합니다."
     koKR.bis_tooltip_tier_fallback = "티어 아이템은 레이드/촉매 맥락이 필요해서 현재 시즌 레이드 템렙 범위만 표시합니다."
     koKR.bis_tooltip_slot = "부위"
@@ -872,14 +907,6 @@ if koKR then
     koKR.bis_slot_feet = "발"
     koKR.bis_slot_ring = "반지"
     koKR.bis_slot_trinket = "장신구"
-    koKR.bis_dungeon_magisters_terrace = "마법학자의 정원"
-    koKR.bis_dungeon_maisara_caverns = "마이사라 동굴"
-    koKR.bis_dungeon_nexus_point_xenas = "공결탑 제나스"
-    koKR.bis_dungeon_windrunner_spire = "윈드러너 첨탑"
-    koKR.bis_dungeon_algethar_academy = "알게타르 대학"
-    koKR.bis_dungeon_seat_of_the_triumvirate = "삼두정의 권좌"
-    koKR.bis_dungeon_skyreach = "하늘탑"
-    koKR.bis_dungeon_pit_of_saron = "사론의 구덩이"
     koKR.config_stats_tank_stats_show = "탱커 특성일 때 방어 스탯(회피/반격/막기) 표시"
     koKR.config_saved_tank_stats = "탱커 방어 스탯 표시를 %s 상태로 변경했습니다."
     koKR.config_saved_silvermoon_map = "한밤(Midnight) 지도 오버레이를 %s 상태로 변경했습니다."
@@ -1042,28 +1069,24 @@ if koKR then
     koKR.quest_list_keep_row = "%s  [%s]"
     koKR.quest_list_id_format = "퀘스트 ID: %d"
     koKR.quest_list_progress = "진행: %s"
-    -- Feature 5: Blizzard Frame Manager
+
     koKR.config_blizzard_frames_show = "블리자드 기본 UI 창 자유 이동 허용 (세계 지도, 캐릭터, 전문기술, 마법책, 업적, 특성, 친구, 길드, 은행 등)"
     koKR.config_saved_blizzard_frames = "블리자드 창 이동을 %s 상태로 변경했습니다."
     koKR.config_blizzard_frames_reset = "창 위치 전체 초기화"
     koKR.config_blizzard_frames_reset_done = "모든 블리자드 창 위치가 초기화되었습니다."
 
-    -- Feature 2: Merchant Helper
     koKR.config_merchant_helper_show = "상점에서 이미 보유/알려진 아이템/도안/장난감 음영 처리"
     koKR.config_saved_merchant_helper = "상점 보유 아이템 음영을 %s 상태로 변경했습니다."
     koKR.merchant_known_label = "보유"
 
-    -- Feature 3: Mail History
     koKR.config_mail_history_show = "우편 수신자 입력 시 최근 발송 기록 자동완성 표시"
     koKR.config_saved_mail_history = "우편 수신자 기록을 %s 상태로 변경했습니다."
 
-    -- Feature 4: verifywp command
     koKR.help_verifywp = "/abpm verifywp [전문기술] - 미완료 전문기술 보물에 TomTom 웨이포인트 추가"
     koKR.verifywp_no_data = "[VerifyWP] 웨이포인트 데이터를 찾을 수 없습니다."
     koKR.verifywp_added = "[VerifyWP] 미완료 보물 %d/%d개를 TomTom에 추가했습니다."
     koKR.verifywp_listed = "[VerifyWP] 미완료 보물 %d/%d개 출력 (TomTom 없음)."
 
-    -- Feature 7: World Event Overlay
     koKR.config_world_event_overlay_show = "시간별 월드 이벤트 카운트다운 오버레이 표시"
     koKR.config_saved_world_event_overlay = "월드 이벤트 오버레이를 %s 상태로 변경했습니다."
     koKR.world_event_overlay_title = "월드 이벤트"
@@ -1075,13 +1098,12 @@ if koKR then
     koKR.world_event_dragonbane_keep = "드래곤베인 요새"
     koKR.world_event_the_hunt = "사냥"
     koKR.world_event_grand_hunts = "대사냥"
-    -- 한밤 이벤트 (수정됨)
+
     koKR.world_event_saldeerylsCourt  = "살데릴의 궁정"
     koKR.world_event_stomarionAttack  = "스토마리온 공격"
     koKR.world_event_abundance        = "풍요"
     koKR.world_event_haranyrLegend    = "하라니르의 전설"
 
-    -- Feature 8: Item Level Overlay
     koKR.config_item_level_overlay_show = "아이템 레벨 참조 오버레이 표시"
     koKR.config_saved_item_level_overlay = "아이템 레벨 오버레이를 %s 상태로 변경했습니다."
     koKR.ilvl_overlay_title = "드랍템 레벨 정보"
@@ -1127,7 +1149,7 @@ if koKR then
     koKR.ilvl_grade_chmp = "챔피"
     koKR.ilvl_grade_hero = "영웅"
     koKR.ilvl_grade_myth = "신화"
-    -- 업그레이드 문장 (Midnight 시즌 1)
+
     koKR.ilvl_crest_dawn     = "여명"
     koKR.ilvl_crest_dusk     = "황혼"
     koKR.ilvl_crest_midnight = "한밤"
@@ -1145,7 +1167,6 @@ if koKR then
     koKR.ilvl_row_key_level  = "%s단"
     koKR.ilvl_row_delve_tier = "%s단계"
 
-    -- World event locations & tooltip
     koKR.world_event_loc_community_feast     = "실버문 시티"
     koKR.world_event_loc_void_storm          = "공허폭풍 지역"
     koKR.world_event_loc_dragonbane_keep     = "드래곤베인 요새"
@@ -1158,7 +1179,6 @@ if koKR then
     koKR.world_event_tooltip_mark_done    = "클릭: 오늘 완료 표시"
     koKR.world_event_tooltip_unmark       = "클릭: 완료 표시 해제"
 
-    -- Utility Panel tab
     koKR.tab_utility = "편의기능"
     koKR.utility_panel_title = "● 편의 기능"
     koKR.utility_section_overlays = "드랍/이벤트 오버레이"
@@ -1171,4 +1191,38 @@ if koKR then
     koKR.utility_shop_hint = "상점에서 이미 보유한 아이템/도안을 음영 처리하고, 우편 수신자 발송 기록을 표시합니다."
     koKR.utility_section_blizzard = "블리자드 창 이동"
     koKR.utility_blizzard_hint = "블리자드 기본 UI 창(세계 지도, 캐릭터, 전문기술, 마법책, 업적, 특성, 친구, 길드, 은행 등)을 드래그로 이동할 수 있습니다. 초기화 버튼으로 기본 위치로 복원합니다."
+    koKR.status_prefix_info = "● 안내: "
+    koKR.status_prefix_success = "● 성공: "
+    koKR.status_prefix_failure = "◆ 실패: "
+    koKR.template_default_name = "템플릿"
+    koKR.template_duplicate_suffix = "복제"
+    koKR.help_bankcheck = "/abpm bankcheck   - 전투부대 은행 가용 상태 확인"
+    koKR.help_bankreset = "/abpm bankreset   - 전투부대 은행 세션 강제 초기화"
+    koKR.bank_api_missing = "전투부대 은행 API(C_Bank)를 찾을 수 없습니다."
+    koKR.bank_not_enabled = "전투부대 은행이 활성화되어 있지 않습니다."
+    koKR.bank_unavailable = "현재 전투부대 은행을 사용할 수 없는 상태입니다."
+    koKR.bank_session_reset = "전투부대 은행 세션을 초기화했습니다."
+    koKR.bank_session_closed_external = "은행이 다른 곳에서 사용 중입니다. 전투부대 은행 세션을 닫았습니다."
+    koKR.bank_available = "전투부대 은행 사용 가능 상태입니다."
+    koKR.diag_mplus_overlay_missing = "쐐기 오버레이 모듈이 로드되지 않았습니다."
+    koKR.diag_bis_overlay_missing = "BIS 오버레이 모듈이 로드되지 않았습니다."
+    koKR.diag_no_output = "(출력 없음)"
+    koKR.log_window_empty = "디버그/보호 오류 로그가 없습니다."
+    koKR.log_window_clear = "로그 지우기"
+    koKR.log_window_cleared = "(로그 지움)"
+    koKR.copy_window_title = "ABPM 복사"
+    koKR.copy_window_title_mplus = "ABPM 쐐기 오버레이 진단"
+    koKR.copy_window_title_ej = "ABPM 모험 안내서 진단"
+    koKR.copy_window_title_log = "ABPM 로그"
+    koKR.copy_window_title_usage = "ABPM 복사 창"
+    koKR.copy_usage_header = "사용법"
+    koKR.copy_usage_mplus = "/abpm copy mplus   쐐기 오버레이 진단 결과"
+    koKR.copy_usage_ej = "/abpm copy ej      모험 안내서 이동 진단"
+    koKR.copy_usage_log = "/abpm copy log     디버그/오류 로그"
+    koKR.copy_usage_macro_hint = "직접 만든 스크립트 결과를 이 창에 넣으려면 매크로에서"
+    koKR.copy_usage_macro_call = "/run ABPMCopy(text)"
+    koKR.copy_usage_macro_tail = "형태로 호출하세요. text 자리에 넣을 내용을 씁니다. Ctrl+A, Ctrl+C 로 복사합니다."
+    koKR.copy_window_opened = "복사 창을 열었습니다."
+    koKR.bis_journal_blocked_combat = "전투 중에는 모험 안내서 자동 이동을 사용할 수 없습니다."
+    koKR.bis_journal_blocked_season = "BIS 데이터가 %s 기준이라 모험 안내서 자동 이동을 사용하지 않습니다."
 end

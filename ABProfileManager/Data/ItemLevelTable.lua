@@ -1,83 +1,81 @@
 local _, ns = ...
 
--- 아이템 레벨 참조 테이블 — Midnight 시즌 1 실측 기준 (2026.02)
--- grade: "expl"탐험가 / "adv"모험가 / "vet"노련가 / "chmp"챔피언 / "hero"영웅 / "myth"신화
--- maxilvl: 해당 등급 풀 강화 최대 아이템 레벨
--- vault / vaultGrade / vaultMax: 주간 보상 아이템 레벨 및 등급
 ns.Data.ItemLevelTable = {
-    season = "Midnight Season 1",
+    season = "Midnight Season 2",
+
+    sources = {
+        delves     = "guide",
+        mythicPlus = "guide",
+        raid       = "dump",
+        worldBoss  = "tooltip",
+        crafted    = "tooltip",
+        pvp        = "tooltip",
+    },
 
     gradeMax = {
-        expl = 220,
-        adv  = 237,
-        vet  = 250,
-        chmp = 263,
-        hero = 276,
-        myth = 289,
+        adv  = 282,
+        vet  = 295,
+        chmp = 308,
+        hero = 321,
+        myth = 334,
     },
 
-    -- 구렁 (단계별 드랍 / 주간보상) — Midnight 시즌 1 실측 기준
-    -- crestDrop: 해당 단계 클리어 시 드랍되는 문장 등급
-    -- ※ 아이템 레벨은 8단계(250/챔피언)에서 상한 고정; 11단계는 신화 문장(황금 보물상자)만 추가
     delves = {
-        { tier=1,  ilvl=220, grade="adv",  maxilvl=237, vault=233, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
-        { tier=2,  ilvl=224, grade="adv",  maxilvl=237, vault=237, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
-        { tier=3,  ilvl=227, grade="adv",  maxilvl=237, vault=240, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
-        { tier=4,  ilvl=230, grade="adv",  maxilvl=237, vault=243, vaultGrade="vet",  vaultMax=250, crestDrop="adv"  },
-        { tier=5,  ilvl=233, grade="vet",  maxilvl=250, vault=246, vaultGrade="chmp", vaultMax=263, crestDrop="vet"  },
-        { tier=6,  ilvl=237, grade="vet",  maxilvl=250, vault=253, vaultGrade="chmp", vaultMax=263, crestDrop="vet"  },
-        { tier=7,  ilvl=246, grade="chmp", maxilvl=263, vault=256, vaultGrade="chmp", vaultMax=263, crestDrop="chmp" },
-        { tier=8,  ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
-        { tier=9,  ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
-        { tier=10, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="chmp" },
-        { tier=11, ilvl=250, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", vaultMax=276, crestDrop="myth" },
+        { tier=1,  ilvl=266, grade="adv",  maxilvl=282, vault=279, vaultGrade="vet",  vaultMax=295, crestDrop=nil    },
+        { tier=2,  ilvl=269, grade="adv",  maxilvl=282, vault=282, vaultGrade="vet",  vaultMax=295, crestDrop=nil    },
+        { tier=3,  ilvl=272, grade="adv",  maxilvl=282, vault=285, vaultGrade="vet",  vaultMax=295, crestDrop=nil    },
+        { tier=4,  ilvl=276, grade="adv",  maxilvl=282, vault=289, vaultGrade="vet",  vaultMax=295, crestDrop="adv"  },
+        { tier=5,  ilvl=279, grade="vet",  maxilvl=295, vault=292, vaultGrade="chmp", vaultMax=308, crestDrop="vet"  },
+        { tier=6,  ilvl=282, grade="vet",  maxilvl=295, vault=298, vaultGrade="chmp", vaultMax=308, crestDrop="vet"  },
+        { tier=7,  ilvl=292, grade="chmp", maxilvl=308, vault=302, vaultGrade="chmp", vaultMax=308, crestDrop="chmp" },
+        { tier=8,  ilvl=295, grade="chmp", maxilvl=308, vault=305, vaultGrade="hero", vaultMax=321, crestDrop="chmp" },
+        { tier=9,  ilvl=295, grade="chmp", maxilvl=308, vault=305, vaultGrade="hero", vaultMax=321, crestDrop="chmp" },
+        { tier=10, ilvl=295, grade="chmp", maxilvl=308, vault=305, vaultGrade="hero", vaultMax=321, crestDrop="chmp" },
+        { tier=11, ilvl=295, grade="chmp", maxilvl=308, vault=305, vaultGrade="hero", vaultMax=321, crestDrop="hero" },
     },
 
-    -- 5인 던전 + 쐐기
-    -- rank: 해당 등급 내 업그레이드 단계, rankMax: 최대 단계 (예: 2/6)
-    -- crestDrop: 클리어 시 드랍 문장 등급
     mythicPlus = {
-        heroic  = { labelKey="ilvl_dungeon_heroic",  ilvl=230, grade="adv",  maxilvl=237, rank=nil, rankMax=nil, vault=243, vaultGrade="vet",  vaultRank=nil, vaultMax=250, crestDrop=nil  },
-        mythic0 = { labelKey="ilvl_dungeon_mythic0", ilvl=246, grade="chmp", maxilvl=263, rank=1,   rankMax=6,   vault=256, vaultGrade="chmp", vaultRank=5,   vaultMax=263, crestDrop="chmp" },
+        heroic  = { labelKey="ilvl_dungeon_heroic",  ilvl=276, grade="adv",  maxilvl=282, rank=4,   rankMax=6,   vault=289, vaultGrade="vet",  vaultRank=4,   vaultMax=295, crestDrop="vet"  },
+        mythic0 = { labelKey="ilvl_dungeon_mythic0", ilvl=292, grade="chmp", maxilvl=308, rank=1,   rankMax=6,   vault=302, vaultGrade="chmp", vaultRank=4,   vaultMax=308, crestDrop="chmp" },
         endOfDungeon = {
-            { key=2,  ilvl=250, grade="chmp", maxilvl=263, rank=2, rankMax=6, vault=259, vaultGrade="hero", vaultRank=1, vaultMax=276, crestDrop="chmp" },
-            { key=3,  ilvl=250, grade="chmp", maxilvl=263, rank=2, rankMax=6, vault=259, vaultGrade="hero", vaultRank=1, vaultMax=276, crestDrop="chmp" },
-            { key=4,  ilvl=253, grade="chmp", maxilvl=263, rank=3, rankMax=6, vault=263, vaultGrade="hero", vaultRank=2, vaultMax=276, crestDrop="hero" },
-            { key=5,  ilvl=256, grade="chmp", maxilvl=263, rank=4, rankMax=6, vault=263, vaultGrade="hero", vaultRank=2, vaultMax=276, crestDrop="hero" },
-            { key=6,  ilvl=259, grade="hero", maxilvl=276, rank=1, rankMax=6, vault=266, vaultGrade="hero", vaultRank=3, vaultMax=276, crestDrop="hero" },
-            { key=7,  ilvl=259, grade="hero", maxilvl=276, rank=1, rankMax=6, vault=269, vaultGrade="hero", vaultRank=4, vaultMax=276, crestDrop="hero" },
-            { key=8,  ilvl=263, grade="hero", maxilvl=276, rank=2, rankMax=6, vault=269, vaultGrade="hero", vaultRank=4, vaultMax=276, crestDrop="hero" },
-            { key=9,  ilvl=263, grade="hero", maxilvl=276, rank=2, rankMax=6, vault=269, vaultGrade="hero", vaultRank=4, vaultMax=276, crestDrop="myth" },
-            { key=10, ilvl=266, grade="hero", maxilvl=276, rank=3, rankMax=6, vault=272, vaultGrade="myth", vaultRank=1, vaultMax=289, crestDrop="myth" },
-            { key=11, ilvl=266, grade="hero", maxilvl=276, rank=3, rankMax=6, vault=272, vaultGrade="myth", vaultRank=1, vaultMax=289, crestDrop="myth" },
-            { key=12, ilvl=266, grade="hero", maxilvl=276, rank=3, rankMax=6, vault=272, vaultGrade="myth", vaultRank=1, vaultMax=289, crestDrop="myth" },
+            { key=2,  ilvl=295, grade="chmp", maxilvl=308, rank=2, rankMax=6, vault=305, vaultGrade="hero", vaultRank=1, vaultMax=321, crestDrop="chmp" },
+            { key=3,  ilvl=295, grade="chmp", maxilvl=308, rank=2, rankMax=6, vault=305, vaultGrade="hero", vaultRank=1, vaultMax=321, crestDrop="chmp" },
+            { key=4,  ilvl=298, grade="chmp", maxilvl=308, rank=3, rankMax=6, vault=308, vaultGrade="hero", vaultRank=2, vaultMax=321, crestDrop="hero" },
+            { key=5,  ilvl=302, grade="chmp", maxilvl=308, rank=4, rankMax=6, vault=308, vaultGrade="hero", vaultRank=2, vaultMax=321, crestDrop="hero" },
+            { key=6,  ilvl=305, grade="hero", maxilvl=321, rank=1, rankMax=6, vault=311, vaultGrade="hero", vaultRank=3, vaultMax=321, crestDrop="hero" },
+            { key=7,  ilvl=305, grade="hero", maxilvl=321, rank=1, rankMax=6, vault=315, vaultGrade="hero", vaultRank=4, vaultMax=321, crestDrop="hero" },
+            { key=8,  ilvl=308, grade="hero", maxilvl=321, rank=2, rankMax=6, vault=315, vaultGrade="hero", vaultRank=4, vaultMax=321, crestDrop="hero" },
+            { key=9,  ilvl=308, grade="hero", maxilvl=321, rank=2, rankMax=6, vault=315, vaultGrade="hero", vaultRank=4, vaultMax=321, crestDrop="myth" },
+            { key=10, ilvl=311, grade="hero", maxilvl=321, rank=3, rankMax=6, vault=318, vaultGrade="myth", vaultRank=1, vaultMax=334, crestDrop="myth" },
+            { key=11, ilvl=311, grade="hero", maxilvl=321, rank=3, rankMax=6, vault=318, vaultGrade="myth", vaultRank=1, vaultMax=334, crestDrop="myth" },
+            { key=12, ilvl=311, grade="hero", maxilvl=321, rank=3, rankMax=6, vault=318, vaultGrade="myth", vaultRank=1, vaultMax=334, crestDrop="myth" },
         },
     },
 
-    -- 레이드 보스 드랍 범위 + 주간 금고 보상
-    -- Wowhead Midnight Season 1 기준:
-    -- Voidspire 246~256 / 259~269 / 272~282
-    -- Dreamrift 250 / 263 / 276
-    -- March on Quel'Danas 253~256 / 266~269 / 279~282
-    -- 오버레이는 시즌 전체 범위를 요약해서 표시한다.
     raid = {
-        normal = { min=246, max=256, grade="chmp", maxilvl=263, vault=259, vaultGrade="hero", labelKey="ilvl_raid_normal", crestDrop="chmp" },
-        heroic = { min=259, max=269, grade="hero", maxilvl=276, vault=272, vaultGrade="myth", labelKey="ilvl_raid_heroic", crestDrop="hero" },
-        mythic = { min=272, max=282, grade="myth", maxilvl=289, vault=285, vaultGrade="myth", labelKey="ilvl_raid_mythic", crestDrop="myth" },
+        normal = { min=292, max=302, grade="chmp", maxilvl=308, vault=305, vaultGrade="hero", labelKey="ilvl_raid_normal", crestDrop="chmp" },
+        heroic = { min=305, max=315, grade="hero", maxilvl=321, vault=318, vaultGrade="myth", labelKey="ilvl_raid_heroic", crestDrop="hero" },
+        mythic = { min=318, max=324, grade="myth", maxilvl=334, vault=334, vaultGrade="myth", labelKey="ilvl_raid_mythic", crestDrop="myth" },
     },
 
-    worldBoss = { ilvl=233, grade="vet", maxilvl=250, crestDrop="chmp" },
+    worldBoss = {
+        world  = { labelKey="ilvl_world_boss",   ilvl=279, grade="vet",  maxilvl=295, crestDrop="chmp" },
+        normal = { labelKey="ilvl_raid_normal",  ilvl=292, grade="chmp", maxilvl=308, crestDrop="chmp" },
+        heroic = { labelKey="ilvl_raid_heroic",  ilvl=305, grade="hero", maxilvl=321, crestDrop="hero" },
+        mythic = { labelKey="ilvl_raid_mythic",  ilvl=318, grade="myth", maxilvl=334, crestDrop="myth" },
+    },
 
     crafted = {
-        base = { ilvl=272, labelKey="ilvl_crafted_runecarved" },
-        r5   = { ilvl=285, labelKey="ilvl_crafted_gilded" },
+        base = { ilvl=318, labelKey="ilvl_crafted_runecarved" },
+        r5   = { ilvl=331, labelKey="ilvl_crafted_gilded" },
     },
 
     pvp = {
-        honor    = { min=220, max=250, labelKey="ilvl_pvp_honor" },
-        conquest = { min=250, max=276, labelKey="ilvl_pvp_conquest" },
+        honor    = { min=263, max=295, labelKey="ilvl_pvp_honor" },
+        conquest = { min=292, max=308, labelKey="ilvl_pvp_conquest" },
     },
 }
+
 
 -- BIS 툴팁용 보상 프로필. 단수는 요구 조건이고, 대표 표기는 업그레이드 트랙을 우선한다.
 ns.Data.BISRewardProfiles = {
@@ -88,12 +86,12 @@ ns.Data.BISRewardProfiles = {
             rewardContext = "end_of_dungeon",
             rewardContextLabel = "던전 종료",
             minKeystoneLevel = 10,
-            itemLevel = 266,
+            itemLevel = 311,
             upgradeTrack = "Hero",
             upgradeTrackKo = "영웅",
             upgradeRank = "3/6",
             displayLabel = "쐐기 영웅 트랙",
-            fullLabel = "쐐기 영웅 트랙 3/6 · 266 · 던전 종료 · M+10 이상",
+            fullLabel = "쐐기 영웅 트랙 3/6 · 311 · 던전 종료 · M+10 이상",
             itemString = nil,
             itemLink = nil,
         },
@@ -103,12 +101,12 @@ ns.Data.BISRewardProfiles = {
             rewardContext = "great_vault_voidcore",
             rewardContextLabel = "위대한 금고/Voidcore",
             minKeystoneLevel = 10,
-            itemLevel = 272,
+            itemLevel = 318,
             upgradeTrack = "Myth",
             upgradeTrackKo = "신화",
             upgradeRank = "1/6",
             displayLabel = "쐐기 신화 트랙",
-            fullLabel = "쐐기 신화 트랙 1/6 · 272 · 위대한 금고/Voidcore · M+10 이상",
+            fullLabel = "쐐기 신화 트랙 1/6 · 318 · 위대한 금고/Voidcore · M+10 이상",
             itemString = nil,
             itemLink = nil,
         },

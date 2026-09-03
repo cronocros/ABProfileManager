@@ -20,7 +20,7 @@ function Utils.Debug(message)
     if ns.DB and ns.DB.IsDebugEnabled and ns.DB:IsDebugEnabled() then
         local line = "[debug] " .. tostring(message)
         Utils.Print(line)
-        -- 버퍼에 타임스탬프와 함께 저장
+
         local ts = getTimeLabel()
         debugLogBuffer[#debugLogBuffer + 1] = ts .. "  " .. tostring(message)
         if #debugLogBuffer > DEBUG_LOG_MAX then
@@ -223,16 +223,6 @@ function Utils.SafeToNumber(value, fallback)
     return math.floor(numeric)
 end
 
--- WoW 12.0.5+ 의 "secret number" 보호 플래그가 붙은 값을 직접 산술 연산하면
--- "execution tainted by '<addon>'" 오류가 발생한다. tostring→tonumber 변환으로
--- 플래그를 제거하여 안전한 plain number 로 만든다. C_UnitAuras 등 외부 API
--- 결과에 산술/포맷 적용 직전에 이 함수를 거치게 한다.
---
--- Fallback chain (중요):
---   1) tostring→tonumber 성공 → 일반 number (secret 플래그 제거 완료)
---   2) 실패 → 0. 원본 secret number 를 반환하면 이후 산술/렌더 경로로
---      오염 값이 다시 전파될 수 있으므로 보존하지 않는다.
--- pcall 로 감싸 tostring 자체가 taint 오류를 일으키는 극단 케이스도 흡수한다.
 function Utils.SafeNumber(value)
     local convertOk, stripped = pcall(function()
         return tonumber(tostring(value))
@@ -325,12 +315,15 @@ function Utils.FormatStatusMessage(message)
         return message
     end
 
-    if message:match("^[●◆▲■] ") then
-        return message
-    end
-
-    if message:match("^(성공|실패|안내):%s") or message:match("^(Success|Failure|Info):%s") then
-        return message
+    local knownPrefixes = {
+        ns.L("status_prefix_info"),
+        ns.L("status_prefix_success"),
+        ns.L("status_prefix_failure"),
+    }
+    for _, knownPrefix in ipairs(knownPrefixes) do
+        if knownPrefix ~= "" and message:find(knownPrefix, 1, true) == 1 then
+            return message
+        end
     end
 
     local heading = message
@@ -364,6 +357,18 @@ function Utils.FormatStatusMessage(message)
         "cannot",
         "failed",
         "error",
+        "Ошибка",
+        "ошибка",
+        "Не удалось",
+        "не удалось",
+        "Не найден",
+        "не найден",
+        "Недоступ",
+        "недоступ",
+        "Неверн",
+        "неверн",
+        "Нельзя",
+        "нельзя",
     }
 
     local successMarkers = {
@@ -383,6 +388,26 @@ function Utils.FormatStatusMessage(message)
         "enabled",
         "disabled",
         "changed",
+        "Успешно",
+        "успешно",
+        "Сохранен",
+        "сохранен",
+        "Сохранён",
+        "сохранён",
+        "Удален",
+        "удален",
+        "Удалён",
+        "удалён",
+        "Импортирован",
+        "импортирован",
+        "Изменен",
+        "изменен",
+        "Изменён",
+        "изменён",
+        "Сброшен",
+        "сброшен",
+        "Открыт",
+        "открыт",
     }
 
     local kind = "info"
@@ -403,11 +428,11 @@ function Utils.FormatStatusMessage(message)
         end
     end
 
-    local prefix = "● 안내: "
+    local prefix = ns.L("status_prefix_info")
     if kind == "success" then
-        prefix = "● 성공: "
+        prefix = ns.L("status_prefix_success")
     elseif kind == "failure" then
-        prefix = "◆ 실패: "
+        prefix = ns.L("status_prefix_failure")
     end
 
     if rest ~= "" then
@@ -415,4 +440,76 @@ function Utils.FormatStatusMessage(message)
     end
 
     return prefix .. heading
+end
+
+function Utils.Clamp(value, minValue, maxValue)
+    return math.max(minValue, math.min(maxValue, value))
+end
+
+function Utils.GetAverageItemLevel()
+    if type(GetAverageItemLevel) == "function" then
+        return math.floor((GetAverageItemLevel() or 0) + 0.5)
+    end
+    return 0
+end
+
+function Utils.IsKoreanLanguageSelected()
+    return ns.DB and ns.DB.GetLanguage and ns.Constants
+        and ns.DB:GetLanguage() == ns.Constants.LANGUAGE.KOREAN
+        or false
+end
+
+function Utils.SafeTooltipString(value)
+    if value == nil then
+        return nil
+    end
+
+    local ok, text = pcall(string.format, "%s", value)
+    if not ok or type(text) ~= "string" or text == "" then
+        return nil
+    end
+    return text
+end
+
+function Utils.Colorize(text, colorHex)
+    local hex = tostring(colorHex or "ffffffff"):gsub("^|c", ""):gsub("[^0-9a-fA-F]", "")
+    if #hex == 6 then
+        hex = "ff" .. hex
+    end
+    if #hex ~= 8 then
+        hex = "ffffffff"
+    end
+    return string.format("|c%s%s|r", hex, tostring(text or ""))
+end
+
+function Utils.FormatOffsetValue(value)
+    value = math.floor((tonumber(value) or 0) + 0.5)
+    if value > 0 then
+        return string.format("+%dpt", value)
+    end
+    return string.format("%dpt", value)
+end
+
+function Utils.IsEmptyRecord(record)
+    return not record or not record.kind or record.kind == "empty"
+end
+
+function Utils.BuildRecordSignature(record)
+    if Utils.IsEmptyRecord(record) then
+        return "empty"
+    end
+
+    if record.kind == "spell" or record.kind == "item" or record.kind == "equipmentset" then
+        return string.format("%s:%s", tostring(record.kind), tostring(record.id))
+    end
+
+    if record.kind == "macro" then
+        return string.format(
+            "macro:%s:%s",
+            tostring(record.name or ""),
+            tostring(record.macroBody or "")
+        )
+    end
+
+    return string.format("%s:%s:%s", tostring(record.kind), tostring(record.id), tostring(record.name))
 end

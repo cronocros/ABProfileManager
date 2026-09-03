@@ -23,13 +23,7 @@ local function setStatus(panel, message)
     ns:SafeCall(ns.UI.MainWindow, "SetStatus", message)
 end
 
-local function formatOffsetValue(value)
-    value = math.floor((tonumber(value) or 0) + 0.5)
-    if value > 0 then
-        return string.format("+%dpt", value)
-    end
-    return string.format("%dpt", value)
-end
+local formatOffsetValue = ns.Utils.FormatOffsetValue
 
 function MapPanel:ApplyEnabled(enabled)
     ns.DB:SetSilvermoonMapOverlayEnabled(enabled)
