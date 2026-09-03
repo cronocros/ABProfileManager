@@ -12,8 +12,8 @@
   - 작업자/에이전트용 저장소 운영 지침
 - [releases/RELEASE_NOTES_v1.13.0.md](./releases/RELEASE_NOTES_v1.13.0.md)
   - 최신 로컬 한글 릴리스 노트 (v1.13.0)
-- [releases/RELEASE_NOTES_v1.11.11_EN.md](./releases/RELEASE_NOTES_v1.11.11_EN.md)
-  - 최신 로컬 영문 릴리스 노트 (v1.11.11, v1.13.0 영문판 미작성)
+- [releases/RELEASE_NOTES_v1.13.0_EN.md](./releases/RELEASE_NOTES_v1.13.0_EN.md)
+  - 최신 로컬 영문 릴리스 노트 (v1.13.0)
 - [releases/RELEASE_NOTES_v1.11.0.md](./releases/RELEASE_NOTES_v1.11.0.md)
   - 원격 GitHub 공개 최신 한글 릴리스 노트 (v1.11.0)
 - [releases/RELEASE_NOTES_v1.11.0_EN.md](./releases/RELEASE_NOTES_v1.11.0_EN.md)
