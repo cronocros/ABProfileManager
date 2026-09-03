@@ -1,97 +1,84 @@
-# ABProfileManager v1.13.0 Local Patch
+# ABProfileManager v1.13.0
 
-Patch baseline date: `2026-09-04`
+Midnight Season 2 update — `Curse of Ula'tek`, WoW patch `12.1.0`.
 
-These notes describe the local patch package.
+Everything in the addon that depended on the season has been updated: item levels, crests, the Mythic+ dungeon list, BIS recommendations, stat priorities, profession knowledge, and the map overlay.
 
-- Local package: `dist/ABProfileManager-v1.13.0.zip`
-- Target client: WoW `12.1.0` / TOC `## Interface: 120100` / Midnight Season 2 (`Curse of Ula'tek`)
-- Latest public GitHub release: `v1.11.0`
-- Public GitHub direct download: `https://github.com/cronocros/ABProfileManager/releases/download/v1.11.0/ABProfileManager-v1.11.0.zip`
+## What's New
 
-This release brings the addon to Midnight Season 2. It fixes the defects found during in-game QA, revalidates the seasonal data against Wowhead and the game's own client database, and cleans up English display.
+**Season 2 item levels**
 
-## Season 2 Data
+The drop item level window now uses Season 2 values throughout. Upgrade track caps are Adventurer `282`, Veteran `295`, Champion `308`, Hero `321`, and Myth `334`. Season 2 has no Explorer track, so that row is gone.
 
-- **Item level table replaced with Season 2 values.**
-  Upgrade track caps are `Adventurer 282`, `Veteran 295`, `Champion 308`, `Hero 321`, and `Myth 334`. Season 2 has no Explorer track, so that row is gone.
-- **Mistcrest currencies.**
-  The `My Crests` panel tracks the five Season 2 Mistcrest currencies: Adventurer, Veteran, Champion, Hero, and Myth.
-- **Season 2 Mythic+ dungeon pool.**
-  Altar of Fangs, Den of Nalorakk, Murder Row, The Blinding Vale, Voidscar Arena, Kings' Rest, Ruby Life Pools, and Temple of Sethraliss.
-- **BIS catalog rebuilt for Season 2.**
-  The catalog holds `657` rows (`raid 393`, `mythicplus 107`, `tier 79`, `crafted 78`). Every row is a Season 2 item, sourced only from verified data, so each entry is something you can actually obtain this season.
-- **Stat priorities rechecked for all 40 specializations.**
-  Values were compared against Wowhead's per-specialization stat priority pages. Thirty-one already matched. Restoration Shaman was updated, and Outlaw Rogue was corrected: its stored order had Haste in last place, which came from an old parsing bug, while the current source lists Haste first.
-- **Profession knowledge updated for patch 12.1.**
-  The new `Demystifyin': <Profession>` renown books from Zul'jarra's Forces are now tracked for all 11 professions, 10 points each. Each profession's renown reward total goes from 10 to 20 points.
-- **Korean names verified against the client database.**
-  Dungeon names, raid boss names, tier set names, and map aliases were all checked and already matched.
+**Mistcrests**
 
-## Fixes From In-Game QA
+The `My Crests` panel tracks the five Season 2 crest currencies and shows how many you hold of each.
 
-- **Mythic+ record overlay failed to load.**
-  A stray carriage return inside a string literal broke the whole file with an `unfinished string` error. The overlay module was effectively disabled.
-- **Mythic+ record overlay showed nothing.**
-  Season best data requires `C_MythicPlus.RequestMapInfo()` first, which the addon never called, so every lookup returned `nil`. The addon now requests the data, subscribes to the arrival events, and retries if it arrives late. Dungeon names are always shown; the score is appended when a record exists.
-- **Adventure Guide navigation did not reach the boss.**
-  Clicking a BIS item now opens the correct dungeon or raid and selects the encounter. Boss names are resolved from the Adventure Guide loot tables and cached in your SavedVariables, so after the first scan they appear instantly on later logins.
-- **Item level window overlap.**
-  The crest and key strip at the bottom overlapped the table rows on every tab. This was an anchor problem that made the content frame taller than the window.
-- **BIS list showed too few candidates.**
-  Slots now show up to three ranks (four for rings and trinkets), instead of silently dropping the third rank.
-- **Map overlay updated for Season 2.**
-  Dungeon, raid, and Delve entrances are queried from the client at runtime instead of using hardcoded coordinates. Locations that cannot be confirmed are not drawn.
-- **Bountiful Delve of the day.**
-  The item level window now shows today's Bountiful Delve name directly in the bottom strip instead of only in a tooltip.
-- **Larger text in the item level window.**
-  Row labels, values, and headers were all increased, and the window was widened to fit.
+**Season 2 Mythic+ dungeons**
 
-## English Display
+Altar of Fangs, Den of Nalorakk, Murder Row, The Blinding Vale, Voidscar Arena, Kings' Rest, Ruby Life Pools, and Temple of Sethraliss.
 
-If you run the addon in English, these strings used to appear in Korean regardless of your language setting:
+**BIS recommendations rebuilt**
 
-- `/abpm help` entries for the Warband Bank commands
-- The `/abpm copy` window title, usage text, and the log window button
-- Warband Bank chat messages
-- The default template name and the suffix used when duplicating a template
-- Profession objective names in the profession overlay and cards
+The BIS list was rebuilt from scratch for Season 2. Every entry is a Season 2 item, so nothing in the list is unobtainable this season. The list is shorter than before because only verified data is used.
+
+Each slot now shows up to three ranked candidates — four for rings and trinkets — instead of cutting the list short.
+
+**Stat priorities refreshed**
+
+All 40 specializations were rechecked against the current Season 2 guides. Outlaw Rogue and Restoration Shaman were corrected.
+
+**Profession knowledge**
+
+The new patch 12.1 renown books from Zul'jarra's Forces are now tracked for all 11 professions. Each profession's renown reward total goes from 10 to 20 points, and the tracker counts them automatically once you use the book.
+
+**Map overlay**
+
+Season 2 dungeon, raid, and Delve entrances now appear on the world map, including on the older zone maps.
+
+## Fixes
+
+**Mythic+ season record overlay**
+
+The overlay is working again. Dungeon names now always appear on the group finder's Mythic+ tab, with your `+level score` added when you have a record for that dungeon.
+
+**Adventure Guide navigation**
+
+Clicking a BIS item now opens the Adventure Guide at the right dungeon or raid and jumps to the boss that drops it. Source labels read `Dungeon · Boss`. After the first time you open the BIS window, boss names appear instantly on later logins.
+
+**Drop item level window**
+
+The crest and key strip at the bottom no longer overlaps the table on any tab. Body text is larger, the window is wider to match, and today's Bountiful Delve name is shown directly at the bottom instead of only in a tooltip.
+
+**Tooltip reference step**
+
+The BIS tooltip has a step selector in its header — Myth 1/6, Myth 6/6, Hero 6/6, and Champion 6/6. Changing it updates the reference line in the tooltip. Crafted items show their crafting range instead.
+
+## English and Russian
+
+If you use the addon in English or Russian, several messages used to appear in Korean no matter which language you picked. They now follow your language setting:
+
+- Command help, the copy window, and the log window
+- Warband Bank messages
+- Default template names
+- Profession objective names
 - Status message prefixes (`Info` / `Success` / `Failure`)
-- The message shown when Adventure Guide navigation is blocked in combat or by a season mismatch
 
-All of these now follow the selected language. Thirty-four new strings were added in English, Korean, and Russian.
-
-Two related bugs were fixed along the way:
-
-- Status messages lost their success and failure distinction in every language and always showed as `Info`.
-- The stat priority window still said `Patch 12.0.5` in its title even though the table itself had been updated to Season 2 values.
-
-## Other Fixes
-
-- The `/abpm log` window created a new frame every time it was opened. It is now reused and closes with `Esc`.
-- The copy window no longer steals keyboard focus while you are in combat.
-- The macro example in the copy window used a non-ASCII placeholder that failed if you pasted it. It now reads `/run ABPMCopy(text)`.
-- Chat messages no longer show the addon name twice.
-
-## Distribution Boundary
-
-- Local distribution stops after creating `dist/ABProfileManager-v1.13.0.zip` inside the workspace.
-- The latest public GitHub release and direct download remain `v1.11.0`.
+Status messages also show the correct `Success` or `Failure` label again instead of always saying `Info`.
 
 ## Known Limitations
 
-- Automatic Mythic+ item scoring and the exact seasonal item level in preview tooltips are still disabled. The Season 2 preview selector has not been confirmed in-game, and showing an unverified value would display the wrong item level. Lists, ordering, and Adventure Guide navigation work normally.
-- Delve and Mythic+ item levels in the table come from published guides rather than in-game measurement. They match every published table that was checked, but they are marked as unverified in the repository until confirmed in-game.
-- Heroic dungeon Great Vault item level is still unconfirmed.
-- Weekly profession quest and treatise quest IDs have not been reverified for patch 12.1.
+- Automatic Mythic+ item scoring and exact seasonal item levels in preview tooltips are turned off. The data needed to build those previews for Season 2 has not been confirmed yet, and showing an unverified value would display the wrong item level. Lists, ordering, tooltips, and Adventure Guide navigation all work normally.
+- Delve and Mythic+ item levels come from published guides. They match every source that was checked, but they have not been measured in game yet.
+- Heroic dungeon Great Vault item level is not confirmed.
+- BIS entries are a reference. Always confirm your gear in game.
 
-## In-Game Regression Checklist
+## Installing
 
-- Confirm the addon loads with no Lua errors after `/reload`.
-- Confirm the Mythic+ tab of the group finder shows dungeon names and the score overlay. If not, run `/abpm debug mplus`.
-- Confirm clicking a BIS dungeon or raid item opens the Adventure Guide at the correct boss.
-- Confirm none of the five tabs in the item level window overlap the bottom strip.
-- Confirm Frost Death Knight shows chest armor, not a helm, in the `Chest` row.
-- Confirm Outlaw Rogue's stat line starts with Haste and Restoration Shaman reads `Critical Strike > Haste = Versatility > Mastery`.
-- Confirm each profession now shows 20 points available from renown books.
-- Switch the addon language to English and confirm the main window, overlays, `/abpm help`, `/abpm copy`, and Warband Bank messages are all in English.
+Extract the package so the folder lands here:
+
+```text
+World of Warcraft\_retail_\Interface\AddOns\ABProfileManager\
+```
+
+Type `/abpm` in game to open the main window.
