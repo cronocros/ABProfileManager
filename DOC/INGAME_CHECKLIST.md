@@ -82,7 +82,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_season2_validation.ps1 -S
 
 ## 2. BIS preview selector (M+ 완료)
 
-**2026-09-04에 확정했습니다.** 아래 덤프가 `318`을 돌려줘 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`를 `12849`로 올렸고, M+ 자동 점수화와 preview 툴팁이 켜졌습니다. 아래 절차는 시즌이 바뀔 때 다시 씁니다.
+**2026-09-04에 확정하고 인게임 동작까지 확인했습니다.** 아래 덤프가 `318`을 돌려줘 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`를 `12849`로 올렸고, BIS 오버레이의 쐐기 항목 hover가 `아이템 레벨 318` / `레벨 강화: 신화 1/6`로 나오는 것을 확인했습니다. 아래 절차는 시즌이 바뀔 때 다시 씁니다.
+
+확인할 때 **설치본 동기화를 먼저 해야 합니다.** 저장소만 고치고 `D:\World of Warcraft\_retail_\Interface\AddOns\ABProfileManager`로 복사하지 않으면 이전 값이 그대로 돌아, hover가 기본 링크의 `292 / 챔피언 1/6`로 떨어집니다. 목록 오른쪽 열의 `신화 1/6 · 318`은 정적 라벨이라 selector와 무관하게 맞게 나오므로 이 증상만으로는 구분이 어렵습니다.
 
 `Data/BISSeasonPreviewLinks.lua`의 raid/tier/crafted selector item string은 아직 확인 전입니다.
 
