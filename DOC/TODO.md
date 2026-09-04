@@ -280,7 +280,7 @@ B안을 선택해 진행했습니다. "적지만 맞는 추천"이 "많지만 �
 
 BIS 런타임 데이터를 전부 시즌 2로 전환했고 `SeasonGuard`를 해제했습니다(`dataSeason = "Midnight Season 2"`). Encounter Journal 자동 랜딩이 다시 동작합니다.
 
-M+ preview selector는 **2026-09-04 인게임 확인으로 `12849`를 확정했습니다.** `GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")`가 `318`을 돌려줬습니다. `Data/BISMythicVaultLinks.lua`와 `scripts/validate_bis_mythic_vault_links.py`, 그리고 `scripts/validate_season2_scope.py`의 동결 해시를 함께 갱신했습니다. 이로써 M+ 자동 점수화와 preview 툴팁이 켜집니다.
+M+ preview selector는 **2026-09-04 인게임 확인으로 `12849`를 확정했고, 오버레이 동작까지 확인했습니다.** 쐐기 항목 hover가 `아이템 레벨 318` / `레벨 강화: 신화 1/6`로 나옵니다. `GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")`가 `318`을 돌려줬습니다. `Data/BISMythicVaultLinks.lua`와 `scripts/validate_bis_mythic_vault_links.py`, 그리고 `scripts/validate_season2_scope.py`의 동결 해시를 함께 갱신했습니다. 이로써 M+ 자동 점수화와 preview 툴팁이 켜집니다.
 
 `BISSeasonPreviewLinks`의 raid/tier/crafted selector item string은 아직 확인 전이라 비어 있고, 그쪽 hover만 기본 `itemLink`로 표시됩니다.
 
