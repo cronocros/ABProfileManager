@@ -155,7 +155,7 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 | `Modules/BlizzardFrameManager.lua` | `HookScript("OnDragStop")`을 `ABPMDragStopHooked`로 1회만 겁니다. 해제할 수 없는 훅이라 기능을 껐다 켤 때마다 쌓였습니다 |
 | `UI/WorldEventOverlay.lua` | 접힘·비활성·던전 자동 접기·로그아웃에서 TomTom 경로점을 정리합니다. 이 파일과 아래 `worldEventCompletions`는 TOC 미로드라 사용자에게 드러난 적이 없고, 다시 켜기 전에 미리 고친 것입니다 |
 | `DB.lua` | `worldEventCompletions`를 `{ [eventKey] = "YYYY-MM-DD" }`로 바꿔 키 개수를 이벤트 수로 고정했습니다. 이전 형식 키는 첫 조회에서 한 번 정리합니다 |
-| `Data/Defaults.lua` | `mythPreviewCache`를 빈 테이블로 비웠습니다. `MergeDefaults`가 로그인마다 `generatedPreviewBonusListID = 12801`을 되채워 preview 캐시가 매번 폐기되는 구조였습니다. **selector `12849`를 넣기 전에 반드시 필요한 수정입니다** |
+| `Data/Defaults.lua` | `mythPreviewCache`를 빈 테이블로 비웠습니다. `MergeDefaults`가 로그인마다 `generatedPreviewBonusListID = 12801`을 되채워 preview 캐시가 매번 폐기되는 구조였습니다. selector `12849`를 2026-09-04에 넣었으므로 이 수정이 없었다면 바로 발현했을 결함입니다 |
 
 ### 고빈도 경로 8건 (2026-09-04 처리)
 
@@ -280,9 +280,11 @@ B안을 선택해 진행했습니다. "적지만 맞는 추천"이 "많지만 �
 
 BIS 런타임 데이터를 전부 시즌 2로 전환했고 `SeasonGuard`를 해제했습니다(`dataSeason = "Midnight Season 2"`). Encounter Journal 자동 랜딩이 다시 동작합니다.
 
-다만 preview selector 두 종은 시즌 2 값을 확인하지 못해 비활성입니다. `BISMythicVaultLinks`의 `generatedPreviewBonusListID`와 `BISSeasonPreviewLinks`의 selector item string이 그것이며, 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 비워 두었습니다. 그 결과 M+ 자동 점수화가 동작하지 않고 hover는 기본 `itemLink`로 표시됩니다.
+M+ preview selector는 **2026-09-04 인게임 확인으로 `12849`를 확정했습니다.** `GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")`가 `318`을 돌려줬습니다. `Data/BISMythicVaultLinks.lua`와 `scripts/validate_bis_mythic_vault_links.py`, 그리고 `scripts/validate_season2_scope.py`의 동결 해시를 함께 갱신했습니다. 이로써 M+ 자동 점수화와 preview 툴팁이 켜집니다.
 
-selector 후보를 2026-09-03 DB2에서 찾았습니다. 아직 파일에 넣지 않았고 인게임 확인이 남았습니다.
+`BISSeasonPreviewLinks`의 raid/tier/crafted selector item string은 아직 확인 전이라 비어 있고, 그쪽 hover만 기본 `itemLink`로 표시됩니다.
+
+확정 근거는 2026-09-03 DB2 조사입니다.
 
 - `ItemBonusListGroup`에서 시즌 1 Myth 트랙은 그룹 `612`(`ItemGroupIlvlScalingID = 11`), 시즌 2는 그룹 `618`(`ItemGroupIlvlScalingID = 12`)입니다. 두 그룹 모두 `ItemBonus` `Type=34`의 두 번째 값이 `978`로 같습니다.
 - `ItemBonusTreeNode`에 `MinMythicPlusLevel = 10`인 행이 시즌 1은 그룹 `612`, 시즌 2는 그룹 `618`을 가리킵니다. 저장소가 쓰는 `+10 금고 = Myth 1/6` 규칙과 같습니다.
@@ -293,7 +295,7 @@ selector 후보를 2026-09-03 DB2에서 찾았습니다. 아직 파일에 넣지
 /dump GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")
 ```
 
-확인되면 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`와 `scripts/validate_bis_mythic_vault_links.py`의 고정값을 함께 갱신합니다. 확인 전에는 넣지 않습니다. 잘못된 selector는 잘못된 아이템 레벨의 preview를 만듭니다.
+2026-09-04에 위 덤프가 `318`을 돌려주어 확정하고 반영했습니다. 잘못된 selector는 잘못된 아이템 레벨의 preview를 만들므로, 앞으로 시즌이 바뀔 때도 확인 전에는 넣지 않습니다.
 
 나머지 데이터 교체는 v1.13.0에서 끝났습니다. `baselineItemLevel = 318`, preview 검증 범위 `318~334`, 제작 `331`, `BISRewardProfiles` 시즌 2 값(`311` / `318`), `SeasonGuard.dataSeason = "Midnight Season 2"`, `FROZEN_BLOB_HASHES`와 `REWARD_PROFILES_SHA256` 갱신까지 반영돼 있습니다. 남은 것은 위 `12849` 인게임 확인 한 건입니다.
 

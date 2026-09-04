@@ -137,7 +137,7 @@ ABProfileManager/
 
 ### BIS 추천 장비 카탈로그
 
-현재 상태: 시즌 2로 재생성 완료(`--overall-only`, 657행: raid 393 / crafted 78 / mythicplus 107 / tier 79). preview selector 두 종만 값을 확인하지 못해 비활성이며, 그 결과 M+ 자동 점수화와 시즌 preview 툴팁이 동작하지 않는다. `DOC/TODO.md` 5장 참조.
+현재 상태: 시즌 2로 재생성 완료(`--overall-only`, 657행: raid 393 / crafted 78 / mythicplus 107 / tier 79). M+ preview selector는 2026-09-04 인게임 확인으로 `12849`를 확정해 자동 점수화가 켜졌다. raid/tier/crafted 시즌 preview selector는 아직 확인 전이라 그쪽 툴팁만 기본 `itemLink`로 표시된다. `DOC/TODO.md` 5장 참조.
 
 런타임 데이터:
 - `Data/BISCatalog.lua`
@@ -169,7 +169,7 @@ ABProfileManager/
 - 검증 snapshot이 없는 후보는 기존 정적 순서를 유지한다
 - 장비/가방 링크는 정렬이나 hover에서 스캔하지 않고, 보유 체크 on 시 저장용으로만 한 번 찾는다
 - 임의 bonusID를 조립하지 않는다. M+ selector와 full link override는 `Data/BISMythicVaultLinks.lua`, raid/tier/crafted 시즌 preview selector와 override는 `Data/BISSeasonPreviewLinks.lua`에서만 관리하고 각각 대응 validate 스크립트로 확인한다
-- 시즌 2 preview selector는 아직 확인되지 않아 두 파일 모두 비어 있다. 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 비활성으로 둔다
+- M+ selector는 `12849`로 확정했다. `GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")`가 `318`을 돌려준다. `Data/BISSeasonPreviewLinks.lua`의 raid/tier/crafted selector는 아직 확인 전이라 비어 있다. 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 확인 전에는 넣지 않는다
 - 시즌 M+ 던전 풀이 바뀌면 `Data/BISEncounterJournal.lua`의 현재 시즌 tier와 `JournalInstanceID`만 갱신하고 `scripts/validate_bis_encounter_journal.py`로 확인한다
 - selector 또는 item string 템플릿이 바뀌면 이전 snapshot cache를 초기화한다. 다른 템렙으로 해석된 preview는 같은 세션에서 다시 큐에 넣지 않는다
 - hover는 검증된 preview item string을 먼저 시도하고, 없으면 클라이언트가 로드한 기본 `itemLink` 또는 `item:<itemID>`로 fallback한다. 어느 경로든 addon-owned Blizzard `GameTooltip:SetHyperlink()`로 표시한다
@@ -208,7 +208,7 @@ ABProfileManager/
 - 스탯 오버레이 `mythicPlusMode` 저장 키는 이전 SavedVariables 호환용으로만 유지
 - 경매장 현행 확장팩 필터 자동 선택
 - `Data/ItemLevelTable.lua`의 `delves / mythicPlus` 출처를 인게임 확인으로 바꿔 `guide`를 없애야 `-Strict` 검증이 통과한다. `raid`는 `dump`, `pvp`와 `worldBoss`·`crafted`는 `tooltip`으로 승급했다
-- BIS 시즌 2 preview selector 확정: `BISMythicVaultLinks.generatedPreviewBonusListID` 후보 `12849`와 `BISSeasonPreviewLinks`의 selector item string을 인게임에서 확인한 뒤 반영한다. `DOC/TODO.md` 5장 참조
+- BIS 시즌 2 raid/tier/crafted preview selector 확정: `BISSeasonPreviewLinks`의 selector item string을 인게임에서 확인한 뒤 반영한다. M+ 쪽 `generatedPreviewBonusListID = 12849`는 2026-09-04에 확정했다. `DOC/TODO.md` 5장 참조
 
 ## 릴리스 프로세스
 

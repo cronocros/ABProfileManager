@@ -50,10 +50,12 @@ ABProfileManager는 그 작업들을 한 창과 몇 개의 오버레이로 정�
   - 즐겨찾기 최상단 섹션, 보유 아이템명 취소선 표시
   - 쐐기 항목에 던전 종료 영웅 / 금고 신화 후보 트랙과 템렙 안내
   - 시즌 2 기준값은 신화 1/6 318입니다.
-  - 시즌 2 preview selector는 아직 인게임 확인 전이라 자동 생성이 꺼져 있습니다.
-    확인 전까지 hover는 클라이언트 기본 아이템 링크로 표시합니다.
-  - selector가 확정되면 생성 preview 또는 수동 override가 실제 318로
-    검증된 경우에만 실제 스탯 / 실제 ilvl 점수화를 다시 켭니다.
+  - 상단 아이템 토글 on 시 확인된 selector로 M+ 신화 1/6 318 preview를
+    자동 생성합니다.
+  - 생성 preview 또는 수동 override가 실제 318로 검증된 경우에만
+    실제 스탯 / 실제 ilvl 점수화를 합니다.
+  - 레이드 / 티어 / 제작 preview selector는 아직 확인 전이라
+    그쪽 hover는 클라이언트 기본 아이템 링크로 표시합니다.
   - 검토되지 않은 bonusID 임의 조립 금지
   - 검증 preview full item link는 한 번 스캔한 뒤 계정 SavedVariables snapshot schema v3로 재사용
   - preview hyperlink가 늦게 로드되면 exact selector 링크를 최대 2회 재검증

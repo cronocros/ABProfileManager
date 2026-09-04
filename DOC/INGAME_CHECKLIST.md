@@ -80,9 +80,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_season2_validation.ps1 -S
 
 ---
 
-## 2. BIS preview selector
+## 2. BIS preview selector (M+ 완료)
 
-지금 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`가 `nil`이라 **M+ 자동 점수화와 시즌 preview 툴팁이 꺼져 있습니다.** DB2에서 찾은 후보가 `12849`입니다.
+**2026-09-04에 확정했습니다.** 아래 덤프가 `318`을 돌려줘 `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`를 `12849`로 올렸고, M+ 자동 점수화와 preview 툴팁이 켜졌습니다. 아래 절차는 시즌이 바뀔 때 다시 씁니다.
+
+`Data/BISSeasonPreviewLinks.lua`의 raid/tier/crafted selector item string은 아직 확인 전입니다.
 
 **실행**
 

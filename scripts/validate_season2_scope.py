@@ -49,10 +49,15 @@ REWARD_PROFILES_MARKER = "ns.Data.BISRewardProfiles"
 # `source="USER_SELECTED"`지만 저장된 값이 구형 개요 페이지 수집 버그로 `가속`이 1순위에서
 # 꼴찌로 뒤집힌 형태였다. 전용 페이지 `[ol]` 목록과 `DOC/TODO.md`의 인게임 확인 항목이 모두
 # `가속` 1순위라 값을 정정하고 표식은 남겼다. 나머지 7종은 동률 표기만 달라 수동값을 유지했다.
+# 2026-09-04 시즌 2 Myth 1/6 preview selector를 인게임에서 확정했다.
+# GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")가 318을 돌려주어
+# BISMythicVaultLinks.generatedPreviewBonusListID를 nil에서 12849로 올리고
+# 동결 해시를 함께 갱신했다. 이로써 M+ 자동 점수화와 preview 툴팁이 다시 켜진다.
+# BISSeasonPreviewLinks의 raid/tier/crafted selector는 여전히 확인 전이다.
 FROZEN_BLOB_HASHES = {
     "ABProfileManager/Data/BISCatalog.lua": "31a5a02cef47f644d9ad589522a934ab91b2bb1d",
     "ABProfileManager/Data/BISRuntimeScoring.lua": "d8952d9c5dc49c08466c8609b1de2f628cdc71ab",
-    "ABProfileManager/Data/BISMythicVaultLinks.lua": "5cdaf725b8f9bc7851118c841ab5a22c60fb22ba",
+    "ABProfileManager/Data/BISMythicVaultLinks.lua": "1ba702575e46c87aa2c48c4a8953945f8e05d818",
     "ABProfileManager/Data/BISSeasonPreviewLinks.lua": "48a2e022629eb9cfc28b8a1f671b2314f7229585",
     "ABProfileManager/Data/BISEncounterJournal.lua": "230a26f4704a6d81634ce6553fabf106a76a0f6b",
     "ABProfileManager/Data/MidnightS1MPlusDB.lua": "88571506276d8ad8ef9f0f639fb5b562bd9d3177",

@@ -9,7 +9,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LINK_DB = REPO_ROOT / "ABProfileManager" / "Data" / "BISMythicVaultLinks.lua"
 CATALOG = REPO_ROOT / "ABProfileManager" / "Data" / "BISCatalog.lua"
-EXPECTED_PREVIEW_BONUS_LIST_ID = None
+EXPECTED_PREVIEW_BONUS_LIST_ID = 12849
 EXPECTED_SCHEMA_VERSION = 3
 EXPECTED_DB2_BUILD = "12.1.0.69465"
 EXPECTED_PREVIEW_ITEM_STRING_TEMPLATE = "item:%d::::::::::::1:%d"
@@ -37,9 +37,10 @@ def main() -> None:
     if not baseline_match or int(baseline_match.group(1)) != 318:
         raise ValueError("BISMythicVaultLinks.lua must declare baselineItemLevel = 318")
 
-    # 시즌 2 Myth 1/6 selector는 ItemBonus DB2 추출과 검토가 필요해 아직 없다.
-    # 값을 지어내면 잘못된 아이템 레벨의 preview가 만들어지므로 nil로 두고
-    # 자동 생성을 끈다. 검증기는 nil이거나 확인된 숫자만 받아들인다.
+    # 시즌 2 Myth 1/6 selector는 2026-09-04 인게임 확인으로 12849를 확정했다.
+    # GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")가 318을 돌려준다.
+    # 검증기는 확인된 숫자만 받아들인다. 값을 지어내면 잘못된 아이템 레벨의
+    # preview가 만들어진다.
     preview_bonus_match = re.search(r"\bgeneratedPreviewBonusListID\s*=\s*(nil|\d+)", text)
     if not preview_bonus_match:
         raise ValueError("BISMythicVaultLinks.lua must declare generatedPreviewBonusListID")
