@@ -2146,6 +2146,7 @@ function RURU.RefreshProfessionCaches()
   if tracker.evaluationCache then wipeTable(tracker.evaluationCache) end
   if tracker.sectionSummaryCache then wipeTable(tracker.sectionSummaryCache) end
   if tracker.professionSummaryCache then wipeTable(tracker.professionSummaryCache) end
+  if tracker.professionSectionsCache then wipeTable(tracker.professionSectionsCache) end
   tracker.questCacheGeneration = (tonumber(tracker.questCacheGeneration) or 0) + 1
   if type(tracker.InvalidateProfessionCache) == "function" then
     pcall(tracker.InvalidateProfessionCache, tracker)

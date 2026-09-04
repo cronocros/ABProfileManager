@@ -23,6 +23,9 @@ local statsRefreshToken = 0
 local QUEST_PANEL_REFRESH_DELAY = 0.15
 local questPanelRefreshPending = false
 
+local GHOST_REFRESH_DELAY = 0.10
+local ghostRefreshPending = false
+
 local abpmBankSessionActive = false
 local abpmBankPanelHooksInstalled = false
 
@@ -53,9 +56,7 @@ local function abpmIsAccountBankShown()
         return false
     end
 
-    local ok, shown = pcall(function()
-        return AccountBankPanel:IsShown()
-    end)
+    local ok, shown = pcall(AccountBankPanel.IsShown, AccountBankPanel)
     return ok and shown and true or false
 end
 
@@ -81,10 +82,25 @@ local function abpmInstallBankPanelHooks()
     end)
 end
 
-local function refreshGhostsAndRetries()
+local function _ghostRefreshCallback()
+    ghostRefreshPending = false
     ns:SafeCall(ns.Modules.ActionBarApplier, "ReconcilePendingGhosts")
     ns:SafeCall(ns.Modules.ActionBarApplier, "RetryPendingGhosts")
     ns:SafeCall(ns.Modules.GhostManager, "RefreshGhosts")
+end
+
+local function refreshGhostsAndRetries()
+    if not C_Timer or type(C_Timer.After) ~= "function" then
+        _ghostRefreshCallback()
+        return
+    end
+
+    if ghostRefreshPending then
+        return
+    end
+
+    ghostRefreshPending = true
+    C_Timer.After(GHOST_REFRESH_DELAY, _ghostRefreshCallback)
 end
 
 local function _questPanelRefreshCallback()
@@ -536,6 +552,7 @@ function Events:UNIT_AURA(unitToken)
         return
     end
 
+    ns:SafeCall(ns.UI.StatsOverlay, "InvalidateBuffHash")
     refreshStatsOverlay()
 end
 
@@ -618,6 +635,11 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
     if not message then return end
     abpmInstallBankPanelHooks()
     abpmRefreshBankSessionState()
+
+    if not abpmBankSessionActive and not abpmIsAccountBankShown() then
+        return
+    end
+
     local isBankError = false
 
     if _G["ERR_BANK_IN_USE"] and message == _G["ERR_BANK_IN_USE"] then
@@ -628,7 +650,7 @@ function Events:UI_ERROR_MESSAGE(messageType, message)
         local ok, found = pcall(string.find, string.lower(message), "bank", 1, true)
         if ok and found then isBankError = true end
     end
-    if isBankError and (abpmBankSessionActive or abpmIsAccountBankShown()) then
+    if isBankError then
         abpmCloseBankSessions()
         ns.Utils.Print(ns.L("bank_session_closed_external"))
     end

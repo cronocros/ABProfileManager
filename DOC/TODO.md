@@ -171,9 +171,37 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 | `Core.lua` | `ns:RefreshUI()`가 현재 탭의 패널 하나만 갱신합니다. 탭을 바꾸는 모든 경로가 `refreshCurrentTab`을 거치므로 숨은 패널은 표시될 때 갱신됩니다 |
 | `UI/BISOverlay.lua` | `resolveSeasonDungeonName`에 언어별 메모를 붙였습니다. `table.sort` 비교자 안에서 불리는 경로입니다 |
 
+### 보통 경로 (2026-09-04 처리)
+
+| 위치 | 내용 |
+| --- | --- |
+| `UI/BISOverlay.lua` | `getAllSpecs`를 `BISOverlay._allSpecsCache`에 담습니다. 캐시 키는 플레이어 직업·직업 수·언어입니다 |
+| `UI/BISOverlay.lua` | `EJournal.ShouldRetry`로 실패한 Encounter Journal 스캔에 재시도 쿨다운을 둡니다. 성공 기록(`scannedTiers`·`lootScanned`)이 먼저 걸러지므로 성공 경로는 막지 않습니다 |
+| `UI/BISOverlay.lua` | `MatchRaidBoss`가 실제로 훑은 풀 크기를 남겨 `FindRaidTargetByBoss`의 음수 캐시가 저장되게 했습니다. 이전 조건은 티어 스캔 전에는 영영 성립하지 않았습니다 |
+| `UI/BISOverlay.lua` | `ResolveEntryLoot`가 인스턴스 해석 실패에도 재시도 쿨다운을 겁니다 |
+| `UI/BISOverlay.lua` | 호버마다 만들던 13원소 레이드 라벨 배열과 툴팁 라인 루프 안의 3원소 키 배열을 `SourcePreview` 필드로 옮겼습니다. 라벨 비교는 정규화 결과를 한 번만 만들어 조회합니다 |
+| `UI/SilvermoonMapOverlay.lua` | `GetSeasonNames()`를 엔트리 루프 밖으로 옮겼습니다 |
+| `UI/SilvermoonMapOverlay.lua` | `resolveDisplayText`를 포인트·언어 기준으로 기억합니다 |
+| `UI/SilvermoonMapOverlay.lua` | 포인트 집합이 그대로면 `getNearbyCount` 전체 패스를 건너뜁니다. 이 값은 좌표에만 의존하고 확대 배율과 무관합니다 |
+| `UI/ItemLevelOverlay.lua` | 풍요 구렁 이름이 비었을 때도 짧은 TTL로 기억해 6개 지도 POI 전수 조회 반복을 막습니다 |
+| `UI/StatsOverlay.lua` | 버프 hash를 캐시하고 `UNIT_AURA`·`InvalidateState`에서만 비웁니다 |
+| `Events.lua` | `UI_ERROR_MESSAGE`가 은행 세션이 열려 있을 때만 문자열을 판정합니다. `abpmIsAccountBankShown`의 pcall 클로저도 없앴습니다 |
+| `Events.lua` | 고스트 스윕에 디바운스를 걸었습니다 |
+| `UI/QuestPanel.lua` · `UI/MainWindow.lua` | 강제 스캔을 3회에서 2회로 줄이고, 탭 전환 시 `OnShow`와 `refreshCurrentTab`이 겹쳐 두 번 스캔하던 것을 `OnShow` 한 곳으로 모았습니다 |
+| `UI/ConfigPanel.lua` · `UI/AddonSettingsPages.lua` | 숨은 설정 화면은 갱신하지 않습니다. 각 페이지에 `OnShow` 갱신이 이미 있습니다 |
+| `Modules/ProfessionKnowledgeTracker.lua` | `GetProfessionSections`에 세대 기반 캐시를 넣었습니다. `RURU.RefreshProfessionCaches`의 wipe 목록에도 추가했습니다 |
+
 ### 아직 고치지 않은 것
 
-**보통** — `getAllSpecs` 무캐시, Encounter Journal 실패 미기록으로 호버마다 재스캔 4곳, `SilvermoonMapOverlay`의 `GetSeasonNames()` 루프 내 호출과 `resolveDisplayText` 전량 재계산과 O(n²) 배치, `ItemLevelOverlay`의 빈 결과 미캐시, aura 성공 경로 무스로틀, `UI_ERROR_MESSAGE` 클로저, 고스트 스윕 무스로틀, `QuestPanel` 강제 스캔 3회와 탭 전환 이중 호출, 숨은 설정 페이지 6개 매번 갱신, `GetProfessionSections` 무캐시.
+**동결 파일이라 손대지 못한 것**
+
+`Data/BISRuntimeScoring.lua:125`의 `ScoreItemLink`가 `record.rawStats`가 빌 때만 `SCORE_CACHE[cacheKey] = false`를 남기지 않아 같은 링크로 다시 부르면 `BuildRuntimeItemRecord` pcall이 반복됩니다. 다른 두 실패 분기는 캐시합니다. 이 파일은 동결 대상이라 `scripts/validate_season2_scope.py`가 변경을 실패로 처리합니다. 고치려면 생성 스크립트와 기준 해시를 함께 갱신해야 합니다. 현재는 preview snapshot이 없어 이 경로에 도달하지 않습니다.
+
+**의도적으로 남긴 것**
+
+`UI/BISOverlay.lua`의 `showSeasonItemTooltip`에는 아직 클로저 8개가 남아 있습니다(`addStyledTooltipLine`, `getTooltipDungeonLabel`, `getTooltipRaidLabel`, `getTooltipBossLabel`, `getTooltipMethodLabel`, `appendSeasonTooltipDetails`, `appendCompactSeasonTooltipMeta`, `showSeasonFallbackTooltip`, 그리고 `tryShow*` 3종). 이들은 `tooltip`·`owner`·`row`·`entry`와 색상 값을 사슬처럼 공유해서, 밖으로 빼려면 컨텍스트 테이블을 만들어 350줄을 함께 고쳐야 합니다. BIS 툴팁은 과거 `MoneyFrame secret number` 오류가 났던 경로라 지금 손대는 위험이 이득보다 큽니다. 할당의 큰 몫이던 배열 리터럴 두 종은 이번에 제거했습니다.
+
+**낮음** — `getAllSpecs` 무캐시, Encounter Journal 실패 미기록으로 호버마다 재스캔 4곳, `SilvermoonMapOverlay`의 `GetSeasonNames()` 루프 내 호출과 `resolveDisplayText` 전량 재계산과 O(n²) 배치, `ItemLevelOverlay`의 빈 결과 미캐시, aura 성공 경로 무스로틀, `UI_ERROR_MESSAGE` 클로저, 고스트 스윕 무스로틀, `QuestPanel` 강제 스캔 3회와 탭 전환 이중 호출, 숨은 설정 페이지 6개 매번 갱신, `GetProfessionSections` 무캐시.
 
 **기능 결함 1건** — `UI/WorldEventOverlay.lua`의 행 `OnClick`과 `OnMouseDown`이 **둘 다** 완료 토글을 실행합니다. 좌클릭 한 번에 토글과 역토글이 일어나 제자리로 돌아갈 수 있습니다. `OnMouseDown` 쪽을 지우는 것이 맞습니다. 오버레이가 TOC 비활성이라 인게임 확인은 켠 뒤에 합니다.
 

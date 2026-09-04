@@ -342,6 +342,15 @@ local SourcePreview = {
     loadAttempts = {},
     rejectedLinks = {},
     maxAttempts = 2,
+    tooltipTextKeys = { "leftText", "rightText", "text" },
+    raidLocationLabels = {
+        "한밤 폭포", "Midnight Falls",
+        "진균나락", "Sporefall",
+        "공허 첨탑", "The Voidspire",
+        "꿈의균열", "Dreamrift", "The Dreamrift",
+        "쿠엘다나스 진격로", "March on Quel'danas", "March on Quel’danas",
+    },
+    raidLocationLookup = nil,
     defaultStepKey = "myth1",
     stepOrder = { "myth1", "myth6", "hero6", "chmp6" },
     stepDefs = {
@@ -520,6 +529,12 @@ local function getAllSpecs()
     local specs = {}
     local playerClassID = getPlayerClassID()
     local numClasses = GetNumClasses() or 0
+    local cacheKey = tostring(playerClassID or 0) .. ":" .. tostring(numClasses) .. ":"
+        .. tostring((ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage()) or "")
+    local cache = BISOverlay._allSpecsCache
+    if cache and cache.key == cacheKey then
+        return cache.value
+    end
 
     for classID = 1, numClasses do
         local className, classFile = GetClassInfo(classID)
@@ -557,6 +572,10 @@ local function getAllSpecs()
         end
         return tostring(a.name) < tostring(b.name)
     end)
+
+    if #specs > 0 then
+        BISOverlay._allSpecsCache = { key = cacheKey, value = specs }
+    end
 
     return specs
 end
@@ -602,14 +621,35 @@ local EJournal = {
     raidSeen = {},
     encounterListCache = {},
     scannedTiers = {},
+    tierScanRetryAt = {},
     bossTargetCache = {},
     lootByInstance = {},
     lootScanned = {},
+    lootScanRetryAt = {},
     entryLootCache = {},
+    entryInstanceRetryAt = {},
+    lastMatchPoolSize = 0,
+    failedScanRetrySeconds = 5.0,
     isRaidInstance = {},
     numTiers = nil,
     allTiersScanned = false,
 }
+
+function EJournal.ShouldRetry(store, key, cooldown)
+    if not store or key == nil then
+        return true
+    end
+    local now = (type(GetTime) == "function" and GetTime()) or nil
+    if not now then
+        return true
+    end
+    local retryAt = store[key]
+    if retryAt and now < retryAt then
+        return false
+    end
+    store[key] = now + (cooldown or EJournal.failedScanRetrySeconds or 5.0)
+    return true
+end
 
 function EJournal.AddName(list, value)
     if type(list) ~= "table" or type(value) ~= "string" then
@@ -725,6 +765,9 @@ function EJournal.EnsureTier(tierIndex)
         return false
     end
     if type(EJ_GetInstanceByIndex) ~= "function" then
+        return false
+    end
+    if not EJournal.ShouldRetry(EJournal.tierScanRetryAt, tierIndex) then
         return false
     end
     local previousTier = EJournal.GetCurrentTier()
@@ -880,6 +923,8 @@ function EJournal.MatchRaidBoss(encounterHints, startIndex, requiredTier)
         end
     end
 
+    EJournal.lastMatchPoolSize = #pool
+
     for index = startIndex, #pool do
         local raid = pool[index]
         if requiredTier == nil or raid.tier == requiredTier then
@@ -922,7 +967,7 @@ function EJournal.FindRaidTargetByBoss(encounterHints)
     EJournal.RestoreTier(previousTier)
 
     if not instanceID then
-        if #EJournal.raidInstances > 0 then
+        if (EJournal.lastMatchPoolSize or 0) > 0 then
             EJournal.bossTargetCache[cacheKey] = false
         end
         return nil
@@ -1258,6 +1303,9 @@ function EJournal.EnsureLootIndex(instanceID)
     if not EJournal.CanScanLoot() then
         return nil
     end
+    if not EJournal.ShouldRetry(EJournal.lootScanRetryAt, instanceID) then
+        return nil
+    end
 
     local previousTier = EJournal.GetCurrentTier()
     local previousInstance = EJournal.GetCurrentInstance()
@@ -1394,10 +1442,15 @@ function EJournal.ResolveEntryLoot(entry, allowScan)
         return nil
     end
 
+    if not EJournal.ShouldRetry(EJournal.entryInstanceRetryAt, itemID) then
+        return nil
+    end
+
     local instanceID, tierIndex = EJournal.ResolveEntryInstance(entry)
     if not instanceID then
         return nil
     end
+    EJournal.entryInstanceRetryAt[itemID] = nil
 
     local map = EJournal.EnsureLootIndex(instanceID)
     if not map then
@@ -2663,7 +2716,7 @@ local function extractTooltipItemLevel(tooltipData)
 
     local lines = getTooltipDataField(tooltipData, "lines")
     for _, line in ipairs(type(lines) == "table" and lines or {}) do
-        for _, key in ipairs({ "leftText", "rightText", "text" }) do
+        for _, key in ipairs(SourcePreview.tooltipTextKeys) do
             local field = getTooltipDataField(line, key)
             local text = safeTooltipString(field)
             local ok, normalized = pcall(normalizeCompareText, text or "")
@@ -2701,7 +2754,7 @@ local function tooltipDataHasMythOneOfSix(tooltipData)
         return false
     end
     for _, line in ipairs(lines) do
-        for _, key in ipairs({ "leftText", "rightText", "text" }) do
+        for _, key in ipairs(SourcePreview.tooltipTextKeys) do
             local text = safeTooltipString(getTooltipDataField(line, key))
             local rankOK, hasRank = pcall(string.find, text or "", "1/6", 1, true)
             if rankOK and hasRank then
@@ -2724,7 +2777,7 @@ function SourcePreview.tooltipDataHasMythText(tooltipData)
         return false
     end
     for _, line in ipairs(lines) do
-        for _, key in ipairs({ "leftText", "rightText", "text" }) do
+        for _, key in ipairs(SourcePreview.tooltipTextKeys) do
             local text = safeTooltipString(getTooltipDataField(line, key))
             local lowerOK, lower = pcall(string.lower, text or "")
             local koreanOK, hasKorean = pcall(string.find, text or "", "신화", 1, true)
@@ -4191,6 +4244,51 @@ end
 
 SourcePreview.defaultTooltipSourceTypes = { "raid", "crafted", "tier" }
 
+function SourcePreview.isRaidLocationLabel(label)
+    local normalized = normalizeCompareText(label)
+    if normalized == "" then
+        return false
+    end
+
+    local lookup = SourcePreview.raidLocationLookup
+    if not lookup then
+        lookup = {}
+        for _, candidate in ipairs(SourcePreview.raidLocationLabels) do
+            lookup[normalizeCompareText(candidate)] = true
+        end
+        SourcePreview.raidLocationLookup = lookup
+    end
+
+    return lookup[normalized] == true
+end
+
+function SourcePreview.getFontColorRGB(fontColor, fallbackR, fallbackG, fallbackB)
+    if type(fontColor) == "table" then
+        if type(fontColor.GetRGB) == "function" then
+            local r, g, b = fontColor:GetRGB()
+            return r or fallbackR, g or fallbackG, b or fallbackB
+        end
+        return fontColor.r or fallbackR, fontColor.g or fallbackG, fontColor.b or fallbackB
+    end
+    return fallbackR, fallbackG, fallbackB
+end
+
+function SourcePreview.colorByte(value)
+    value = tonumber(value) or 1
+    value = math.max(0, math.min(1, value))
+    return math.floor(value * 255 + 0.5)
+end
+
+function SourcePreview.wrapTextColor(text, r, g, b)
+    return string.format(
+        "|cff%02x%02x%02x%s|r",
+        SourcePreview.colorByte(r),
+        SourcePreview.colorByte(g),
+        SourcePreview.colorByte(b),
+        tostring(text or "")
+    )
+end
+
 function SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)
     return tostring(sourceType or "item") .. ":" .. tostring(tonumber(itemID) or itemID or 0)
 end
@@ -4947,57 +5045,20 @@ showSeasonItemTooltip = function(owner, row)
 
     local entry = row._entry or {}
 
-    local function getTooltipFontColorRGB(fontColor, fallbackR, fallbackG, fallbackB)
-        if type(fontColor) == "table" then
-            if type(fontColor.GetRGB) == "function" then
-                local r, g, b = fontColor:GetRGB()
-                return r or fallbackR, g or fallbackG, b or fallbackB
-            end
-            return fontColor.r or fallbackR, fontColor.g or fallbackG, fontColor.b or fallbackB
-        end
-        return fallbackR, fallbackG, fallbackB
-    end
-
-    local function wrapTooltipTextColor(text, r, g, b)
-        local function toByte(value)
-            value = tonumber(value) or 1
-            value = math.max(0, math.min(1, value))
-            return math.floor(value * 255 + 0.5)
-        end
-        return string.format("|cff%02x%02x%02x%s|r", toByte(r), toByte(g), toByte(b), tostring(text or ""))
-    end
-
-    local labelR, labelG, labelB = getTooltipFontColorRGB(DISABLED_FONT_COLOR, 0.62, 0.68, 0.78)
-    local valueR, valueG, valueB = getTooltipFontColorRGB(HIGHLIGHT_FONT_COLOR, 0.96, 0.96, 0.96)
+    local labelR, labelG, labelB = SourcePreview.getFontColorRGB(DISABLED_FONT_COLOR, 0.62, 0.68, 0.78)
+    local valueR, valueG, valueB = SourcePreview.getFontColorRGB(HIGHLIGHT_FONT_COLOR, 0.96, 0.96, 0.96)
     local accentR, accentG, accentB = 1.00, 0.82, 0.44
 
     local function addStyledTooltipLine(label, value, vr, vg, vb)
-        local text = wrapTooltipTextColor((label or "") .. ":", labelR, labelG, labelB)
+        local text = SourcePreview.wrapTextColor((label or "") .. ":", labelR, labelG, labelB)
         local valueText = tostring(value or "")
         if valueText ~= "" then
-            text = text .. " " .. wrapTooltipTextColor(valueText, vr or valueR, vg or valueG, vb or valueB)
+            text = text .. " " .. SourcePreview.wrapTextColor(valueText, vr or valueR, vg or valueG, vb or valueB)
         end
         tooltip:AddLine(text, 1, 1, 1, true)
     end
 
-    local function isRaidLocationLabel(label)
-        local normalized = normalizeCompareText(label)
-        if normalized == "" then
-            return false
-        end
-        for _, candidate in ipairs({
-            "한밤 폭포", "Midnight Falls",
-            "진균나락", "Sporefall",
-            "공허 첨탑", "The Voidspire",
-            "꿈의균열", "Dreamrift", "The Dreamrift",
-            "쿠엘다나스 진격로", "March on Quel'danas", "March on Quel’danas",
-        }) do
-            if normalized == normalizeCompareText(candidate) then
-                return true
-            end
-        end
-        return false
-    end
+    local isRaidLocationLabel = SourcePreview.isRaidLocationLabel
 
     local function getTooltipDungeonLabel()
         local dungeonName = resolveSeasonDungeonName(

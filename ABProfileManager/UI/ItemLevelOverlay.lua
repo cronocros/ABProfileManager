@@ -43,6 +43,8 @@ local CREST_ID_BY_GRADE = {
 local HEADER_COLOR = { 0.50, 0.58, 0.68 }
 local CREST_PANEL_GRADES = { "adv", "vet", "chmp", "hero", "myth" }
 local _cachedBountifulDelveNames = nil
+local _bountifulDelveEmptyUntil = 0
+local BOUNTIFUL_DELVE_EMPTY_TTL = 10.0
 
 local GRADE_COLORS = {
     expl = { 0.62, 0.62, 0.62 },
@@ -247,6 +249,11 @@ local function getBestEffortBountifulDelveNames()
         return _cachedBountifulDelveNames
     end
 
+    local now = (type(GetTime) == "function" and GetTime()) or nil
+    if now and now < _bountifulDelveEmptyUntil then
+        return { ns.L("ilvl_key_unknown") }
+    end
+
     local names = {}
     local seen = {}
 
@@ -279,8 +286,12 @@ local function getBestEffortBountifulDelveNames()
     end
 
     if #names == 0 then
+        if now then
+            _bountifulDelveEmptyUntil = now + BOUNTIFUL_DELVE_EMPTY_TTL
+        end
         return { ns.L("ilvl_key_unknown") }
     end
+    _bountifulDelveEmptyUntil = 0
     _cachedBountifulDelveNames = names
     return names
 end

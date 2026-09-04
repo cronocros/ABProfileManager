@@ -116,13 +116,10 @@ local function queueRefresh(panel)
 
     panel:Refresh(true)
     if C_Timer and C_Timer.After then
-        C_Timer.After(0.15, function()
-            if panel.frame then
-                panel:Refresh(true)
-            end
-        end)
+        panel._queuedRefreshToken = (panel._queuedRefreshToken or 0) + 1
+        local token = panel._queuedRefreshToken
         C_Timer.After(0.45, function()
-            if panel.frame then
+            if panel.frame and token == panel._queuedRefreshToken then
                 panel:Refresh(true)
             end
         end)

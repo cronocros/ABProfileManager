@@ -514,6 +514,7 @@ function RuntimePoints.CollectEntrances(mapID, points, index)
     end
 
     local matched = false
+    local seasonNames = RuntimePoints.GetSeasonNames()
     for _, entry in ipairs(entries) do
         if type(entry) == "table" then
             local category = RuntimePoints.GetInstanceCategory(entry.journalInstanceID)
@@ -522,7 +523,6 @@ function RuntimePoints.CollectEntrances(mapID, points, index)
                 name = callMapApi(EJ_GetInstanceInfo, tonumber(entry.journalInstanceID))
             end
             if not category and type(name) == "string" and name ~= "" then
-                local seasonNames = RuntimePoints.GetSeasonNames()
                 if type(seasonNames) == "table" then
                     category = seasonNames[normalizeMapName(name)]
                 end
@@ -873,14 +873,30 @@ local function resolveLabelName(point)
     return text
 end
 
+local _displayTextCache = setmetatable({}, { __mode = "k" })
+local _displayTextLanguage = nil
+
 local function resolveDisplayText(point)
-    local labelName = resolveLabelName(point)
-    if point.category == "dungeon" or point.category == "delve" or point.category == "raid" then
-        local prefix = ns.L("map_prefix_" .. point.category)
-        return string.format("%s\n%s", prefix, labelName)
+    local language = (ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage()) or ""
+    if _displayTextLanguage ~= language then
+        _displayTextLanguage = language
+        wipe(_displayTextCache)
     end
 
-    return labelName
+    local cached = _displayTextCache[point]
+    if cached then
+        return cached
+    end
+
+    local labelName = resolveLabelName(point)
+    local text = labelName
+    if point.category == "dungeon" or point.category == "delve" or point.category == "raid" then
+        local prefix = ns.L("map_prefix_" .. point.category)
+        text = string.format("%s\n%s", prefix, labelName)
+    end
+
+    _displayTextCache[point] = text
+    return text
 end
 
 local function hasLineBreak(text)
@@ -1324,15 +1340,28 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData, points)
     end
     local entryCount = #_layoutPoints
 
-    for i = 1, entryCount do
-        local e = _layoutEntries[i]
-        if not e then
-            e = { point = nil, nearbyCount = 0 }
-            _layoutEntries[i] = e
+    local samePointSet = #_layoutEntries >= entryCount
+    if samePointSet then
+        for i = 1, entryCount do
+            local e = _layoutEntries[i]
+            if not e or e.point ~= _layoutPoints[i] then
+                samePointSet = false
+                break
+            end
         end
-        local point = _layoutPoints[i]
-        e.point = point
-        e.nearbyCount = getNearbyCount(_layoutPoints, point, point.crowdRadius or CROWD_RADIUS_PERCENT)
+    end
+
+    if not samePointSet then
+        for i = 1, entryCount do
+            local e = _layoutEntries[i]
+            if not e then
+                e = { point = nil, nearbyCount = 0 }
+                _layoutEntries[i] = e
+            end
+            local point = _layoutPoints[i]
+            e.point = point
+            e.nearbyCount = getNearbyCount(_layoutPoints, point, point.crowdRadius or CROWD_RADIUS_PERCENT)
+        end
     end
 
     for i = entryCount + 1, #_layoutEntries do
