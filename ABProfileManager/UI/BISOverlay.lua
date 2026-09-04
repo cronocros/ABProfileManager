@@ -4042,7 +4042,9 @@ function BISOverlay:EnsureTabs()
     if not frame then return end
     local specs = getClassSpecs()
     if #specs == 0 then return end
-    if frame.tabsSpecCount == #specs then
+    local firstTab = frame.tabs[1]
+    if frame.tabsSpecCount == #specs
+        and firstTab and firstTab.specName == specs[1].name then
         self:UpdateTabHighlight()
         self:UpdateSpecPickerButton()
         return
@@ -4093,6 +4095,8 @@ function BISOverlay:EnsureTabs()
         if spec.icon then
             tab.icon:SetTexture(spec.icon)
             tab.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        else
+            tab.icon:SetTexture(nil)
         end
         tab.specID   = spec.specID
         tab.specName = spec.name

@@ -1992,7 +1992,7 @@ local function replacementPattern(map, key)
 
   local pattern = cache[key]
   if not pattern then
-    if key:match("^%a[%a ]*$") then
+    if key:match("^%a$") or key:match("^%a[%a ]*%a$") then
       pattern = "%f[%a]" .. key .. "%f[%A]"
     else
       pattern = key
@@ -2118,6 +2118,9 @@ local OBJECTIVE_PREFIX_RURU = {
 local function getRuObjectiveName(name)
   if type(name) ~= "string" or name == "" then
     return name or ""
+  end
+  if not isRuRU() then
+    return name
   end
 
   local exact = objectiveNamesRuRU()[name]

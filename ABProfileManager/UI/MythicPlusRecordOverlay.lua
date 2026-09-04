@@ -497,10 +497,11 @@ end
 local mixinSetUpHooked = false
 
 local function hookIcon(icon)
-    if mixinSetUpHooked then
+    if type(icon) ~= "table" or icon.ABPMRecordOverlayHooked or type(icon.SetUp) ~= "function" then
         return
     end
-    if type(icon) ~= "table" or icon.ABPMRecordOverlayHooked or type(icon.SetUp) ~= "function" then
+    if mixinSetUpHooked and ChallengesDungeonIconMixin
+        and rawget(icon, "SetUp") == ChallengesDungeonIconMixin.SetUp then
         return
     end
 
@@ -736,6 +737,7 @@ function MythicPlusRecordOverlay:Initialize()
         end
 
         if DATA_EVENTS[event] then
+            refreshRetries = math.max(0, refreshRetries - 2)
             MythicPlusRecordOverlay:Refresh()
         end
     end)

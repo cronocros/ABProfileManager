@@ -150,8 +150,9 @@
 
 ## UI/MythicPlusRecordOverlay.lua
 
-- `SetUp` 훅은 믹스인(`ChallengesDungeonIconMixin`) 쪽만 건다. 믹스인 훅이 걸리면 `mixinSetUpHooked`가 서고 `hookIcon`은 인스턴스 훅을 건너뛴다. 둘 다 걸면 아이콘 하나의 `SetUp` 한 번에 `RefreshIcon`이 두 번 돈다.
-- 데이터 이벤트에서 `resetRefreshRetries()`를 부르지 않는다. `Refresh()`가 `RequestMapInfo`를 부르고 그 응답인 `CHALLENGE_MODE_MAPS_UPDATE`가 다시 `DATA_EVENTS`에 있어서, 상한을 되돌리면 아이콘이 하나도 안 그려지는 상황에서 `ChallengesFrame`이 열린 내내 1초 주기 루프가 유지된다. 상한 초기화는 `ChallengesFrame` `OnShow`에서만 한다.
+- `SetUp` 훅은 믹스인(`ChallengesDungeonIconMixin`) 쪽을 먼저 건다. 둘 다 걸면 아이콘 하나의 `SetUp` 한 번에 `RefreshIcon`이 두 번 돈다.
+- **믹스인 훅은 전역 스위치가 아니다.** `Mixin()`은 함수를 프레임 테이블로 **복사**하므로, 믹스인을 훅해도 그 전에 만들어진 아이콘은 훅되지 않은 사본을 그대로 들고 있다. `hookIcon`은 `rawget(icon, "SetUp") == ChallengesDungeonIconMixin.SetUp`일 때만 건너뛴다. `mixinSetUpHooked`만 보고 전부 건너뛰면, `Blizzard_ChallengesUI`가 먼저 로드돼 아이콘이 이미 만들어진 경우 그 아이콘들이 영영 갱신되지 않는다.
+- 데이터 이벤트에서 재시도 상한을 **통째로 초기화하지 않고 2만 회복시킨다.** `Refresh()`가 `RequestMapInfo`를 부르고 그 응답인 `CHALLENGE_MODE_MAPS_UPDATE`가 다시 `DATA_EVENTS`에 있어서, 전체 초기화는 아이콘이 하나도 안 그려지는 상황에서 `ChallengesFrame`이 열린 내내 1초 주기 루프를 만든다. 반대로 아무것도 회복시키지 않으면 상한이 소진된 뒤 이벤트 없이 늦게 채워지는 데이터를 잡지 못해 창을 닫았다 열어야 한다. 전체 초기화는 `ChallengesFrame` `OnShow`에서만 한다.
 
 ## UI/SilvermoonMapOverlay.lua
 
@@ -180,11 +181,13 @@
 
 ## ABPM_ruRU_Final_v3.lua 성능
 
+- `getRuObjectiveName`은 자기 본문에서 `isRuRU()`를 확인한다. 가드를 호출자에만 두면 `ns.ABPM_RURU.GetRuObjectiveName`을 언어 분기 없이 부르는 순간 457항목 표가 만들어져 지연 생성이 무의미해진다.
 - `OBJECTIVE_NAMES_RURU`(457항목)는 `objectiveNamesRuRU()`가 처음 불릴 때만 만든다. 이 표를 읽는 네 곳은 전부 `isRuRU()` 뒤에 있으므로 한국어·영어 클라이언트에서는 테이블이 아예 만들어지지 않는다. 문자열 자체는 청크 상수라 회수되지 않고, 절약되는 것은 해시 파트다.
 
 
 - 치환은 `applyReplacements`가 담당하고 키를 **길이 내림차순으로 고정 정렬해** 적용한다. `pairs` 순서에 맡기면 짧은 키가 먼저 걸려 `" pts"`가 `" оч.s"`가 되고 `"Demon Hunter"`가 `"Demon 사냥꾼"`이 된다. 정렬 결과는 맵별로 한 번만 만들어 약한 키 테이블에 보관한다.
 - 이 정렬은 키가 서로의 접두·부분 문자열인 쌍(`" pt"`/`" pts"`, `"Weekly Quest"`/`"Trainer Weekly Quest"`, `"Hunter"`/`"Demon Hunter"`, `"Охотник"`/`"Охотник на демонов"`)만 바꾼다. 그 외에는 결과가 같다.
+- 프런티어 적용 조건은 `^%a$` 또는 `^%a[%a ]*%a$`다. 끝이 공백인 키까지 받으면 `%f[%A]` 직전 문자가 공백이라 **영원히 매치되지 않아** 치환이 조용히 사라진다.
 - 순수 ASCII 글자와 공백으로만 이뤄진 키는 `%f[%a]키%f[%A]` 프런티어 패턴으로 바꿔 낱말 경계에서만 맞춘다. 이것이 없으면 `"Crit"`이 `"Critical Strike"` 안에서 매치돼 `"치명ical Strike"`가 된다. `" pts"`나 `"Progress:"`처럼 앞뒤에 공백·문장부호가 붙은 키와 키릴·한글 키는 `%a`가 잡지 못하므로 평문 그대로 쓴다.
 - 프런티어를 넣어도 길이 내림차순 정렬은 계속 필요하다. `"Trainer Weekly Quest"`의 `"Weekly"` 앞은 공백이라 프런티어가 통과한다.
 - `applyReplacements`는 `gsub` 전에 `find(..., 1, true)`로 평문 포함 여부를 먼저 본다. 치환 키에 Lua 패턴 메타문자가 없어 결과가 같고, 대부분의 줄은 어느 키도 포함하지 않으므로 `gsub`의 패턴 컴파일과 결과 문자열 할당이 통째로 사라진다. 스탯 오버레이는 FontString 하나당 39개 키를 돌고 `StatsOverlay:Refresh`마다 실행된다.
@@ -204,6 +207,8 @@
 
 - 이 파일의 top-level local은 현재 `195`개다. `scripts/validate_bis_tooltip_contract.py`가 세는 값이며(선언된 이름 수, `LocalAssign` targets + `LocalFunction`) 예산은 `198`, Lua 스코프당 상한은 `200`이다. **새 top-level local을 추가하면 파일이 컴파일되지 않을 수 있다.** helper는 전부 기존 테이블의 필드로 넣는다.
 - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터(`Data/BISCatalog.lua`, `BISMythicVaultLinks.lua`, `BISSeasonPreviewLinks.lua`, `BISEncounterJournal.lua`)가 기준으로 삼는 시즌이다. BIS 데이터를 갱신할 때 이 값도 함께 올린다.
+- 조기 반환 판정에 `frame.tabs[1].specName`을 함께 본다. 개수만 보면 언어를 바꿔도 전문화 수가 같아 툴팁이 이전 언어로 남는다.
+- 재사용한 탭은 `spec.icon`이 없을 때 `SetTexture(nil)`로 지운다. 지우지 않으면 이전 전문화 아이콘이 남는다. 새로 만든 탭에는 없던 문제라 재사용 경로에서만 생긴다.
 - `EnsureTabs`는 탭 프레임을 **인덱스로 재사용한다.** WoW 프레임은 회수되지 않으므로 `frame.tabs = {}`로 버리면 이전 버튼이 `tabsFrame`의 자식으로 영구히 남는다. 재생성 여부 판정은 `frame.tabsSpecCount`로 한다. `#frame.tabs`는 남는 탭까지 세므로 기준이 될 수 없다.
 - 탭 핸들러는 생성 시 한 번만 붙이고 `self2.specID`/`self2.specName`을 읽는다. 클로저가 `spec`을 잡으면 재사용할 때 이전 전문화가 남는다.
 - 스크롤바 썸의 `OnUpdate`는 창 `OnHide`에서 해제한다. 드래그 도중 `PVEFrame`이 닫히면 `OnMouseUp`이 오지 않아 `_dragging`이 참인 채 남고, 다시 열었을 때 드라이버가 스크롤을 계속 덮어쓴다. `_dragging`이 선언된 뒤에 `HookScript`로 붙여야 스코프가 맞는다.
