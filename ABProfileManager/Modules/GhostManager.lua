@@ -114,11 +114,34 @@ end
 
 function GhostManager:Initialize()
     self.ghostsBySlot = {}
+    self.overlayPool = self.overlayPool or {}
+end
+
+function GhostManager:ReleaseOverlay(overlay)
+    if not overlay then return end
+    overlay:Hide()
+    overlay.logicalSlot = nil
+    overlay.title = nil
+    overlay.message = nil
+    overlay.controlsHint = nil
+    self.overlayPool = self.overlayPool or {}
+    self.overlayPool[#self.overlayPool + 1] = overlay
+end
+
+function GhostManager:AcquireOverlay(button)
+    self.overlayPool = self.overlayPool or {}
+    local pool = self.overlayPool
+    local overlay = pool[#pool]
+    if overlay then
+        pool[#pool] = nil
+        return overlay
+    end
+    return createOverlay(button)
 end
 
 function GhostManager:ClearAll()
     for logicalSlot, overlay in pairs(self.ghostsBySlot) do
-        overlay:Hide()
+        self:ReleaseOverlay(overlay)
         self.ghostsBySlot[logicalSlot] = nil
     end
 end
@@ -152,7 +175,7 @@ function GhostManager:RefreshGhosts()
 
     for logicalSlot, overlay in pairs(self.ghostsBySlot) do
         if not pendingGhosts[logicalSlot] then
-            overlay:Hide()
+            self:ReleaseOverlay(overlay)
             self.ghostsBySlot[logicalSlot] = nil
         end
     end
@@ -161,10 +184,11 @@ function GhostManager:RefreshGhosts()
         local button = buttonIndex[logicalSlot]
         local slotRecord = ghostEntry.slotRecord
         if button and slotRecord then
-            local overlay = self.ghostsBySlot[logicalSlot] or createOverlay(button)
+            local overlay = self.ghostsBySlot[logicalSlot] or self:AcquireOverlay(button)
             overlay:SetParent(button)
             overlay:ClearAllPoints()
             overlay:SetAllPoints(button)
+            overlay:SetFrameLevel(button:GetFrameLevel() + 15)
             overlay.icon:SetTexture(slotRecord.icon or ns.Constants.DEFAULT_ICON)
             overlay.title = slotRecord.name or ns.L("ghost_fallback_slot", logicalSlot)
             overlay.message = ghostEntry.reason or ns.L("ghost_reason_default")
@@ -173,7 +197,8 @@ function GhostManager:RefreshGhosts()
             overlay:Show()
             self.ghostsBySlot[logicalSlot] = overlay
         elseif self.ghostsBySlot[logicalSlot] then
-            self.ghostsBySlot[logicalSlot]:Hide()
+            self:ReleaseOverlay(self.ghostsBySlot[logicalSlot])
+            self.ghostsBySlot[logicalSlot] = nil
         end
     end
 end

@@ -85,6 +85,7 @@ ABProfileManager/
    - 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있다. 시즌이 어긋날 때만 `SeasonGuard.ApplyNotice()`가 `S1` 형태의 짧은 접두와 경고색을 붙인다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘린다
    - BIS 데이터를 새 시즌으로 갱신할 때 `SeasonGuard.dataSeason`도 함께 올린다. 올리지 않으면 자동 동작이 계속 꺼져 있다
    - 정적 후보는 `Data/BISCatalog.lua`만 읽고, 링크 점수는 `Data/BISRuntimeScoring.lua`로 계산한다
+   - `GET_ITEM_INFO_RECEIVED` 핸들러의 캐시 기록은 `requested` 또는 `previewEntry` 게이트 안에 둔다. 이 이벤트에는 필터가 없어 세션 내 모든 아이템이 들어오고, 게이트 밖에서 캐시에 쓰면 BIS와 무관한 아이템까지 무제한으로 쌓인다
    - top-level local은 현재 `195`개다. `scripts/validate_bis_tooltip_contract.py`의 예산은 `198`, Lua 청크 상한은 `200`이다. 새 기능은 새 local 대신 기존 테이블 필드를 쓴다. 시즌 preview helper는 `SourcePreview` 테이블에 묶어 둔다
    - BIS 전용 item tooltip은 shopping tooltip 경로를 사용해 sell price `MoneyFrame` 렌더링을 차단한다
    - hover/자동 큐에서 Encounter Journal UI 상태를 바꾸거나 숨은 loot scan을 하지 않는다. 보호된 `C_EncounterJournal.SetTab`을 직접 호출하지 않으며, 전투 중에는 자동 랜딩을 건너뛴다
