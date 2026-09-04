@@ -11,6 +11,32 @@
 시즌 2 인게임 QA에서 확인된 로드 오류와 오버레이 결함을 고치고, 시즌 2 데이터를
 와우헤드/DB2로 재검증하고, 영어 표시 결함을 정리한 로컬 릴리스.
 
+2026-09-04 2차 교차 검토 반영:
+- `getAllSpecs`가 부분 결과를 캐시하지 않는다. `#specs > 0` 가드는 전부 비었을 때만
+  막아, 직업 정보나 전문화 정보가 덜 올라온 순간의 결과가 굳으면 캐시 키가 그 뒤로
+  바뀌지 않아 세션 내내 남았다. 직업 이름 누락과 전문화 수 합계를 함께 본다
+- `FindRaidTargetByBoss`의 음수 캐시에 `lastMatchPoolTrusted` 조건을 더했다. 티어
+  스캔이 실패해도 시즌 폴백 풀은 레이드 버킷만 훑어 0이 아닌 값을 돌려줄 수 있고,
+  그 상태의 매치 실패를 굳히면 `bossTargetCache`를 비우는 경로가 진단 명령뿐이라
+  세션 내내 보스가 잡히지 않는다
+- `EJournal.ShouldRetry`가 실패 시각을 저장하고 `now > attemptedAt`일 때만 막는다.
+  `GetTime()`은 프레임 안에서 값이 같으므로 같은 프레임의 두 번째 시도가 통과한다.
+  Encounter Journal은 조회 자체가 데이터를 채우는 API라 행 호버가 부르는
+  `ResolveEntryLoot`와 이어지는 툴팁의 `GetEntryBossName`이 그 재시도 짝이다.
+  쿨다운도 5초에서 2초로 낮췄다
+- 지도 레이아웃의 포인트 집합 비교 대상을 `_layoutPrevPoints`로 분리했다.
+  `_layoutEntries`는 호출 끝에서 정렬되므로 소스 순서와 맞대면 빠른 경로가 죽는다.
+  길이 비교도 `>=`에서 `==`로 바꿨다. `HideAll()` 조기 반환이 꼬리를 잘라내지 않아
+  포인트가 줄어든 뒤 낡은 `nearbyCount`가 쓰일 수 있었다
+- `RuntimePoints.GetSeasonNames()`를 처음 필요할 때만 부른다. 루프 밖으로 무조건
+  올리면 모든 엔트리가 다른 경로로 풀리는 경우까지 한 번씩 스윕한다
+- `InvalidateBountifulDelveNamesCache`가 실패 TTL도 지운다. 남기면 로딩 중 빈 결과로
+  선 TTL이 직후 도착한 POI 신호를 삼키고, TTL 만료는 갱신을 트리거하지 않아
+  다음 refresh까지 `알 수 없음`이 남았다
+- 이미 보이는 퀘스트 탭을 다시 선택하면 `OnShow`가 발화하지 않아 강제 스캔이
+  사라졌다. `refreshCurrentTab`이 마지막 강제 스캔 시각을 보고 이번 프레임이
+  아니면 직접 건다
+
 2026-09-04 보통 등급 경로 정리:
 - `UI/BISOverlay.lua`의 `getAllSpecs`를 캐시한다. `Refresh()` 한 번에 5~7번 불리며
   매번 40개 전문화 테이블을 만들고 정렬했다

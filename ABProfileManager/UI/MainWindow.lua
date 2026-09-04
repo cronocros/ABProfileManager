@@ -56,7 +56,13 @@ local function refreshCurrentTab(window)
     elseif window.currentTab == "map" then
         ns:SafeCall(ns.UI.MapPanel, "Refresh")
     elseif window.currentTab == "quests" then
-        ns:SafeCall(ns.UI.QuestPanel, "Refresh")
+        local questPanel = ns.UI.QuestPanel
+        local now = (type(GetTime) == "function" and GetTime()) or nil
+        if questPanel and now and questPanel._lastForcedScanAt == now then
+            ns:SafeCall(questPanel, "Refresh")
+        else
+            ns:SafeCall(questPanel, "Refresh", true)
+        end
     elseif window.currentTab == "config" then
         ns:SafeCall(ns.UI.ConfigPanel, "Refresh")
     elseif window.currentTab == "utility" then

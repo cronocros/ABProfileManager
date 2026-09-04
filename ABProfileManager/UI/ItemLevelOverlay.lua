@@ -910,6 +910,7 @@ end
 
 function ItemLevelOverlay:InvalidateBountifulDelveNamesCache()
     _cachedBountifulDelveNames = nil
+    _bountifulDelveEmptyUntil = 0
 end
 
 function ItemLevelOverlay:BuildContentSignature(avgIlvl)
