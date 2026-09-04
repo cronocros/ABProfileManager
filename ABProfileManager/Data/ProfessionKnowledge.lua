@@ -101,7 +101,7 @@ local professions = {
         noteKey = "pk_profession_note_enchanting",
         weekly = {
             source("weekly_quest", "pk_source_weekly_quest", buildObjectives({
-                { "Weekly Quest", 3, { 93698, 93699 }, "any" },
+                { "Weekly Quest", 3, { 93697, 93698, 93699 }, "any" },
             })),
             source("weekly_drops", "pk_source_weekly_drops", buildObjectives({
                 { "Voidstorm Ashes", 2, { 93532 } },
@@ -180,7 +180,7 @@ local professions = {
         noteKey = "pk_profession_note_gathering",
         weekly = {
             source("weekly_quest", "pk_source_trainer_weekly", buildObjectives({
-                { "Trainer Weekly Quest", 3, { 93700, 93702, 93703, 93704 }, "any" },
+                { "Trainer Weekly Quest", 3, { 93700, 93701, 93702, 93703, 93704 }, "any" },
             })),
             source("weekly_gathering_drops", "pk_source_weekly_gathering_drops", buildObjectives({
                 { "Gathered Herb Sample 1", 1, { 81425 } },
@@ -355,7 +355,7 @@ local professions = {
         noteKey = "pk_profession_note_gathering",
         weekly = {
             source("weekly_quest", "pk_source_trainer_weekly", buildObjectives({
-                { "Trainer Weekly Quest", 3, { 93705, 93706, 93708, 93709 }, "any" },
+                { "Trainer Weekly Quest", 3, { 93705, 93706, 93707, 93708, 93709 }, "any" },
             })),
             source("weekly_gathering_drops", "pk_source_weekly_gathering_drops", buildObjectives({
                 { "Mined Ore Sample 1", 1, { 88673 } },
@@ -419,7 +419,7 @@ local professions = {
         noteKey = "pk_profession_note_gathering",
         weekly = {
             source("weekly_quest", "pk_source_trainer_weekly", buildObjectives({
-                { "Trainer Weekly Quest", 3, { 93710, 93711, 93712, 93714 }, "any" },
+                { "Trainer Weekly Quest", 3, { 93710, 93711, 93712, 93713, 93714 }, "any" },
             })),
             source("weekly_gathering_drops", "pk_source_weekly_gathering_drops", buildObjectives({
                 { "Skinned Trophy 1", 1, { 88534 } },

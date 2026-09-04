@@ -35,8 +35,8 @@ LOCALE_ADDITIONS = REPO_ROOT / "ABProfileManager" / "Locale_Additions.lua"
 LOCALE_RURU = REPO_ROOT / "ABProfileManager" / "ABPM_ruRU_Final_v3.lua"
 RURU_STRINGS_TABLE = "LOCALE_STRINGS_RURU"
 
-# v1.11.11 기준 ruRU 번역 격차. 번역이 채워지면 이 값을 낮춘다.
-RURU_MISSING_BASELINE = 143
+# ruRU 번역 격차. 2026-09-04에 143개를 채워 0이 됐다. 다시 올리지 않는다.
+RURU_MISSING_BASELINE = 0
 RURU_EXTRA_BASELINE = 11
 
 
