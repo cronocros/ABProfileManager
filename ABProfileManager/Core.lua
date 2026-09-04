@@ -147,20 +147,17 @@ local function isMainWindowVisible(self)
     return mainWindow and mainWindow.frame and mainWindow.frame:IsShown()
 end
 
-local function isSettingsPanelVisible(self)
-    local configPanel = self and self.UI and self.UI.ConfigPanel
-    if configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown() then
-        return true
+function ns.IsBlizzardSettingsShown()
+    if not SettingsPanel or type(SettingsPanel.IsShown) ~= "function" then
+        return false
     end
 
-    local pages = self and self.UI and self.UI.AddonSettingsPages
-    for _, panel in pairs(pages and pages.panels or {}) do
-        if panel and panel.IsShown and panel:IsShown() then
-            return true
-        end
-    end
+    local ok, shown = pcall(SettingsPanel.IsShown, SettingsPanel)
+    return ok and shown and true or false
+end
 
-    return false
+local function isSettingsPanelVisible()
+    return ns.IsBlizzardSettingsShown()
 end
 
 local PANEL_BY_TAB = {
@@ -189,10 +186,10 @@ function ns:RefreshUI()
         else
             self:SafeCall(self.UI.ProfilePanel, "Refresh")
         end
-        if panelName ~= "ConfigPanel" and isSettingsPanelVisible(self) then
+        if panelName ~= "ConfigPanel" and isSettingsPanelVisible() then
             self:SafeCall(self.UI.ConfigPanel, "Refresh")
         end
-    elseif isSettingsPanelVisible(self) then
+    elseif isSettingsPanelVisible() then
         self:SafeCall(self.UI.ConfigPanel, "Refresh")
     end
 

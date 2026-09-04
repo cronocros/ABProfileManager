@@ -11,6 +11,16 @@
 시즌 2 인게임 QA에서 확인된 로드 오류와 오버레이 결함을 고치고, 시즌 2 데이터를
 와우헤드/DB2로 재검증하고, 영어 표시 결함을 정리한 로컬 릴리스.
 
+2026-09-04 Blizzard 설정 가시성 판정 수정:
+- `ABPMSettingsCategoryPanel`과 `AddonSettingsPages`의 하위 페이지는 전부
+  `UIParent`에 붙어 있어 Settings API가 숨기지 않는다. 인게임 확인 결과 설정 창을
+  닫은 상태에서 `IsShown()`도 `IsVisible()`도 참이었고 부모가 `UIParent`였다.
+  프레임 자신의 가시성으로 건 가드가 아무것도 걸러내지 못했고, 오히려
+  `ns:RefreshUI()`가 매번 `ConfigPanel`을 추가로 갱신해 탭 게이팅 이득을 깎았다
+- `ns.IsBlizzardSettingsShown()`을 두고 `SettingsPanel:IsShown()`으로 판정한다.
+  `Core.lua`의 `isSettingsPanelVisible`, `ConfigPanel:Refresh`,
+  `AddonSettingsPages:Refresh` 세 곳이 이것을 쓴다
+
 2026-09-04 M+ preview selector 확정:
 - 인게임에서 `GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")`가 `318`을
   돌려주어 시즌 2 Myth 1/6 selector를 `12849`로 확정했다.

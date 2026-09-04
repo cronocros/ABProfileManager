@@ -397,7 +397,7 @@ PR #11~#15에서 고친 것들입니다. 캐시를 많이 넣어서 **오래된 
 /dump ABPMSettingsCategoryPanel and ABPMSettingsCategoryPanel:IsShown()
 ```
 
-**판정** — `false`면 최적화가 동작합니다. `true`면 Blizzard가 컨테이너 가시성으로만 감추는 빌드라 걸러내지 못합니다(이득 0, 회귀도 0).
+**결과(2026-09-04)** — `IsVisible()=true`, 부모 `UIParent`, `SettingsPanel:IsShown()=false`였습니다. 이 프레임들은 `UIParent`에 그대로 붙어 있어 Settings API가 숨기지 않으므로 자기 가시성으로는 판정할 수 없습니다. `ns.IsBlizzardSettingsShown()`이 `SettingsPanel:IsShown()`을 보도록 고쳤습니다.
 
 ### 7-3. 일반 던전 아이템 레벨
 

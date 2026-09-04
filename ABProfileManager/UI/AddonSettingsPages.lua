@@ -195,8 +195,12 @@ function AddonSettingsPages:Register(parentCategory)
 end
 
 function AddonSettingsPages:Refresh()
+    if not ns.IsBlizzardSettingsShown() then
+        return
+    end
+
     for _, panel in pairs(self.panels or {}) do
-        if panel.refreshPanel and panel.IsShown and panel:IsShown() then
+        if panel.refreshPanel then
             panel:refreshPanel()
         end
     end

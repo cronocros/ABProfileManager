@@ -652,7 +652,7 @@ function ConfigPanel:Refresh()
 
     self:RefreshControlSet(self.mainRefs)
 
-    if self.settingsFrame and self.settingsFrame:IsShown() then
+    if self.settingsFrame and ns.IsBlizzardSettingsShown() then
         self:RefreshControlSet(self.settingsRefs)
     end
     ns:SafeCall(ns.UI.AddonSettingsPages, "Refresh")

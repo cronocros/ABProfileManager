@@ -95,7 +95,9 @@
 
 ## Core.lua
 
-- `isSettingsPanelVisible`은 `ConfigPanel.settingsFrame`뿐 아니라 `AddonSettingsPages.panels`의 하위 페이지도 본다. 상위 카테고리 패널만 보면, 메인 창을 다른 탭으로 열어 둔 채 Blizzard 설정의 ABPM 하위 페이지를 보고 있을 때 그 페이지가 실시간으로 갱신되지 않는다.
+- Blizzard 설정 화면이 보이는지는 **`ns.IsBlizzardSettingsShown()`으로만 판정한다.** `SettingsPanel:IsShown()`을 본다.
+- `ABPMSettingsCategoryPanel`과 `AddonSettingsPages`의 하위 페이지는 전부 `CreateFrame(..., UIParent)`로 만들어 **`UIParent`에 그대로 붙어 있다.** Settings API가 이 프레임을 숨기지 않으므로 `IsShown()`도 `IsVisible()`도 항상 참이다. 2026-09-04 인게임 확인 결과 설정 창을 닫은 상태에서 `IsVisible()=true`, 부모가 `UIParent`였다.
+- 그래서 프레임 자신의 가시성으로 가드를 걸면 아무것도 걸러지지 않고, 오히려 `ns:RefreshUI()`가 매번 `ConfigPanel`을 추가로 갱신해 탭 게이팅 이득을 깎아먹는다.
 - `ns:RefreshUI()`는 메인 창이 열려 있을 때 **현재 탭의 패널 하나만** 갱신한다. 호출처가 40곳 넘고 대부분 체크박스 하나를 토글하는 경로라, 일곱 패널을 전부 돌리면 보이지도 않는 화면에서 슬롯 순회와 문자열 조립이 반복된다. 탭을 바꾸는 모든 경로가 `refreshCurrentTab`을 거치므로 숨은 패널은 표시될 때 갱신된다.
 - Blizzard 설정 창이 따로 열려 있으면 그때만 `ConfigPanel`을 추가로 갱신한다.
 
@@ -130,7 +132,7 @@
 - `queueRefresh`는 즉시 1회와 0.45초 뒤 1회만 강제 스캔한다. 이전에는 0.15초 지점까지 세 번이었다. `QuestManager:Scan(true)`는 퀘스트 로그 전체를 다시 훑고 배열 3개를 정렬한다. 지연 스캔은 토큰으로 중복을 막는다.
 - 이미 보이는 퀘스트 탭을 다시 선택하면 `SetShown(true)`가 no-op이라 `OnShow`가 발화하지 않는다. `refreshCurrentTab`은 `QuestPanel._lastForcedScanAt`이 **이번 프레임**이 아닐 때만 강제 스캔한다. `GetTime()`은 프레임 안에서 값이 같으므로, `OnShow`가 방금 강제 스캔했으면 건너뛰고 아니면 직접 건다.
 - 탭 전환 시 강제 스캔은 기본적으로 `frame` `OnShow`에 둔다. `refreshCurrentTab`도 강제로 부르면 `SetShown`이 `OnShow`를 동기 발화한 직후 한 번 더 돌아 클릭 한 번에 두 번 스캔한다. `isRefreshing` 가드는 재진입만 막고 연속 호출은 막지 못한다.
-- `ConfigPanel:Refresh`는 Blizzard 설정 창이 보일 때만 `settingsRefs`를 갱신하고, `AddonSettingsPages:Refresh`는 실제로 표시된 페이지만 갱신한다. 각 페이지에 `OnShow` 갱신이 이미 있어 표시 시점 정확성은 유지된다.
+- `ConfigPanel:Refresh`와 `AddonSettingsPages:Refresh`는 `ns.IsBlizzardSettingsShown()`이 참일 때만 일한다. 각 페이지에 `OnShow → refreshPanel` 이 이미 있어 표시 시점 정확성은 유지된다. 프레임 자신의 `IsShown()`을 보면 안 된다.
 
 ## Data/ProfessionKnowledge.lua
 
