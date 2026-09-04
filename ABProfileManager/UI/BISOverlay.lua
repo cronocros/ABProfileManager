@@ -2598,11 +2598,17 @@ isCraftingSourceLabel = function(label)
         or normalized == normalizeCompareText("Alchemy")
 end
 
-resolveSeasonDungeonName = function(label)
-    if not label or label == "" then
-        return nil
+function EJournal.GetSeasonDungeonNameCache()
+    local language = (ns.DB and ns.DB.GetLanguage and ns.DB:GetLanguage()) or ""
+    if EJournal.seasonDungeonNameLanguage ~= language then
+        EJournal.seasonDungeonNameLanguage = language
+        EJournal.seasonDungeonNameCache = {}
     end
+    EJournal.seasonDungeonNameCache = EJournal.seasonDungeonNameCache or {}
+    return EJournal.seasonDungeonNameCache
+end
 
+function EJournal.ResolveSeasonDungeonNameUncached(label)
     if DUNGEON_LOCALE_KEYS[label] then
         return label
     end
@@ -2624,6 +2630,25 @@ resolveSeasonDungeonName = function(label)
     end
 
     return nil
+end
+
+resolveSeasonDungeonName = function(label)
+    if not label or label == "" then
+        return nil
+    end
+
+    local cache = EJournal.GetSeasonDungeonNameCache()
+    local cached = cache[label]
+    if cached ~= nil then
+        if cached == false then
+            return nil
+        end
+        return cached
+    end
+
+    local resolved = EJournal.ResolveSeasonDungeonNameUncached(label)
+    cache[label] = resolved or false
+    return resolved
 end
 
 local function extractTooltipItemLevel(tooltipData)

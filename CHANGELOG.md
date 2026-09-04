@@ -11,6 +11,53 @@
 시즌 2 인게임 QA에서 확인된 로드 오류와 오버레이 결함을 고치고, 시즌 2 데이터를
 와우헤드/DB2로 재검증하고, 영어 표시 결함을 정리한 로컬 릴리스.
 
+2026-09-04 교차 검토 반영:
+- 고스트 오버레이 풀을 넣으면서 `handleGhostDrop`과 `handleGhostDismiss`가 상태 메시지에
+  쓰는 `overlay.logicalSlot`이 그 사이에 지워지게 됐다. 두 함수가 부르는 배치·해제
+  경로가 동기적으로 `RefreshGhosts`를 돌려 오버레이를 풀로 반납하기 때문이다.
+  슬롯 번호를 먼저 지역 변수에 담는다. `ReleaseOverlay`에 이중 반납 가드도 넣었다
+- 드래그 저장 훅 가드를 Blizzard 프레임 필드 대신 모듈 로컬 `key` 표로 옮겼다.
+  프레임 객체에 표시하면 두 관리 대상이 같은 프레임으로 해석될 때 뒤 항목이 통째로
+  건너뛰어진다. `hasExisting`이 거짓인 분기에서도 표를 세워, 두 번째 `Apply`에서
+  자기가 심은 `SetScript` 위에 훅이 한 번 더 얹히던 것을 막았다
+- `worldEventCompletions` 정리에서 세션 플래그를 없앴다. `GetGlobalSettings`는
+  `ns.db` 이전에는 기본값 테이블을 돌려주므로, `DB:Initialize` 전에 한 번이라도
+  호출되면 실제 저장 테이블이 그 세션 내내 정리되지 않았다
+- 월드 이벤트 경로점 정리에서 `PLAYER_LEAVING_WORLD`를 뺐다. 존 이동마다 발생해
+  경로점을 지웠다가 1초 뒤 다시 만들어 TomTom의 현재 대상만 초기화됐다.
+  던전 진입은 뒤따르는 `PLAYER_ENTERING_WORLD` 자동 접기 분기가 이미 덮는다
+- `isSettingsPanelVisible`이 `AddonSettingsPages`의 하위 페이지도 본다. 메인 창을
+  다른 탭으로 열어 둔 채 설정 하위 페이지를 보고 있으면 갱신이 멈췄다
+- `Typography:ApplyFont`가 보관 중인 `options`와 호출자 테이블이 같은 객체일 때는
+  재사용 분기를 타지 않는다. `wipe`가 원본을 먼저 비운다
+- ruRU 치환이 키를 길이 내림차순으로 고정 정렬해 적용한다. `pairs` 순서에 맡기면
+  `" pts"`가 `" оч.s"`가 되고 `"Demon Hunter"`가 `"Demon 사냥꾼"`이 될 수 있었다.
+  키가 서로의 부분 문자열인 쌍에서만 결과가 달라진다
+- ruRU 스탯 오버레이 텍스트 후처리에 재진입 가드를 넣었다. 깊이별 스크래치 버퍼를
+  공유하므로 순회 중 재진입하면 상위 루프의 버퍼가 덮어써진다
+
+2026-09-04 고빈도 경로 할당 정리:
+- `UNIT_AURA`·`UNIT_STATS`·`UNIT_ATTACK_POWER`를 `RegisterUnitEvent(..., "player")`로
+  등록한다. `RegisterEvent`로는 파티·공격대·네임플레이트의 모든 유닛분이 디스패처의
+  `pcall`까지 올라온 뒤 버려졌다. 20인 공격대 전투에서 초당 수백 건이다
+- `UI/StatsOverlay.lua`에서 `pcall`에 넘기던 익명 클로저 5개를 모듈 레벨 함수로 뺐다.
+  `toPlainNumber` 하나만으로 refresh당 55~115개가 생겼고 refresh는 최대 초당 6.7회다
+- `UI/Typography.lua`의 `ApplyFont`가 등록 항목과 `options` 테이블을 재사용한다.
+  호출마다 새로 만들던 탓에 `StatsOverlay`의 재사용 버퍼가 무의미했다
+- `ABPM_ruRU_Final_v3.lua`의 치환 루프가 `gsub` 앞에 평문 `find`로 포함 여부를 본다.
+  치환 키에 패턴 메타문자가 없어 결과가 같다. 스탯 오버레이는 FontString 하나당
+  키 39개를 돌고 이 순회가 `StatsOverlay:Refresh`마다 실행된다
+- `patchTextRegions`가 깊이별 스크래치 버퍼를 재사용하고, 툴팁 후처리는
+  `tip:NumLines()`까지만 돈다. 이전에는 줄 수와 무관하게 80회를 돌았다.
+  래퍼의 `{ original(...) }` + `unpack`도 없앴다. 감싸는 두 함수 모두 반환값이 없다
+- 전문기술 즉시 스캔을 오버레이가 켜져 있거나 패널이 보일 때로 제한했다. 그 외에는
+  `MarkDirty`만 걸고 `IsQuestComplete`의 지연 스캔에 맡긴다. 즉시 스캔은 완료 퀘스트
+  전체를 읽으며 가방·루팅 이벤트마다 세 번 돌았다
+- `ns:RefreshUI()`가 현재 탭의 패널 하나만 갱신한다. 호출처 40곳 대부분이 체크박스
+  하나를 토글하는 경로인데 보이지 않는 패널 여섯 개까지 매번 다시 그렸다
+- `resolveSeasonDungeonName`에 언어별 메모를 붙였다. `table.sort` 비교자 안에서
+  불리는 경로라 정렬 1회에 임시 문자열 수천 개가 생겼다
+
 2026-09-04 메모리 점검 반영:
 - `UI/BISOverlay.lua`의 `GET_ITEM_INFO_RECEIVED` 핸들러가 BIS와 무관한 아이템까지 링크
   캐시에 넣고 있었다. 이 이벤트에는 필터가 없어 세션 내 모든 아이템 로드가 들어오는데
@@ -19,10 +66,13 @@
   해소될 때 참조만 버리고 있어 액션 버튼 아래에 숨은 프레임이 영구히 쌓였다
 - `Modules/BlizzardFrameManager.lua`의 `HookScript("OnDragStop")`을 1회만 걸도록 막았다.
   `HookScript`는 해제할 수 없어 창 이동 기능을 껐다 켤 때마다 훅이 누적됐다
-- 월드 이벤트 오버레이가 접힘·비활성·던전 자동 접기·월드 이탈에서 TomTom 경로점을
-  정리한다. 정리가 `UpdateContent` 맨 끝에만 있어 그 네 경로에서는 도달하지 못했다
+- 월드 이벤트 오버레이가 접힘·비활성·던전 자동 접기·로그아웃에서 TomTom 경로점을
+  정리한다. 정리가 `UpdateContent` 맨 끝에만 있어 그 경로에서는 도달하지 못했다.
+  이 오버레이는 TOC에 없어 로드되지 않으므로 사용자에게 드러난 적은 없고, 다시
+  켜기 전에 미리 고쳐 둔 것이다
 - `worldEventCompletions`를 `{ [eventKey] = "YYYY-MM-DD" }`로 바꿔 키 개수를 이벤트 수로
-  고정했다. `키_날짜` 형태라 만료 경로가 없었다. 이전 형식 키는 첫 조회에서 정리한다
+  고정했다. `키_날짜` 형태라 만료 경로가 없었다. 이전 형식 키는 조회할 때 정리한다.
+  유일한 호출처가 위의 미로드 오버레이라 실제로 쌓인 적은 없다
 - `Data/Defaults.lua`의 `mythPreviewCache` 기본값을 비웠다. 실제 데이터와 다른 값이
   박혀 있어 `MergeDefaults`가 로그인마다 되채우고, 그때마다 불일치 판정이 참이 되어
   preview 캐시가 통째로 폐기되는 구조였다

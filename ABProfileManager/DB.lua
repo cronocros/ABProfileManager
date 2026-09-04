@@ -931,12 +931,9 @@ function DB:GetWorldEventCompletions()
         settings.worldEventCompletions = {}
     end
     local completions = settings.worldEventCompletions
-    if not self._worldEventCompletionsMigrated then
-        self._worldEventCompletionsMigrated = true
-        for key, value in pairs(completions) do
-            if type(value) ~= "string" then
-                completions[key] = nil
-            end
+    for key, value in pairs(completions) do
+        if type(value) ~= "string" then
+            completions[key] = nil
         end
     end
     return completions

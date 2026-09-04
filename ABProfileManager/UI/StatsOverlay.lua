@@ -65,15 +65,33 @@ local function isSecretValue(value)
     return ok and secret == true
 end
 
+local function addZero(value)
+    return value + 0
+end
+
+local function numberFromString(value)
+    return tonumber(tostring(value))
+end
+
+local function indexField(container, key)
+    return container[key]
+end
+
+local function readColorParts(color)
+    return color.r, color.g, color.b
+end
+
+local function valuesMatch(left, right)
+    return left == right
+end
+
 local function toPlainNumber(value)
     if value == nil then
         return nil
     end
 
     if type(value) == "number" and not isSecretValue(value) then
-        local ok, numeric = pcall(function()
-            return value + 0
-        end)
+        local ok, numeric = pcall(addZero, value)
         if ok and numeric then
             return numeric
         end
@@ -84,9 +102,7 @@ local function toPlainNumber(value)
         return numeric
     end
 
-    local stringifyOk, stripped = pcall(function()
-        return tonumber(tostring(value))
-    end)
+    local stringifyOk, stripped = pcall(numberFromString, value)
     return stringifyOk and stripped or nil
 end
 
@@ -97,9 +113,7 @@ local function getTooltipDataField(data, key)
         return nil
     end
 
-    local ok, value = pcall(function()
-        return data[key]
-    end)
+    local ok, value = pcall(indexField, data, key)
     if ok then
         return value
     end
@@ -113,9 +127,7 @@ local function getTooltipLineColor(line, fallbackR, fallbackG, fallbackB)
         return fallbackR, fallbackG, fallbackB
     end
 
-    local ok, r, g, b = pcall(function()
-        return color.r, color.g, color.b
-    end)
+    local ok, r, g, b = pcall(readColorParts, color)
     if ok and r and g and b then
         return r, g, b
     end
@@ -131,9 +143,7 @@ local function isTooltipBlankLine(line)
         or nil
 
     if blankType ~= nil then
-        local ok, isBlank = pcall(function()
-            return lineType == blankType
-        end)
+        local ok, isBlank = pcall(valuesMatch, lineType, blankType)
         if ok and isBlank then
             return true
         end

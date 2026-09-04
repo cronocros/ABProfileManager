@@ -114,10 +114,20 @@ function Typography:ApplyFont(target, baseSize, options)
     applyRawFont(target, size, options)
 
     if not options.transient then
-        REGISTERED_TARGETS[target] = {
-            baseSize = baseSize,
-            options = shallowCopy(options),
-        }
+        local entry = REGISTERED_TARGETS[target]
+        if entry and type(entry.options) == "table" and entry.options ~= options then
+            entry.baseSize = baseSize
+            local stored = entry.options
+            wipe(stored)
+            for key, value in pairs(options) do
+                stored[key] = value
+            end
+        else
+            REGISTERED_TARGETS[target] = {
+                baseSize = baseSize,
+                options = shallowCopy(options),
+            }
+        end
     else
         REGISTERED_TARGETS[target] = nil
     end

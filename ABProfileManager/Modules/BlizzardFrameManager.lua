@@ -212,6 +212,8 @@ local function restoreFramePosition(key, frame, isUiPanel)
     end
 end
 
+local dragStopHookedFrames = {}
+
 local function makeFrameMovable(key, frame, isUiPanel)
     if not frame then return end
 
@@ -234,6 +236,7 @@ local function makeFrameMovable(key, frame, isUiPanel)
     end)
 
     if not hasExisting then
+        dragStopHookedFrames[key] = frame
         pcall(function()
             frame:SetScript("OnDragStart", function(f)
 
@@ -250,8 +253,8 @@ local function makeFrameMovable(key, frame, isUiPanel)
                 saveFrameDB(key, f)
             end)
         end)
-    elseif not frame.ABPMDragStopHooked then
-        frame.ABPMDragStopHooked = true
+    elseif dragStopHookedFrames[key] ~= frame then
+        dragStopHookedFrames[key] = frame
         pcall(function()
             frame:HookScript("OnDragStop", function(f)
                 saveFrameDB(key, f)

@@ -1934,6 +1934,56 @@ local function patchStatusMessages()
   end
 end
 
+local PROFESSION_TEXT_REPLACEMENTS = {
+  ["Trainer Weekly Quest"] = "Еженедельное задание тренера профессии",
+  ["Weekly Quest"] = "Еженедельное задание",
+  ["First discoveries"] = "Первые открытия",
+  ["First Discoveries"] = "Первые открытия",
+  ["Progress:"] = "Прогресс:",
+  ["Pending:"] = "Ожидает:",
+  ["Done:"] = "Выполнено:",
+  [" objectives"] = " целей",
+  [" objective"] = " цель",
+  [" Points"] = " очков",
+  [" Point"] = " очко",
+  [" pts"] = " оч.",
+  [" pt"] = " оч.",
+}
+
+local ORDERED_REPLACEMENT_KEYS = setmetatable({}, { __mode = "k" })
+
+local function orderedReplacementKeys(map)
+  local keys = ORDERED_REPLACEMENT_KEYS[map]
+  if keys then
+    return keys
+  end
+
+  keys = {}
+  for key in pairs(map) do
+    keys[#keys + 1] = key
+  end
+  table.sort(keys, function(a, b)
+    if #a ~= #b then
+      return #a > #b
+    end
+    return a < b
+  end)
+  ORDERED_REPLACEMENT_KEYS[map] = keys
+  return keys
+end
+
+local function applyReplacements(text, map)
+  local value = text
+  local keys = orderedReplacementKeys(map)
+  for i = 1, #keys do
+    local sourceText = keys[i]
+    if value:find(sourceText, 1, true) then
+      value = value:gsub(sourceText, map[sourceText])
+    end
+  end
+  return value
+end
+
 local function translateProfessionText(text)
   if not isRuRU() or type(text) ~= "string" or text == "" then
     return text
@@ -1944,27 +1994,7 @@ local function translateProfessionText(text)
     return exact
   end
 
-  local value = text
-
-  local replacements = {
-    ["Trainer Weekly Quest"] = "Еженедельное задание тренера профессии",
-    ["Weekly Quest"] = "Еженедельное задание",
-    ["First discoveries"] = "Первые открытия",
-    ["First Discoveries"] = "Первые открытия",
-    ["Progress:"] = "Прогресс:",
-    ["Pending:"] = "Ожидает:",
-    ["Done:"] = "Выполнено:",
-    [" objectives"] = " целей",
-    [" objective"] = " цель",
-    [" Points"] = " очков",
-    [" Point"] = " очко",
-    [" pts"] = " оч.",
-    [" pt"] = " оч.",
-  }
-  for sourceText, ruText in pairs(replacements) do
-    value = value:gsub(sourceText, ruText)
-  end
-  return value
+  return applyReplacements(text, PROFESSION_TEXT_REPLACEMENTS)
 end
 
 local function patchABPMTooltipHelper()
@@ -1974,31 +2004,39 @@ local function patchABPMTooltipHelper()
   end
   Widgets.__ABPM_RURU_FINAL_TOOLTIP_PATCHED = true
 
+  local function translateTooltipLine(line)
+    if not line or not line.GetText or not line.SetText then
+      return
+    end
+    local okText, text = pcall(line.GetText, line)
+    if not okText or type(text) ~= "string" then
+      return
+    end
+    local translated = translateProfessionText(text)
+    if translated ~= text then
+      pcall(line.SetText, line, translated)
+    end
+  end
+
   local originalApplyTooltip = Widgets.ApplyTooltip
   function Widgets.ApplyTooltip(tip, ...)
-    local results = { originalApplyTooltip(tip, ...) }
-    if isRuRU() and tip and tip.GetName then
-      local okName, name = pcall(tip.GetName, tip)
-      if okName and type(name) == "string" and name ~= "" then
-        for i = 1, 80 do
-          local left = _G[name .. "TextLeft" .. i]
-          local right = _G[name .. "TextRight" .. i]
-          for _, line in ipairs({ left, right }) do
-            if line and line.GetText and line.SetText then
-              local okText, text = pcall(line.GetText, line)
-              if okText and type(text) == "string" then
-                local translated = translateProfessionText(text)
-                if translated ~= text then
-                  pcall(line.SetText, line, translated)
-                end
-              end
-            end
-          end
-        end
-        if tip.Show then pcall(tip.Show, tip) end
-      end
+    originalApplyTooltip(tip, ...)
+    if not isRuRU() or not tip or not tip.GetName or not tip.NumLines then
+      return
     end
-    return unpack(results)
+    local okName, name = pcall(tip.GetName, tip)
+    if not okName or type(name) ~= "string" or name == "" then
+      return
+    end
+    local okCount, lineCount = pcall(tip.NumLines, tip)
+    if not okCount or type(lineCount) ~= "number" or lineCount <= 0 then
+      return
+    end
+    for i = 1, lineCount do
+      translateTooltipLine(_G[name .. "TextLeft" .. i])
+      translateTooltipLine(_G[name .. "TextRight" .. i])
+    end
+    if tip.Show then pcall(tip.Show, tip) end
   end
 end
 
@@ -2224,6 +2262,8 @@ local function patchProfilePanelRefresh()
   end
 end
 
+local EMPTY_TEXT_MAP = {}
+
 local CLASS_TEXT_BY_LANGUAGE = {
   ruRU = {
     ["Druid"] = "Друид", ["Warrior"] = "Воин", ["Paladin"] = "Паладин", ["Hunter"] = "Охотник",
@@ -2266,22 +2306,49 @@ local function translateOverlayLine(text, map)
   if type(text) ~= "string" or type(map) ~= "table" then
     return text
   end
-  local value = text
-  for from, to in pairs(map) do
-    value = value:gsub(from, to)
-  end
-  return value
+  return applyReplacements(text, map)
 end
 
-local function patchTextRegions(frame, depth, translator)
+local SCAN_BUFFERS = {}
+
+local function scanBuffer(slot)
+  local buffer = SCAN_BUFFERS[slot]
+  if not buffer then
+    buffer = {}
+    SCAN_BUFFERS[slot] = buffer
+  end
+  return buffer
+end
+
+local function fillBuffer(buffer, ...)
+  local count = select("#", ...)
+  for i = 1, count do
+    buffer[i] = (select(i, ...))
+  end
+  for i = count + 1, #buffer do
+    buffer[i] = nil
+  end
+  return count
+end
+
+local overlayClassMap, overlayStatMap
+
+local function translateOverlayText(text)
+  local value = translateOverlayLine(text, overlayClassMap)
+  return translateOverlayLine(value, overlayStatMap)
+end
+
+local function patchTextRegions(frame, depth)
   if not frame or depth > 8 then return end
   if frame.GetRegions then
-    local regions = { frame:GetRegions() }
-    for _, region in ipairs(regions) do
+    local regions = scanBuffer(depth * 2 + 1)
+    local count = fillBuffer(regions, frame:GetRegions())
+    for i = 1, count do
+      local region = regions[i]
       if region and region.GetObjectType and region:GetObjectType() == "FontString" and region.GetText and region.SetText then
         local okText, text = pcall(region.GetText, region)
         if okText and type(text) == "string" and text ~= "" then
-          local newText = translator(text)
+          local newText = translateOverlayText(text)
           if type(newText) == "string" and newText ~= text then
             pcall(region.SetText, region, newText)
           end
@@ -2290,25 +2357,30 @@ local function patchTextRegions(frame, depth, translator)
     end
   end
   if frame.GetChildren then
-    local children = { frame:GetChildren() }
-    for _, child in ipairs(children) do
-      patchTextRegions(child, depth + 1, translator)
+    local children = scanBuffer(depth * 2 + 2)
+    local count = fillBuffer(children, frame:GetChildren())
+    for i = 1, count do
+      patchTextRegions(children[i], depth + 1)
     end
   end
 end
 
+local patchingStatsOverlayText = false
+
 local function patchStatsOverlayText()
+  if patchingStatsOverlayText then return end
   local overlay = ns.UI and ns.UI.StatsOverlay
   local frame = overlay and overlay.frame
   if not frame then return end
   local language = getAddonLanguage()
-  local classMap = CLASS_TEXT_BY_LANGUAGE[language] or {}
-  local statMap = STAT_TEXT_BY_LANGUAGE[language] or {}
-  patchTextRegions(frame, 0, function(text)
-    local value = translateOverlayLine(text, classMap)
-    value = translateOverlayLine(value, statMap)
-    return value
-  end)
+  overlayClassMap = CLASS_TEXT_BY_LANGUAGE[language] or EMPTY_TEXT_MAP
+  overlayStatMap = STAT_TEXT_BY_LANGUAGE[language] or EMPTY_TEXT_MAP
+  patchingStatsOverlayText = true
+  local ok, err = pcall(patchTextRegions, frame, 0)
+  patchingStatsOverlayText = false
+  if not ok and ns.Utils and ns.Utils.RecordCaughtError then
+    ns.Utils.RecordCaughtError("RuRUStatsOverlayPatch", err, 3)
+  end
 end
 
 local function patchStatsOverlayRefresh()
@@ -2318,9 +2390,8 @@ local function patchStatsOverlayRefresh()
   local originalRefresh = overlay.Refresh
   if type(originalRefresh) == "function" then
     function overlay:Refresh(...)
-      local results = { originalRefresh(self, ...) }
+      originalRefresh(self, ...)
       patchStatsOverlayText()
-      return unpack(results)
     end
   end
 end

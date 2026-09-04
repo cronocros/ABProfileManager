@@ -149,20 +149,49 @@ end
 
 local function isSettingsPanelVisible(self)
     local configPanel = self and self.UI and self.UI.ConfigPanel
-    return configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown()
+    if configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown() then
+        return true
+    end
+
+    local pages = self and self.UI and self.UI.AddonSettingsPages
+    for _, panel in pairs(pages and pages.panels or {}) do
+        if panel and panel.IsShown and panel:IsShown() then
+            return true
+        end
+    end
+
+    return false
+end
+
+local PANEL_BY_TAB = {
+    profiles    = "ProfilePanel",
+    action_bars = "ActionBarPanel",
+    professions = "ProfessionPanel",
+    map         = "MapPanel",
+    quests      = "QuestPanel",
+    config      = "ConfigPanel",
+    utility     = "UtilityPanel",
+}
+
+local function currentTabPanelName(self)
+    local mainWindow = self and self.UI and self.UI.MainWindow
+    local frame = mainWindow and mainWindow.frame
+    return frame and PANEL_BY_TAB[frame.currentTab] or nil
 end
 
 function ns:RefreshUI()
     self:SafeCall(self.UI.Typography, "RefreshRegistered")
 
     if isMainWindowVisible(self) then
-        self:SafeCall(self.UI.ProfilePanel, "Refresh")
-        self:SafeCall(self.UI.ActionBarPanel, "Refresh")
-        self:SafeCall(self.UI.ProfessionPanel, "Refresh")
-        self:SafeCall(self.UI.MapPanel, "Refresh")
-        self:SafeCall(self.UI.QuestPanel, "Refresh")
-        self:SafeCall(self.UI.ConfigPanel, "Refresh")
-        self:SafeCall(self.UI.UtilityPanel, "Refresh")
+        local panelName = currentTabPanelName(self)
+        if panelName then
+            self:SafeCall(self.UI[panelName], "Refresh")
+        else
+            self:SafeCall(self.UI.ProfilePanel, "Refresh")
+        end
+        if panelName ~= "ConfigPanel" and isSettingsPanelVisible(self) then
+            self:SafeCall(self.UI.ConfigPanel, "Refresh")
+        end
     elseif isSettingsPanelVisible(self) then
         self:SafeCall(self.UI.ConfigPanel, "Refresh")
     end

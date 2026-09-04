@@ -93,14 +93,29 @@
 - PvP 값(명예 263~295, 정복 292~308)은 2026-08-28 상인 판매 목록과 개별 툴팁으로 확정했다. 지원자 263은 강화 트랙이 없고, 전투사 289는 노련가 4/6, 검투사 292는 챔피언 1/6이다. `sources.pvp = "tooltip"`이다.
 - 값 수집 경위는 `DOC/SEASON2_HANDOFF.md` 6장에 있다.
 
+## Core.lua
+
+- `isSettingsPanelVisible`은 `ConfigPanel.settingsFrame`뿐 아니라 `AddonSettingsPages.panels`의 하위 페이지도 본다. 상위 카테고리 패널만 보면, 메인 창을 다른 탭으로 열어 둔 채 Blizzard 설정의 ABPM 하위 페이지를 보고 있을 때 그 페이지가 실시간으로 갱신되지 않는다.
+- `ns:RefreshUI()`는 메인 창이 열려 있을 때 **현재 탭의 패널 하나만** 갱신한다. 호출처가 40곳 넘고 대부분 체크박스 하나를 토글하는 경로라, 일곱 패널을 전부 돌리면 보이지도 않는 화면에서 슬롯 순회와 문자열 조립이 반복된다. 탭을 바꾸는 모든 경로가 `refreshCurrentTab`을 거치므로 숨은 패널은 표시될 때 갱신된다.
+- Blizzard 설정 창이 따로 열려 있으면 그때만 `ConfigPanel`을 추가로 갱신한다.
+
+## Events.lua
+
+- `UNIT_AURA`, `UNIT_STATS`, `UNIT_ATTACK_POWER`는 `RegisterUnitEvent(..., "player")`로 등록한다. `RegisterEvent`로 등록하면 파티·공격대·네임플레이트의 모든 유닛분이 디스패처까지 올라와 `pcall`을 거친 뒤 버려진다. 20인 공격대 전투에서 초당 수백 건이다. 핸들러의 `unitToken` 검사는 그대로 둔다.
+- 전문기술 갱신은 전문기술 오버레이가 켜져 있거나 전문기술 패널이 보일 때만 `RefreshQuestCache(true)`로 즉시 스캔한다. 그렇지 않으면 `MarkDirty`만 건다. `Tracker:IsQuestComplete`가 `RefreshQuestCache(false)`를 부르므로, 실제로 무언가를 평가할 때 한 번 스캔된다. 즉시 스캔은 완료 퀘스트 전체(오래 키운 캐릭터는 2만~4만)를 읽고 최소 2N번의 테이블 연산을 하며, 가방·루팅 이벤트마다 세 번 돈다.
+
 ## Modules/GhostManager.lua
 
 - 고스트 오버레이는 **풀에서 꺼내 쓴다.** WoW에서 `CreateFrame`으로 만든 프레임은 회수되지 않으므로, 고스트가 해소될 때 참조만 버리면 액션 버튼 아래에 숨은 프레임이 영구히 쌓인다. 해소·교체 경로는 전부 `ReleaseOverlay`로 풀에 돌려주고 `AcquireOverlay`로 다시 꺼낸다.
 - 풀에서 꺼낸 오버레이는 부모가 달라져 있으므로 `SetParent` 뒤에 `SetFrameLevel`을 다시 건다. 생성 시점의 프레임 레벨은 그때의 부모 기준이라 재사용에서는 맞지 않는다.
+- `handleGhostDrop`과 `handleGhostDismiss`는 `overlay.logicalSlot`을 **먼저 지역 변수에 담는다.** 두 함수가 부르는 `ActionBarApplier`의 배치·해제 경로가 그 안에서 동기적으로 `RefreshGhosts`를 호출하고, 그때 해당 오버레이가 풀로 반납되며 `logicalSlot`이 지워진다. 이후 상태 메시지에서 다시 읽으면 슬롯 이름이 `0`으로 나온다.
+- `ReleaseOverlay`는 `overlay._pooled`로 이중 반납을 막는다. 같은 오버레이가 풀에 두 번 들어가면 서로 다른 두 슬롯이 같은 프레임을 잡는다.
 
 ## Modules/BlizzardFrameManager.lua
 
-- `makeFrameMovable`의 `HookScript("OnDragStop")` 분기는 `frame.ABPMDragStopHooked`로 1회만 건다. `HookScript`는 해제할 수 없어서, 편의기능 체크박스를 껐다 켤 때마다 훅이 하나씩 쌓이고 드래그 한 번에 `saveFrameDB`가 그만큼 중복 실행된다.
+- `makeFrameMovable`의 드래그 저장 훅은 모듈 로컬 `dragStopHookedFrames[key]`로 1회만 건다. `HookScript`는 해제할 수 없어서, 편의기능 체크박스를 껐다 켤 때마다 훅이 하나씩 쌓이고 드래그 한 번에 `saveFrameDB`가 그만큼 중복 실행된다.
+- 이 표는 **프레임이 아니라 `key`로 기억한다.** 프레임 객체에 플래그를 쓰면 두 `MANAGED_FRAMES` 항목이 같은 프레임으로 해석될 때(예: 특성 UI가 `PlayerSpellsFrame`에 통합된 경우) 뒤 항목이 통째로 건너뛰어진다. 값에 프레임을 담아 두므로 getter가 나중에 다른 프레임을 돌려주면 다시 건다.
+- `hasExisting`이 거짓인 분기에서도 이 표를 세운다. 세우지 않으면 두 번째 `Apply`에서 자기가 심은 `SetScript` 핸들러 위에 `HookScript`가 한 번 더 얹혀 드래그마다 `saveFrameDB`가 두 번 돈다.
 
 ## Data/ProfessionKnowledge.lua
 
@@ -118,16 +133,39 @@
 - 좌표(`x`/`y`, 0~100 퍼센티지)는 외부 가이드 값이고 인게임 미실측이다.
 - 시각 계산은 `GetServerTime()` UTC 기준이다.
 
+## UI/StatsOverlay.lua
+
+- `pcall`에 익명 클로저를 넘기지 않는다. `pcall(function() return value + 0 end)` 형태는 호출마다 upvalue를 잡는 클로저를 힙에 만든다. `toPlainNumber`는 refresh 1회에 55~115번 불리고 refresh는 최대 초당 6.7회이므로 초당 수백 개가 쌓인다. 인자를 받는 모듈 레벨 함수(`addZero`, `numberFromString`, `indexField`, `readColorParts`, `valuesMatch`)를 `pcall`에 넘긴다.
+- `_textStyleOptions`는 재사용 버퍼다. `Typography:ApplyFont`가 이 버퍼를 복사해 보관하므로 버퍼 자체는 매번 새로 만들지 않아도 된다.
+
+## UI/Typography.lua
+
+- `ApplyFont`가 보관 중인 `options` 테이블과 호출자가 넘긴 테이블이 같은 객체면 재사용 분기를 타지 않는다. `wipe`가 원본을 먼저 비워 설정이 통째로 사라진다.
+- `ApplyFont`의 등록 항목은 **재사용한다.** 매번 `{ baseSize, options = shallowCopy(options) }`를 새로 만들면 호출자가 재사용 버퍼를 넘겨도 의미가 없다. `StatsOverlay`의 행 스타일 적용만으로 refresh당 35~50회 불리므로 테이블 70~100개가 즉시 쓰레기가 된다. 기존 항목이 있으면 `baseSize`를 덮어쓰고 `options` 테이블을 `wipe` 후 다시 채운다.
+
+## ABPM_ruRU_Final_v3.lua 성능
+
+- 치환은 `applyReplacements`가 담당하고 키를 **길이 내림차순으로 고정 정렬해** 적용한다. `pairs` 순서에 맡기면 짧은 키가 먼저 걸려 `" pts"`가 `" оч.s"`가 되고 `"Demon Hunter"`가 `"Demon 사냥꾼"`이 된다. 정렬 결과는 맵별로 한 번만 만들어 약한 키 테이블에 보관한다.
+- 이 정렬은 키가 서로의 접두·부분 문자열인 쌍(`" pt"`/`" pts"`, `"Weekly Quest"`/`"Trainer Weekly Quest"`, `"Hunter"`/`"Demon Hunter"`, `"Охотник"`/`"Охотник на демонов"`)만 바꾼다. 그 외에는 결과가 같다.
+- 키가 Lua 패턴으로 쓰이므로 `"Crit"`은 `"Critical"` 안에서도 매치된다. 길이 정렬로는 못 막는다. 남아 있는 결함이다.
+- `applyReplacements`는 `gsub` 전에 `find(..., 1, true)`로 평문 포함 여부를 먼저 본다. 치환 키에 Lua 패턴 메타문자가 없어 결과가 같고, 대부분의 줄은 어느 키도 포함하지 않으므로 `gsub`의 패턴 컴파일과 결과 문자열 할당이 통째로 사라진다. 스탯 오버레이는 FontString 하나당 39개 키를 돌고 `StatsOverlay:Refresh`마다 실행된다.
+- `patchTextRegions`는 깊이별 스크래치 버퍼를 재사용한다. `{ frame:GetRegions() }`와 `{ frame:GetChildren() }`는 노드마다 테이블 2개를 만든다.
+- 버퍼를 공유하므로 `patchStatsOverlayText`에 재진입 가드를 둔다. 순회 중 `SetText`가 다른 refresh를 유발하면 상위 루프가 쓰던 버퍼가 덮어써진다. 현재 대상은 스크립트가 없는 FontString뿐이라 발생하지 않지만, 대상이 늘면 바로 깨진다.
+- 툴팁 후처리는 `tip:NumLines()`까지만 돈다. 이전에는 줄 수와 무관하게 항상 80회를 돌며 전역 이름 문자열 160개를 만들었다. 러시아어가 아니면 원본 호출 직후 반환한다.
+- 래퍼가 감싸는 `Widgets.ApplyTooltip`과 `StatsOverlay:Refresh`는 **반환값이 없다.** `{ original(...) }` + `unpack`으로 반환값을 보존할 필요가 없고, 그 테이블은 호출마다 버려진다.
+
 ## Data/Defaults.lua · DB.lua
 
 - BIS 신화 preview snapshot 캐시의 기본값은 **비워 둔다.** 첫 접근에서 현재 시즌을 채우는 구조다. `mythPreviewCache = {}`여야 하며 `schemaVersion`·`baselineItemLevel`·`generatedPreviewBonusListID` 같은 값을 여기에 적지 않는다. `Utils.MergeDefaults`가 로그인마다 `nil` 키를 기본값으로 되채우므로, 기본값에 값이 들어 있으면 `GetBISOverlayMythPreviewCache`의 불일치 판정이 매번 참이 되어 **캐시가 로그인마다 통째로 폐기된다.**
-- `worldEventCompletions`는 `{ [eventKey] = "YYYY-MM-DD" }` 형태다. 키에 날짜를 붙이면(`eventKey_YYYY-MM-DD`) 만료 경로가 없어 계정 파일에 무한히 쌓인다. 값이 문자열이 아닌 항목은 이전 형식이라 첫 조회에서 한 번 지운다.
+- `worldEventCompletions`는 `{ [eventKey] = "YYYY-MM-DD" }` 형태다. 키에 날짜를 붙이면(`eventKey_YYYY-MM-DD`) 만료 경로가 없어 계정 파일에 무한히 쌓인다. 값이 문자열이 아닌 항목은 이전 형식이라 조회할 때 지운다.
+- 이 정리는 **세션 플래그로 한 번만 돌리지 않는다.** `GetGlobalSettings`는 `ns.db`가 아직 없으면 `Data/Defaults.lua`의 테이블을 돌려주므로, `DB:Initialize` 전에 한 번이라도 불리면 플래그가 기본값 테이블 기준으로 서고 실제 저장 테이블은 그 세션 내내 정리되지 않는다. 항목 수가 이벤트 수로 고정돼 있어 매번 훑어도 비용이 없다.
 - snapshot은 그 시즌의 아이템 레벨 기준으로 검증한 값이다. 기존 무효화 조건은 전부 `Data/BISMythicVaultLinks.lua`에서 오기 때문에, 시즌이 바뀌어도 그 파일이 그대로면 이전 시즌 snapshot이 계정 SavedVariables에 계속 남는다. 그래서 **현재 시즌을 캐시 키에 포함**해 시즌이 넘어갈 때 한 번 비운다. 이 키에서 시즌을 빼지 않는다.
 
 ## UI/BISOverlay.lua
 
 - 이 파일의 top-level local은 현재 `195`개다. `scripts/validate_bis_tooltip_contract.py`가 세는 값이며(선언된 이름 수, `LocalAssign` targets + `LocalFunction`) 예산은 `198`, Lua 스코프당 상한은 `200`이다. **새 top-level local을 추가하면 파일이 컴파일되지 않을 수 있다.** helper는 전부 기존 테이블의 필드로 넣는다.
 - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터(`Data/BISCatalog.lua`, `BISMythicVaultLinks.lua`, `BISSeasonPreviewLinks.lua`, `BISEncounterJournal.lua`)가 기준으로 삼는 시즌이다. BIS 데이터를 갱신할 때 이 값도 함께 올린다.
+- `resolveSeasonDungeonName`은 `EJournal.GetSeasonDungeonNameCache()`로 결과를 기억한다. 미스일 때 던전 8종을 돌며 `normalizeCompareText`(`gsub` 3회)를 반복하는데, `getEntrySourceType`이 첫 줄에서 이 함수를 부르고 그 `getEntrySourceType`이 `compareSlotEntries` 즉 `table.sort` 비교자 안에서 불린다. 해결 실패는 `false`로 캐시한다. 캐시는 언어가 바뀌면 통째로 버린다.
 - `Data/ItemLevelTable.lua`의 시즌이 `dataSeason`과 다르면 BIS 후보·템렙·Encounter Journal tier가 현재 시즌과 맞지 않는다. 이때 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 끈다. 틀린 tier로 이동시키거나 이전 시즌 snapshot으로 현재 시즌 순위를 매기지 않기 위한 것이다.
 - `SeasonGuard.IsMismatched`의 판정은 `ItemLevelTable`을 아직 못 읽은 상태에서 **캐시하면 안 된다.** 그 시점의 판정을 굳히면 이후 데이터가 올라와도 영구히 "일치"로 남는다.
 - 상단 안내는 한 줄 고정에 줄바꿈이 꺼져 있고 폭이 좁다. 시즌 이름을 그대로 붙이면 스탯 정책 요약이 잘리므로 `[S2]` 형태의 짧은 접두만 붙이고, 불일치 시 경고색을 함께 적용한다. 로케일 파일 소유가 달라 새 번역 키를 만들지 않고 데이터에서 유도한다.
@@ -241,7 +279,8 @@
 - 일부 헬퍼는 `getEventState` 이후에 정의해야 한다. forward reference를 피하기 위한 순서다.
 - OnUpdate 드라이버는 1초 간격이며 숨김 상태에서는 즉시 스킵한다.
 - `getEventState`의 판정 순서는 `areaPoiID` 런타임 조회 → `weekly`(`C_DateAndTime.GetSecondsUntilWeeklyReset`) → `anchorVerified`가 참일 때만 정적 주기 계산이다. 어느 것도 못 풀면 `unknown`을 돌려주고 타이머 자리에 `-`를 찍는다. **기준시각을 모르는 이벤트에 가짜 카운트다운을 그리지 않는다.**
-- TomTom 경로점 정리는 `syncWaypoints` 하나에만 있고 그것은 `UpdateContent` 맨 끝에서만 돈다. `UpdateContent`는 접힘·비활성·던전 자동 접기에서 그 전에 반환하므로 **그 세 경로에서 `clearAllEventWaypoints`를 따로 불러야 한다.** 부르지 않으면 이벤트가 끝나도 화살표와 미니맵 핀이 남는다.
+- TomTom 경로점 정리는 `syncWaypoints` 하나에만 있고 그것은 `UpdateContent` 맨 끝에서만 돈다. `UpdateContent`는 접힘·비활성·던전 자동 접기에서 그 전에 반환하므로 **그 경로마다 `clearAllEventWaypoints`를 따로 불러야 한다.** 부르지 않으면 이벤트가 끝나도 화살표와 미니맵 핀이 남는다. 호출 지점은 던전 자동 접기, 수동 접기, 비활성, `PLAYER_LOGOUT` 네 곳이다.
+- `PLAYER_LEAVING_WORLD`에서는 정리하지 않는다. 이 이벤트는 존 이동과 로딩 화면마다 발생하므로, 정리하면 1초 뒤 `OnUpdate`가 경로점을 다시 만들어 TomTom의 현재 대상만 초기화된다. 던전 진입은 뒤따르는 `PLAYER_ENTERING_WORLD` 자동 접기 분기가 이미 덮는다.
 - `rotating` 이벤트는 위치가 고정이 아니다. `getEventPlacement`가 mapID/좌표/지역 라벨을 함께 돌려주고, 풀리지 않으면 TomTom 경로점을 만들지 않는다. 툴팁 지역명도 이 결과를 쓴다.
 - 카운트다운 포맷은 `world_event_timer_hm` / `_ms` / `_s` 로케일 키에서 온다. 이전에는 `시간`/`분`/`초`가 소스에 박혀 있어 영어·러시아어에서도 한국어가 나왔다.
 

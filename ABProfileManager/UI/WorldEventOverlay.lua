@@ -256,10 +256,9 @@ function WorldEventOverlay:EnsureFrame()
     end)
 
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    frame:RegisterEvent("PLAYER_LEAVING_WORLD")
     frame:RegisterEvent("PLAYER_LOGOUT")
     frame:SetScript("OnEvent", function(f, event)
-        if event == "PLAYER_LEAVING_WORLD" or event == "PLAYER_LOGOUT" then
+        if event == "PLAYER_LOGOUT" then
             clearAllEventWaypoints()
         elseif event == "PLAYER_ENTERING_WORLD" then
             if type(IsInInstance) == "function" then
