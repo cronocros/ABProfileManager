@@ -36,6 +36,18 @@ The new patch 12.1 renown books from Zul'jarra's Forces are now tracked for all 
 
 Season 2 dungeon, raid, and Delve entrances now appear on the world map, including on the older zone maps.
 
+**Mythic+ item previews are back**
+
+Hovering a Mythic+ entry now shows the real Season 2 item level and the real stats for the Myth 1/6 `318` track, not just a label. The selector this needs was confirmed in game, so automatic scoring is on again and the list orders Mythic+ candidates by their actual stats.
+
+**Faster and lighter**
+
+A full memory pass went through the addon. Several paths that only ever grew are now bounded, and the busiest paths allocate far less.
+
+- Action bar ghost markers, the BIS item cache, and the window-move hooks used to accumulate for as long as you stayed logged in.
+- Combat-time work dropped: unit events are now filtered at the source, and the stats overlay stopped rebuilding the same tables dozens of times per refresh.
+- The map overlay, the BIS list, and the profession screen no longer recompute the same values on every redraw.
+
 ## Fixes
 
 **Mythic+ season record overlay**
@@ -54,6 +66,14 @@ The crest and key strip at the bottom no longer overlaps the table on any tab. B
 
 The BIS tooltip has a step selector in its header — Myth 1/6, Myth 6/6, Hero 6/6, and Champion 6/6. Changing it updates the reference line in the tooltip. Crafted items show their crafting range instead.
 
+**Profession weekly quests**
+
+Four weekly quest variants were missing from the tracker — one each for Enchanting, Herbalism, Mining, and Skinning. If your week rolled one of those, the tracker never marked it complete. All four are in now.
+
+**World event data**
+
+The world event names, zones, and timings were still Season 1 values and were all wrong for Season 2. They have been corrected. This overlay is still turned off, so nothing changes on screen yet.
+
 ## English and Russian
 
 If you use the addon in English or Russian, several messages used to appear in Korean no matter which language you picked. They now follow your language setting:
@@ -66,11 +86,18 @@ If you use the addon in English or Russian, several messages used to appear in K
 
 Status messages also show the correct `Success` or `Failure` label again instead of always saying `Info`.
 
+**Russian is complete**
+
+The Russian translation had 143 missing strings. They are all filled in — action bar results, ghost marker messages, command help, the stat priority table, and the BIS tooltip.
+
+One Russian substitution was also matching inside longer words, so `Critical Strike` came out mangled. Replacements now only match whole words.
+
 ## Known Limitations
 
-- Automatic Mythic+ item scoring and exact seasonal item levels in preview tooltips are turned off. The data needed to build those previews for Season 2 has not been confirmed yet, and showing an unverified value would display the wrong item level. Lists, ordering, tooltips, and Adventure Guide navigation all work normally.
+- Raid, tier, and crafted preview tooltips still fall back to the plain item link. The data needed to build exact previews for those three has not been confirmed yet, and showing an unverified value would display the wrong item level. Mythic+ previews are confirmed and working.
 - Delve and Mythic+ item levels come from published guides. They match every source that was checked, but they have not been measured in game yet.
 - Heroic dungeon Great Vault item level is not confirmed.
+- The world event overlay is still turned off. Its data is correct now, but the event timings have not been measured in game.
 - BIS entries are a reference. Always confirm your gear in game.
 
 ## Installing
