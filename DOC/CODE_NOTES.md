@@ -148,6 +148,12 @@
 - 좌표(`x`/`y`, 0~100 퍼센티지)는 외부 가이드 값이고 인게임 미실측이다.
 - 시각 계산은 `GetServerTime()` UTC 기준이다.
 
+## UI/MythicPlusRecordOverlay.lua
+
+- `SetUp` 훅은 믹스인(`ChallengesDungeonIconMixin`) 쪽을 먼저 건다. 둘 다 걸면 아이콘 하나의 `SetUp` 한 번에 `RefreshIcon`이 두 번 돈다.
+- **믹스인 훅은 전역 스위치가 아니다.** `Mixin()`은 함수를 프레임 테이블로 **복사**하므로, 믹스인을 훅해도 그 전에 만들어진 아이콘은 훅되지 않은 사본을 그대로 들고 있다. `hookIcon`은 `rawget(icon, "SetUp") == ChallengesDungeonIconMixin.SetUp`일 때만 건너뛴다. `mixinSetUpHooked`만 보고 전부 건너뛰면, `Blizzard_ChallengesUI`가 먼저 로드돼 아이콘이 이미 만들어진 경우 그 아이콘들이 영영 갱신되지 않는다.
+- 데이터 이벤트에서 재시도 상한을 **통째로 초기화하지 않고 2만 회복시킨다.** `Refresh()`가 `RequestMapInfo`를 부르고 그 응답인 `CHALLENGE_MODE_MAPS_UPDATE`가 다시 `DATA_EVENTS`에 있어서, 전체 초기화는 아이콘이 하나도 안 그려지는 상황에서 `ChallengesFrame`이 열린 내내 1초 주기 루프를 만든다. 반대로 아무것도 회복시키지 않으면 상한이 소진된 뒤 이벤트 없이 늦게 채워지는 데이터를 잡지 못해 창을 닫았다 열어야 한다. 전체 초기화는 `ChallengesFrame` `OnShow`에서만 한다.
+
 ## UI/SilvermoonMapOverlay.lua
 
 - `resolveDisplayText`는 포인트별로 결과를 약한 키 테이블에 기억한다. 한국어 경로는 글자 단위 배열과 청크 테이블, `table.concat`을 여러 번 거치는데, 결과는 포인트와 언어에만 의존한다. 확대·축소로 `layoutKey`의 버킷이 바뀔 때마다 68개 포인트분을 통째로 다시 계산했다.
@@ -175,9 +181,15 @@
 
 ## ABPM_ruRU_Final_v3.lua 성능
 
+- `getRuObjectiveName`은 자기 본문에서 `isRuRU()`를 확인한다. 가드를 호출자에만 두면 `ns.ABPM_RURU.GetRuObjectiveName`을 언어 분기 없이 부르는 순간 457항목 표가 만들어져 지연 생성이 무의미해진다.
+- `OBJECTIVE_NAMES_RURU`(457항목)는 `objectiveNamesRuRU()`가 처음 불릴 때만 만든다. 이 표를 읽는 네 곳은 전부 `isRuRU()` 뒤에 있으므로 한국어·영어 클라이언트에서는 테이블이 아예 만들어지지 않는다. 문자열 자체는 청크 상수라 회수되지 않고, 절약되는 것은 해시 파트다.
+
+
 - 치환은 `applyReplacements`가 담당하고 키를 **길이 내림차순으로 고정 정렬해** 적용한다. `pairs` 순서에 맡기면 짧은 키가 먼저 걸려 `" pts"`가 `" оч.s"`가 되고 `"Demon Hunter"`가 `"Demon 사냥꾼"`이 된다. 정렬 결과는 맵별로 한 번만 만들어 약한 키 테이블에 보관한다.
 - 이 정렬은 키가 서로의 접두·부분 문자열인 쌍(`" pt"`/`" pts"`, `"Weekly Quest"`/`"Trainer Weekly Quest"`, `"Hunter"`/`"Demon Hunter"`, `"Охотник"`/`"Охотник на демонов"`)만 바꾼다. 그 외에는 결과가 같다.
-- 키가 Lua 패턴으로 쓰이므로 `"Crit"`은 `"Critical"` 안에서도 매치된다. 길이 정렬로는 못 막는다. 남아 있는 결함이다.
+- 프런티어 적용 조건은 `^%a$` 또는 `^%a[%a ]*%a$`다. 끝이 공백인 키까지 받으면 `%f[%A]` 직전 문자가 공백이라 **영원히 매치되지 않아** 치환이 조용히 사라진다.
+- 순수 ASCII 글자와 공백으로만 이뤄진 키는 `%f[%a]키%f[%A]` 프런티어 패턴으로 바꿔 낱말 경계에서만 맞춘다. 이것이 없으면 `"Crit"`이 `"Critical Strike"` 안에서 매치돼 `"치명ical Strike"`가 된다. `" pts"`나 `"Progress:"`처럼 앞뒤에 공백·문장부호가 붙은 키와 키릴·한글 키는 `%a`가 잡지 못하므로 평문 그대로 쓴다.
+- 프런티어를 넣어도 길이 내림차순 정렬은 계속 필요하다. `"Trainer Weekly Quest"`의 `"Weekly"` 앞은 공백이라 프런티어가 통과한다.
 - `applyReplacements`는 `gsub` 전에 `find(..., 1, true)`로 평문 포함 여부를 먼저 본다. 치환 키에 Lua 패턴 메타문자가 없어 결과가 같고, 대부분의 줄은 어느 키도 포함하지 않으므로 `gsub`의 패턴 컴파일과 결과 문자열 할당이 통째로 사라진다. 스탯 오버레이는 FontString 하나당 39개 키를 돌고 `StatsOverlay:Refresh`마다 실행된다.
 - `patchTextRegions`는 깊이별 스크래치 버퍼를 재사용한다. `{ frame:GetRegions() }`와 `{ frame:GetChildren() }`는 노드마다 테이블 2개를 만든다.
 - 버퍼를 공유하므로 `patchStatsOverlayText`에 재진입 가드를 둔다. 순회 중 `SetText`가 다른 refresh를 유발하면 상위 루프가 쓰던 버퍼가 덮어써진다. 현재 대상은 스크립트가 없는 FontString뿐이라 발생하지 않지만, 대상이 늘면 바로 깨진다.
@@ -195,6 +207,11 @@
 
 - 이 파일의 top-level local은 현재 `195`개다. `scripts/validate_bis_tooltip_contract.py`가 세는 값이며(선언된 이름 수, `LocalAssign` targets + `LocalFunction`) 예산은 `198`, Lua 스코프당 상한은 `200`이다. **새 top-level local을 추가하면 파일이 컴파일되지 않을 수 있다.** helper는 전부 기존 테이블의 필드로 넣는다.
 - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터(`Data/BISCatalog.lua`, `BISMythicVaultLinks.lua`, `BISSeasonPreviewLinks.lua`, `BISEncounterJournal.lua`)가 기준으로 삼는 시즌이다. BIS 데이터를 갱신할 때 이 값도 함께 올린다.
+- 조기 반환 판정에 `frame.tabs[1].specName`을 함께 본다. 개수만 보면 언어를 바꿔도 전문화 수가 같아 툴팁이 이전 언어로 남는다.
+- 재사용한 탭은 `spec.icon`이 없을 때 `SetTexture(nil)`로 지운다. 지우지 않으면 이전 전문화 아이콘이 남는다. 새로 만든 탭에는 없던 문제라 재사용 경로에서만 생긴다.
+- `EnsureTabs`는 탭 프레임을 **인덱스로 재사용한다.** WoW 프레임은 회수되지 않으므로 `frame.tabs = {}`로 버리면 이전 버튼이 `tabsFrame`의 자식으로 영구히 남는다. 재생성 여부 판정은 `frame.tabsSpecCount`로 한다. `#frame.tabs`는 남는 탭까지 세므로 기준이 될 수 없다.
+- 탭 핸들러는 생성 시 한 번만 붙이고 `self2.specID`/`self2.specName`을 읽는다. 클로저가 `spec`을 잡으면 재사용할 때 이전 전문화가 남는다.
+- 스크롤바 썸의 `OnUpdate`는 창 `OnHide`에서 해제한다. 드래그 도중 `PVEFrame`이 닫히면 `OnMouseUp`이 오지 않아 `_dragging`이 참인 채 남고, 다시 열었을 때 드라이버가 스크롤을 계속 덮어쓴다. `_dragging`이 선언된 뒤에 `HookScript`로 붙여야 스코프가 맞는다.
 - `getAllSpecs`는 `BISOverlay._allSpecsCache`에 결과를 담는다. 캐시 키는 플레이어 직업, 직업 수, 언어다. `Refresh()` 한 번에 `EnsureTabs`·`UpdateSpecPickerButton` 경로로 5~7번 불리는데, 매번 40개 전문화 테이블을 만들고 정렬했다.
 - **부분 결과를 캐시하지 않는다.** 직업 이름이 하나라도 비었거나 수집한 전문화 수가 `GetNumSpecializationsForClassID` 합계와 다르면 저장을 건너뛴다. 캐시 키가 그 뒤로 바뀌지 않으므로, 덜 올라온 데이터를 굳히면 세션 내내 남는다. `SeasonGuard.IsMismatched`에서 이미 금지한 것과 같은 형태다.
 - 캐시된 배열은 `frame.specPicker.items`로도 나간다. **불변으로 다룬다.** 이 배열을 정렬하거나 원소를 고치면 캐시가 오염된다.
@@ -321,9 +338,12 @@
 - TomTom 경로점 정리는 `syncWaypoints` 하나에만 있고 그것은 `UpdateContent` 맨 끝에서만 돈다. `UpdateContent`는 접힘·비활성·던전 자동 접기에서 그 전에 반환하므로 **그 경로마다 `clearAllEventWaypoints`를 따로 불러야 한다.** 부르지 않으면 이벤트가 끝나도 화살표와 미니맵 핀이 남는다. 호출 지점은 던전 자동 접기, 수동 접기, 비활성, `PLAYER_LOGOUT` 네 곳이다.
 - `PLAYER_LEAVING_WORLD`에서는 정리하지 않는다. 이 이벤트는 존 이동과 로딩 화면마다 발생하므로, 정리하면 1초 뒤 `OnUpdate`가 경로점을 다시 만들어 TomTom의 현재 대상만 초기화된다. 던전 진입은 뒤따르는 `PLAYER_ENTERING_WORLD` 자동 접기 분기가 이미 덮는다.
 - `rotating` 이벤트는 위치가 고정이 아니다. `getEventPlacement`가 mapID/좌표/지역 라벨을 함께 돌려주고, 풀리지 않으면 TomTom 경로점을 만들지 않는다. 툴팁 지역명도 이 결과를 쓴다.
+- 행 완료 토글은 `OnClick` 하나만 쓴다. `OnMouseDown`에도 같은 토글을 달면 좌클릭 한 번에 누름과 뗌이 각각 토글해 상태가 제자리로 돌아온다. `RegisterForClicks`는 `OnClick`만 제어하고 `OnMouseDown`은 따로 발화한다.
 - 카운트다운 포맷은 `world_event_timer_hm` / `_ms` / `_s` 로케일 키에서 온다. 이전에는 `시간`/`분`/`초`가 소스에 박혀 있어 영어·러시아어에서도 한국어가 나왔다.
 
 ## UI/UtilityPanel.lua · UI/ConfigPanel.lua
+- `UtilityPanel:Create`도 다른 패널과 같이 `if self.frame then return self.frame end` 재진입 가드를 둔다. 없으면 두 번째 호출에서 box와 체크박스 트리가 통째로 다시 만들어지고 이전 트리는 화면에 남는다.
+
 
 - 2열 그리드 치수는 창 폭 900px에서 content inset 16×2와 box 시작 오프셋 16을 뺀 유효 852px에서 계산했다. 열 폭은 `(852 - 40gap) / 2 ≈ 406`, 컬럼 내부 텍스트 폭은 382다. 창 폭이나 inset을 바꾸면 이 값들을 다시 계산해야 한다.
 - 스탯·전문기술 오버레이 체크박스는 편의기능 탭으로 옮겨져 `ConfigPanel`에서는 숨김 처리돼 있다. 중복 노출로 되살리지 않는다.

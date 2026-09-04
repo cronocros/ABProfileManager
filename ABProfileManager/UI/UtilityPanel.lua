@@ -48,6 +48,10 @@ local function styleCheck(chk, w)
 end
 
 function UtilityPanel:Create(parent)
+    if self.frame then
+        return self.frame
+    end
+
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetAllPoints()
 

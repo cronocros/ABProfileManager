@@ -201,9 +201,24 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 `UI/BISOverlay.lua`의 `showSeasonItemTooltip`에는 아직 클로저 8개가 남아 있습니다(`addStyledTooltipLine`, `getTooltipDungeonLabel`, `getTooltipRaidLabel`, `getTooltipBossLabel`, `getTooltipMethodLabel`, `appendSeasonTooltipDetails`, `appendCompactSeasonTooltipMeta`, `showSeasonFallbackTooltip`, 그리고 `tryShow*` 3종). 이들은 `tooltip`·`owner`·`row`·`entry`와 색상 값을 사슬처럼 공유해서, 밖으로 빼려면 컨텍스트 테이블을 만들어 350줄을 함께 고쳐야 합니다. BIS 툴팁은 과거 `MoneyFrame secret number` 오류가 났던 경로라 지금 손대는 위험이 이득보다 큽니다. 할당의 큰 몫이던 배열 리터럴 두 종은 이번에 제거했습니다.
 
-**낮음** — `getAllSpecs` 무캐시, Encounter Journal 실패 미기록으로 호버마다 재스캔 4곳, `SilvermoonMapOverlay`의 `GetSeasonNames()` 루프 내 호출과 `resolveDisplayText` 전량 재계산과 O(n²) 배치, `ItemLevelOverlay`의 빈 결과 미캐시, aura 성공 경로 무스로틀, `UI_ERROR_MESSAGE` 클로저, 고스트 스윕 무스로틀, `QuestPanel` 강제 스캔 3회와 탭 전환 이중 호출, 숨은 설정 페이지 6개 매번 갱신, `GetProfessionSections` 무캐시.
+**여전히 남은 것**
 
-**기능 결함 1건** — `UI/WorldEventOverlay.lua`의 행 `OnClick`과 `OnMouseDown`이 **둘 다** 완료 토글을 실행합니다. 좌클릭 한 번에 토글과 역토글이 일어나 제자리로 돌아갈 수 있습니다. `OnMouseDown` 쪽을 지우는 것이 맞습니다. 오버레이가 TOC 비활성이라 인게임 확인은 켠 뒤에 합니다.
+`Data/BISCatalog.lua`가 662KB / 657행으로 항상 상주하며, 행마다 런타임에서 읽지 않는 필드가 5개(`bisValidationLevel`, `staticPriorityStatus`, `v13Evidence`, `runtimeItemLinkRequired`, `requiresRuntimeItemLink`) 있습니다. 동결 파일이라 생성 스크립트와 기준 해시를 함께 갱신해야 하고, 먼저 이 필드들이 `scripts/audit_bis_data.py` 같은 검증 입력으로 쓰이는지 확인해야 합니다.
+
+`ABPM_ruRU_Final_v3.lua`의 `PROFESSION_NAMES`는 언어별 버킷이라 모든 언어에서 필요합니다. `OBJECTIVE_BASE_RURU`와 `OBJECTIVE_PREFIX_RURU`는 항목이 적어 지연 생성 대상에서 뺐습니다.
+
+### 낮음 등급 (2026-09-04 처리)
+
+| 위치 | 내용 |
+| --- | --- |
+| `UI/BISOverlay.lua` | `EnsureTabs`가 탭 프레임을 인덱스로 재사용합니다. 판정 기준은 `frame.tabsSpecCount`이고, 핸들러는 생성 시 한 번만 붙여 `self2.specID`를 읽습니다 |
+| `UI/BISOverlay.lua` | 스크롤바 썸의 `OnUpdate`를 창 `OnHide`에서 해제합니다 |
+| `UI/MythicPlusRecordOverlay.lua` | `SetUp` 훅을 믹스인 쪽만 겁니다. 둘 다 걸면 `RefreshIcon`이 두 번 돕니다 |
+| `UI/MythicPlusRecordOverlay.lua` | 데이터 이벤트에서 재시도 상한을 초기화하지 않습니다. `Refresh`가 부른 `RequestMapInfo`의 응답이 그 이벤트 목록에 있어 자기 순환이 됐습니다 |
+| `UI/UtilityPanel.lua` | `Create`에 재진입 가드를 넣었습니다 |
+| `UI/WorldEventOverlay.lua` | 행 완료 토글을 `OnClick` 하나로 모았습니다. `OnMouseDown`에도 같은 토글이 있어 좌클릭 한 번에 상태가 제자리로 돌아왔습니다 |
+| `ABPM_ruRU_Final_v3.lua` | ASCII 글자·공백 키에 프런티어 패턴을 써 낱말 경계에서만 치환합니다. `"Crit"`이 `"Critical Strike"` 안에서 매치되던 결함입니다 |
+| `ABPM_ruRU_Final_v3.lua` | `OBJECTIVE_NAMES_RURU`(457항목)를 지연 생성합니다. 읽는 곳이 전부 `isRuRU()` 뒤라 한국어·영어에서는 만들어지지 않습니다 |
 
 ### 인게임 확인이 필요한 것
 
