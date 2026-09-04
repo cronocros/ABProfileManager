@@ -11,6 +11,30 @@
 시즌 2 인게임 QA에서 확인된 로드 오류와 오버레이 결함을 고치고, 시즌 2 데이터를
 와우헤드/DB2로 재검증하고, 영어 표시 결함을 정리한 로컬 릴리스.
 
+2026-09-04 보통 등급 경로 정리:
+- `UI/BISOverlay.lua`의 `getAllSpecs`를 캐시한다. `Refresh()` 한 번에 5~7번 불리며
+  매번 40개 전문화 테이블을 만들고 정렬했다
+- Encounter Journal 스캔 실패에 재시도 쿨다운을 뒀다. 실패를 기록하지 않아
+  호버할 때마다 `EJ_SelectTier`·`EJ_SelectInstance` 왕복이 통째로 반복됐다
+- `MatchRaidBoss`가 실제로 훑은 풀 크기를 남겨 `FindRaidTargetByBoss`의 음수 캐시가
+  저장되게 했다. 이전 조건 `#EJournal.raidInstances > 0`은 티어 스캔 전에는 영영
+  성립하지 않아 같은 보스명으로 호버할 때마다 전체 재스캔이 돌았다
+- 호버마다 만들던 13원소 레이드 라벨 배열과, 툴팁 라인 루프 안에서 만들던 3원소
+  키 배열을 `SourcePreview` 필드로 옮겼다. 라벨 비교는 정규화 결과를 한 번만 만든다
+- `UI/SilvermoonMapOverlay.lua`의 `GetSeasonNames()`를 엔트리 루프 밖으로 옮기고,
+  `resolveDisplayText`를 포인트·언어 기준으로 기억하고, 포인트 집합이 그대로면
+  `getNearbyCount` 전체 패스를 건너뛴다
+- 풍요 구렁 이름이 비었을 때도 짧은 TTL로 기억해, 시즌 구렁 POI가 없는 지역에서
+  6개 지도 POI 전수 조회가 반복되던 것을 막았다
+- 버프 hash를 캐시하고 `UNIT_AURA`와 `InvalidateState`에서만 비운다. hash는 오라가
+  바뀔 때만 달라지는데 다른 트리거의 refresh마다 40칸 순회를 다시 했다
+- `UI_ERROR_MESSAGE`가 은행 세션이 열려 있을 때만 문자열을 판정한다. 고스트 스윕에
+  디바운스를 걸었다
+- 퀘스트 패널 강제 스캔을 3회에서 2회로 줄이고, 탭 전환 시 `OnShow`와
+  `refreshCurrentTab`이 겹쳐 두 번 스캔하던 것을 한 곳으로 모았다
+- 숨은 Blizzard 설정 화면은 갱신하지 않는다. 각 페이지에 `OnShow` 갱신이 이미 있다
+- `GetProfessionSections`에 세대 기반 캐시를 넣고 ruRU의 캐시 wipe 목록에도 넣었다
+
 2026-09-04 교차 검토 반영:
 - 고스트 오버레이 풀을 넣으면서 `handleGhostDrop`과 `handleGhostDismiss`가 상태 메시지에
   쓰는 `overlay.logicalSlot`이 그 사이에 지워지게 됐다. 두 함수가 부르는 배치·해제

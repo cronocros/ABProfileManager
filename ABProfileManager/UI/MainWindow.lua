@@ -56,7 +56,7 @@ local function refreshCurrentTab(window)
     elseif window.currentTab == "map" then
         ns:SafeCall(ns.UI.MapPanel, "Refresh")
     elseif window.currentTab == "quests" then
-        ns:SafeCall(ns.UI.QuestPanel, "Refresh", true)
+        ns:SafeCall(ns.UI.QuestPanel, "Refresh")
     elseif window.currentTab == "config" then
         ns:SafeCall(ns.UI.ConfigPanel, "Refresh")
     elseif window.currentTab == "utility" then

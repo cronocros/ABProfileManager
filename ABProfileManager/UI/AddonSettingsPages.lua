@@ -196,7 +196,7 @@ end
 
 function AddonSettingsPages:Refresh()
     for _, panel in pairs(self.panels or {}) do
-        if panel.refreshPanel then
+        if panel.refreshPanel and panel.IsShown and panel:IsShown() then
             panel:refreshPanel()
         end
     end

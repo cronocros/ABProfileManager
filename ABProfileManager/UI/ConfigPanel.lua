@@ -651,6 +651,9 @@ function ConfigPanel:Refresh()
     end
 
     self:RefreshControlSet(self.mainRefs)
-    self:RefreshControlSet(self.settingsRefs)
+
+    if self.settingsFrame and self.settingsFrame:IsShown() then
+        self:RefreshControlSet(self.settingsRefs)
+    end
     ns:SafeCall(ns.UI.AddonSettingsPages, "Refresh")
 end

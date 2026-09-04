@@ -25,6 +25,7 @@ local _buffHashParts = {}
 
 local AURA_SCAN_BACKOFF_SECONDS = 2.0
 local _auraScanBlockedUntil = 0
+local _buffHashCache = nil
 
 local _snapshot = {}
 local _entryPool = {}
@@ -394,6 +395,10 @@ local function shouldShowTankDefensiveStats(specIndex)
 end
 
 local function getPlayerBuffHash()
+    if _buffHashCache then
+        return _buffHashCache
+    end
+
     wipe(_buffHashParts)
     if not C_UnitAuras or type(C_UnitAuras.GetAuraDataByIndex) ~= "function" then
         return ""
@@ -426,7 +431,8 @@ local function getPlayerBuffHash()
         end
     end
 
-    return table.concat(_buffHashParts, "|")
+    _buffHashCache = table.concat(_buffHashParts, "|")
+    return _buffHashCache
 end
 
 local function isInsideInstanceContext()
@@ -1027,7 +1033,12 @@ function StatsOverlay:BuildStateSignature()
     return table.concat(_stateSignatureParts, "\030")
 end
 
+function StatsOverlay:InvalidateBuffHash()
+    _buffHashCache = nil
+end
+
 function StatsOverlay:InvalidateState()
+    _buffHashCache = nil
     self.lastStateSignature = nil
     self.lastSnapshotSignature = nil
 end

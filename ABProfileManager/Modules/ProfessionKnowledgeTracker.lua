@@ -65,6 +65,7 @@ local function resetEvaluationCaches(self)
     if self.evaluationCache then wipe(self.evaluationCache) else self.evaluationCache = {} end
     if self.sectionSummaryCache then wipe(self.sectionSummaryCache) else self.sectionSummaryCache = {} end
     if self.professionSummaryCache then wipe(self.professionSummaryCache) else self.professionSummaryCache = {} end
+    if self.professionSectionsCache then wipe(self.professionSectionsCache) else self.professionSectionsCache = {} end
 end
 
 local function hasSameQuestLookup(existing, fresh, freshCount)
@@ -198,6 +199,7 @@ function Tracker:Initialize()
 
     self.completedQuestLookup = {}
     self.questStatusLookup = {}
+    self.professionSectionsCache = nil
     self.questCacheDirty = true
     self.questCacheGeneration = 0
     self.knownProfessionCache = nil
@@ -609,6 +611,12 @@ function Tracker:GetProfessionSections(professionKey)
         return {}
     end
 
+    self.professionSectionsCache = self.professionSectionsCache or {}
+    local cached = self.professionSectionsCache[professionKey]
+    if cached and cached.generation == (self.questCacheGeneration or 0) then
+        return cached.value
+    end
+
     local sections = {}
     local sectionOrder = {
         { key = "weekly", title = ns.L("professions_weekly") },
@@ -630,6 +638,11 @@ function Tracker:GetProfessionSections(professionKey)
             rows = rows,
         }
     end
+
+    self.professionSectionsCache[professionKey] = {
+        generation = self.questCacheGeneration or 0,
+        value = sections,
+    }
 
     return sections
 end
