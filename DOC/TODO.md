@@ -306,7 +306,7 @@ M+ preview selector는 **2026-09-04 인게임 확인으로 `12849`를 확정했�
 `-Strict`가 통과한 뒤 진행합니다. 자세한 절차는 [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)를 봅니다.
 
 - `CHANGELOG.md`의 `1.13.0` 항목을 릴리스 기준으로 확정
-- `DOC/releases/RELEASE_NOTES_v1.13.0.md`와 영문판 작성 (완료)
+- `DOC/releases/RELEASE_NOTES_v1.13.0.md`와 영문판 작성 (완료, 2026-09-04에 이후 작업분까지 반영)
 - `ABProfileManager/ADDON_INTRO.txt`의 변경 내역 추가 (완료, 2026-09-04)
 - `scripts/package_release.ps1` 실행 (인게임 확인용 로컬 빌드는 2026-09-04에 한 번 만들었습니다. `-Strict` 통과 뒤 다시 만듭니다)
 - `dist/` 루트에는 최신 ZIP만 두고 이전 ZIP은 `dist/archive/`로 이동
