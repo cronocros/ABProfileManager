@@ -126,6 +126,7 @@ ABProfileManager/
 
 이벤트: `QUEST_TURNED_IN`, `BAG_UPDATE_DELAYED`, `BAG_NEW_ITEMS_UPDATED`, `LOOT_CLOSED`
 
+- 주간 퀘스트 변형 목록은 `match = "any"`다. questID가 하나라도 빠지면 그 주 완료를 감지하지 못한다. 12.1 구간은 제작 7종 `93690~93696`, 마법부여 `93697~93699`, 약초채집 `93700~93704`, 채광 `93705~93709`, 무두질 `93710~93714`로 연속이다.
 - 평판 서적은 직업마다 2종이다. 시즌 1 세력 서적 1종과 12.1 `Zul'jarra's Forces` 서적 `Demystifyin': <직업>` 1종이며 각 10점이다. questID는 `96459`, `96511~96520`이다.
 - `Modules/ProfessionKnowledgeTracker.lua`의 `translateObjectiveName`은 한국어 선택일 때만 번역표를 적용한다. 영어/러시아어에서는 원문 이름을 그대로 쓴다.
 

@@ -83,27 +83,60 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 확인 경로는 `ItemXItemEffect` → `ItemEffect` → `SpellEffect`입니다. `Effect = 16`(퀘스트 완료)의 `EffectMiscValue_0`이 questID이고, `Effect = 157`의 `EffectBasePointsF`가 지식 `10`점입니다. 공식 한국어명은 `누구나 쉽게 배우는 기술: <직업>`입니다.
 
-남은 것은 주간 questID 검증입니다. 각 직업의 `weekly_quest`, `weekly_drops`, `treatise` questID가 12.1에서도 유효한지 인게임 퀘스트 로그로 확인해야 합니다. 채집 노드 지식과 후원 제작 의뢰는 저장소가 집계하지 않는 예외로 남아 있습니다.
+2026-09-04에 주간 questID 72개를 DB2(`QuestV2`, 빌드 `12.1.0.69465`)로 선검증했습니다. 72개 모두 존재합니다.
 
-### W5b 로케일
+그 과정에서 **주간 퀘스트 변형 4개가 빠져 있던 것을 찾아 채웠습니다.** 변형 목록은 `match = "any"`라서 빠진 ID가 그 주에 걸리면 완료를 감지하지 못합니다.
 
-`Locale.lua`, `Locale_Additions.lua`, `ABPM_ruRU_Final_v3.lua`가 대상입니다.
+| 직업 | 추가한 questID | 퀘스트 이름 | 확인 근거 |
+| --- | --- | --- | --- |
+| 마법부여 | 93697 | `Shimmering Melodies` | 와우헤드, 보상 `Thalassian Enchanter's Folio` |
+| 약초채집 | 93701 | `Brittle and Brilliant` | 와우헤드, 보상 `Thalassian Herbalist's Notes` |
+| 채광 | 93707 | `It's Called Silvermoon` | 와우헤드, 보상 `Thalassian Miner's Notes` |
+| 무두질 | 93713 | `Essential Materials` | 와우헤드, 보상 `Thalassian Skinner's Notes` |
 
-W2와 W2b가 만든 새 문자열이 있으면 세 언어에 반영합니다. 현재 `ruRU`는 `enUS` 대비 143개가 비어 있고 이 숫자가 `scripts/validate_locale_contract.py`의 기준선입니다. 번역을 채우면 기준선도 함께 낮춥니다.
+이제 questID 블록이 연속 구간으로 맞습니다. 제작 7종은 `93690~93696` 각 1개, 마법부여는 `93697~93699`, 약초채집 `93700~93704`, 채광 `93705~93709`, 무두질 `93710~93714`입니다.
+
+남은 것은 인게임 확인 두 가지입니다.
+
+- `treatise` questID 11개(`95127~95131`, `95133~95138`)는 와우헤드에 노출되지 않는 숨은 퀘스트라 이름을 대조하지 못했습니다. DB2 존재만 확인했습니다. 각 직업 논문을 읽고 지식이 오르는지 확인합니다.
+- `weekly_drops`와 `weekly_gathering_drops`의 questID도 마찬가지로 존재만 확인했습니다. 실제로 해당 아이템을 먹었을 때 잡히는지 확인합니다.
+
+채집 노드 지식과 후원 제작 의뢰는 저장소가 집계하지 않는 예외로 남아 있습니다.
+
+### W5b 로케일 (완료)
+
+`Locale.lua`, `Locale_Additions.lua`, `ABPM_ruRU_Final_v3.lua`가 대상이었습니다.
+
+2026-09-04에 `ruRU` 누락 143개를 모두 채웠습니다. `scripts/validate_locale_contract.py`의 `RURU_MISSING_BASELINE`도 `143`에서 `0`으로 내렸습니다. 이제 새 문자열을 추가하면서 러시아어를 빠뜨리면 검증이 바로 실패합니다.
+
+`ruRU`에만 있는 키 11개는 그대로 둡니다. `config_language_russian`처럼 러시아어 파일이 자체적으로 쓰는 키라 `enUS`에 대응이 없습니다.
 
 `ruRU`는 `ABPM_ruRU_Final_v3.lua`가 TOC 맨 뒤에서 주입하는 구조입니다. 새 키를 넣을 때 이 파일도 함께 고쳐야 검증을 통과합니다.
 
 ### W7 주간 이벤트
 
-`Data/WorldEventSchedule.lua`와 `UI/WorldEventOverlay.lua`는 TOC에 없어 로드되지 않습니다(의도적 비활성, `DOC/CODE_NOTES.md` 참조). 데이터는 시즌 1 기준이고 좌표는 실측된 적이 없습니다.
+`Data/WorldEventSchedule.lua`와 `UI/WorldEventOverlay.lua`는 TOC에 없어 로드되지 않습니다(의도적 비활성, `DOC/CODE_NOTES.md` 참조).
 
-2026-09-03 DB2(`AreaPOI`, `UiMap`)와 Blizzard 공식 소식으로 확인한 결함이며, 다시 켜기 전에 고쳐야 합니다.
+2026-09-04에 아래 세 결함을 모두 고쳤습니다.
 
-- 이벤트 이름: `Saldeeryl's Court/살데릴의 궁정`은 실제로 `Saltheril's Soiree/살데릴의 연회`(AreaPOI 8600), `Stomarion`은 `Stormarion`, `Legend of Haranyr`는 `Legends of the Haranir/하라니르의 전설`(AreaPOI 8423)입니다.
-- mapID: `saldeerylsCourt`(2395=영원노래 숲)와 `abundance`(2393=실버문)의 값이 라벨과 서로 바뀌어 있습니다. `stomarionAttack`의 2444는 공허폭풍 하위 지도 `Slayer's Rise`입니다.
-- 주기: 풍요는 8시간마다 4개 지역을 순환하며 3분 지속, 스토마리온 공격은 30분 주기, 살데릴의 연회와 하라니르의 전설은 주간 이벤트입니다. 현재 분 단위 `interval/duration` 모델과 맞지 않습니다.
+- 이벤트 이름과 키를 `saltherilsSoiree` / `stormarionAssault` / `abundance` / `haranirLegends`로 바꾸고 세 언어 문자열을 함께 정정했습니다. 공식 한국어명은 `살데릴의 연회`, `스토마리온 공격`, `풍요`, `하라니르의 전설`입니다.
+- mapID를 `2395`(영원노래 숲) / `2405`(공허폭풍) / `2413`(하란다르)로 맞췄습니다. 틀린 값이던 `2444`와 풍요의 `2393`은 없앴습니다. 풍요는 고정 지역이 없어 4개 동굴을 `rotation` 목록으로 옮겼습니다.
+- 분 단위 `interval/duration/offset` 단일 모델을 `cadence` 모델(`weekly` / `interval` / `rotating`)로 교체했습니다. 오버레이는 `areaPoiID` 런타임 조회 → 주간 리셋 카운트다운 → 검증된 기준시각 계산 순으로 판정하고, 어느 것도 못 풀면 `미확인`으로 표시합니다.
 
-SavedVariables 마이그레이션 부분은 끝났습니다.
+다시 켜기 전에 남은 것은 인게임 실측 두 건입니다.
+
+| 항목 | 확인 방법 | 반영 위치 |
+| --- | --- | --- |
+| 스토마리온 공격 30분 주기의 기준시각 | 이벤트 시작 시각을 `GetServerTime()`으로 기록 | `anchor` 값 추가 후 `anchorVerified = true` |
+| 풍요 8시간 순환의 기준시각과 순환 순서 | 활성 동굴이 바뀌는 시각과 다음 지역을 두 번 이상 관측 | `anchor`, `rotation` 순서, `anchorVerified`·`rotationVerified = true` |
+
+두 이벤트의 `areaPoiID`를 찾으면 기준시각 없이도 정확한 타이머가 나옵니다. 인게임에서 해당 지역의 지도를 열고 `C_AreaPoiInfo.GetAreaPOIForMap`으로 POI ID를 확인하는 편이 빠릅니다.
+
+```text
+/dump C_AreaPoiInfo.GetAreaPOIForMap(2405)
+```
+
+좌표는 여전히 외부 가이드 값이고 인게임 실측이 아닙니다. SavedVariables 마이그레이션 부분은 끝났습니다.
 
 ## 4. 판단이 남은 항목
 
