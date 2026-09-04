@@ -203,9 +203,23 @@ local function refreshWorldEntryUI()
     ns:SafeCall(ns.UI.SilvermoonMapOverlay, "Refresh")
 end
 
+local function professionViewsNeedEagerScan()
+    if ns.DB and ns.DB.IsProfessionKnowledgeOverlayEnabled and ns.DB:IsProfessionKnowledgeOverlayEnabled() then
+        return true
+    end
+
+    local panel = ns.UI and ns.UI.ProfessionPanel
+    local frame = panel and panel.frame
+    if frame and frame.IsVisible and frame:IsVisible() then
+        return true
+    end
+
+    return false
+end
+
 local function runProfessionKnowledgeRefresh(forceScan, reason)
     local ok, err = pcall(function()
-        if forceScan then
+        if forceScan and professionViewsNeedEagerScan() then
             ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "RefreshQuestCache", true)
         else
             ns:SafeCall(ns.Modules.ProfessionKnowledgeTracker, "MarkDirty")
@@ -381,9 +395,9 @@ function Events:ADDON_LOADED(loadedAddonName)
     frame:RegisterEvent("MASTERY_UPDATE")
     frame:RegisterEvent("PLAYER_DAMAGE_DONE_MODS")
     frame:RegisterEvent("SPELL_POWER_CHANGED")
-    frame:RegisterEvent("UNIT_ATTACK_POWER")
-    frame:RegisterEvent("UNIT_STATS")
-    frame:RegisterEvent("UNIT_AURA")
+    frame:RegisterUnitEvent("UNIT_ATTACK_POWER", "player")
+    frame:RegisterUnitEvent("UNIT_STATS", "player")
+    frame:RegisterUnitEvent("UNIT_AURA", "player")
     frame:RegisterEvent("QUEST_LOG_UPDATE")
     frame:RegisterEvent("QUEST_TURNED_IN")
     frame:RegisterEvent("BAG_UPDATE_DELAYED")

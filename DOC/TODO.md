@@ -155,22 +155,23 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 | `DB.lua` | `worldEventCompletions`를 `{ [eventKey] = "YYYY-MM-DD" }`로 바꿔 키 개수를 이벤트 수로 고정했습니다. 이전 형식 키는 첫 조회에서 한 번 정리합니다 |
 | `Data/Defaults.lua` | `mythPreviewCache`를 빈 테이블로 비웠습니다. `MergeDefaults`가 로그인마다 `generatedPreviewBonusListID = 12801`을 되채워 preview 캐시가 매번 폐기되는 구조였습니다. **selector `12849`를 넣기 전에 반드시 필요한 수정입니다** |
 
-### 고치지 않은 것
+### 고빈도 경로 8건 (2026-09-04 처리)
 
-시간당 할당량이 큰 경로들입니다. 회귀 위험이 있어 별도 작업으로 남깁니다.
-
-**고빈도 (높음)**
+단위 시간당 할당량이 큰 경로들입니다. 전부 동작을 바꾸지 않고 할당만 줄이는 수정입니다.
 
 | 위치 | 내용 |
 | --- | --- |
-| `Events.lua:384-386` | `UNIT_AURA`/`UNIT_STATS`/`UNIT_ATTACK_POWER`를 `RegisterUnitEvent("...", "player")`로 바꿔야 합니다. 지금은 모든 유닛분이 `pcall`까지 도달한 뒤 버려집니다. 저장소에 `RegisterUnitEvent` 사용이 0건입니다 |
-| `UI/StatsOverlay.lua:74, 87` | `toPlainNumber`의 `pcall(function() return value + 0 end)`가 호출마다 클로저를 만듭니다. refresh당 55~115개, 최대 초당 6.7 refresh입니다. 모듈 레벨 헬퍼로 빼면 됩니다 |
-| `UI/Typography.lua:119` | `ApplyFont`의 `shallowCopy`가 `StatsOverlay.lua:499`의 재사용 버퍼를 무효화합니다. refresh당 테이블 70~100개 |
-| `ABPM_ruRU_Final_v3.lua:2276-2298` | `patchStatsOverlayText`가 `StatsOverlay:Refresh`마다 프레임 트리를 재귀 순회하고 FontString마다 `gsub`을 39회 돌립니다. 언어와 무관하게 실행됩니다 |
-| `ABPM_ruRU_Final_v3.lua:1978-2002` | 툴팁 래퍼가 hover마다 `for i = 1, 80` 고정 루프를 돕니다. `{ originalApplyTooltip(...) }`가 `isRuRU()` 검사보다 앞이라 한국어에서도 테이블이 생깁니다 |
-| `Events.lua:548-573` | 가방·루팅 이벤트마다 `C_QuestLog.GetAllCompletedQuestIDs()` 전량 스캔이 3회 돕니다. 전문기술 오버레이가 꺼져 있어도 실행됩니다 |
-| `Core.lua:158-165` | `ns:RefreshUI()`가 현재 탭과 무관하게 패널 7개를 전부 갱신합니다. 호출처 40곳 대부분이 체크박스 하나입니다 |
-| `UI/BISOverlay.lua:2601-2627` | `resolveSeasonDungeonName`이 메모이제이션 없이 `table.sort` 비교자 안에서 호출됩니다 |
+| `Events.lua` | `UNIT_AURA`·`UNIT_STATS`·`UNIT_ATTACK_POWER`를 `RegisterUnitEvent(..., "player")`로 바꿨습니다. 이전에는 모든 유닛분이 디스패처의 `pcall`까지 도달한 뒤 버려졌습니다 |
+| `UI/StatsOverlay.lua` | `pcall`에 넘기던 익명 클로저 5개를 모듈 레벨 함수로 뺐습니다. `toPlainNumber` 하나만으로 refresh당 55~115개가 생겼습니다 |
+| `UI/Typography.lua` | `ApplyFont`가 등록 항목과 `options` 테이블을 재사용합니다. 이전에는 호출마다 테이블 2개를 새로 만들어 `StatsOverlay`의 재사용 버퍼를 무의미하게 만들었습니다 |
+| `ABPM_ruRU_Final_v3.lua` | `gsub` 앞에 `find(..., 1, true)` 평문 검사를 넣었습니다. 치환 키에 패턴 메타문자가 없어 결과가 같고, 대부분의 줄은 어느 키도 포함하지 않습니다 |
+| `ABPM_ruRU_Final_v3.lua` | `patchTextRegions`가 깊이별 스크래치 버퍼를 재사용합니다. 노드마다 테이블 2개를 만들던 것을 없앴습니다 |
+| `ABPM_ruRU_Final_v3.lua` | 툴팁 후처리를 `tip:NumLines()`까지만 돌고, 러시아어가 아니면 즉시 반환합니다. 래퍼의 `{ original(...) }` + `unpack`도 없앴습니다. 감싸는 두 함수 모두 반환값이 없습니다 |
+| `Events.lua` | 전문기술 즉시 스캔을 오버레이가 켜져 있거나 패널이 보일 때로 제한했습니다. 그렇지 않으면 `MarkDirty`만 걸고, `IsQuestComplete`의 지연 스캔에 맡깁니다 |
+| `Core.lua` | `ns:RefreshUI()`가 현재 탭의 패널 하나만 갱신합니다. 탭을 바꾸는 모든 경로가 `refreshCurrentTab`을 거치므로 숨은 패널은 표시될 때 갱신됩니다 |
+| `UI/BISOverlay.lua` | `resolveSeasonDungeonName`에 언어별 메모를 붙였습니다. `table.sort` 비교자 안에서 불리는 경로입니다 |
+
+### 아직 고치지 않은 것
 
 **보통** — `getAllSpecs` 무캐시, Encounter Journal 실패 미기록으로 호버마다 재스캔 4곳, `SilvermoonMapOverlay`의 `GetSeasonNames()` 루프 내 호출과 `resolveDisplayText` 전량 재계산과 O(n²) 배치, `ItemLevelOverlay`의 빈 결과 미캐시, aura 성공 경로 무스로틀, `UI_ERROR_MESSAGE` 클로저, 고스트 스윕 무스로틀, `QuestPanel` 강제 스캔 3회와 탭 전환 이중 호출, 숨은 설정 페이지 6개 매번 갱신, `GetProfessionSections` 무캐시.
 

@@ -11,6 +11,28 @@
 시즌 2 인게임 QA에서 확인된 로드 오류와 오버레이 결함을 고치고, 시즌 2 데이터를
 와우헤드/DB2로 재검증하고, 영어 표시 결함을 정리한 로컬 릴리스.
 
+2026-09-04 고빈도 경로 할당 정리:
+- `UNIT_AURA`·`UNIT_STATS`·`UNIT_ATTACK_POWER`를 `RegisterUnitEvent(..., "player")`로
+  등록한다. `RegisterEvent`로는 파티·공격대·네임플레이트의 모든 유닛분이 디스패처의
+  `pcall`까지 올라온 뒤 버려졌다. 20인 공격대 전투에서 초당 수백 건이다
+- `UI/StatsOverlay.lua`에서 `pcall`에 넘기던 익명 클로저 5개를 모듈 레벨 함수로 뺐다.
+  `toPlainNumber` 하나만으로 refresh당 55~115개가 생겼고 refresh는 최대 초당 6.7회다
+- `UI/Typography.lua`의 `ApplyFont`가 등록 항목과 `options` 테이블을 재사용한다.
+  호출마다 새로 만들던 탓에 `StatsOverlay`의 재사용 버퍼가 무의미했다
+- `ABPM_ruRU_Final_v3.lua`의 치환 루프가 `gsub` 앞에 평문 `find`로 포함 여부를 본다.
+  치환 키에 패턴 메타문자가 없어 결과가 같다. 스탯 오버레이는 FontString 하나당
+  키 39개를 돌고 이 순회가 `StatsOverlay:Refresh`마다 실행된다
+- `patchTextRegions`가 깊이별 스크래치 버퍼를 재사용하고, 툴팁 후처리는
+  `tip:NumLines()`까지만 돈다. 이전에는 줄 수와 무관하게 80회를 돌았다.
+  래퍼의 `{ original(...) }` + `unpack`도 없앴다. 감싸는 두 함수 모두 반환값이 없다
+- 전문기술 즉시 스캔을 오버레이가 켜져 있거나 패널이 보일 때로 제한했다. 그 외에는
+  `MarkDirty`만 걸고 `IsQuestComplete`의 지연 스캔에 맡긴다. 즉시 스캔은 완료 퀘스트
+  전체를 읽으며 가방·루팅 이벤트마다 세 번 돌았다
+- `ns:RefreshUI()`가 현재 탭의 패널 하나만 갱신한다. 호출처 40곳 대부분이 체크박스
+  하나를 토글하는 경로인데 보이지 않는 패널 여섯 개까지 매번 다시 그렸다
+- `resolveSeasonDungeonName`에 언어별 메모를 붙였다. `table.sort` 비교자 안에서
+  불리는 경로라 정렬 1회에 임시 문자열 수천 개가 생겼다
+
 2026-09-04 메모리 점검 반영:
 - `UI/BISOverlay.lua`의 `GET_ITEM_INFO_RECEIVED` 핸들러가 BIS와 무관한 아이템까지 링크
   캐시에 넣고 있었다. 이 이벤트에는 필터가 없어 세션 내 모든 아이템 로드가 들어오는데
