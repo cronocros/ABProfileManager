@@ -4,6 +4,8 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 작업 배경과 수집 경위는 [SEASON2_HANDOFF.md](./SEASON2_HANDOFF.md)를 봅니다. 소스 제약은 [CODE_NOTES.md](./CODE_NOTES.md)를 봅니다.
 
+인게임에서 직접 확인해야 하는 항목은 실행 명령과 조치까지 정리한 [INGAME_CHECKLIST.md](./INGAME_CHECKLIST.md)에 모았습니다.
+
 ## 1. 릴리스를 막고 있는 것
 
 `scripts/run_season2_validation.ps1 -Strict`가 실패합니다. 실패 이유는 하나입니다.
