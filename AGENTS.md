@@ -224,6 +224,7 @@ ABProfileManager/
 - 인트로 자산: `ABProfileManager/ADDON_INTRO.txt`
 - 아키텍처: `DOC/ARCHITECTURE.md`
 - 코드 주석 대체 노트: `DOC/CODE_NOTES.md`
+- 인게임 확인 체크리스트: `DOC/INGAME_CHECKLIST.md`
 - 현재 상태/인계: `DOC/HANDOFF.md`
 - 시즌 2 인계: `DOC/SEASON2_HANDOFF.md`
 - 배포 절차: `DOC/RELEASE_PROCESS.md`
