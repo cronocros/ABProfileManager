@@ -250,8 +250,8 @@ local function makeFrameMovable(key, frame, isUiPanel)
                 saveFrameDB(key, f)
             end)
         end)
-    else
-
+    elseif not frame.ABPMDragStopHooked then
+        frame.ABPMDragStopHooked = true
         pcall(function()
             frame:HookScript("OnDragStop", function(f)
                 saveFrameDB(key, f)

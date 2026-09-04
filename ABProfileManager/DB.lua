@@ -927,21 +927,31 @@ end
 
 function DB:GetWorldEventCompletions()
     local settings = self:GetGlobalSettings()
-    settings.worldEventCompletions = settings.worldEventCompletions or {}
-    return settings.worldEventCompletions
+    if type(settings.worldEventCompletions) ~= "table" then
+        settings.worldEventCompletions = {}
+    end
+    local completions = settings.worldEventCompletions
+    if not self._worldEventCompletionsMigrated then
+        self._worldEventCompletionsMigrated = true
+        for key, value in pairs(completions) do
+            if type(value) ~= "string" then
+                completions[key] = nil
+            end
+        end
+    end
+    return completions
 end
 
 function DB:IsWorldEventCompleted(eventKey)
     if not eventKey then return false end
     local dateStr = date and date("%Y-%m-%d") or "unknown"
-    return self:GetWorldEventCompletions()[eventKey.."_"..dateStr] == true
+    return self:GetWorldEventCompletions()[eventKey] == dateStr
 end
 
 function DB:SetWorldEventCompleted(eventKey, completed)
     if not eventKey then return end
     local dateStr = date and date("%Y-%m-%d") or "unknown"
-    local key = eventKey.."_"..dateStr
-    self:GetWorldEventCompletions()[key] = completed or nil
+    self:GetWorldEventCompletions()[eventKey] = completed and dateStr or nil
 end
 
 function DB:GetBISOverlaySettings()

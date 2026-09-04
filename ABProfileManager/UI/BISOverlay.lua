@@ -3745,12 +3745,14 @@ function BISOverlay:EnsureFrame()
         if numericID then
             PENDING_ITEM_DATA[numericID] = nil
             PENDING_MYTH_PREVIEW_ENTRIES[numericID] = nil
-            local _, itemLink = GetItemInfo(numericID)
-            if isItemHyperlink(itemLink) then
-                for _, sourceType in ipairs({ "raid", "crafted", "tier" }) do
-                    local cacheKey = SourcePreview.getDefaultTooltipCacheKey(sourceType, numericID)
-                    if not DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] then
-                        DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] = itemLink
+            if requested or previewEntry then
+                local _, itemLink = GetItemInfo(numericID)
+                if isItemHyperlink(itemLink) then
+                    for _, sourceType in ipairs(SourcePreview.defaultTooltipSourceTypes) do
+                        local cacheKey = SourcePreview.getDefaultTooltipCacheKey(sourceType, numericID)
+                        if not DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] then
+                            DEFAULT_ITEM_TOOLTIP_LINK_CACHE[cacheKey] = itemLink
+                        end
                     end
                 end
             end
@@ -4161,6 +4163,8 @@ end
 local function isMatchingItemLink(link, itemID)
     return isItemHyperlink(link) and getItemIDFromLink(link) == tonumber(itemID)
 end
+
+SourcePreview.defaultTooltipSourceTypes = { "raid", "crafted", "tier" }
 
 function SourcePreview.getDefaultTooltipCacheKey(sourceType, itemID)
     return tostring(sourceType or "item") .. ":" .. tostring(tonumber(itemID) or itemID or 0)

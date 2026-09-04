@@ -138,6 +138,59 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 
 좌표는 여전히 외부 가이드 값이고 인게임 실측이 아닙니다. SavedVariables 마이그레이션 부분은 끝났습니다.
 
+## 3-1. 메모리 점검 결과 (2026-09-04)
+
+에이전트 4팀으로 `UI/`, `Modules/`, `Data/`, 코어를 나눠 읽고 메모리 누수·과다 점유·잦은 재로딩을 조사했습니다.
+
+### 고친 것
+
+영구 증가하는 누수 5건과 시한폭탄 1건을 처리했습니다.
+
+| 위치 | 내용 |
+| --- | --- |
+| `UI/BISOverlay.lua` | `GET_ITEM_INFO_RECEIVED` 캐시 기록을 `requested`/`previewEntry` 게이트 안으로 옮겼습니다. 이 이벤트에는 필터가 없어 세션 내 모든 아이템이 들어오는데 게이트 밖에서 캐시에 쓰고 있었고, 비우는 경로도 없었습니다 |
+| `Modules/GhostManager.lua` | 고스트 오버레이 프레임을 풀로 재사용합니다. 이전에는 해소 시 참조만 버려 숨은 프레임이 영구히 쌓였습니다 |
+| `Modules/BlizzardFrameManager.lua` | `HookScript("OnDragStop")`을 `ABPMDragStopHooked`로 1회만 겁니다. 해제할 수 없는 훅이라 기능을 껐다 켤 때마다 쌓였습니다 |
+| `UI/WorldEventOverlay.lua` | 접힘·비활성·던전 자동 접기·월드 이탈에서 TomTom 경로점을 정리합니다 |
+| `DB.lua` | `worldEventCompletions`를 `{ [eventKey] = "YYYY-MM-DD" }`로 바꿔 키 개수를 이벤트 수로 고정했습니다. 이전 형식 키는 첫 조회에서 한 번 정리합니다 |
+| `Data/Defaults.lua` | `mythPreviewCache`를 빈 테이블로 비웠습니다. `MergeDefaults`가 로그인마다 `generatedPreviewBonusListID = 12801`을 되채워 preview 캐시가 매번 폐기되는 구조였습니다. **selector `12849`를 넣기 전에 반드시 필요한 수정입니다** |
+
+### 고치지 않은 것
+
+시간당 할당량이 큰 경로들입니다. 회귀 위험이 있어 별도 작업으로 남깁니다.
+
+**고빈도 (높음)**
+
+| 위치 | 내용 |
+| --- | --- |
+| `Events.lua:384-386` | `UNIT_AURA`/`UNIT_STATS`/`UNIT_ATTACK_POWER`를 `RegisterUnitEvent("...", "player")`로 바꿔야 합니다. 지금은 모든 유닛분이 `pcall`까지 도달한 뒤 버려집니다. 저장소에 `RegisterUnitEvent` 사용이 0건입니다 |
+| `UI/StatsOverlay.lua:74, 87` | `toPlainNumber`의 `pcall(function() return value + 0 end)`가 호출마다 클로저를 만듭니다. refresh당 55~115개, 최대 초당 6.7 refresh입니다. 모듈 레벨 헬퍼로 빼면 됩니다 |
+| `UI/Typography.lua:119` | `ApplyFont`의 `shallowCopy`가 `StatsOverlay.lua:499`의 재사용 버퍼를 무효화합니다. refresh당 테이블 70~100개 |
+| `ABPM_ruRU_Final_v3.lua:2276-2298` | `patchStatsOverlayText`가 `StatsOverlay:Refresh`마다 프레임 트리를 재귀 순회하고 FontString마다 `gsub`을 39회 돌립니다. 언어와 무관하게 실행됩니다 |
+| `ABPM_ruRU_Final_v3.lua:1978-2002` | 툴팁 래퍼가 hover마다 `for i = 1, 80` 고정 루프를 돕니다. `{ originalApplyTooltip(...) }`가 `isRuRU()` 검사보다 앞이라 한국어에서도 테이블이 생깁니다 |
+| `Events.lua:548-573` | 가방·루팅 이벤트마다 `C_QuestLog.GetAllCompletedQuestIDs()` 전량 스캔이 3회 돕니다. 전문기술 오버레이가 꺼져 있어도 실행됩니다 |
+| `Core.lua:158-165` | `ns:RefreshUI()`가 현재 탭과 무관하게 패널 7개를 전부 갱신합니다. 호출처 40곳 대부분이 체크박스 하나입니다 |
+| `UI/BISOverlay.lua:2601-2627` | `resolveSeasonDungeonName`이 메모이제이션 없이 `table.sort` 비교자 안에서 호출됩니다 |
+
+**보통** — `getAllSpecs` 무캐시, Encounter Journal 실패 미기록으로 호버마다 재스캔 4곳, `SilvermoonMapOverlay`의 `GetSeasonNames()` 루프 내 호출과 `resolveDisplayText` 전량 재계산과 O(n²) 배치, `ItemLevelOverlay`의 빈 결과 미캐시, aura 성공 경로 무스로틀, `UI_ERROR_MESSAGE` 클로저, 고스트 스윕 무스로틀, `QuestPanel` 강제 스캔 3회와 탭 전환 이중 호출, 숨은 설정 페이지 6개 매번 갱신, `GetProfessionSections` 무캐시.
+
+**기능 결함 1건** — `UI/WorldEventOverlay.lua`의 행 `OnClick`과 `OnMouseDown`이 **둘 다** 완료 토글을 실행합니다. 좌클릭 한 번에 토글과 역토글이 일어나 제자리로 돌아갈 수 있습니다. `OnMouseDown` 쪽을 지우는 것이 맞습니다. 오버레이가 TOC 비활성이라 인게임 확인은 켠 뒤에 합니다.
+
+### 인게임 확인이 필요한 것
+
+- 전문기술 평가 캐시가 매 스캔 무효화되는지. `/abpm debug on` 후 `Profession knowledge scan refreshed: N completed quests (changed|unchanged)` 로그가 계속 `changed`면 확정입니다. 원인 후보는 `ProfessionKnowledgeTracker.lua:367`이 `completedQuestLookup`에 직접 쓰는 것이고, `IsQuestFlaggedCompleted`는 참인데 `GetAllCompletedQuestIDs`에 없는 questID가 하나라도 있으면 평가 캐시 3종이 영구히 무용지물이 됩니다.
+- 애드온 메모리 실측.
+
+```text
+/run UpdateAddOnMemoryUsage() print(GetAddOnMemoryUsage("ABProfileManager"))
+```
+
+`Data/BISCatalog.lua`가 662KB / 657행으로 항상 상주하며 추정 1.0~1.2MB, 로케일 3종이 310KB입니다.
+
+### 이상 없음으로 확인된 것
+
+로그 버퍼 상한(`DEBUG_LOG_MAX = 200`, `CAUGHT_ERROR_LOG_MAX = 80`), `C_Timer.NewTicker` 사용 0건, `RegisterEvent`·`hooksecurefunc` 중복 가드, `RefreshUI`가 고빈도 이벤트에 물려 있지 않음, 전투 대기열 dedupe와 플러시, 은행 세션 플래그 비영속, 목록 행 풀링 전부, 툴팁 싱글턴, UIParent 스캔과 전역 훅 0건, OnUpdate 스로틀 실동작, `Data/` 테이블의 런타임 복사 없음, `TomTomBridge` 전문기술 경로.
+
 ## 4. 판단이 남은 항목
 
 - 일반 던전 아이템 레벨 `214`는 강화 트랙이 없습니다. 현재 스키마에 일반 던전 항목이 없어 넣지 않았습니다. 표시할 가치가 있는지 결정이 필요합니다.

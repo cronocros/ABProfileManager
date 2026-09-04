@@ -93,6 +93,15 @@
 - PvP 값(명예 263~295, 정복 292~308)은 2026-08-28 상인 판매 목록과 개별 툴팁으로 확정했다. 지원자 263은 강화 트랙이 없고, 전투사 289는 노련가 4/6, 검투사 292는 챔피언 1/6이다. `sources.pvp = "tooltip"`이다.
 - 값 수집 경위는 `DOC/SEASON2_HANDOFF.md` 6장에 있다.
 
+## Modules/GhostManager.lua
+
+- 고스트 오버레이는 **풀에서 꺼내 쓴다.** WoW에서 `CreateFrame`으로 만든 프레임은 회수되지 않으므로, 고스트가 해소될 때 참조만 버리면 액션 버튼 아래에 숨은 프레임이 영구히 쌓인다. 해소·교체 경로는 전부 `ReleaseOverlay`로 풀에 돌려주고 `AcquireOverlay`로 다시 꺼낸다.
+- 풀에서 꺼낸 오버레이는 부모가 달라져 있으므로 `SetParent` 뒤에 `SetFrameLevel`을 다시 건다. 생성 시점의 프레임 레벨은 그때의 부모 기준이라 재사용에서는 맞지 않는다.
+
+## Modules/BlizzardFrameManager.lua
+
+- `makeFrameMovable`의 `HookScript("OnDragStop")` 분기는 `frame.ABPMDragStopHooked`로 1회만 건다. `HookScript`는 해제할 수 없어서, 편의기능 체크박스를 껐다 켤 때마다 훅이 하나씩 쌓이고 드래그 한 번에 `saveFrameDB`가 그만큼 중복 실행된다.
+
 ## Data/ProfessionKnowledge.lua
 
 - 주간 퀘스트는 직업마다 변형이 여러 개고 `match = "any"`로 묶는다. 그 주에 걸린 변형 하나만 완료되면 되므로 **변형 목록에서 questID가 하나라도 빠지면 그 주에는 완료를 감지하지 못한다.**
@@ -111,7 +120,8 @@
 
 ## Data/Defaults.lua · DB.lua
 
-- BIS 신화 preview snapshot 캐시의 기본값은 **비워 둔다.** 첫 접근에서 현재 시즌을 채우는 구조다.
+- BIS 신화 preview snapshot 캐시의 기본값은 **비워 둔다.** 첫 접근에서 현재 시즌을 채우는 구조다. `mythPreviewCache = {}`여야 하며 `schemaVersion`·`baselineItemLevel`·`generatedPreviewBonusListID` 같은 값을 여기에 적지 않는다. `Utils.MergeDefaults`가 로그인마다 `nil` 키를 기본값으로 되채우므로, 기본값에 값이 들어 있으면 `GetBISOverlayMythPreviewCache`의 불일치 판정이 매번 참이 되어 **캐시가 로그인마다 통째로 폐기된다.**
+- `worldEventCompletions`는 `{ [eventKey] = "YYYY-MM-DD" }` 형태다. 키에 날짜를 붙이면(`eventKey_YYYY-MM-DD`) 만료 경로가 없어 계정 파일에 무한히 쌓인다. 값이 문자열이 아닌 항목은 이전 형식이라 첫 조회에서 한 번 지운다.
 - snapshot은 그 시즌의 아이템 레벨 기준으로 검증한 값이다. 기존 무효화 조건은 전부 `Data/BISMythicVaultLinks.lua`에서 오기 때문에, 시즌이 바뀌어도 그 파일이 그대로면 이전 시즌 snapshot이 계정 SavedVariables에 계속 남는다. 그래서 **현재 시즌을 캐시 키에 포함**해 시즌이 넘어갈 때 한 번 비운다. 이 키에서 시즌을 빼지 않는다.
 
 ## UI/BISOverlay.lua
@@ -231,6 +241,7 @@
 - 일부 헬퍼는 `getEventState` 이후에 정의해야 한다. forward reference를 피하기 위한 순서다.
 - OnUpdate 드라이버는 1초 간격이며 숨김 상태에서는 즉시 스킵한다.
 - `getEventState`의 판정 순서는 `areaPoiID` 런타임 조회 → `weekly`(`C_DateAndTime.GetSecondsUntilWeeklyReset`) → `anchorVerified`가 참일 때만 정적 주기 계산이다. 어느 것도 못 풀면 `unknown`을 돌려주고 타이머 자리에 `-`를 찍는다. **기준시각을 모르는 이벤트에 가짜 카운트다운을 그리지 않는다.**
+- TomTom 경로점 정리는 `syncWaypoints` 하나에만 있고 그것은 `UpdateContent` 맨 끝에서만 돈다. `UpdateContent`는 접힘·비활성·던전 자동 접기에서 그 전에 반환하므로 **그 세 경로에서 `clearAllEventWaypoints`를 따로 불러야 한다.** 부르지 않으면 이벤트가 끝나도 화살표와 미니맵 핀이 남는다.
 - `rotating` 이벤트는 위치가 고정이 아니다. `getEventPlacement`가 mapID/좌표/지역 라벨을 함께 돌려주고, 풀리지 않으면 TomTom 경로점을 만들지 않는다. 툴팁 지역명도 이 결과를 쓴다.
 - 카운트다운 포맷은 `world_event_timer_hm` / `_ms` / `_s` 로케일 키에서 온다. 이전에는 `시간`/`분`/`초`가 소스에 박혀 있어 영어·러시아어에서도 한국어가 나왔다.
 

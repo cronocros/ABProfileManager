@@ -34,6 +34,13 @@ local function removeEventWaypoint(uid)
     end
 end
 
+local function clearAllEventWaypoints()
+    for key, uid in pairs(eventWaypoints) do
+        removeEventWaypoint(uid)
+        eventWaypoints[key] = nil
+    end
+end
+
 local FONT_FLAGS = "OUTLINE"
 local FRAME_W      = 230
 local REFRESH_INTERVAL = 1
@@ -249,8 +256,12 @@ function WorldEventOverlay:EnsureFrame()
     end)
 
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    frame:RegisterEvent("PLAYER_LEAVING_WORLD")
+    frame:RegisterEvent("PLAYER_LOGOUT")
     frame:SetScript("OnEvent", function(f, event)
-        if event == "PLAYER_ENTERING_WORLD" then
+        if event == "PLAYER_LEAVING_WORLD" or event == "PLAYER_LOGOUT" then
+            clearAllEventWaypoints()
+        elseif event == "PLAYER_ENTERING_WORLD" then
             if type(IsInInstance) == "function" then
                 local inInst, instType = IsInInstance()
                 if inInst and (instType == "party" or instType == "raid") then
@@ -258,6 +269,7 @@ function WorldEventOverlay:EnsureFrame()
                         f._autoHidden = true
                         f._wasCollapsed = self.collapsed
                         self.collapsed = true
+                        clearAllEventWaypoints()
                         self:UpdateLayout()
                     end
                 else
@@ -489,7 +501,11 @@ function WorldEventOverlay:ToggleCollapsed()
     local config = ns.DB and ns.DB:GetWorldEventOverlayConfig()
     if config then config.collapsed = self.collapsed end
     self:UpdateLayout()
-    if not self.collapsed then self:UpdateContent() end
+    if self.collapsed then
+        clearAllEventWaypoints()
+    else
+        self:UpdateContent()
+    end
 end
 
 function WorldEventOverlay:UpdateLayout()
@@ -510,6 +526,7 @@ end
 
 function WorldEventOverlay:Refresh()
     if not ns.DB or not ns.DB:IsWorldEventOverlayEnabled() then
+        clearAllEventWaypoints()
         if self.frame then self.frame:Hide() end
         return
     end
