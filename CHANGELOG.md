@@ -11,6 +11,18 @@
 시즌 2 인게임 QA에서 확인된 로드 오류와 오버레이 결함을 고치고, 시즌 2 데이터를
 와우헤드/DB2로 재검증하고, 영어 표시 결함을 정리한 로컬 릴리스.
 
+2026-09-04 M+ preview selector 확정:
+- 인게임에서 `GetDetailedItemLevelInfo("item:268209::::::::::::1:12849")`가 `318`을
+  돌려주어 시즌 2 Myth 1/6 selector를 `12849`로 확정했다.
+  `Data/BISMythicVaultLinks.lua`의 `generatedPreviewBonusListID`를 `nil`에서 올리고,
+  `scripts/validate_bis_mythic_vault_links.py`의 고정값과
+  `scripts/validate_season2_scope.py`의 동결 해시를 함께 갱신했다.
+- 이로써 M+ 자동 점수화와 preview 툴팁이 다시 동작한다. `Data/Defaults.lua`의
+  `mythPreviewCache`를 앞서 빈 테이블로 고쳐 두지 않았다면 이 값을 넣는 순간
+  로그인마다 캐시가 폐기됐을 것이다.
+- `Data/BISSeasonPreviewLinks.lua`의 raid/tier/crafted selector는 아직 확인 전이라
+  그쪽 hover만 기본 `itemLink`로 표시된다.
+
 2026-09-04 낮음 등급 교차 검토 반영:
 - `Mixin()`은 함수를 프레임 테이블로 복사하므로 믹스인 `SetUp`을 훅해도 그 전에
   만들어진 아이콘에는 반영되지 않는다. `mixinSetUpHooked`만 보고 인스턴스 훅을
