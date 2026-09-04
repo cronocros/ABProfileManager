@@ -21,14 +21,15 @@ local function handleGhostDrop(currentOverlay)
         return
     end
 
-    local placed, err = ns.Modules.ActionBarApplier:PlaceCursorIntoLogicalSlot(currentOverlay.logicalSlot)
+    local logicalSlot = currentOverlay.logicalSlot
+    local placed, err = ns.Modules.ActionBarApplier:PlaceCursorIntoLogicalSlot(logicalSlot)
     if not placed then
         reportStatus(err or ns.L("error_action_place_failed"))
         return
     end
 
     ns.UI.Widgets.HideTooltip()
-    reportStatus(ns.L("ghost_replaced", getSlotLabel(currentOverlay.logicalSlot)))
+    reportStatus(ns.L("ghost_replaced", getSlotLabel(logicalSlot)))
 end
 
 local function handleGhostDismiss(currentOverlay)
@@ -36,12 +37,13 @@ local function handleGhostDismiss(currentOverlay)
         return
     end
 
-    if not ns.Modules.ActionBarApplier:DismissPendingGhost(currentOverlay.logicalSlot) then
+    local logicalSlot = currentOverlay.logicalSlot
+    if not ns.Modules.ActionBarApplier:DismissPendingGhost(logicalSlot) then
         return
     end
 
     ns.UI.Widgets.HideTooltip()
-    reportStatus(ns.L("ghost_removed", getSlotLabel(currentOverlay.logicalSlot)))
+    reportStatus(ns.L("ghost_removed", getSlotLabel(logicalSlot)))
 end
 
 local function resolveButtonAction(button, fallbackSlot)
@@ -118,7 +120,8 @@ function GhostManager:Initialize()
 end
 
 function GhostManager:ReleaseOverlay(overlay)
-    if not overlay then return end
+    if not overlay or overlay._pooled then return end
+    overlay._pooled = true
     overlay:Hide()
     overlay.logicalSlot = nil
     overlay.title = nil
@@ -134,6 +137,7 @@ function GhostManager:AcquireOverlay(button)
     local overlay = pool[#pool]
     if overlay then
         pool[#pool] = nil
+        overlay._pooled = nil
         return overlay
     end
     return createOverlay(button)

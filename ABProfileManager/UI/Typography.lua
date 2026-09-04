@@ -115,7 +115,7 @@ function Typography:ApplyFont(target, baseSize, options)
 
     if not options.transient then
         local entry = REGISTERED_TARGETS[target]
-        if entry and type(entry.options) == "table" then
+        if entry and type(entry.options) == "table" and entry.options ~= options then
             entry.baseSize = baseSize
             local stored = entry.options
             wipe(stored)

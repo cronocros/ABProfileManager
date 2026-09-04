@@ -1950,6 +1950,40 @@ local PROFESSION_TEXT_REPLACEMENTS = {
   [" pt"] = " оч.",
 }
 
+local ORDERED_REPLACEMENT_KEYS = setmetatable({}, { __mode = "k" })
+
+local function orderedReplacementKeys(map)
+  local keys = ORDERED_REPLACEMENT_KEYS[map]
+  if keys then
+    return keys
+  end
+
+  keys = {}
+  for key in pairs(map) do
+    keys[#keys + 1] = key
+  end
+  table.sort(keys, function(a, b)
+    if #a ~= #b then
+      return #a > #b
+    end
+    return a < b
+  end)
+  ORDERED_REPLACEMENT_KEYS[map] = keys
+  return keys
+end
+
+local function applyReplacements(text, map)
+  local value = text
+  local keys = orderedReplacementKeys(map)
+  for i = 1, #keys do
+    local sourceText = keys[i]
+    if value:find(sourceText, 1, true) then
+      value = value:gsub(sourceText, map[sourceText])
+    end
+  end
+  return value
+end
+
 local function translateProfessionText(text)
   if not isRuRU() or type(text) ~= "string" or text == "" then
     return text
@@ -1960,13 +1994,7 @@ local function translateProfessionText(text)
     return exact
   end
 
-  local value = text
-  for sourceText, ruText in pairs(PROFESSION_TEXT_REPLACEMENTS) do
-    if value:find(sourceText, 1, true) then
-      value = value:gsub(sourceText, ruText)
-    end
-  end
-  return value
+  return applyReplacements(text, PROFESSION_TEXT_REPLACEMENTS)
 end
 
 local function patchABPMTooltipHelper()
@@ -2278,13 +2306,7 @@ local function translateOverlayLine(text, map)
   if type(text) ~= "string" or type(map) ~= "table" then
     return text
   end
-  local value = text
-  for from, to in pairs(map) do
-    if value:find(from, 1, true) then
-      value = value:gsub(from, to)
-    end
-  end
-  return value
+  return applyReplacements(text, map)
 end
 
 local SCAN_BUFFERS = {}
@@ -2343,14 +2365,22 @@ local function patchTextRegions(frame, depth)
   end
 end
 
+local patchingStatsOverlayText = false
+
 local function patchStatsOverlayText()
+  if patchingStatsOverlayText then return end
   local overlay = ns.UI and ns.UI.StatsOverlay
   local frame = overlay and overlay.frame
   if not frame then return end
   local language = getAddonLanguage()
   overlayClassMap = CLASS_TEXT_BY_LANGUAGE[language] or EMPTY_TEXT_MAP
   overlayStatMap = STAT_TEXT_BY_LANGUAGE[language] or EMPTY_TEXT_MAP
-  patchTextRegions(frame, 0)
+  patchingStatsOverlayText = true
+  local ok, err = pcall(patchTextRegions, frame, 0)
+  patchingStatsOverlayText = false
+  if not ok and ns.Utils and ns.Utils.RecordCaughtError then
+    ns.Utils.RecordCaughtError("RuRUStatsOverlayPatch", err, 3)
+  end
 end
 
 local function patchStatsOverlayRefresh()

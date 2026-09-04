@@ -151,7 +151,7 @@ v1.13.0 시즌 2 작업 기준입니다. 다른 에이전트나 작업자가 이
 | `UI/BISOverlay.lua` | `GET_ITEM_INFO_RECEIVED` 캐시 기록을 `requested`/`previewEntry` 게이트 안으로 옮겼습니다. 이 이벤트에는 필터가 없어 세션 내 모든 아이템이 들어오는데 게이트 밖에서 캐시에 쓰고 있었고, 비우는 경로도 없었습니다 |
 | `Modules/GhostManager.lua` | 고스트 오버레이 프레임을 풀로 재사용합니다. 이전에는 해소 시 참조만 버려 숨은 프레임이 영구히 쌓였습니다 |
 | `Modules/BlizzardFrameManager.lua` | `HookScript("OnDragStop")`을 `ABPMDragStopHooked`로 1회만 겁니다. 해제할 수 없는 훅이라 기능을 껐다 켤 때마다 쌓였습니다 |
-| `UI/WorldEventOverlay.lua` | 접힘·비활성·던전 자동 접기·월드 이탈에서 TomTom 경로점을 정리합니다 |
+| `UI/WorldEventOverlay.lua` | 접힘·비활성·던전 자동 접기·로그아웃에서 TomTom 경로점을 정리합니다. 이 파일과 아래 `worldEventCompletions`는 TOC 미로드라 사용자에게 드러난 적이 없고, 다시 켜기 전에 미리 고친 것입니다 |
 | `DB.lua` | `worldEventCompletions`를 `{ [eventKey] = "YYYY-MM-DD" }`로 바꿔 키 개수를 이벤트 수로 고정했습니다. 이전 형식 키는 첫 조회에서 한 번 정리합니다 |
 | `Data/Defaults.lua` | `mythPreviewCache`를 빈 테이블로 비웠습니다. `MergeDefaults`가 로그인마다 `generatedPreviewBonusListID = 12801`을 되채워 preview 캐시가 매번 폐기되는 구조였습니다. **selector `12849`를 넣기 전에 반드시 필요한 수정입니다** |
 

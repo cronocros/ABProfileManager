@@ -149,7 +149,18 @@ end
 
 local function isSettingsPanelVisible(self)
     local configPanel = self and self.UI and self.UI.ConfigPanel
-    return configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown()
+    if configPanel and configPanel.settingsFrame and configPanel.settingsFrame:IsShown() then
+        return true
+    end
+
+    local pages = self and self.UI and self.UI.AddonSettingsPages
+    for _, panel in pairs(pages and pages.panels or {}) do
+        if panel and panel.IsShown and panel:IsShown() then
+            return true
+        end
+    end
+
+    return false
 end
 
 local PANEL_BY_TAB = {
