@@ -448,18 +448,6 @@ function WorldEventOverlay:UpdateContent()
             row.timerText:SetText(timer)
         end
 
-        if not row._clickHooked then
-            row._clickHooked = true
-            row:EnableMouse(true)
-            row:SetScript("OnMouseDown", function(r)
-                if not ns.DB or not r._event then return end
-                local key = r._event.key
-                local done = ns.DB:IsWorldEventCompleted(key)
-                ns.DB:SetWorldEventCompleted(key, not done)
-                self:UpdateContent()
-            end)
-        end
-
         yOffset = yOffset + ROW_H + ROW_GAP
     end
 

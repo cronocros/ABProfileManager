@@ -3797,6 +3797,13 @@ function BISOverlay:EnsureFrame()
     thumbTex:SetColorTexture(0.55, 0.35, 0.88, 0.88)
 
     local _dragging, _dragY, _dragScroll = false, 0, 0
+
+    frame:HookScript("OnHide", function()
+        _dragging = false
+        if frame.scrollBarThumb then
+            frame.scrollBarThumb:SetScript("OnUpdate", nil)
+        end
+    end)
     local function updateThumbDrag()
         if not _dragging then return end
         markScrollActivity()
@@ -4035,59 +4042,70 @@ function BISOverlay:EnsureTabs()
     if not frame then return end
     local specs = getClassSpecs()
     if #specs == 0 then return end
-    if #frame.tabs == #specs then
+    if frame.tabsSpecCount == #specs then
         self:UpdateTabHighlight()
         self:UpdateSpecPickerButton()
         return
     end
 
-    for _, tab in ipairs(frame.tabs) do tab:Hide() end
-    frame.tabs = {}
-
     for i, spec in ipairs(specs) do
-        local tab = CreateFrame("Button", nil, frame.tabsFrame)
-        tab:SetSize(TAB_SIZE, TAB_SIZE)
-        tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 6), -2)
+        local tab = frame.tabs[i]
+        if not tab then
+            tab = CreateFrame("Button", nil, frame.tabsFrame)
+            tab:SetSize(TAB_SIZE, TAB_SIZE)
 
-        tab.icon = tab:CreateTexture(nil, "ARTWORK")
-        tab.icon:SetAllPoints()
+            tab.icon = tab:CreateTexture(nil, "ARTWORK")
+            tab.icon:SetAllPoints()
+
+            tab.indicator = tab:CreateTexture(nil, "OVERLAY")
+            tab.indicator:SetHeight(2)
+            tab.indicator:SetPoint("BOTTOMLEFT",  tab, "BOTTOMLEFT",  0, -3)
+            tab.indicator:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, -3)
+            tab.indicator:SetColorTexture(0, 0, 0, 0)
+
+            tab.highlight = tab:CreateTexture(nil, "HIGHLIGHT")
+            tab.highlight:SetAllPoints()
+            tab.highlight:SetColorTexture(1, 1, 1, 0.12)
+
+            tab:SetScript("OnEnter", function(self2)
+                local tooltip = ns.UI.Widgets.GetTooltip()
+                if not tooltip or not self2.specName then
+                    return
+                end
+
+                tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
+                tooltip:SetText(self2.specName, 1, 1, 1, 1, true)
+                tooltip:Show()
+            end)
+            tab:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
+            tab:SetScript("OnClick", function(self2)
+                if not self2.specID then return end
+                BISOverlay.selectedSpecID = self2.specID
+                BISOverlay:UpdateTabHighlight()
+                BISOverlay:RebuildContent()
+            end)
+
+            frame.tabs[i] = tab
+        end
+
+        tab:ClearAllPoints()
+        tab:SetPoint("TOPLEFT", frame.tabsFrame, "TOPLEFT", (i - 1) * (TAB_SIZE + 6), -2)
         if spec.icon then
             tab.icon:SetTexture(spec.icon)
             tab.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
         end
-
-        tab.indicator = tab:CreateTexture(nil, "OVERLAY")
-        tab.indicator:SetHeight(2)
-        tab.indicator:SetPoint("BOTTOMLEFT",  tab, "BOTTOMLEFT",  0, -3)
-        tab.indicator:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, -3)
-        tab.indicator:SetColorTexture(0, 0, 0, 0)
-
-        tab.highlight = tab:CreateTexture(nil, "HIGHLIGHT")
-        tab.highlight:SetAllPoints()
-        tab.highlight:SetColorTexture(1, 1, 1, 0.12)
-
         tab.specID   = spec.specID
         tab.specName = spec.name
-
-        tab:SetScript("OnEnter", function(self2)
-            local tooltip = ns.UI.Widgets.GetTooltip()
-            if not tooltip then
-                return
-            end
-
-            tooltip:SetOwner(self2, "ANCHOR_BOTTOM")
-            tooltip:SetText(spec.name, 1, 1, 1, 1, true)
-            tooltip:Show()
-        end)
-        tab:SetScript("OnLeave", ns.UI.Widgets.HideTooltip)
-        tab:SetScript("OnClick", function()
-            BISOverlay.selectedSpecID = spec.specID
-            BISOverlay:UpdateTabHighlight()
-            BISOverlay:RebuildContent()
-        end)
-
-        frame.tabs[i] = tab
+        tab:Show()
     end
+
+    for i = #specs + 1, #frame.tabs do
+        frame.tabs[i].specID = nil
+        frame.tabs[i].specName = nil
+        frame.tabs[i]:Hide()
+    end
+
+    frame.tabsSpecCount = #specs
 
     if frame.specPickerBtn then
         frame.specPickerBtn:SetScript("OnClick", function()

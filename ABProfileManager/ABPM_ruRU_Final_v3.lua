@@ -1112,7 +1112,14 @@ local SPEC_NAMES_RURU = {
   [1473] = "Насыщатель",
 }
 
-local OBJECTIVE_NAMES_RURU = {
+local OBJECTIVE_NAMES_RURU_DATA = nil
+
+local function objectiveNamesRuRU()
+  if OBJECTIVE_NAMES_RURU_DATA then
+    return OBJECTIVE_NAMES_RURU_DATA
+  end
+
+  OBJECTIVE_NAMES_RURU_DATA = {
   [" Death Knight - "] = " Рыцарь смерти - ",
   [" Demon Hunter - "] = " Охотник на демонов - ",
   [" Druid - "] = " Друид - ",
@@ -1570,7 +1577,9 @@ local OBJECTIVE_NAMES_RURU = {
   ["재봉술"] = "Tailoring",
   ["주문각인"] = "Inscription",
   ["채광"] = "Mining",
-}
+  }
+  return OBJECTIVE_NAMES_RURU_DATA
+end
 
 local PROFESSION_NAMES = {
   ruRU = {
@@ -1972,13 +1981,34 @@ local function orderedReplacementKeys(map)
   return keys
 end
 
+local REPLACEMENT_PATTERNS = setmetatable({}, { __mode = "k" })
+
+local function replacementPattern(map, key)
+  local cache = REPLACEMENT_PATTERNS[map]
+  if not cache then
+    cache = {}
+    REPLACEMENT_PATTERNS[map] = cache
+  end
+
+  local pattern = cache[key]
+  if not pattern then
+    if key:match("^%a[%a ]*$") then
+      pattern = "%f[%a]" .. key .. "%f[%A]"
+    else
+      pattern = key
+    end
+    cache[key] = pattern
+  end
+  return pattern
+end
+
 local function applyReplacements(text, map)
   local value = text
   local keys = orderedReplacementKeys(map)
   for i = 1, #keys do
     local sourceText = keys[i]
     if value:find(sourceText, 1, true) then
-      value = value:gsub(sourceText, map[sourceText])
+      value = value:gsub(replacementPattern(map, sourceText), map[sourceText])
     end
   end
   return value
@@ -1989,7 +2019,7 @@ local function translateProfessionText(text)
     return text
   end
 
-  local exact = OBJECTIVE_NAMES_RURU[text]
+  local exact = objectiveNamesRuRU()[text]
   if exact then
     return exact
   end
@@ -2090,7 +2120,7 @@ local function getRuObjectiveName(name)
     return name or ""
   end
 
-  local exact = OBJECTIVE_NAMES_RURU[name]
+  local exact = objectiveNamesRuRU()[name]
   if exact then
     return exact
   end
@@ -2112,7 +2142,7 @@ local function getRuObjectiveName(name)
   for _, entry in ipairs(OBJECTIVE_PREFIX_RURU) do
     local baseName = name:match(entry.pattern)
     if baseName then
-      local translatedBase = OBJECTIVE_BASE_RURU[baseName] or OBJECTIVE_NAMES_RURU[baseName]
+      local translatedBase = OBJECTIVE_BASE_RURU[baseName] or objectiveNamesRuRU()[baseName]
       if translatedBase then
         return string.format(entry.format, translatedBase)
       end
@@ -2194,7 +2224,7 @@ function RURU.GetMapLabel(label)
   if not isRuRU() or type(label) ~= "string" then
     return label
   end
-  return OBJECTIVE_NAMES_RURU[label] or label
+  return objectiveNamesRuRU()[label] or label
 end
 
 local function patchScrollButtonSymbols()

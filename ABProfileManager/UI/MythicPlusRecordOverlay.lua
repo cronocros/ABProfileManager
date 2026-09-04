@@ -494,7 +494,12 @@ local function collectDungeonIcons()
     return frame, nil
 end
 
+local mixinSetUpHooked = false
+
 local function hookIcon(icon)
+    if mixinSetUpHooked then
+        return
+    end
     if type(icon) ~= "table" or icon.ABPMRecordOverlayHooked or type(icon.SetUp) ~= "function" then
         return
     end
@@ -605,9 +610,12 @@ function MythicPlusRecordOverlay:SetupHooks()
     end
 
     if ChallengesDungeonIconMixin and type(ChallengesDungeonIconMixin.SetUp) == "function" then
-        pcall(hooksecurefunc, ChallengesDungeonIconMixin, "SetUp", function(icon)
+        local hooked = pcall(hooksecurefunc, ChallengesDungeonIconMixin, "SetUp", function(icon)
             MythicPlusRecordOverlay:RefreshIcon(icon)
         end)
+        if hooked then
+            mixinSetUpHooked = true
+        end
     end
 
     pcall(ChallengesFrame.HookScript, ChallengesFrame, "OnShow", function()
@@ -728,7 +736,6 @@ function MythicPlusRecordOverlay:Initialize()
         end
 
         if DATA_EVENTS[event] then
-            resetRefreshRetries()
             MythicPlusRecordOverlay:Refresh()
         end
     end)
