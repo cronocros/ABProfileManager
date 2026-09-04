@@ -123,12 +123,13 @@
 ## Modules/ProfessionKnowledgeTracker.lua
 
 - `GetProfessionSections`는 `professionSectionsCache`에 `questCacheGeneration`을 함께 담아 기억한다. 인접한 `GetProfessionSummary`·`EvaluateSource`는 이미 캐시를 쓰는데 이 함수만 매번 섹션·행 테이블을 새로 만들었고, `ProfessionPanel:RefreshCard`가 카드마다 부른다.
-- 새 캐시를 추가하면 `resetEvaluationCaches`와 `ABPM_ruRU_Final_v3.lua`의 `RURU.RefreshProfessionCaches` **양쪽**에 넣어야 한다. 한쪽만 넣으면 언어 전환 뒤 이전 언어의 섹션 제목이 남는다.
+- 새 캐시를 추가하면 `resetEvaluationCaches`와 `ABPM_ruRU_Final_v3.lua`의 `RURU.RefreshProfessionCaches` **양쪽**에 넣어야 한다. 한쪽만 넣으면 세대가 오른 뒤에도 이전 세대의 행이 남는다. 참고로 `sections[i].title`을 읽는 소비자는 없다. 패널과 오버레이는 제목을 `ns.L`로 직접 만들고 `rows`만 가져간다.
 
 ## UI/QuestPanel.lua · UI/ConfigPanel.lua
 
 - `queueRefresh`는 즉시 1회와 0.45초 뒤 1회만 강제 스캔한다. 이전에는 0.15초 지점까지 세 번이었다. `QuestManager:Scan(true)`는 퀘스트 로그 전체를 다시 훑고 배열 3개를 정렬한다. 지연 스캔은 토큰으로 중복을 막는다.
-- 탭 전환 시 강제 스캔은 `frame` `OnShow` 한 곳에만 둔다. `refreshCurrentTab`도 강제로 부르면 `SetShown`이 `OnShow`를 동기 발화한 직후 한 번 더 돌아 클릭 한 번에 두 번 스캔한다. `isRefreshing` 가드는 재진입만 막고 연속 호출은 막지 못한다.
+- 이미 보이는 퀘스트 탭을 다시 선택하면 `SetShown(true)`가 no-op이라 `OnShow`가 발화하지 않는다. `refreshCurrentTab`은 `QuestPanel._lastForcedScanAt`이 **이번 프레임**이 아닐 때만 강제 스캔한다. `GetTime()`은 프레임 안에서 값이 같으므로, `OnShow`가 방금 강제 스캔했으면 건너뛰고 아니면 직접 건다.
+- 탭 전환 시 강제 스캔은 기본적으로 `frame` `OnShow`에 둔다. `refreshCurrentTab`도 강제로 부르면 `SetShown`이 `OnShow`를 동기 발화한 직후 한 번 더 돌아 클릭 한 번에 두 번 스캔한다. `isRefreshing` 가드는 재진입만 막고 연속 호출은 막지 못한다.
 - `ConfigPanel:Refresh`는 Blizzard 설정 창이 보일 때만 `settingsRefs`를 갱신하고, `AddonSettingsPages:Refresh`는 실제로 표시된 페이지만 갱신한다. 각 페이지에 `OnShow` 갱신이 이미 있어 표시 시점 정확성은 유지된다.
 
 ## Data/ProfessionKnowledge.lua
@@ -150,13 +151,16 @@
 ## UI/SilvermoonMapOverlay.lua
 
 - `resolveDisplayText`는 포인트별로 결과를 약한 키 테이블에 기억한다. 한국어 경로는 글자 단위 배열과 청크 테이블, `table.concat`을 여러 번 거치는데, 결과는 포인트와 언어에만 의존한다. 확대·축소로 `layoutKey`의 버킷이 바뀔 때마다 68개 포인트분을 통째로 다시 계산했다.
-- `LayoutPoints`는 포인트 집합이 그대로면 `getNearbyCount`를 다시 돌리지 않는다. 이 값은 좌표에만 의존하고 확대 배율과 무관하다. 집합 동일 여부는 `_layoutEntries[i].point`를 순서대로 비교해 판정한다. 런타임 포인트는 무효화 때 새 테이블로 만들어지므로 객체 동일성 비교로 충분하다.
-- `CollectEntrances`는 `RuntimePoints.GetSeasonNames()`를 루프 **밖에서** 한 번만 부른다. 이 함수는 `ejResolved > 0`일 때만 결과를 캐시하므로, Encounter Journal이 아직 응답하지 않는 구간에서 루프 안에 두면 엔트리마다 전체 재구축이 돈다.
+- `LayoutPoints`는 포인트 집합이 그대로면 `getNearbyCount`를 다시 돌리지 않는다. 이 값은 좌표에만 의존하고 확대 배율과 무관하다. 런타임 포인트는 무효화 때 새 테이블로 만들어지므로 객체 동일성 비교로 충분하다.
+- **비교 대상은 `_layoutPrevPoints`이지 `_layoutEntries`가 아니다.** `_layoutEntries`는 호출 끝에서 `table.sort`로 제자리 정렬되므로, 다음 호출에 `_layoutPoints`(소스 순서)와 맞대면 거의 항상 첫 인덱스에서 어긋나 빠른 경로가 죽는다.
+- 길이 비교는 `>=`가 아니라 `==`다. `HideAll()` 조기 반환 경로는 `_layoutEntries` 꼬리를 잘라내지 않아서, `>=`로 두면 포인트가 줄어든 뒤 앞쪽이 일치할 때 사라진 포인트를 포함한 `nearbyCount`가 그대로 쓰인다.
+- `CollectEntrances`는 `RuntimePoints.GetSeasonNames()`를 **처음 필요할 때 한 번만** 부른다. 이 함수는 `ejResolved > 0`일 때만 결과를 캐시하므로, 루프 안에 두면 Encounter Journal이 아직 응답하지 않는 구간에서 엔트리마다 전체 재구축이 돈다. 루프 밖으로 무조건 올리면 이번엔 모든 엔트리가 `GetInstanceCategory`로 풀리는 경우까지 한 번씩 스윕한다.
 
 ## UI/ItemLevelOverlay.lua 풍요 구렁 캐시
 
 - 풍요로운 구렁 이름을 하나도 못 찾으면 그 사실을 `BOUNTIFUL_DELVE_EMPTY_TTL` 동안 기억한다. 빈 결과를 캐시하지 않으면 `DELVE_MAP_IDS` 6개 지도 × POI 전수 조회가 호출마다 반복되고, `RefreshSidePanel`은 이것을 두 번 부른다. `AREA_POIS_UPDATED`가 캐시를 무효화하므로 시즌 구렁 POI가 없는 지역에서는 영원히 반복됐다.
-- `InvalidateBountifulDelveNamesCache`는 **성공 캐시만** 지우고 실패 TTL은 남긴다. TTL까지 지우면 무효화 이벤트가 곧 재스캔 트리거가 되어 throttle이 무의미해진다.
+- `InvalidateBountifulDelveNamesCache`는 실패 TTL도 함께 지운다. 남기면 로딩 중 빈 결과로 TTL이 서고, 직후 실제 POI가 올라와 `AREA_POIS_UPDATED`가 무효화해도 스캔이 막혀 `알 수 없음`이 남는다. **TTL 만료 자체는 갱신을 트리거하지 않으므로** 지연이 TTL 길이로 끝나지 않고 다음 refresh 트리거까지 이어진다.
+- throttle 이득은 그대로다. 이 함수를 한 refresh 안에서 두 번 부르는 `RefreshSidePanel` 경로에는 무효화 이벤트가 끼어들지 않는다.
 
 ## UI/StatsOverlay.lua
 
@@ -191,10 +195,14 @@
 
 - 이 파일의 top-level local은 현재 `195`개다. `scripts/validate_bis_tooltip_contract.py`가 세는 값이며(선언된 이름 수, `LocalAssign` targets + `LocalFunction`) 예산은 `198`, Lua 스코프당 상한은 `200`이다. **새 top-level local을 추가하면 파일이 컴파일되지 않을 수 있다.** helper는 전부 기존 테이블의 필드로 넣는다.
 - `SeasonGuard.dataSeason`은 동결된 BIS 정적 데이터(`Data/BISCatalog.lua`, `BISMythicVaultLinks.lua`, `BISSeasonPreviewLinks.lua`, `BISEncounterJournal.lua`)가 기준으로 삼는 시즌이다. BIS 데이터를 갱신할 때 이 값도 함께 올린다.
-- `getAllSpecs`는 `BISOverlay._allSpecsCache`에 결과를 담는다. 캐시 키는 플레이어 직업, 직업 수, 언어다. `Refresh()` 한 번에 `EnsureTabs`·`UpdateSpecPickerButton` 경로로 5~7번 불리는데, 매번 40개 전문화 테이블을 만들고 정렬했다. 전문화 목록이 아직 안 채워졌으면(`#specs == 0`) 캐시하지 않는다.
+- `getAllSpecs`는 `BISOverlay._allSpecsCache`에 결과를 담는다. 캐시 키는 플레이어 직업, 직업 수, 언어다. `Refresh()` 한 번에 `EnsureTabs`·`UpdateSpecPickerButton` 경로로 5~7번 불리는데, 매번 40개 전문화 테이블을 만들고 정렬했다.
+- **부분 결과를 캐시하지 않는다.** 직업 이름이 하나라도 비었거나 수집한 전문화 수가 `GetNumSpecializationsForClassID` 합계와 다르면 저장을 건너뛴다. 캐시 키가 그 뒤로 바뀌지 않으므로, 덜 올라온 데이터를 굳히면 세션 내내 남는다. `SeasonGuard.IsMismatched`에서 이미 금지한 것과 같은 형태다.
+- 캐시된 배열은 `frame.specPicker.items`로도 나간다. **불변으로 다룬다.** 이 배열을 정렬하거나 원소를 고치면 캐시가 오염된다.
 - `EJournal.ShouldRetry(store, key, cooldown)`는 실패한 스캔을 잠시 막는다. Encounter Journal은 로그인 직후나 데이터가 덜 올라온 구간에서 빈 결과를 돌려주는데, 실패를 기록하지 않으면 호버할 때마다 `EJ_SelectTier`·`EJ_SelectInstance` 왕복 전체가 다시 돈다. **성공을 기록하는 `scannedTiers`·`lootScanned`가 먼저 걸러지므로 성공 경로는 막지 않는다.**
+- 이 함수는 실패 시각을 그대로 저장하고 `now > attemptedAt`일 때만 막는다. `GetTime()`은 한 프레임 안에서 값이 같으므로 **같은 프레임의 두 번째 시도는 통과한다.** Encounter Journal은 조회 자체가 데이터를 채우는 API라 첫 호출이 실패하고 두 번째가 성공하는 패턴이 있다. 행 `OnEnter`가 `ResolveEntryLoot`를 부르고 이어지는 툴팁이 `GetEntryBossName`으로 한 번 더 부르는 것이 그 경로다. `now < attemptedAt`으로 막으면 이 재시도가 사라진다.
 - `MatchRaidBoss`가 `EJournal.lastMatchPoolSize`에 실제로 훑은 풀 크기를 남긴다. `FindRaidTargetByBoss`의 음수 캐시 조건이 `#EJournal.raidInstances > 0`이었는데, 그 배열은 `ScanTierBucket`만 채우고 `MatchRaidBoss`의 폴백 풀은 지역 변수라, 티어 스캔 전에는 음수 캐시가 **영영 저장되지 않았다.** 폴백 풀을 `raidInstances`에 병합하면 안 된다. 그 배열은 전 티어 검색의 입력이고 폴백 풀은 현재 시즌만 담는다.
-- `SourcePreview.raidLocationLabels`는 호버마다 만들던 13원소 배열이다. 첫 사용 때 정규화 결과를 `raidLocationLookup`으로 한 번만 만들어, 호출당 `normalizeCompareText`가 13회에서 1회로 준다.
+- 풀 크기만으로는 부족해서 `lastMatchPoolTrusted`를 함께 본다. 티어 스캔이 한 번도 성공하지 않은 상태에서도 `GetSeasonRaidInstances()` 폴백은 레이드 버킷만 훑어 0이 아닌 값을 돌려줄 수 있고, 그때 조우 목록이 비어 있으면 매치가 실패한다. 그 실패를 `false`로 굳히면 `bossTargetCache`를 비우는 경로가 `DiagnoseJournal` 뿐이라 세션 내내 남는다.
+- `SourcePreview.raidLocationLabels`는 호버마다 만들던 12원소 배열이다. 첫 사용 때 정규화 결과를 `raidLocationLookup`으로 한 번만 만들어, 호출당 `normalizeCompareText`가 13회에서 1회로 준다.
 - `SourcePreview.tooltipTextKeys`는 툴팁 라인 루프 **안에서** 만들던 3원소 배열이다. 툴팁 한 건이 20~30라인이라 호출당 테이블이 그만큼 생겼다.
 - `resolveSeasonDungeonName`은 `EJournal.GetSeasonDungeonNameCache()`로 결과를 기억한다. 미스일 때 던전 8종을 돌며 `normalizeCompareText`(`gsub` 3회)를 반복하는데, `getEntrySourceType`이 첫 줄에서 이 함수를 부르고 그 `getEntrySourceType`이 `compareSlotEntries` 즉 `table.sort` 비교자 안에서 불린다. 해결 실패는 `false`로 캐시한다. 캐시는 언어가 바뀌면 통째로 버린다.
 - `Data/ItemLevelTable.lua`의 시즌이 `dataSeason`과 다르면 BIS 후보·템렙·Encounter Journal tier가 현재 시즌과 맞지 않는다. 이때 Encounter Journal 자동 랜딩, M+ 자동 점수화, preview snapshot 스캔, preview 순위 점수를 모두 끈다. 틀린 tier로 이동시키거나 이전 시즌 snapshot으로 현재 시즌 순위를 매기지 않기 위한 것이다.

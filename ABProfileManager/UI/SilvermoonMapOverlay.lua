@@ -8,6 +8,7 @@ local REFRESH_INTERVAL = 0.5
 local DRIVER_BURST_DURATION = 1.0
 
 local _layoutPoints      = {}
+local _layoutPrevPoints  = {}
 local _layoutEntries     = {}
 local _layoutPlaced      = {}
 local _layoutPlacedPool  = {}
@@ -514,7 +515,8 @@ function RuntimePoints.CollectEntrances(mapID, points, index)
     end
 
     local matched = false
-    local seasonNames = RuntimePoints.GetSeasonNames()
+    local seasonNames = nil
+    local seasonNamesResolved = false
     for _, entry in ipairs(entries) do
         if type(entry) == "table" then
             local category = RuntimePoints.GetInstanceCategory(entry.journalInstanceID)
@@ -523,6 +525,10 @@ function RuntimePoints.CollectEntrances(mapID, points, index)
                 name = callMapApi(EJ_GetInstanceInfo, tonumber(entry.journalInstanceID))
             end
             if not category and type(name) == "string" and name ~= "" then
+                if not seasonNamesResolved then
+                    seasonNamesResolved = true
+                    seasonNames = RuntimePoints.GetSeasonNames()
+                end
                 if type(seasonNames) == "table" then
                     category = seasonNames[normalizeMapName(name)]
                 end
@@ -1340,11 +1346,10 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData, points)
     end
     local entryCount = #_layoutPoints
 
-    local samePointSet = #_layoutEntries >= entryCount
+    local samePointSet = #_layoutPrevPoints == entryCount and #_layoutEntries == entryCount
     if samePointSet then
         for i = 1, entryCount do
-            local e = _layoutEntries[i]
-            if not e or e.point ~= _layoutPoints[i] then
+            if _layoutPrevPoints[i] ~= _layoutPoints[i] then
                 samePointSet = false
                 break
             end
@@ -1361,6 +1366,11 @@ function SilvermoonMapOverlay:LayoutPoints(parent, mapData, points)
             local point = _layoutPoints[i]
             e.point = point
             e.nearbyCount = getNearbyCount(_layoutPoints, point, point.crowdRadius or CROWD_RADIUS_PERCENT)
+        end
+
+        wipe(_layoutPrevPoints)
+        for i = 1, entryCount do
+            _layoutPrevPoints[i] = _layoutPoints[i]
         end
     end
 

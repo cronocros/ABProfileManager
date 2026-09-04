@@ -199,7 +199,6 @@ function Tracker:Initialize()
 
     self.completedQuestLookup = {}
     self.questStatusLookup = {}
-    self.professionSectionsCache = nil
     self.questCacheDirty = true
     self.questCacheGeneration = 0
     self.knownProfessionCache = nil

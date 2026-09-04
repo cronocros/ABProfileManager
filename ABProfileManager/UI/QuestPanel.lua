@@ -177,10 +177,12 @@ function QuestPanel:Refresh(forceScan)
         return
     end
 
+    if forceScan then
+        self._lastForcedScanAt = (type(GetTime) == "function" and GetTime()) or nil
+    end
+
     self.isRefreshing = true
-    local ok, err = pcall(function()
-        self:RefreshInternal(forceScan)
-    end)
+    local ok, err = pcall(self.RefreshInternal, self, forceScan)
     self.isRefreshing = false
 
     if not ok then

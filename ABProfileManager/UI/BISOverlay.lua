@@ -527,6 +527,8 @@ local function getAllSpecs()
     end
 
     local specs = {}
+    local expectedSpecs = 0
+    local classInfoComplete = true
     local playerClassID = getPlayerClassID()
     local numClasses = GetNumClasses() or 0
     local cacheKey = tostring(playerClassID or 0) .. ":" .. tostring(numClasses) .. ":"
@@ -538,7 +540,11 @@ local function getAllSpecs()
 
     for classID = 1, numClasses do
         local className, classFile = GetClassInfo(classID)
+        if not className or not classFile then
+            classInfoComplete = false
+        end
         local specCount = GetNumSpecializationsForClassID(classID) or 0
+        expectedSpecs = expectedSpecs + specCount
         for specIndex = 1, specCount do
             local ok, specID, specName, _, icon = pcall(
                 GetSpecializationInfoForClassID, classID, specIndex
@@ -573,7 +579,7 @@ local function getAllSpecs()
         return tostring(a.name) < tostring(b.name)
     end)
 
-    if #specs > 0 then
+    if #specs > 0 and classInfoComplete and #specs == expectedSpecs then
         BISOverlay._allSpecsCache = { key = cacheKey, value = specs }
     end
 
@@ -629,7 +635,8 @@ local EJournal = {
     entryLootCache = {},
     entryInstanceRetryAt = {},
     lastMatchPoolSize = 0,
-    failedScanRetrySeconds = 5.0,
+    lastMatchPoolTrusted = false,
+    failedScanRetrySeconds = 2.0,
     isRaidInstance = {},
     numTiers = nil,
     allTiersScanned = false,
@@ -643,11 +650,12 @@ function EJournal.ShouldRetry(store, key, cooldown)
     if not now then
         return true
     end
-    local retryAt = store[key]
-    if retryAt and now < retryAt then
+    local attemptedAt = store[key]
+    if attemptedAt and now > attemptedAt
+        and now < attemptedAt + (cooldown or EJournal.failedScanRetrySeconds or 2.0) then
         return false
     end
-    store[key] = now + (cooldown or EJournal.failedScanRetrySeconds or 5.0)
+    store[key] = now
     return true
 end
 
@@ -924,6 +932,8 @@ function EJournal.MatchRaidBoss(encounterHints, startIndex, requiredTier)
     end
 
     EJournal.lastMatchPoolSize = #pool
+    EJournal.lastMatchPoolTrusted = #EJournal.raidInstances > 0
+        or (EJournal.scannedTiers[CURRENT_SEASON_EJ_TIER_INDEX] and true or false)
 
     for index = startIndex, #pool do
         local raid = pool[index]
@@ -967,7 +977,7 @@ function EJournal.FindRaidTargetByBoss(encounterHints)
     EJournal.RestoreTier(previousTier)
 
     if not instanceID then
-        if (EJournal.lastMatchPoolSize or 0) > 0 then
+        if (EJournal.lastMatchPoolSize or 0) > 0 and EJournal.lastMatchPoolTrusted then
             EJournal.bossTargetCache[cacheKey] = false
         end
         return nil
